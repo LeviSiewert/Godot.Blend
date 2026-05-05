@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from abc import ABC, abstractmethod
 from typing import Type
 from __future__ import annotations
+from typing import Any
 
 ## Definition Types ##
 
@@ -52,7 +53,6 @@ class GdTypeValue(GdType):
     def export_string(context:dict)->str: pass
 
 class GdTypeValueImplicit(GdTypeValue):
-    
     pass
 
 class String(GdTypeValueImplicit):
@@ -61,26 +61,41 @@ class String(GdTypeValueImplicit):
 class StringName(String):
     ''' Subtype of string starting with &
     Benefits from defered referencing, joining
+    String generic, no special attributes for us
     '''
 
 class StringUid(String):
     ''' Subtype of string starting with uid:// 
     Benefits from defered referencing, joining
+    Unique name in project, represented in external files by an external file.
     '''
 
 class StringRes(String):
-    ''' Subtype of string starting with res:// 
+    ''' Subtype of string starting with res://
+    Relative to project root (project.Godot) 
     Benefits from defered referencing, joining
+    examples:
+        - res://character_t2/movement_states/move_strafe.gd
+        - res://character_t2/movement_states/move.gd
     '''
 
 class StringLID(String):
     ''' Subtype of string that is a local resource ID 
     Defered generation, callback 
+    ResourceReferences reference this for export of it's value  
+    examples: 
+        - ProceduralSkyMaterial_t0ucp
+        - Environment_t476e
+        - Sky_83rd1
     '''
 
 class StringEID(String):
-    ''' Subtype of string that is an external resource ID 
-    Defered generation, callback 
+    ''' Subtype of string that is an external resources local ID 
+    Defered generation, callback
+    ExtResourceReferences reference this for export of it's value  
+    examples: 
+        - 1_mxm6v 
+        - 14_wc72v
     '''
 
 
@@ -103,8 +118,8 @@ class Array(GdTypeValueImplicit):
         self._val_type = val_type
 
 class DictionaryEntry(BaseModel):
-    key : Any
-    val : Any
+    key : GdTypeValue
+    val : GdTypeValue
 class Dictionary(GdTypeValueImplicit):
     _key_type = Type = Any
     _val_type = Type = Any
@@ -327,7 +342,7 @@ class GdTypeNode(GdTypeSubObject):
 
     type : str ## Name of ibuilt node type.
     name : str ## Name of node. Only unique in peers
-    parent : str ## Path relative to scene root. if "." this is the root
+    parent : str ## Path relative to scene root. if "." it refers to root, If null this is the root.
     index : str  ## str(int), index in parent. TODO: May allow special flags (first, last, ect)
     uid : StringUid  ## uuid:// ...
     unique_id : int  ## TODO: Exact purpose unknown. Perhaps runtime inst?
@@ -347,6 +362,9 @@ class GdTypeFile(GdType):
     _last_updated : int
     _reference_only : bool
     
+    uid : StringUid
+    path : StringRes
+
     @abstractmethod
     def matches_header(): ...
     @abstractmethod
@@ -363,9 +381,9 @@ class GdTypeFile(GdType):
 class GdTypeFileResource(GdTypeFile):
     ''' resource.tres '''
     _header_id : str = "gd_scene"
-    type : int
+    type : str
     format : int
-    uid : UidString
+    
     properties : list[GdTypeProperty]
     sub_resources : list[GdTypeSubObject] ## All other included objects
 
@@ -373,20 +391,31 @@ class GdTypeFileTscn(GdTypeFile):
     ''' scene.tscn | escn '''
     _header_id : str = "gd_scene"
     format : int
-    uid : UidString
+
+    properties : list[GdTypeProperty]
     sub_resources : list[GdTypeSubObject] ## All other included objects
 
 class GdTypeFileProject(GdTypeFile):
     ''' project.godot '''
-    path : str
-
+    
     properties : list[GdTypeProperty]
-    sections : list[GdTypeSection]
+    sections : list[GdTypeSection] ## Atm, these data types are not yet covered.
 
+class GdTypeFileGeneric(GdTypeFile):
+    path : StringRes
+    
 
 ## Project management ##
 
 class GdTypeProject():
     ''' Entire project representation, UID mapping, File management, ect '''
+    root_path : str
     
-    pass
+    project : GdTypeFileProject
+    data : Array[GdTypeFile]
+    
+    uuid_map : dict[str, GdTypeFile]
+    path_map : dict[str, GdTypeFile]
+
+    files : GdTypeFile
+
