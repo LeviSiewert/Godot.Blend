@@ -117,17 +117,7 @@ class Array(GdTypeValueImplicit):
     def typed(self, val_type:Type):
         self._val_type = val_type
 
-class DictionaryEntry(BaseModel):
-    key : GdTypeValue
-    val : GdTypeValue
-class Dictionary(GdTypeValueImplicit):
-    _key_type = Type = Any
-    _val_type = Type = Any
-    entries : Array[DictionaryEntry]
-    
-    def typed(self, key_type:Type, val_type:Type):
-        _key_type = key_type
-        _val_type = val_type
+
 
 
 class GdTypeValueExplicit(GdTypeValue):
@@ -188,98 +178,6 @@ class GdTypeValueExplicitArray(GdTypeValueExplicit):
             return self._wrap_string_val(self._seperater.join(strings))
         
 
-class Vector2(GdTypeValueExplicitArray):
-    _key : str = "Vector2"
-    _type : Type = Float64
-    value : list[Float64]
-class Vector3(GdTypeValueExplicitArray):
-    _key : str = "Vector3"
-    _type : Type = Float64
-    value : list[Float64]
-class Vector4(GdTypeValueExplicitArray):
-    _key : str = "Vector4"
-    _type : Type = Float64
-    value : list[Float64]
-class Vector2i(GdTypeValueExplicitArray):
-    _key : str = "Vector2i"
-    _type : Type = Integer64
-    value : list[Integer64]
-class Vector3i(GdTypeValueExplicitArray):
-    _key : str = "Vector3i"
-    _type : Type = Integer64
-    value : list[Integer64]
-class Vector4i(GdTypeValueExplicitArray):
-    _key : str = "Vector4i"
-    _type : Type = Integer64
-    value : list[Integer64]
-class Quaternion(GdTypeValueExplicitArray):
-    _key : str = "Quaternion"
-    _type : Type = Float64
-    value : list[Float64]
-class Transform3D(GdTypeValueExplicitArray):
-    _key : str = "Transform3D"
-    _type : Type = Float64
-    value : list[Float64]
-class Color(GdTypeValueExplicitArray):
-    _key : str = "Color"
-    _type : Type = Float64
-    value : list[Float64]
-class AABB(GdTypeValueExplicitArray):
-    _key : str = "AABB"
-    _type : Type = Float64
-    value : list[Float64]
-class PackedByteArray(GdTypeValueExplicitArray):
-    _key : str = "PackedByteArray"
-    _type : Type = bytes
-    value : list[bytes]
-class PackedInt32Array(GdTypeValueExplicitArray):
-    _key : str = "PackedInt32Array"
-    _type : Type = int
-    value : list[int]
-class PackedInt64Array(GdTypeValueExplicitArray):
-    _key : str = "PackedInt64Array"
-    _type : Type = int
-    value : list[int]
-class PackedFloat32Array(GdTypeValueExplicitArray):
-    _key : str = "PackedFloat32Array"
-    _type : Type = float
-    value : list[float]
-class PackedFloat64Array(GdTypeValueExplicitArray):
-    _key : str = "PackedFloat64Array"
-    _type : Type = float
-    value : list[float]
-class PackedStringArray(GdTypeValueExplicitArray):
-    _value_is_string_derivitve : bool = True
-    _key : str = "PackedStringArray"
-    _type : Type = str
-    value : list[str]
-class PackedVector2Array(GdTypeValueExplicitArray):
-    _key : str = "PackedVector2Array"
-    _type : Type = Vector2
-    value : list[Vector2]
-class PackedVector3Array(GdTypeValueExplicitArray):
-    _key : str = "PackedVector3Array"
-    _type : Type = Vector3
-    value : list[Vector3]
-class PackedVector4Array(GdTypeValueExplicitArray):
-    _key : str = "PackedVector4Array"
-    _type : Type = Vector4
-    value : list[Vector4]
-class PackedColorArray(GdTypeValueExplicitArray):
-    _key : str = "PackedColorArray"
-    _type : Type = Color
-    value : list[Color]
-
-
-class NodePath(GdResourceReference):
-    _is_string_derivitve = True
-    _key : str = "NodePath"
-class ExtResourceRef(GdResourceReference):
-    _is_string_derivitve = True
-    _key : str = "ExtResource"
-class SubResourceRef(GdResourceReference):
-    _is_string_derivitve = True
-    _key : str = "SubResource"
     
 
 ## Objects: 
@@ -410,7 +308,7 @@ def import_as_property(line:str)->tuple[str,GdTypeValue]:
     val_inst = _type()
     val_inst.import_str(_entry[1])
     return _entry[0], val_inst 
-def export_as_property(name:str,inst:GdTypeValue, use_spaces:=false)->str:
+def export_as_property(name:str, inst:GdTypeValue, use_spaces=false)->str:
     if use_spaces:
         return f'{name} = {inst.export_string()}' 
     return f'{name}={inst.export_string()}'
