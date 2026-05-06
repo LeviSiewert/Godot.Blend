@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Self
+from typing import Self, Generator
 from pydantic import BaseModel
 ## Definition Types (for later hooking) ##
 
@@ -93,6 +93,8 @@ class GdTypeResource(ABC):
     _project         : GdTypeProject = None
     _file            : GdTypeResourceFile = None
     
+    _use_resource_section : bool = False
+
     type             : str
     metadata         : dict[str, GdTypeValue]
     properties       : dict[str, GdTypeValue]
@@ -259,6 +261,8 @@ class GdTypeResource(ABC):
             return None
         self._project.definitions.get(self.get_definition_id()) 
 
+    ## Pre Export / Export prep ##
+
     def pre_export(self, context:dict):
         ''' Fetch references here w/a '''
         context["resource"] = self
@@ -287,15 +291,68 @@ class GdTypeResource(ABC):
         for v in self.sub_resources:
             v._pre_export(context)
 
-    @abstractmethod
-    def export_header(self, context, line:str):...
-    
-    @abstractmethod
-    def export_property(self, context, line):...
+    ## Export Helpers ##
+
+    def get_exported_header(self, context:dict)->str:
+        return f'[{self._header_id} {" ".join(self._iter_export_header_values)}]'
+
+    def _iter_export_header_values(self)->Generator:
+        for k in self._header_contents:
+            value = self.get(k)
+            if value == None: continue
+            yield self._export_property(k, value, False)
+
+    def get_exported_properties(self, context:dict)->list[str]:
+        properties : list[str] = [] 
+        for x in self._iter_export_property_values():
+            properties.append(x)
+
+    def _iter_export_property_values(self)->Generator:
+        for k,v in self.properties.values():
+            yield self._export_property(k,v)
+        for k,v in self.metadata.values():
+            yield self._export_property("metadata/"+k,v)
+
+    def export_property(self, context, key:str, value:GdTypeValue)->str:
+        return self._export_property(key, value)
+
+    @staticmethod
+    def _export_property(k:str,v:GdTypeValue,use_spaces:bool=True):
+        if use_spaces:
+            return f'{k} = {str(v)}'
+        return f'{k}={str(v)}'
+        
+    ## Export itself ##
 
     @abstractmethod
     def export_as_tres(self, context:dict, as_file:bool=False)->list[str]:
         ''' Export to file lines '''
+
+        context["resource"] = self
+
+        _header : str = self.get_exported_header(context)
+        _properties : Generator = self._iter_export_property_values()
+        _sub_resources : Generator = self._iter_export_sub_resources()
+        
+        lines = [_header, ""]
+
+        if as_file and self._use_resource_section:
+            lines.append("[resource]")
+        
+        lines.extend(_properties)
+        lines.append("")
+
+        for section in _sub_resources:
+            lines.extend(section)
+            lines.append("")
+        
+        del context["resource"]
+    
+        return lines
+
+    def _iter_export_sub_resources(self,context:dict)->Generator:
+        for x in self.sub_resources:
+            yield x.export_as_tres(context, False)
 
     @abstractmethod
     def find_by_local_id(self)->list[str]:
