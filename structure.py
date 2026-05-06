@@ -296,21 +296,58 @@ class GdTypeProperty(GdType):
 class GdTypeSection(GdType):
     properties : list[GdTypeProperty]
 
-class GdTypeSubObject(GdTypeSection):
+class GdTypeObject(GdTypeSection):
     header_name : str
     _type_definition : GdTypeDef
+    _header_contents : list[str] = []
+
+    @classmethod 
+    def matches_header(cls, header_str:str)->bool: 
+        return header_str.startswith(f'[{cls._header_id}')
+
+    def import_header(self, string:str)->None:
+        string = string.strip("[]")
+        strings = string.split(" ") ##BUG: File system paths can have spaces.
+        assert(strings[0] == self._header_id)
+        str_values : Dictionary[str, GdTypeValue] = {} 
+        for entry in strings[1:-1]:
+            _key, _val = import_as_property(entry)
+            str_values[_key] = _val
+        for key,val in str_values.values():
+            assert(key in self._header_contents)
+            ## TODO: Assert expected type to incoming type
+            setattr(self, key, val)
+
+    def export_header(self)->str:
+        _values : Dictionary = {str, GdTypeValue}
+        for key in self._header_contents:
+            _val : GdTypeValue = getattr(self, key)
+            _values[key] = _val
+        str_values : list[str]
+        for key, val in _values.values():
+            str_values.append(f'{key}={val.export_string()}')
+        return f'[{self._header_id} {" ".join(str_values)} ]'
+
+    def import_body_lines(self,lines:list[str]):
+        _current_object : GdTypeSubObject = None
+        _current_object_buffer : list[str] = []
+        for line in lines:
+            if line == "":
+                continue
+            elif line.startswith("["):
+                raise Exception()
+            else:
+                _key, _val = import_as_property(line)
+                self.properties[_key] = _val
+
+    def export_body_lines(self,)->list[str]: 
+        res : list[str] = []
+        for key,val in self.properties.values():
+            res.append(export_as_property(key,val))
+        return res
 
     @abstractmethod
-    def matches_header(): ...
-    @abstractmethod
-    def import_header(): ...
-    @abstractmethod
-    def export_header(): ...
-
-    @abstractmethod
-    def import_body_lines(): ...
-    @abstractmethod
-    def export_body_lines(): ...
+    def find_type_definition(): ...
 
 class GdTypeExtResource(GdTypeSubObject):
     ''' Reference to external file '''
@@ -357,62 +394,85 @@ class GdTypeNode(GdTypeSubObject):
 
 ## File Types ##
 
-def get_gdtypevalue_class(str)->Type:
+def get_gdtypeobject_from_header(string:str)->Type[GdTypeObject]:
     pass
 
-class GdTypeFile(GdType):
+def get_gdtypevalue_from_string(string:str)->Type[GdTypeValue]:
+    pass
+
+def import_as_property(line:str)->tuple[str,GdTypeValue]:
+    _entry = line.split("=")
+    _entry[0] = _entry[0].strip()
+    _entry[1] = _entry[1].strip()
+    _type : Type = get_gdtypevalue_from_string(_entry[1])
+    if _type is None: 
+        raise("Type cannot be none!")
+    val_inst = _type()
+    val_inst.import_str(_entry[1])
+    return _entry[0], val_inst 
+def export_as_property(name:str,inst:GdTypeValue, use_spaces:=false)->str:
+    if use_spaces:
+        return f'{name} = {inst.export_string()}' 
+    return f'{name}={inst.export_string()}'
+
+SUBRESOURCE_SORT_ORDER : list[str] = [
+    "ext_resource",
+    "sub_resource",
+    "node",
+    "editable",
+]
+
+class GdTypeFile(GdTypeObject):
     _header_id : str
     _last_updated : int
     _reference_only : bool
 
     _header_contents : list[str] = ["uid","path"]
 
+    properties : list[GdTypeProperty]
+    sub_resources : list[GdTypeObject] ## All other included objects
+
     uid : StringUid
     path : StringRes
 
-    @classmethod 
-    def matches_header(cls, header_str:str)->bool: 
-        return header_str.startswith(f'[{cls._header_id}')
-
-    def import_header(self, string:str)->None:
-        string = string.strip("[]")
-        strings = string.split(" ") ##BUG: File system paths can have spaces.
-        assert(strings[0] == self._header_id)
-        str_values : Dictionary[str, GdTypeValue] = {} 
-        for entry in strings[1:-1]:
-            _entry = entry.split("=")
-            _type : Type = get_gdtypevalue_class(_entry[1])
-            if _type is None: 
-                raise("Type cannot be none!")
-            str_values[_entry[0]] = _type.new_from_string(_entry[1])
-        for key,val in str_values.values():
-            assert(key in self._header_contents)
-            ## TODO: Assert expected type to incoming type
-            setattr(self, key, val)
-
-    def export_header(self)->str:
-        _values : Dictionary = {str, GdTypeValue}
-        for key in self._header_contents:
-            _val : GdTypeValue = getattr(self, key)
-            _values[key] = _val
-        str_values : list[str]
-        for key, val in _values.values():
-            str_values.append(f'{key}={val.export_string()}')
-        return f'[{self._header_id} {" ".join(str_values)} ]'
-
     def import_body_lines(self,lines:list[str]):
+        _current_object : GdTypeObject = None
+        _current_object_buffer : list[str] = []
         for line in lines:
             if line == "":
                 continue
             if line.startswith("["):
+                if _current_object != None:
+                    _current_object.import_body_lines(_current_object_buffer)
+                    self.sub_resources.append(_current_object)
+                    _current_object = None
                 ## Sub Resource
-                continue
+                _class : Type = get_gdtypeobject_from_header(line)
+                _current_object = _class()
+                _current_object.import_header(line)
+                _current_object_buffer = []
+            elif _current_object_buffer != None:
+                _key, _val = import_as_property(line)
+                self.properties[_key] = _val
             else:
-                ## Property
-                continue
-            
+                _current_object_buffer.append(line)
+        if _current_object:
+            self.sub_resources.append(_current_object)
+
     def export_body_lines(self,)->list[str]: 
-        ...
+        res = super() ## Export properties
+        res.append("")
+        for rsc in self.sub_resources_sorted():
+            res.append(rsc.export_string())
+        return res
+    
+    def sub_resources_sorted(self)->list[GdTypeObject]:
+        return sorted(
+            self.sub_resources,
+            lambda x: SUBRESOURCE_SORT_ORDER.index(self._header_id)
+        )
+    
+
 
 
 class GdTypeFileResource(GdTypeFile):
@@ -421,21 +481,21 @@ class GdTypeFileResource(GdTypeFile):
     type : str
     format : int
     
-    properties : list[GdTypeProperty]
-    sub_resources : list[GdTypeSubObject] ## All other included objects
+    properties : dict[str, GdTypeProperty]
+    sub_resources : list[GdTypeObject] ## All other included objects
 
 class GdTypeFileTscn(GdTypeFile):
     ''' scene.tscn | escn '''
     _header_id : str = "gd_scene"
     format : int
 
-    properties : list[GdTypeProperty]
-    sub_resources : list[GdTypeSubObject] ## All other included objects
+    properties : dict[str, GdTypeProperty]
+    sub_resources : list[GdTypeObject] ## All other included objects
 
 class GdTypeFileProject(GdTypeFile):
     ''' project.godot '''
 
-    properties : list[GdTypeProperty]
+    properties : dict[str, GdTypeProperty]
     sections : list[GdTypeSection] ## Atm, these data types are not yet covered.
 
 class GdTypeFileGeneric(GdTypeFile):
