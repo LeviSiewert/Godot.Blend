@@ -90,9 +90,10 @@ class GdTypeResource(ABC):
     _header_contents : list[str] = []     ## what properties are exported to the header
     _references      : list[GdTypeValueReference]  ## References that point to self, consider as weakrefs
     _definition      : GdDefinitionClass  ## Class defintion for api.
-    _project         : GdTypeProject 
-    _file            : GdTypeResourceFile 
+    _project         : GdTypeProject = None
+    _file            : GdTypeResourceFile = None
     
+    metadata         : dict[str, GdTypeValue]
     properties       : dict[str, GdTypeValue]
     sub_resources    : list[GdTypeResource]
 
@@ -111,21 +112,120 @@ class GdTypeResource(ABC):
 
     @staticmethod
     @abstractmethod
-    def import_as_tres(context:dict, lines:list[str], as_file:bool=False)->Self: 
+    def import_as_tres(self,context:dict, lines:list[str], as_file:bool=False)->Self: 
+        assert(self._project != None)
+        assert(self._file != None)
         ''' Import from lines of file '''
+        context["resource"] = self
+
+        if as_file:
+            assert( self.header_matches(lines[0]) )
+            self.import_header(lines.pop(0))
+
+        _my_section = []
+        _current_section = _my_section
+        _switched = False
+        _sections :list[list[str]] = []
+
+        for line in lines:
+            if line == "":
+                continue
+            if line.startswith("["):
+                if (not _switched) and (line == "[resource]") and as_file:
+                    ## Section that represents local data
+                    continue
+                _sections.append(_current_section)
+                _current_section = [line]
+            else:
+                _current_section.append(line)
+
+        for line in _my_section:
+            self.import_as_property(context, line)
+
+        for section in _sections:
+            header : str = section[0]
+            _type : GdTypeResource = self._project.find_subresource_class_from_header(header)
+            val = _type(self._project, self._file)
+            self.sub_resources.append(val)
+            val.import_as_tres(context, section, False)
+
+        if as_file:
+            self.post_import(context)
+        
+        del context["resource"]
+
 
     @abstractmethod
-    def determine_definition(self, context:dict)->GdDefinitionClass:
-        ''' Determine the defintion that this object represents an instance of '''
+    def import_header(self, context, line:str):...
 
     @abstractmethod
+    def import_property(self, context, line):...
+
     def post_import(self, context:dict)->None: 
         ''' Hook up references here '''
+        context["resource"] = self
+        self._post_import(context)
+        self._post_import_properties(context)
+        self._post_import_metadata(context)
+        self._determine_definition(context)
+        self._post_import_subresources(context)
+        del context["resource"]
+
+    def _post_import(self, context:dict)->None:
+        ''' work on sub-tree or sub-data construction here
+        Ie node relationships '''
+
+    def _post_import_properties(self, context:dict)->None:
+        for k,v in self.properties.values():
+            if v is GdTypeValueReference:
+                context["property_id"] = k
+                v.post_import(context)
+        del context["property_id"]
+
+    def _post_import_metadata(self, context:dict)->None:
+        for k,v in self.metadata.values():
+            if v is GdTypeValueReference:
+                context["property_id"] = k
+                v.post_import(context)
+        del context["property_id"]
+
+    def _post_import_subresources(self, context:dict)->None:
+        for v in self.sub_resources:
+            v.post_import(context)
+
+    @abstractmethod
+    def _get_definition_id(self,)->str:
+        ''' If a script exists return that UID, if not then use the class name '''
+        if self.properties.has("script"):
+            return self.properties["script"]
+        elif self.metadata.has("_custom_type_script"):
+            return self.metadata["_custom_type_script"]
+
+    def _determine_definition(self, context:dict)->GdDefinitionClass:
+        ''' Determine the defintion that this object represents an instance of '''
+        if self._project == None:
+            return None
+        self._project.definitions.get(self.get_definition_id()) 
 
     @abstractmethod
     def pre_export(self, context:dict):
         ''' Fetch references here w/a '''
+        context["resource"] = self
+        self._pre_export_properties(context)
+        context["resource"] = None
+
+    def _pre_export_properties(self, context:dict):
+        for k,v in self.properties.values():
+            if v is GdTypeValueReference:
+                context["property_id"] = k
+                v.post_import(context)
+
+    @abstractmethod
+    def export_header(self, context, line:str):...
     
+    @abstractmethod
+    def export_property(self, context, line):...
+
     @abstractmethod
     def export_as_tres(self, context:dict, as_file:bool=False)->list[str]:
         ''' Export to file lines '''
@@ -133,7 +233,6 @@ class GdTypeResource(ABC):
     @abstractmethod
     def find_by_local_id(self)->list[str]:
         ''' Export to file lines '''
-
 
 class GdTypeResourceFile(GdTypeResource):
     _file = None
@@ -148,6 +247,6 @@ class GdTypeResourceFile(GdTypeResource):
     
 class GdTypeProject():
     files       : list[GdTypeResourceFile]
-    uuid_map    : dict[str,GdTypeResourceFile]
-    path_map    : dict[str,GdTypeResourceFile]
-    definitions : dict[str,GdDefinitionClass]
+    uuid_map    : dict[str, GdTypeResourceFile]
+    path_map    : dict[str, GdTypeResourceFile]
+    definitions : dict[str, GdDefinitionClass] ## By all of UID, PATH, CLASS_NAME
