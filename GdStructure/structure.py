@@ -93,6 +93,7 @@ class GdTypeResource(ABC):
     _project         : GdTypeProject = None
     _file            : GdTypeResourceFile = None
     
+    type             : str
     metadata         : dict[str, GdTypeValue]
     properties       : dict[str, GdTypeValue]
     sub_resources    : list[GdTypeResource]
@@ -154,12 +155,60 @@ class GdTypeResource(ABC):
         
         del context["resource"]
 
+    def import_header(self, line:str):  
+        ''' Import values in header to values on this object 
+        Ie : [gd_resource type="AnimationNodeBlendTree" format=3 uid="uid://d1qo8u4mjospu"]
+        '''
 
-    @abstractmethod
-    def import_header(self, context, line:str):...
+        words = self._split_header(line)
+        assert(words.pop(0) == self._header_id)
 
-    @abstractmethod
-    def import_property(self, context, line):...
+        for line in words:
+            k,v = self._import_property(line)
+            assert(k in self._header_contents)
+            self.set(k,v)
+
+    @staticmethod
+    def _split_header(line:str)->list[str]:
+        line = line.strip("[]")
+        _in_string : bool = False
+        _in_value : bool = False
+        
+        words : list[str] = []
+        for l in line:
+            _word : str = ""
+            if (l in "\'\""):
+                _in_string = not _in_string
+            elif (l in "\(\)") and (not _in_string):
+                _in_value = not _in_value
+            elif (l == " ") and (len(_word) != 0) and (not _in_value) and (not _in_string):
+                words.append(_word)
+                continue
+            else:
+                _word =+ l
+        words.append(_word)
+        return words
+
+    def import_property(self, line:str):
+        ''' Import string as a dict[str,val] to self.properties or self.metadata 
+        Override if subobjects-subproperties are expected 
+        '''
+
+        k,v = self._import_property(line)
+
+        if k.startswith("metadata/"):
+            self.metadata[k[9:-1]] = v 
+        else:
+            self.properties[k] = v 
+
+    def _import_property(self, line:str)->tuple[str, GdTypeValue]:
+        k,v = line.split("=")
+        k = k.strip()
+        v = v.strip()
+
+        _type = self._project.find_value_class_from_string(v)
+        val = _type(v)
+        return k, val
 
     def post_import(self, context:dict)->None: 
         ''' Hook up references here '''
@@ -174,6 +223,7 @@ class GdTypeResource(ABC):
     def _post_import(self, context:dict)->None:
         ''' work on sub-tree or sub-data construction here
         Ie node relationships '''
+        pass
 
     def _post_import_properties(self, context:dict)->None:
         for k,v in self.properties.values():
@@ -200,6 +250,8 @@ class GdTypeResource(ABC):
             return self.properties["script"]
         elif self.metadata.has("_custom_type_script"):
             return self.metadata["_custom_type_script"]
+        else:
+            return self.type
 
     def _determine_definition(self, context:dict)->GdDefinitionClass:
         ''' Determine the defintion that this object represents an instance of '''
@@ -207,18 +259,33 @@ class GdTypeResource(ABC):
             return None
         self._project.definitions.get(self.get_definition_id()) 
 
-    @abstractmethod
     def pre_export(self, context:dict):
         ''' Fetch references here w/a '''
         context["resource"] = self
+        self._pre_export(context)
         self._pre_export_properties(context)
+        self._pre_export_metadata(context)
+        self._pre_export_sub_resources(context)
         context["resource"] = None
+    
+    def _pre_export(self, context:dict):
+        pass
 
     def _pre_export_properties(self, context:dict):
         for k,v in self.properties.values():
             if v is GdTypeValueReference:
                 context["property_id"] = k
-                v.post_import(context)
+                v.pre_import(context)
+
+    def _pre_export_metadata(self, context:dict):
+        for k,v in self.metadata.values():
+            if v is GdTypeValueReference:
+                context["property_id"] = k
+                v.pre_import(context)
+
+    def _pre_export_subresources(self, context:dict):
+        for v in self.sub_resources:
+            v._pre_export(context)
 
     @abstractmethod
     def export_header(self, context, line:str):...
