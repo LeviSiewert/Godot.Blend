@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .structure import GdTypeResourceFile, GdTypeResource
-from .structure_values import *
+# from .structure_values import GdTypeValue
 
 ### File Implimentation ###
 

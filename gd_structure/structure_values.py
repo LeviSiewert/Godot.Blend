@@ -3,11 +3,69 @@ from abc import abstractmethod, ABC
 from typing import Type, Any
 from pydantic import BaseModel
 
-from gd_structure.structure import GdTypeValue, GdTypeValueImplicit ,GdTypeValueExplicit ,GdTypeValueReference
-
 class GdTypeVariant:
     ''' used as a passthrough for searching for other values, should ever be instanced '''
     pass
+
+
+class GdTypeValue(ABC, BaseModel):
+    _value_add_quotations : bool = False
+    
+    value : Any
+
+    def __init__(self, value:Any):
+        if value is str:
+            assert(self.can_convert_from_str(value))
+            self.convert_fr_string(value)
+        else:
+            raise ValueError("Could not construct from type!", value.__class__)
+
+    @classmethod
+    @abstractmethod
+    def can_convert_from_str(cls, target:str)->bool:
+        pass
+
+    @abstractmethod
+    def convert_fr_string(self,val:str):
+        pass
+    
+    @abstractmethod
+    def convert_to_string(self,)->str:
+        pass
+
+    def __str__(self)->str:
+        return self.convert_to_string()
+
+class GdTypeValueImplicit(GdTypeValue):    
+    ''' String representation of 'val'  '''
+
+class GdTypeValueExplicit(GdTypeValue):
+    ''' String representation of '_key(val)'  '''
+    _key : str = "UNSET"
+
+    @classmethod
+    def can_convert_from_str(cls,val:str)->bool:
+        return val.startswith(cls._key)
+    
+    @abstractmethod
+    def convert_fr_string(self, val:str):
+        pass
+    
+    @abstractmethod
+    def convert_to_string(self,)->str:
+        pass
+
+class GdTypeValueReference(GdTypeValueImplicit):    
+    ''' References dont contain a 'key("val")' representation, but may still be req to update like so '''
+    _reference : Any #GdTypeResource
+
+    @abstractmethod
+    def post_import(context:dict):
+        ''' Connect references w/a '''
+
+    @abstractmethod
+    def pre_export(context:dict):
+        ''' Connect references w/a '''
 
 ## Explicit References ##
 
