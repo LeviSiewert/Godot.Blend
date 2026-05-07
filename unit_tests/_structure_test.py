@@ -1,6 +1,19 @@
-from ..structure import *
+from ..gd_structure.structure import *
+from ..gd_structure.structure_values import *
 from pathlib import Path
 
-def get_fixture_gd_definition()->str:
-    return Path(__file__).parent / "fixture_gd_type_definition.json"
+# from unittest import TestCase
 
+from collections import deque
+
+class Section():
+    Header
+    pass
+
+class Properties():
+    pass
+
+def property_parser(lines:deque)->dict:
+    for line in lines:
+        pass
+    

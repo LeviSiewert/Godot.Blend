@@ -8,6 +8,7 @@ class GdTypeVariant:
     pass
 
 
+
 class GdTypeValue(ABC, BaseModel):
     _value_add_quotations : bool = False
     
@@ -102,26 +103,36 @@ class StringFileResourceRef(GdTypeValueImplicit, GdTypeValueReference):
     _value_add_quotations = True
 
 
-### Explicit Arrays ###
+### Implicit Values ###
 
-
-class String(GdTypeValueImplicit):
+class String(GdTypeValueImplicit, str):
     _value_add_quotations : bool = True
 
-class Float32(GdTypeValueImplicit):
+class Float(GdTypeValueImplicit,float):
     ...
 
-class Integer32(GdTypeValueImplicit):
+class Integer(GdTypeValueImplicit,int):
     ...
 
-class Float64(GdTypeValueImplicit):
+## Special import-export rules:
+class _Float32(GdTypeValueImplicit, float):
     ...
 
-class Integer64(GdTypeValueImplicit):
+class _Float64(GdTypeValueImplicit, float):
+    ...
+
+class _Integer32(GdTypeValueImplicit, int):
+    ...
+
+class _Integer64(GdTypeValueImplicit, int):
     ...
 
 
 ### Explicit values:
+
+
+class GdTypeNull(GdTypeValueExplicit):
+    _key : str = "null"
 
 class Dictionary(GdTypeValueExplicit):
     _key : str = "{"
@@ -199,49 +210,49 @@ class _Array(Array):
 
 class Vector2(_Array):
     _key : str = "Vector2"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class Vector3(_Array):
     _key : str = "Vector3"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class Vector4(_Array):
     _key : str = "Vector4"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class Vector2i(_Array):
     _key : str = "Vector2i"
-    _item_type : Type = Integer64
+    _item_type : Type = Integer
 class Vector3i(_Array):
     _key : str = "Vector3i"
-    _item_type : Type = Integer64
+    _item_type : Type = Integer
 class Vector4i(_Array):
     _key : str = "Vector4i"
-    _item_type : Type = Integer64
+    _item_type : Type = Integer
 class Quaternion(_Array):
     _key : str = "Quaternion"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class Transform3D(_Array):
     _key : str = "Transform3D"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class Color(_Array):
     _key : str = "Color"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class AABB(_Array):
     _key : str = "AABB"
-    _item_type : Type = Float64
+    _item_type : Type = Float
 class PackedByteArray(_Array):
     _key : str = "PackedByteArray"
     _item_type : Type = bytes
 class PackedInt32Array(_Array):
     _key : str = "PackedInt32Array"
-    _item_type : Type = int
+    _item_type : Type = _Integer32
 class PackedInt64Array(_Array):
     _key : str = "PackedInt64Array"
-    _item_type : Type = int
+    _item_type : Type = _Integer64
 class PackedFloat32Array(_Array):
     _key : str = "PackedFloat32Array"
-    _item_type : Type = float
+    _item_type : Type = _Float32
 class PackedFloat64Array(_Array):
     _key : str = "PackedFloat64Array"
-    _item_type : Type = float
+    _item_type : Type = _Float64
 class PackedStringArray(_Array):
     _value_is_string_derivitve : bool = True
     _key : str = "PackedStringArray"

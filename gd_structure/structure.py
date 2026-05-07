@@ -136,6 +136,7 @@ class GdTypeResource(ABC):
     def import_property(self, line:str):
         ''' Import string as a dict[str,val] to self.properties or self.metadata 
         Override if subobjects-subproperties are expected 
+        Complex includes inbuilt typing:  Array[Vector2]([Vector2(0, 0)])
         '''
 
         k,v = self._import_property(line)
