@@ -1,10 +1,11 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Self, Generator, Iterable
+from typing import Self, Generator, Iterable, Any
 from pydantic import BaseModel
 ## Definition Types (for later hooking) ##
 
 class GdDefinitionProperty(BaseModel):
+    ## PLANNED : Make as a Resource type for easier extraction from godot
     type : str
     hint : str
     default : str
@@ -13,12 +14,18 @@ class GdDefinitionProperty(BaseModel):
 
 class GdDefinitionClass(BaseModel):
     ''' Imported definition for internal classes and scripts '''
+    ## PLANNED : Make as a Resource type for easier extraction from godot
     extends : str
-    _extends : GdDefinitionClass
-
     class_name : str
     properties: dict[str, GdDefinitionProperty]
-    path : str
+    uid : str
+
+    _extends : GdDefinitionClass
+    _handlers : dict[str, GdHandler]
+
+class GdHandler(ABC):
+    ''' Inheritable class for controlling the conversion between a host application and this structure '''
+    program : str
     uid : str
 
 ### Direct Minimal Value types ###
@@ -393,16 +400,124 @@ class GdTypeResourceFile(GdTypeResource):
         self.sub_resources = []
         self._references   = []
 
+
+class ProgramHandlerEntry():
+    program_id : str = ""
+    handlers : list[GdHandler]
+
+    ## CACHE:
+    _by_uid : dict[str, GdHandler]
+    _by_res : dict[str, GdHandler]
+    _by_class_name : dict[str, GdHandler]
+
+    def __init__(self, program_id:str):
+        self.program_id = program_id
+
+    def append(self,val:GdHandler):
+        self.handlers.append(val)
+        if val.uid:
+            self._by_uid[val.uid] = val
+        if val.res:
+            self._by_res[val.res] = val
+        if val.class_name:
+            self._by_class_name[val.class_name] = val
+
+    def find_class_handler(self, cls:GdDefinitionClass)->GdDefinitionClass:
+        by_class_name = self.by_class_name.get(cls.class_name, None) 
+        if by_class_name: return by_class_name
+        by_res = self._by_res.get(cls.res, None)
+        if by_res: return by_res
+        by_uid = self._by_uid.get(cls.uid, None)
+        if by_uid: return by_uid
+
+        if cls._extends:
+            return self.find_class_handler(cls._extends)
+        else:
+            raise LookupError()
+
+class ProgramHandlerDb():
+    _entries : dict[str, ProgramHandlerEntry]
+    def __init__(self):
+        self._entries = {}
+    
+    def append(self, entry:ProgramHandlerEntry):
+        self._entries[entry.program_id] = entry
+
+    def __getitem__(self, key:str)->ProgramHandlerEntry:
+        for x in self._entries:
+            if x.program_id == key:
+                return x
+        return None
+
+    def __setitem__(self, key:str, value:GdHandler):
+        for x in self._entries:
+            if x.program_id == key:
+                x.append(value)
+        _inst = ProgramHandlerEntry(key)
+        _inst.append(value)
+        self._entries[key] = _inst
+
+        return None
+
+
+class ClassDb():
+    ''' Holds all class definitions and handlers '''
+    classes : list[GdDefinitionClass]
+    handlers: ProgramHandlerDb
+    
+    _by_uid : dict[str, GdDefinitionClass]
+    _by_res : dict[str, GdDefinitionClass]
+    _by_class_name : dict[str, GdDefinitionClass]
+
+    def __init__(self):
+        self._by_uid = {}
+        self._by_res = {}
+        self._by_class_name = {}
+        self.classes = []
+        self.handlers = ProgramHandlerDb()
+
+    def append(self,item: GdDefinitionClass):
+        self.classes.append(item)
+        if item.class_name:
+            self._by_class_name[item.class_name] = item
+        if item.uid:
+            self._by_uid[item.uid] = item
+        if item.res:
+            self._by_res[item.res] = item
+
+class FileDb():
+    ''' Holds all tscn, tres & asset files '''
+    files : list[GdTypeResourceFile]
+    _by_uid : dict[str, GdTypeResourceFile]
+    _by_res : dict[str, GdTypeResourceFile]
+
+    file_appended : Signal
+    file_removed  : Signal
+    
+    file_imported : Signal
+    file_exported : Signal
+    file_dumped : Signal
+
+    file_updated_uid : Signal
+    file_updated_res : Signal
+
+    def __init__(self):
+        self.files = []
+        self._by_uid = {}
+        self._by_res = {}
+
+    def append(self,item: GdDefinitionClass):
+        self.classes.append(item)
+        if item.uid:
+            self._by_uid[item.uid] = item
+        if item.res:
+            self._by_res[item.res] = item
+
     
 class GdTypeProject():
-    files       : list[GdTypeResourceFile]
-    uuid_map    : dict[str, GdTypeResourceFile]
-    path_map    : dict[str, GdTypeResourceFile]
-    definitions : dict[str, GdDefinitionClass] ## By all of UID, PATH, CLASS_NAME
+    classes : ClassDb
+    files : FileDb
 
-    @abstractmethod
-    def get_by_uid():
-        pass
-    @abstractmethod
-    def get_by_res():
-        pass
+    def __init__(self):
+        self.files = FileDb()
+        self.classes = ClassDb()
