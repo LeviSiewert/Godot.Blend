@@ -340,10 +340,19 @@ class FileDb():
             self._by_res[item.res] = item
 
     
-class GdTypeProject():
+class GdTypeProject(ABC):
+    settings : GdTypeResourceFile
     classes : ClassDb
     files : FileDb
 
+    @abstractmethod
+    def find_subresource_class_from_header():
+        pass
+    
+    @abstractmethod
+    def find_value_class_from_string():
+        pass
+    
     def __init__(self):
         self.files = FileDb()
         self.classes = ClassDb()

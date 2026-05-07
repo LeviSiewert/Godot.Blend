@@ -1,8 +1,13 @@
 from __future__ import annotations
 from .structure import GdTypeResourceFile, GdTypeResource
-# from .structure_values import GdTypeValue
+from .structure_values import *
 
 ### File Implimentation ###
+
+class GdTypeResourceFileProject(GdTypeResourceFile):
+    _generates_header = False
+    _header_contents = ["format"]
+    format : int
 
 class GdTypeResourceFileTres(GdTypeResourceFile):
     ''' Has properties, [resource] section header, and may have optional sub-resources '''
