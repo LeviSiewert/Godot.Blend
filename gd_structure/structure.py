@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Self, Generator
+from typing import Self, Generator, Iterable
 from pydantic import BaseModel
 ## Definition Types (for later hooking) ##
 
@@ -87,6 +87,7 @@ class GdTypeValueReference(GdTypeValueImplicit):
 
 class GdTypeResource(ABC):
     _header_id       : str = "_UNSET"     ## Header key, ie 'gd_scene'
+    _generates_header      : bool = True
     _header_contents : list[str] = []     ## what properties are exported to the header
     _references      : list[GdTypeValueReference]  ## References that point to self, consider as weakrefs
     _definition      : GdDefinitionClass  ## Class defintion for api.
@@ -116,26 +117,26 @@ class GdTypeResource(ABC):
     @staticmethod
     @abstractmethod
     def import_as_tres(self,context:dict, lines:list[str], as_file:bool=False)->Self: 
+        ## TODO: Does not yet accomidate expanded/implicit header such as in projects.godot
+        #  
         assert(self._project != None)
         assert(self._file != None)
         ''' Import from lines of file '''
         context["resource"] = self
 
-        if as_file:
+        if as_file and self._generates_header:
             assert( self.header_matches(lines[0]) )
             self.import_header(lines.pop(0))
 
         _my_section = []
         _current_section = _my_section
-        _switched = False
         _sections :list[list[str]] = []
 
         for line in lines:
             if line == "":
                 continue
             if line.startswith("["):
-                if (not _switched) and (line == "[resource]") and as_file:
-                    ## Section that represents local data
+                if (line == "[resource]"):
                     continue
                 _sections.append(_current_section)
                 _current_section = [line]
@@ -296,22 +297,22 @@ class GdTypeResource(ABC):
     def get_exported_header(self, context:dict)->str:
         return f'[{self._header_id} {" ".join(self._iter_export_header_values)}]'
 
-    def _iter_export_header_values(self)->Generator:
+    def _iter_export_header_values(self, use_spaces:bool=False)->Generator:
         for k in self._header_contents:
             value = self.get(k)
             if value == None: continue
-            yield self._export_property(k, value, False)
+            yield self._export_property(k, value, use_spaces)
 
     def get_exported_properties(self, context:dict)->list[str]:
         properties : list[str] = [] 
         for x in self._iter_export_property_values():
             properties.append(x)
 
-    def _iter_export_property_values(self)->Generator:
+    def _iter_export_property_values(self, use_spaces:bool=True)->Generator:
         for k,v in self.properties.values():
-            yield self._export_property(k,v)
+            yield self._export_property(k,v,use_spaces)
         for k,v in self.metadata.values():
-            yield self._export_property("metadata/"+k,v)
+            yield self._export_property("metadata/"+k,v,use_spaces)
 
     def export_property(self, context, key:str, value:GdTypeValue)->str:
         return self._export_property(key, value)
@@ -327,12 +328,19 @@ class GdTypeResource(ABC):
     @abstractmethod
     def export_as_tres(self, context:dict, as_file:bool=False)->list[str]:
         ''' Export to file lines '''
+        # TODO: This does not account super neatly for project.godot's slightly different format that uses [sections], loose properties and no primary header
 
         context["resource"] = self
 
-        _header : str = self.get_exported_header(context)
+        _header : Iterable[str]
+        if self._generates_header:
+            _header : list[str] = [self.get_exported_header(context), ""]
+        else:
+            _header = self._iter_export_header_values()
+            
+
         _properties : Generator = self._iter_export_property_values()
-        _sub_resources : Generator = self._iter_export_sub_resources()
+        _sub_resources : Generator = self._iter_export_sub_resources(context)
         
         lines = [_header, ""]
 
@@ -355,8 +363,8 @@ class GdTypeResource(ABC):
             yield x.export_as_tres(context, False)
 
     @abstractmethod
-    def find_by_local_id(self)->list[str]:
-        ''' Export to file lines '''
+    def get_by_local_res_id(self, path:str)->GdTypeResource:
+        pass
 
 class GdTypeResourceFile(GdTypeResource):
     _file = None
@@ -374,3 +382,10 @@ class GdTypeProject():
     uuid_map    : dict[str, GdTypeResourceFile]
     path_map    : dict[str, GdTypeResourceFile]
     definitions : dict[str, GdDefinitionClass] ## By all of UID, PATH, CLASS_NAME
+
+    @abstractmethod
+    def get_by_uid():
+        pass
+    @abstractmethod
+    def get_by_res():
+        pass
