@@ -85,6 +85,20 @@ class GdTypeValueReference(GdTypeValueImplicit):
 
 ### Direct Minimal Resource types ###
 
+SUBRESOURCE_SORT_ORDER : list[str] = [
+    ## TSCN
+    "ext_resource",
+    "sub_resource",
+    "node",
+    "editable",
+
+    ## project.godot
+    "application",
+    "input",
+    "physics",
+    "rendering",
+]
+
 class GdTypeResource(ABC):
     _header_id       : str = "_UNSET"     ## Header key, ie 'gd_scene'
     _generates_header      : bool = True
@@ -359,7 +373,10 @@ class GdTypeResource(ABC):
         return lines
 
     def _iter_export_sub_resources(self,context:dict)->Generator:
-        for x in self.sub_resources:
+        _sorted = self.sub_resources.sorted(lambda x: SUBRESOURCE_SORT_ORDER.index(x.header_id) )
+        
+        
+        for x in _sorted:
             yield x.export_as_tres(context, False)
 
     @abstractmethod

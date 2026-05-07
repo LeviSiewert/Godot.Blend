@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from typing import Type, Any
 from pydantic import BaseModel
 
-from structure_v1_2 import GdTypeValue, GdTypeValueImplicit ,GdTypeValueExplicit ,GdTypeValueReference
+from gd_structure.structure import GdTypeValue, GdTypeValueImplicit ,GdTypeValueExplicit ,GdTypeValueReference
 
 class GdTypeVariant:
     ''' used as a passthrough for searching for other values, should ever be instanced '''
@@ -67,11 +67,11 @@ class Integer64(GdTypeValueImplicit):
 
 class Dictionary(GdTypeValueExplicit):
     _key : str = "{"
-    _key_type : Type[GdTypeValue] = GdTypeVariant
-    _val_type : Type[GdTypeValue] = GdTypeVariant
+    _key_type : Type[GdTypeValue|GdTypeVariant] = GdTypeVariant
+    _val_type : Type[GdTypeValue|GdTypeVariant] = GdTypeVariant
     _value_add_quotations : bool = False
     
-    def __init__(self, key_type:Type, val_type:Type, value:Any={}):
+    def __init__(self, value:Any={}, key_type:Type=GdTypeVariant, val_type:Type=GdTypeVariant):
         self._key_type = key_type
         self._val_type = val_type
         
@@ -90,13 +90,14 @@ class Array(GdTypeValueExplicit):
     _item_type : Type[GdTypeValue] = GdTypeVariant
     _value_add_quotations : bool = False
     
-    def __init__(self, value:Any=[], val_type:Type=None):
-        if val_type != None:
-            self._item_type = val_type
+    def __init__(self, value:Any=[], item_type:Type=None):
+        if item_type != None:
+            self._item_type = item_type
 
         if value is list:
-            for x in value:
-                assert(x is self._item_type)
+            if self.values != GdTypeVariant:
+                for x in value:
+                    assert(x is self._item_type)
             self.values = value
         else:
             super(value)
@@ -134,64 +135,68 @@ class Array(GdTypeValueExplicit):
     def __iter__(self):
         return self.values.__iter__()
 
-class Vector2(Array):
+class _Array(Array):
+    def __init__(self, value:Any=[]):
+        super(value, None)
+
+class Vector2(_Array):
     _key : str = "Vector2"
     _item_type : Type = Float64
-class Vector3(Array):
+class Vector3(_Array):
     _key : str = "Vector3"
     _item_type : Type = Float64
-class Vector4(Array):
+class Vector4(_Array):
     _key : str = "Vector4"
     _item_type : Type = Float64
-class Vector2i(Array):
+class Vector2i(_Array):
     _key : str = "Vector2i"
     _item_type : Type = Integer64
-class Vector3i(Array):
+class Vector3i(_Array):
     _key : str = "Vector3i"
     _item_type : Type = Integer64
-class Vector4i(Array):
+class Vector4i(_Array):
     _key : str = "Vector4i"
     _item_type : Type = Integer64
-class Quaternion(Array):
+class Quaternion(_Array):
     _key : str = "Quaternion"
     _item_type : Type = Float64
-class Transform3D(Array):
+class Transform3D(_Array):
     _key : str = "Transform3D"
     _item_type : Type = Float64
-class Color(Array):
+class Color(_Array):
     _key : str = "Color"
     _item_type : Type = Float64
-class AABB(Array):
+class AABB(_Array):
     _key : str = "AABB"
     _item_type : Type = Float64
-class PackedByteArray(Array):
+class PackedByteArray(_Array):
     _key : str = "PackedByteArray"
     _item_type : Type = bytes
-class PackedInt32Array(Array):
+class PackedInt32Array(_Array):
     _key : str = "PackedInt32Array"
     _item_type : Type = int
-class PackedInt64Array(Array):
+class PackedInt64Array(_Array):
     _key : str = "PackedInt64Array"
     _item_type : Type = int
-class PackedFloat32Array(Array):
+class PackedFloat32Array(_Array):
     _key : str = "PackedFloat32Array"
     _item_type : Type = float
-class PackedFloat64Array(Array):
+class PackedFloat64Array(_Array):
     _key : str = "PackedFloat64Array"
     _item_type : Type = float
-class PackedStringArray(Array):
+class PackedStringArray(_Array):
     _value_is_string_derivitve : bool = True
     _key : str = "PackedStringArray"
     _item_type : Type = str
-class PackedVector2Array(Array):
+class PackedVector2Array(_Array):
     _key : str = "PackedVector2Array"
     _item_type : Type = Vector2
-class PackedVector3Array(Array):
+class PackedVector3Array(_Array):
     _key : str = "PackedVector3Array"
     _item_type : Type = Vector3
-class PackedVector4Array(Array):
+class PackedVector4Array(_Array):
     _key : str = "PackedVector4Array"
     _item_type : Type = Vector4
-class PackedColorArray(Array):
+class PackedColorArray(_Array):
     _key : str = "PackedColorArray"
     _item_type : Type = Color
