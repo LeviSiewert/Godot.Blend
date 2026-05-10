@@ -1,0 +1,105 @@
+// something
+
+// value: dict 
+//      | list
+//      | STRING
+//      | NUMBER
+//      | "true" | "false" | "null"
+
+// list : "[" [value ("," value)*] "]"
+
+// dict : "{" [pair ("," pair)*] "}"
+// pair : STRING ":" value
+
+%import common.ESCAPED_STRING   -> STRING
+%import common.SIGNED_NUMBER    -> NUMBER
+%import common.WS
+%ignore WS
+
+file_header : "[" STRING [STRING ("=" value)*] "]" [(property)*] [(header)*]
+
+header : "[" STRING [STRING ("=" value)*] "]" [property]*
+
+property STRING "=" value
+
+value : NULL
+    | array
+    | dictionary 
+    | nodepath
+    | dictionary_explicit
+    | array_explicit
+    | subresource
+    | extresource
+    | vector2
+    | vector3
+    | vector4
+    | vector2i
+    | vector3i
+    | vector4i
+    | aabb
+    | color
+    | quaternion
+    | transform3d
+    | packedbytearray
+    | packedint32array
+    | packedint64array
+    | packedfloat32array
+    | packedfloat64array
+    | packedstringarray
+    | packedvector2array
+    | packedvector3array
+    | packedvector4array
+    | packedcolorarray
+    | INTEGER
+    | float
+    | STRING
+    | bool
+
+
+type : "[" STRING STRING* "]"
+
+NULL : "null"
+
+bool : "true" | "false"
+float : FLOAT ("e"[INT])* 
+      | INT
+
+array_explicit : "Array" type* "(" array ")"
+array : "[" [value ("," value)*] "]"
+
+dictionary_explicit : "Dictionary" type* "(" array ")"
+dictionary : "{" [pair ("," pair)*] "}"
+pair : value ":" value
+
+nodepath : "Nodepath" type* "(" STRING ")"
+subresource : "SubResource" type* "(" STRING ")"
+extresource : "ExtResource" type* "(" STRING ")"
+
+vector2 : "Vector2(" [INT ("," INT)*1] ")"
+vector3 : "Vector3(" [INT ("," INT)*2] ")"
+vector4 : "Vector4(" [INT ("," INT)*3] ")"
+
+vector2i : "Vector2i(" [INT ("," INT)~1] ")"
+vector3i : "Vector3i(" [INT ("," INT)~2] ")"
+vector4i : "Vector4i(" [INT ("," INT)~3] ")"
+
+aabb : "AABB(" [float ("," float)~3] ")"
+color : "Color(" [float ("," float)~3] ")"
+quaternion : "Quaternion(" [float ("," float)~3] ")"
+transform3d : "Transform3D(" [float ("," float)~8] ")"
+
+packedbytearray : "PackedByteArray(" STRING ")" 
+
+packedint32array : "PackedInt32Array(" ( "[" [INT ("," INT)*] "]" )* ")" 
+packedint64array : "PackedInt64Array(" ( "[" [INT ("," INT)*] "]" )* ")" 
+
+packedfloat32array : "PackedFloat32Array(" ( "[" [float ("," float)*] "]" )* ")" 
+packedfloat64array : "PackedFloat64Array(" ( "[" [float ("," float)*] "]" )* ")" 
+
+packedstringarray : "PackedStringArray(" ( "[" [STRING ("," STRING)*] "]" )* ")"
+
+packedvector2array : "PackedVector2Array(" ( "[" [vector2 ("," vector2)*] "]" )* ")"
+packedvector3array : "PackedVector3Array(" ( "[" [vector3 ("," vector3)*] "]" )* ")"
+packedvector4array : "PackedVector4Array(" ( "[" [vector4 ("," vector4)*] "]" )* ")"
+
+packedcolorarray : "PackedColorArray(" ( "[" [color ("," color)*] "]" )* ")"

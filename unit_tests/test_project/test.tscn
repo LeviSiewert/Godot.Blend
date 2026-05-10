@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ifiubf8ujlkd" path="res://test.gd" id="1_37kl0"]
 [ext_resource type="Script" uid="uid://k416w4pulge8" path="res://exporter/exporter_script.gd" id="2_8uh7m"]
-[ext_resource type="Resource" uid="uid://cfvgy5ysmqeey" path="res://exported_classes.tres" id="3_6uqi0"]
+[ext_resource type="Resource" uid="uid://c63fvga18ehq" path="res://exported_classes.tres" id="3_6uqi0"]
 
 [node name="NodeRoot" type="Node" unique_id=1865051527]
 
@@ -47,7 +47,9 @@ array_string = Array[String]([""])
 array_stringname = Array[StringName]([&""])
 array_float = Array[float]([0.0])
 array_int = Array[int]([0])
-array_dictionary = Array[Dictionary]([{}])
+array_dictionary = Array[Dictionary]([{
+"a": "a"
+}])
 array_array = Array[Array]([[]])
 array_nodepath = Array[NodePath]([NodePath("")])
 array_vector2 = Array[Vector2]([Vector2(0, 0)])
