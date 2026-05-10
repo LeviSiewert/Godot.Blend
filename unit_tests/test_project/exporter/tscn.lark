@@ -67,12 +67,12 @@ NULL : "null"
 
 bool : "true" | "false"
 
-TYPE : "[" WORD WORD* "]"
+type : "[" WORD ("," WORD)* "]"
 
-array_explicit : "Array" TYPE* "(" array ")"
+array_explicit : "Array" type* "(" array ")"
 array : "[" [value ("," value)*]* "]"
 
-dictionary_explicit : "Dictionary" TYPE* "(" dictionary ")"
+dictionary_explicit : "Dictionary" type* "(" dictionary ")"
 dictionary : "{" [pair ("," pair)*]* "}"
 pair : value ":" value
 
@@ -80,9 +80,9 @@ STRINGNAME : "&" STRING
 
 // Defered References:
 
-nodepath : "NodePath" TYPE* "(" STRING ")"
-subresource : "SubResource" TYPE* "(" STRING ")"
-extresource : "ExtResource" TYPE* "(" STRING ")"
+nodepath : "NodePath" type* "(" STRING ")"
+subresource : "SubResource" type* "(" STRING ")"
+extresource : "ExtResource" type* "(" STRING ")"
 
 // Vector types:
 
@@ -108,7 +108,7 @@ transform3d : "Transform3D(" [FLOAT ("," FLOAT)~11] ")"
 
 // Packed types:
 
-packedbytearray : "PackedByteArray(" STRING ")" 
+packedbytearray : "PackedByteArray(" STRING* ")" 
 
 packedint32array : "PackedInt32Array(" ( [NUMBER ("," NUMBER)*] )* ")" 
 packedint64array : "PackedInt64Array(" ( [NUMBER ("," NUMBER)*] )* ")" 
@@ -123,7 +123,7 @@ packedvector3array : "PackedVector3Array(" ( [packed_vector3 ("," packed_vector3
 packedvector4array : "PackedVector4Array(" ( [packed_vector4 ("," packed_vector4)*]* )* ")"
 packedcolorarray : "PackedColorArray(" ( [packed_color ("," packed_color)*] )* ")"
 
-WORD : (LETTER | "_" | NUMBER)+
+WORD : (LETTER | "_" | NUMBER | "/")+
 
 FLOAT : SIGNED_FLOAT | NUMBER
 
