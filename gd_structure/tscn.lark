@@ -17,10 +17,10 @@ file : file_project
      | file_resource
 
 file_project :  [COMMENT|property]* [sub_resource]* 
-file_resource : resource [sub_resource]*
+file_resource : sub_resource [sub_resource]*
 
-resource : "[" WORD [property*] "]" [COMMENT|property]*
-sub_resource : "[" WORD [WORD ("=" value)]* "]" [COMMENT|property]*
+// resource_header : "[" WORD [property*] "]" [COMMENT|property]*
+sub_resource : "[" WORD [property]* "]" [COMMENT|property]*
 
 property : WORD "=" value
 
