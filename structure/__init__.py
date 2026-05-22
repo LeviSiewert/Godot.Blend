@@ -1,6 +1,5 @@
 from typing import Any, Type
 from ..primitives import *
-
 from lark.visitors import Transformer, v_args
 
 ## This structure is the minimum defintion of how a file should be parsed
@@ -18,8 +17,8 @@ class GdType():
         inst._raw_children = children
         return inst
     
-    @classmethod
-    def generate_parser(cls)->Type[Transformer]:
+    @classmethod        
+    def generate_transformer(cls)->Type[Transformer]:
         ## Construct a parser class and return it
         @v_args()
         class _Transformer(Transformer):
@@ -30,11 +29,22 @@ class GdType():
             setattr(_Transformer, x._lark_key, parser)
         return _Transformer
     
-    def __init__(self):
-        _raw_children = []
-    
+    def print_tree(self, indent:int=0, insert:str=""):
+        print(" " * indent, insert, self)
+        for x in self._raw_children:
+            if x is GdType:
+                x.print_nested(indent+1, "|-")
+            else:
+                print(" "*indent+1, insert, x)
+
     def __init_subclass__(cls):
         cls._all_types.append(cls)
+
+    def __init__(self):
+        _raw_children = []
+
+    def __str__(self)->str:
+        return self.__class__.__name__ + ":" + self._lark_key + "()"
 
 
 class GdResource(GdType):

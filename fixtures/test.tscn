@@ -1,0 +1,163 @@
+[gd_scene format=4 uid="uid://b6vf1aji6dy38"]
+
+[ext_resource type="Script" uid="uid://ifiubf8ujlkd" path="res://test.gd" id="1_37kl0"]
+[ext_resource type="Script" uid="uid://k416w4pulge8" path="res://exporter/exporter_script.gd" id="2_8uh7m"]
+[ext_resource type="Resource" uid="uid://c63fvga18ehq" path="res://exported_classes.tres" id="3_6uqi0"]
+
+[node name="NodeRoot" type="Node" unique_id=1865051527]
+
+[node name="NodeA" type="Node" parent="." unique_id=233822814]
+
+[node name="NodeB" type="Node" parent="." unique_id=1972296434 node_paths=PackedStringArray("nodepath_node3d")]
+script = ExtResource("1_37kl0")
+variant = null
+string = ""
+stringname = &""
+_float = 0.0
+integer = 0
+array = []
+nodepath = NodePath("")
+nodepath_node3d = NodePath("Node3D")
+vector2 = Vector2(0, 0)
+vector3 = Vector3(0, 0, 0)
+vector4 = Vector4(0, 0, 0, 0)
+vector2i = Vector2i(0, 0)
+vector3i = Vector3i(0, 0, 0)
+vector4i = Vector4i(0, 0, 0, 0)
+quaternion = Quaternion(0, 0, 0, 1)
+transform3d = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+color = Color(0, 0, 0, 1)
+aabb = AABB(0, 0, 0, 0, 0, 0)
+packedbytearray = PackedByteArray("AAA=")
+packedint32array = PackedInt32Array(0, 0)
+packedint64array = PackedInt64Array(0, 0)
+packedfloat32array = PackedFloat32Array(0, 0, 0)
+packedfloat64array = PackedFloat64Array(0, 0, 0)
+packedstringarray = PackedStringArray("a", "bb", "")
+packedvector2array = PackedVector2Array(0, 0, 0, 0)
+packedvector3array = PackedVector3Array(0, 0, 0, 0, 0, 0)
+packedvector4array = PackedVector4Array(0, 0, 0, 0, 0, 0, 0, 0)
+packedcolorarray = PackedColorArray(0.642214, 0.65648675, 0.890557, 1, 0, 0, 0, 1, 0.22923702, 0.3338165, 0.25161606, 1)
+dictionary = {
+&"": NodePath("../NodeA"),
+PackedColorArray(): NodePath(".")
+}
+array_variant = [null, null, null]
+array_string = Array[String]([""])
+array_stringname = Array[StringName]([&""])
+array_float = Array[float]([0.0])
+array_int = Array[int]([0])
+array_dictionary = Array[Dictionary]([{
+"a": "a"
+}])
+array_array = Array[Array]([[]])
+array_nodepath = Array[NodePath]([NodePath("")])
+array_vector2 = Array[Vector2]([Vector2(0, 0)])
+array_vector3 = Array[Vector3]([Vector3(0, 0, 0)])
+array_vector4 = Array[Vector4]([Vector4(0, 0, 0, 0)])
+array_vector2i = Array[Vector2i]([Vector2i(0, 0)])
+array_vector3i = Array[Vector3i]([Vector3i(0, 0, 0)])
+array_vector4i = Array[Vector4i]([Vector4i(0, 0, 0, 0)])
+array_quaternion = Array[Quaternion]([Quaternion(0, 0, 0, 1)])
+array_transform3d = Array[Transform3D]([Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)])
+array_color = Array[Color]([Color(0, 0, 0, 1)])
+array_aabb = Array[AABB]([AABB(0, 0, 0, 0, 0, 0)])
+array_packedbytearray = null
+array_packedint32array = null
+array_packedint64array = null
+array_packedfloat32array = []
+array_packedfloat64array = null
+array_packedstringarray = null
+array_packedvector3array = null
+array_packedvector4array = null
+array_packedcolorarray = null
+dictionary_variant = Dictionary[String, Variant]({})
+dictionary_string = Dictionary[String, String]({
+"": ""
+})
+dictionary_stringname = Dictionary[String, StringName]({
+"": &""
+})
+dictionary_float = Dictionary[String, float]({
+"": 0.0
+})
+dictionary_int = Dictionary[String, int]({
+"": 0
+})
+dictionary_dictionary = Dictionary[String, Dictionary]({
+"": {}
+})
+dictionary_array = Dictionary[String, Array]({
+"": []
+})
+dictionary_nodepath = Dictionary[String, NodePath]({
+"": NodePath("")
+})
+dictionary_vector2 = Dictionary[String, Vector2]({
+"": Vector2(0, 0)
+})
+dictionary_vector3 = Dictionary[String, Vector3]({
+"": Vector3(0, 0, 0)
+})
+dictionary_vector4 = Dictionary[String, Vector4]({
+"": Vector4(0, 0, 0, 0)
+})
+dictionary_vector2i = Dictionary[String, Vector2i]({
+"": Vector2i(0, 0)
+})
+dictionary_vector3i = Dictionary[String, Vector3i]({
+"": Vector3i(0, 0, 0)
+})
+dictionary_vector4i = Dictionary[String, Vector4i]({
+"": Vector4i(0, 0, 0, 0)
+})
+dictionary_quaternion = Dictionary[String, Quaternion]({
+"": Quaternion(0, 0, 0, 1)
+})
+dictionary_transform3d = Dictionary[String, Transform3D]({
+"": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+})
+dictionary_color = Dictionary[String, Color]({
+"": Color(0, 0, 0, 1)
+})
+dictionary_aabb = Dictionary[String, AABB]({
+"": AABB(0, 0, 0, 0, 0, 0)
+})
+dictionary_packedbytearray = Dictionary[String, PackedByteArray]({
+"": PackedByteArray()
+})
+dictionary_packedint32array = Dictionary[String, PackedInt32Array]({
+"": PackedInt32Array()
+})
+dictionary_packedint64array = Dictionary[String, PackedInt64Array]({
+"": PackedInt64Array()
+})
+dictionary_packedfloat32array = Dictionary[String, PackedFloat32Array]({
+"": PackedFloat32Array()
+})
+dictionary_packedfloat64array = Dictionary[String, PackedFloat64Array]({
+"": PackedFloat64Array()
+})
+dictionary_packedstringarray = Dictionary[String, PackedStringArray]({
+"": PackedStringArray()
+})
+dictionary_packedvector2array = Dictionary[String, PackedVector2Array]({
+"": PackedVector2Array()
+})
+dictionary_packedvector3array = Dictionary[String, PackedVector3Array]({
+"": PackedVector3Array()
+})
+dictionary_packedvector4array = Dictionary[String, PackedVector4Array]({
+"": PackedVector4Array()
+})
+dictionary_packedcolorarray = Dictionary[String, PackedColorArray]({
+"": PackedColorArray(0, 0, 0, 1)
+})
+metadata/_edit_pinned_properties_ = [&"variant", &"string", &"stringname", &"_float", &"integer", &"array", &"nodepath", &"vector2", &"vector3", &"vector4", &"vector2i", &"vector3i", &"vector4i", &"quaternion", &"transform3d", &"color", &"aabb", &"packedbytearray", &"packedint32array", &"packedint64array", &"packedfloat32array", &"packedfloat64array", &"packedstringarray", &"packedvector2array", &"packedvector3array", &"packedvector4array", &"packedcolorarray", &"dictionary", &"array_variant", &"array_string", &"array_stringname", &"array_float", &"array_int", &"array_dictionary", &"array_array", &"array_nodepath", &"array_vector2", &"array_vector3", &"array_vector4", &"array_vector2i", &"array_vector3i", &"array_vector4i", &"array_quaternion", &"array_transform3d", &"array_color", &"array_aabb", &"array_packedbytearray", &"array_packedint32array", &"array_packedint64array", &"array_packedfloat32array", &"array_packedfloat64array", &"array_packedstringarray", &"array_packedvector3array", &"array_packedvector4array", &"array_packedcolorarray", &"dictionary_variant", &"dictionary_string", &"dictionary_stringname", &"dictionary_float", &"dictionary_int", &"dictionary_dictionary", &"dictionary_array", &"dictionary_nodepath", &"dictionary_vector2", &"dictionary_vector3", &"dictionary_vector4", &"dictionary_vector2i", &"dictionary_vector3i", &"dictionary_vector4i", &"dictionary_quaternion", &"dictionary_transform3d", &"dictionary_color", &"dictionary_aabb", &"dictionary_packedbytearray", &"dictionary_packedint32array", &"dictionary_packedint64array", &"dictionary_packedfloat32array", &"dictionary_packedfloat64array", &"dictionary_packedstringarray", &"dictionary_packedvector2array", &"dictionary_packedvector3array", &"dictionary_packedvector4array", &"dictionary_packedcolorarray", &"nodepath_node3d"]
+
+[node name="Node3D" type="Node3D" parent="NodeB" unique_id=1730705814]
+
+[node name="ExporterScript" type="Node" parent="." unique_id=1097051396]
+script = ExtResource("2_8uh7m")
+path = "export.json"
+data = ExtResource("3_6uqi0")
