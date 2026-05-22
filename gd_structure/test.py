@@ -34,7 +34,7 @@ class GdType(ABC):
         return []
 
 class GdTypeResource(GdType):
-    ## Abstract class for incorperating 
+    ## Abstract class for incorperating Resources by header ids 
     lark_key = "resource"
     resource_id : str = ""
     subtypes : dict[str,Type] = {}
@@ -47,3 +47,4 @@ class GdTypeResource(GdType):
     def __init_subclass__(cls):
         if cls.resource_id == "": return
         cls.subtypes[cls.resource_id] = cls
+
