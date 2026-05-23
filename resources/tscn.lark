@@ -69,10 +69,10 @@ bool : "true" | "false"
 
 type : "[" WORD ("," WORD)* "]"
 
-array_explicit : "Array" type* "(" array ")"
+array_explicit : "Array" [type] "(" array ")"
 array : "[" [value ("," value)*]* "]"
 
-dictionary_explicit : "Dictionary" type* "(" dictionary ")"
+dictionary_explicit : "Dictionary" [type] "(" dictionary ")"
 dictionary : "{" [pair ("," pair)*]* "}"
 pair : value ":" value
 
@@ -80,9 +80,9 @@ STRINGNAME : "&" STRING
 
 // Defered References:
 
-nodepath : "NodePath" type* "(" STRING ")"
-subresource : "SubResource" type* "(" STRING ")"
-extresource : "ExtResource" type* "(" STRING ")"
+nodepath : "NodePath" [type] "(" STRING ")"
+subresource : "SubResource" [type] "(" STRING ")"
+extresource : "ExtResource" [type] "(" STRING ")"
 
 // Vector types:
 
@@ -129,7 +129,7 @@ FLOAT : SIGNED_FLOAT | NUMBER
 
 %import common.ESCAPED_STRING   -> STRING
 %import common.LETTER    -> LETTER
-%import common.SIGNED_NUMBER    -> NUMBER
+%import common.SIGNED_INT    -> NUMBER
 %import common.SIGNED_FLOAT     
 %import common.WS
 %ignore WS

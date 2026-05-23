@@ -4,13 +4,16 @@ from lark import Lark
 from ..structure import GdType
 from .. import fixtures
 from .. import resources
-
+from pprint import pprint
 transformer = GdType.generate_transformer()()
 
 
+def test_tranformer():
+    pprint(dir(transformer))
+
 def test_tscn():
     text = fixtures.get_test_tscn_file().read_text()
-    parser = Lark(resources.grammer)
+    parser = Lark(resources.grammer, maybe_placeholders=True)
     tree = transformer.transform(parser.parse(text))
     if tree is GdType:
         tree.print_tree()
@@ -19,7 +22,7 @@ def test_tscn():
 
 def test_tres():
     text = fixtures.get_test_tres_file().read_text()
-    parser = Lark(resources.grammer)
+    parser = Lark(resources.grammer,maybe_placeholders=True)
     tree = transformer.transform(parser.parse(text))
     if tree is GdType:
         tree.print_tree()
@@ -28,7 +31,7 @@ def test_tres():
 
 def test_proj():
     text = fixtures.get_test_proj_file().read_text()
-    parser = Lark(resources.grammer)
+    parser = Lark(resources.grammer,maybe_placeholders=True)
     tree = transformer.transform(parser.parse(text))
     if tree is GdType:
         tree.print_tree()
