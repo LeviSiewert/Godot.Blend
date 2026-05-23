@@ -53,8 +53,8 @@ value : NULL
       | packedvector4array
       | packedcolorarray
       | bool
-      | FLOAT
       | NUMBER
+      | FLOAT
       | STRINGNAME
       | STRING
 
@@ -93,9 +93,9 @@ vector4i : "Vector4i(" [NUMBER ("," NUMBER)~3] ")"
 vector2 : "Vector2(" packed_vector2 ")"
 vector3 : "Vector3(" packed_vector3 ")"
 vector4 : "Vector4(" packed_vector4 ")"
-packed_vector2 : [NUMBER ("," NUMBER)~1]
-packed_vector3 : [NUMBER ("," NUMBER)~2]
-packed_vector4 : [NUMBER ("," NUMBER)~3]
+packed_vector2 : [FLOAT ("," FLOAT)~1]
+packed_vector3 : [FLOAT ("," FLOAT)~2]
+packed_vector4 : [FLOAT ("," FLOAT)~3]
 
 color : "Color(" packed_color ")"
 packed_color : [FLOAT ("," FLOAT)~3] 
