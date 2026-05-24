@@ -6,7 +6,7 @@ from .. import fixtures
 from .. import resources
 from pprint import pprint
 transformer = GdType.generate_transformer()()
-
+from .structure import parser_test
 
 def test_tranformer():
     pprint(dir(transformer))
@@ -37,6 +37,10 @@ def test_proj():
         tree.print_tree()
     else:
         print(tree.pretty())
+
+def test_gd_value_types():
+    
+    pass
 
 
 # from lark.visitors import Transformer, v_args

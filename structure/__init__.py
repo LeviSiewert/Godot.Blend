@@ -9,11 +9,20 @@ from typing import List
 ## THe goal is to have a generic read into tree structure, then dynamically expand the definitions away from the base types.
 ## Once I am strucutrally correct, I will switch to a strict definition.
 
+class GdTypeAnnoation():
+    ''' To be expanted on later; will need to incorperate refs by UUID, ect '''
+    type : Type
+    def __init__(self, type:Type):
+        self.type = type
+    def __repr__(self):
+        return f"<{self.type.__name__}>"
+VARIANT = GdTypeAnnoation(Any)
+NULL = GdTypeAnnoation(None)
+
 class GdType():
     _all_types : list[Type] = []
     _lark_key     : str  = "__default__" ##Lark key && Function key
     _lark_key_explicit = ""
-    
     _raw_children : list[Any]
 
     @classmethod
@@ -79,11 +88,6 @@ class GdTyping(GdType):
         inst.value = [type_a, type_b]
         return inst
 
-class GdTypingVARIANT(GdType):
-    def __repr__(self):
-        return "<VARIANT>"
-    _lark_key = ""
-
 class GdProperty(GdType):
     _lark_key = "property"
     name : str
@@ -106,8 +110,15 @@ class GdValue(GdType):
     _has_typing : bool = False
     _lark_key = "value"
     
-    typing : GdTyping = GdTypingVARIANT()
+    typing : tuple[GdTypeAnnoation|GdType] = (VARIANT,)
     value  : Any = None
+
+    def __init__(self, value=None,type=None):
+        _raw_children = []
+        if value != None:
+            self.set_value(value)
+        if type != None:
+            self.set_type(type)
 
     def __repr__(self):
         if self._has_typing:
@@ -118,6 +129,11 @@ class GdValue(GdType):
     def parse_lark(cls, tfm, meta, *children:list[Token|Any])->Any:
         ''' "Thin" by default'''
         return children
+    
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return (self.value == value.value) and (self.typing == value.typing)
+        return super().__eq__(value)
 
 
 class _GdValueNull(GdValue):
@@ -285,7 +301,7 @@ class _packed_color(GdValueArray):
         return children
 
 
-
+gd_value_types : list[Type[GdValue]] = filter(lambda x: issubclass(x, GdValue), GdType._all_types)
 
 # class GdValueArrayPacked(GdValueArray):
 #     pass
