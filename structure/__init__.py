@@ -76,8 +76,61 @@ class GdType():
     #         else:
     #             print(" "*indent+1, insert, x)
 
-class GdResource(GdType):
-    _lark_key = "resource"
+class GdFile(GdType):
+    _lark_key = "file"
+    @classmethod
+    def parse_lark(cls, tfm, meta, file):
+        return file
+    
+# class GdFileProject(GdFile):
+#     _lark_key = "file_project"
+#     # @classmethod
+#     # def parse_lark(cls, tfm, meta, file):
+#     #     return super().parse_lark(tfm, meta, file)
+
+class GdFileResource(GdFile):
+    _lark_key = "file_resource"
+    tuid : str = ""
+
+    comments : list[str]
+    header_props : list[GdProperty]
+    sub_resources : list[GdSubResource]
+
+    def get_ext_resource(id:str)->GdSubResource|None:
+        pass
+    
+    def ensure_ext_resource(file:str|GdFileResource):
+        pass
+
+    def get_sub_resource(id:str)->GdSubResource|None:
+        pass
+    
+    def ensure_sub_resource(file:str|GdSubResource):
+        pass
+
+    @classmethod
+    def parse_lark(cls, tfm, meta, comments_and_properties:list[str|GdProperty], sub_resources:list[GdSubResource] ):
+        inst = cls()
+        for x in comments_and_properties:
+            if isinstance(x,str):
+                inst.comments.append(x)
+            else:
+                inst.header_props.append(x)
+
+        inst.sub_resources = sub_resources
+        
+        return inst
+
+    def __init__(self):
+        self.comments = []
+        self.header_props = []
+        self.sub_resources = []
+
+class GdSubResource(GdType):
+    _lark_key = "sub_resource"
+    gdid : str = "node"
+    uuid : str = "" 
+    properties : list[GdProperty]
 
 class GdTyping(GdType):
     _lark_key = "type"
@@ -94,6 +147,10 @@ class GdProperty(GdType):
     name : str
     value : Any
     
+    def __init__(self, name:str, value:Any=None):
+        self.name = name
+        self.value = value
+
     @classmethod
     def parse_lark(cls, tfm, meta, name:Token, value=None)->Any:
         inst = cls()
@@ -105,7 +162,6 @@ class GdProperty(GdType):
     
     def __repr__(self)->str:
         return f"{self.__class__.__name__} ( {self.name} = {self.value} )" 
-
 
 class GdValue(GdType):
     _has_typing : bool = False
