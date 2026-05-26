@@ -16,6 +16,7 @@ class GdTypeAnnoation():
         self.type = type
     def __repr__(self):
         return f"<{self.type.__name__}>"
+STRING = GdTypeAnnoation(str)
 VARIANT = GdTypeAnnoation(Any)
 NULL = GdTypeAnnoation(None)
 

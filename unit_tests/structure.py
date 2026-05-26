@@ -31,31 +31,27 @@ class ParserTest():
 def test_GdType()->list[ParserTest]:
     """ tests for GdType """
     return [
-
     ]
 
 def test_GdResource()->list[ParserTest]:
     """ tests for GdResource """
     return [
-
     ]
 
 def test_GdTyping()->list[ParserTest]:
     """ tests for GdTyping """
     return [
-
     ]
 
 def test_GdTypingVARIANT()->list[ParserTest]:
     """ tests for GdTypingVARIANT """
     return [
-
     ]
 
 def test_GdProperty()->list[ParserTest]:
     """ tests for GdProperty """
     return [
-
+        ParserTest(GdProperty._lark_key, True, 'value = null', GdProperty("value", None)),
     ]
 
 def test_GdValue()->list[ParserTest]:
@@ -67,115 +63,127 @@ def test_GdValue()->list[ParserTest]:
 def test__GdValueNull()->list[ParserTest]:
     """ tests for _GdValueNull """
     return [
-
+        ParserTest(_GdValueNull._lark_key, True, 'null', None),
     ]
 
 def test__GdValueFloat()->list[ParserTest]:
     """ tests for _GdValueFloat """
-    return [
-
+    return [        
+        ParserTest(_GdValueFloat._lark_key, True, '1.0', 1.0),
+        ParserTest(_GdValueFloat._lark_key, False, '1.0', 1),
     ]
 
 def test__GdValueString()->list[ParserTest]:
     """ tests for _GdValueString """
     return [
-
+        ParserTest(_GdValueString._lark_key, True, '"1"', "1"),
+        ParserTest(_GdValueString._lark_key, True, '"abc"', "abc"),
     ]
 
 def test__GdValueInteger()->list[ParserTest]:
     """ tests for _GdValueInteger """
     return [
-
+        ParserTest(_GdValueInteger._lark_key, True, '1', 1),
+        ParserTest(_GdValueInteger._lark_key, False, '1', 1.0),
+        ParserTest(_GdValueInteger._lark_key, False, '1.0', 1),
     ]
 
 def test_GdValueExtResource()->list[ParserTest]:
     """ tests for GdValueExtResource """
     return [
-
+        ParserTest(GdValueExtResource._lark_key, True, 'ExtResource("1_sueyg")', GdValueExtResource("1_sueyg")),
     ]
 
 def test_GdValueNodePath()->list[ParserTest]:
     """ tests for GdValueNodePath """
     return [
-
+        ParserTest(GdValueNodePath._lark_key, True, 'NodePath(".")', GdValueNodePath(".")),
+        ParserTest(GdValueNodePath._lark_key, True, 'NodePath("./abv")', GdValueNodePath("./abv")),
     ]
 
 def test_GdValueSubResource()->list[ParserTest]:
     """ tests for GdValueSubResource """
+    ## TODO: Uncertain exact form in 
     return [
-
+        ParserTest(GdValueSubResource._lark_key, True, 'SubResource("Resource_nqchg")', GdValueSubResource("Resource_nqchg")),
     ]
 
 def test_GdValueStringName()->list[ParserTest]:
     """ tests for GdValueStringName """
     return [
-
+        ParserTest(GdValueStringName._lark_key, True, '&""', GdValueStringName("")),
+        ParserTest(GdValueStringName._lark_key, True, '&"StringNameContents"', GdValueStringName("StringNameContents")),
     ]
 
 def test_GdValueArray()->list[ParserTest]:
     """ tests for GdValueArray """
     return [
-
+        ParserTest(GdValueArray._lark_key, True, "[]", GdValueArray([])),
+        ParserTest(GdValueArray._lark_key, True, "[1]", GdValueArray([1])),
+        ParserTest(GdValueArray._lark_key, True, "[1,2]", GdValueArray([1,2])),
+        ParserTest(GdValueArray._lark_key, True, "[1,true]", GdValueArray([1,True])),
+        ParserTest(GdValueArray._lark_key, True, "Array[String]([\"a\"])", GdValueArray(["a"], (STRING,))),
+        ParserTest(GdValueArray._lark_key, False, "Array[String]([1,2])", GdValueArray([1,2], (STRING,))),
     ]
 
 def test_GdValueVector2()->list[ParserTest]:
     """ tests for GdValueVector2 """
     return [
-
+        ParserTest(GdValueVector2._lark_key, True, "Vector2(0, 0)", GdValueVector2([0, 0])),
     ]
 
 def test_GdValueVector3()->list[ParserTest]:
     """ tests for GdValueVector3 """
     return [
-
+        ParserTest(GdValueVector3._lark_key, True, "Vector3(0, 0, 0)", GdValueVector3([0, 0, 0])),
     ]
 
 def test_GdValueVector4()->list[ParserTest]:
     """ tests for GdValueVector4 """
     return [
-
+        ParserTest(GdValueVector4._lark_key, True, "Vector4(0, 0, 0, 1)", GdValueVector4([0, 0, 0, 1])),
     ]
 
 def test_GdValueVector2i()->list[ParserTest]:
     """ tests for GdValueVector2i """
     return [
-
+        ParserTest(GdValueVector2i._lark_key, True, "Vector2i(0, 0)", GdValueVector2i([0, 0])),
     ]
 
 def test_GdValueVector3i()->list[ParserTest]:
     """ tests for GdValueVector3i """
     return [
-
+        ParserTest(GdValueVector3i._lark_key, True, "Vector3i(0, 0, 0)", GdValueVector3i([0, 0, 0])),
     ]
 
 def test_GdValueVector4i()->list[ParserTest]:
     """ tests for GdValueVector4i """
     return [
-
+        ParserTest(GdValueVector4i._lark_key, True, "Vector4i(0, 0, 0, 1)", GdValueVector4i([0, 0, 0, 1])),
     ]
 
 def test_GdValueColor()->list[ParserTest]:
     """ tests for GdValueColor """
     return [
-
+        ParserTest(GdValueColor._lark_key, True, "Color(0, 0, 0, 1)", GdValueColor([0, 0, 0, 1])),
     ]
 
 def test_GdValueAABB()->list[ParserTest]:
     """ tests for GdValueAABB """
     return [
-
+        ParserTest(GdValueAABB._lark_key, True, "AABB(0, 0, 0, 0, 0, 0)", GdValueAABB([0, 0, 0, 0, 0, 0])),
     ]
 
 def test_GdValueQuaternion()->list[ParserTest]:
     """ tests for GdValueQuaternion """
     return [
-
+        ParserTest(GdValueQuaternion._lark_key, True, "Quaternion(0, 0, 0, 1)", GdValueQuaternion([0, 0, 0, 1])),
     ]
 
 def test_GdValueTransform3D()->list[ParserTest]:
     """ tests for GdValueTransform3D """
     return [
-
+        ParserTest(GdValueTransform3D._lark_key, True, "Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)", GdValueTransform3D([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])),
     ]
 
 def test_GdValuePackedByteArray()->list[ParserTest]:
