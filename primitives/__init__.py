@@ -13,6 +13,13 @@ class Signal():
         self._connections.remove(val)
 
     def emit(self,*args,**kwargs):
+        to_discon = []
         for x in self._connections:
-            x(*args,**kwargs)
-        
+            res = x(*args,**kwargs)
+            if res == True:
+                to_discon.append(res)
+        for x in to_discon:
+            self.disconnect(x)
+
+# def listener():
+#     pass
