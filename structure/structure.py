@@ -76,29 +76,108 @@ class GdType():
     #         else:
     #             print(" "*indent+1, insert, x)
 
+
+class Collection():
+    items : list[Any]
+    item_appended : Signal
+    item_removed : Signal
+    
+    def __init__(self):
+        items = []
+        self.item_appended = Signal(self) 
+        self.item_removed = Signal(self) 
+    
+    def append(self,item:Any):
+        self.items.append(item)
+        self.item_appended.emit(item)
+
+    def remove(self,item:Any):
+        if item in self.items:
+            self.items.remove(item)
+            self.item_removed.emit(item)
+
+class CollectionFile[T](Collection):
+    by_uuid : dict[str, T] = None
+    by_path : dict[str, T] = None
+
+    uuid_set : Signal[T, str]
+    path_set : Signal[T, str]
+
+    file_removed : Signal[T, str, str]
+    file_added : Signal[T, str, str]
+
+    def __init__(self):
+        super().__init__()
+
+        self.uuid_set = Signal(self)
+        self.path_set = Signal(self)
+
+        self.item_appended.connect(self._on_append)
+        self.item_removed.connect(self._on_remove)
+
+        self.by_path = {}
+        self.by_uuid = {}
+
+    def _on_append(self,item:T):
+        item.uuid_changed.connect(self.uuid_set.emit, True)
+        item.path_changed.connect(self.path_set.emit, True)
+        if item.uuid != None:
+            self.uuid_set.emit(item,None,item.uuid)
+            self.by_uuid[item.uuid] = item
+        if item.path != None:
+            self.path_set.emit(item,None,item.path)
+            self.by_path[item.path] = item
+        self.file_added.emit(item, item.uuid, item.path)
+
+    def _on_remove(self,item:T):
+        item.uuid_changed.disconnect(self.uuid_set.emit)
+        item.path_changed.disconnect(self.path_set.emit)
+        if item.uuid in self.by_uuid.keys():
+            self.by_uuid.remove(item.uuid)
+        if item.path in self.by_path.keys():
+            self.by_path.remove(item.path)
+        self.file_removed.emit(item, item.uuid, item.path)
+    
+    
+class GdProject():
+    files : CollectionFile[GdFile]
+    
+    file_appended : Signal
+    file_removed : Signal
+
+    uuid_set : Signal
+    path_set : Signal
+
+    def __init__(self):
+        self.files = CollectionFile()
+        self.uuid_set = Signal(self, (self.files.uuid_set,))
+        self.path_set = Signal(self, (self.files.path_set,))
+        self.file_appended = Signal(self, (self.files.file_appended,))
+        self.file_removed = Signal(self, (self.files.file_removed,))
+        
+        
 class GdFile(GdType):
     _lark_key = "file"
+    
+    uuid : str|None = None
+    uuid_set : Signal[str]
+    
+    path : str|None = None
+    path_set : Signal[str]
+    
     @classmethod
     def parse_lark(cls, tfm, meta, file):
         return file
-    
-# class GdFileProject(GdFile):
-#     _lark_key = "file_project"
-#     # @classmethod
-#     # def parse_lark(cls, tfm, meta, file):
-#     #     return super().parse_lark(tfm, meta, file)
 
 class GdFileResource(GdFile):
     _lark_key = "file_resource"
-    
-    # filepath : str
-    # uuid : str
-    # last_updated : str
-    # dependencies : list[str]
+
+    res_added : Signal[GdSubResource]
+    res_removed : Signal[GdSubResource]
 
     comments : list[str]
     header_props : list[GdProperty]
-    sub_resources : CollectionSubResource[GdSubResource]
+    sub_resources : Collection[GdSubResource]
     ## Collection needs to spawn ID/Namespaces
 
     @classmethod
@@ -110,14 +189,17 @@ class GdFileResource(GdFile):
             else:
                 inst.header_props.append(x)
 
-        inst.sub_resources = sub_resources
+        for x in sub_resources:
+            inst.sub_resources.append(x)
         
         return inst
 
     def __init__(self):
         self.comments = []
         self.header_props = []
-        self.sub_resources = []
+        self.sub_resources = Collection()
+        self.sub_resources.item_appended.connect(self.res_added.emit)
+        self.sub_resources.item_removed.connect(self.res_removed.emit)
 
 class GdSubResource(GdType):
     _lark_key = "sub_resource"
