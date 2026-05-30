@@ -1,2 +1,2 @@
-from structure import *
-from values import *
+from .gd_type import *
+from .gd_values import *

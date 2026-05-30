@@ -30,5 +30,22 @@ class Signal():
         for x in to_discon:
             self.disconnect(x)
 
-# def listener():
-#     pass
+
+class Collection():
+    items : list[Any]
+    item_appended : Signal
+    item_removed : Signal
+    
+    def __init__(self):
+        items = []
+        self.item_appended = Signal(self) 
+        self.item_removed = Signal(self) 
+    
+    def append(self,item:Any):
+        self.items.append(item)
+        self.item_appended.emit(item)
+
+    def remove(self,item:Any):
+        if item in self.items:
+            self.items.remove(item)
+            self.item_removed.emit(item)

@@ -6,7 +6,7 @@ from .. import fixtures
 from .. import resources
 from pprint import pprint
 transformer = GdType.generate_transformer()()
-from .structure import parser_test
+# from .structure import ParserTest
 
 def test_tranformer():
     pprint(dir(transformer))

@@ -1,5 +1,7 @@
-from .structure import *
+from __future__ import annotations
+from .gd_type import *
 
+''' Implementation of GdValue Structure '''
 
 
 class _GdValueNull(GdValue):
@@ -41,37 +43,6 @@ class _GdValueInteger(GdValue):
     @classmethod
     def parse_lark(cls, tfm, child:Token)->Any:
         return int(child)
-
-class GdValueExtResource(GdValue):
-    _has_typing = True
-    _lark_key = "extresource"
-    ref : Any
-
-    @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.value = str(address).strip('"')
-        return inst
-    
-class GdValueNodePath(GdValue):
-    _lark_key = "nodepath"
-    ref : Any
-
-    @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.value = str(address).strip('"')
-        return inst
-    
-class GdValueSubResource(GdValue):
-    _lark_key = "subresource"
-    ref : Any
-
-    @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.value = str(address).strip('"')
-        return inst
 
 class GdValueStringName(GdValue):
     _lark_key = "STRINGNAME"
@@ -190,18 +161,22 @@ class GdValueDictionary(GdValue):
 
 class _packed_vector2(GdValueArray):
     _lark_key = "packed_vector2"
+    _lark_key_explicit = ""
     @classmethod
     def parse_lark(cls, tfm, meta, *children):
         return children
 class _packed_vector3(GdValueArray):
     _lark_key = "packed_vector3"
+    _lark_key_explicit = ""
     def parse_lark(cls, tfm, meta, *children):
         return children
 class _packed_vector4(GdValueArray):
     _lark_key = "packed_vector4"
+    _lark_key_explicit = ""
     def parse_lark(cls, tfm, meta, *children):
         return children
 class _packed_color(GdValueArray):
     _lark_key = "packed_color"
+    _lark_key_explicit = ""
     def parse_lark(cls, tfm, meta, *children):
         return children
