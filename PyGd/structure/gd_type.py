@@ -4,19 +4,42 @@ from ..primitives import *
 from lark.visitors import Transformer, v_args
 from lark import Token
 from .gd_class_db import ClassDb
+from .gd_class_db import PropertyDef, ResourceDef
+
+from contextvars import ContextVar
+class Context():
+    def __init__(self):
+        self.Project  = ContextVar("Project")
+        self.File     = ContextVar("File")
+        self.Property = ContextVar("Property")
+        self.Value    = ContextVar("Value")
+    Project  : ContextVar[GdProject]
+    File     : ContextVar[GdFile]
+    Property : ContextVar[GdProperty]
+    Value    : ContextVar[GdValue]
+    
+    def include(self, obj:GdType, key:str):
+        val = getattr(self,key,None)
+        if val == None:
+            yield
+        else:
+            token = val.set(obj)
+            yield
+            val.reset(token)
+
+        
 
 class GdType():
     _all_types : list[Type] = []
-    _lark_key     : str  = "__default__" ##Lark key && Function key
+    _lark_key : str  = "__default__" ##Lark key && Function key
     _lark_key_explicit = ""
-    _raw_children : list[Any]
+    _ctx_type : str = ""
 
     @classmethod
     def parse_lark(cls, tfm, meta, children)->Any:
         if len(children) == 0: 
             return None
         inst = cls()
-        inst._raw_children = children
         return inst
     
     @staticmethod 
@@ -45,20 +68,39 @@ class GdType():
         
         return v_args(meta=True, inline=True)(_Transformer)
     
-
     def __init_subclass__(cls):
         cls._all_types.append(cls)
 
-    def __init__(self):
-        _raw_children = []
-
     def __repr__(self)->str:
         return self.__class__.__name__ + "()"
+    
+    def tree_children()->list[GdType]:
+        return []
+
+    def tree_call(self, func:str, ctx:Context=None, *args, **kwargs):
+        if ctx == None:
+            ctx = Context()
+        with ctx.include(self, self._ctx_type):
+            for x in self.tree_children():
+                x.tree_call(func, ctx, *args,**kwargs)
+            getattr(x,func)(ctx, *args, **kwargs)
+
 
 class VARIANT(GdType):
     _lark_key = ""
 class NULL(GdType):
     _lark_key = ""
+
+class GdTyping(GdType):
+    _lark_key = "type"
+    value : list
+
+    @classmethod
+    def parse_lark(cls, tfm, meta, type_a:Token=None, type_b:Token=None)->Any:
+        inst = cls()
+        inst.value = [type_a, type_b]
+        return inst
+
 
 class GdProject():
     files : CollectionFile[GdFile]
@@ -75,6 +117,9 @@ class GdProject():
         self.path_set = Signal(self, (self.files.path_set,))
         self.file_appended = Signal(self, (self.files.file_appended,))
         self.file_removed = Signal(self, (self.files.file_removed,))
+
+    def tree_children(self):
+        return self.files.items
         
 class CollectionFile[T](Collection):
     by_uuid : dict[str, T] = None
@@ -138,7 +183,7 @@ class GdFileResource(GdFile):
     res_removed : Signal[GdSubResource]
 
     comments : list[str]
-    properties : Properties
+    properties : GdProperties
     sub_resources : Collection[GdSubResource]
     ## Collection needs to spawn ID/Namespaces
 
@@ -160,29 +205,20 @@ class GdFileResource(GdFile):
         self.comments = []
         self.header_props = []
         
-        self.properties = Properties()
+        self.properties = GdProperties()
         self.sub_resources = Collection()
 
         self.res_added = Signal(self, (self.sub_resources.item_appended,))
         self.res_removed = Signal(self, (self.sub_resources.item_removed,))
 
+    def tree_children(self):
+        return self.properties.properties.values() + self.sub_resources.items
 
-
-class GdSubResource(GdType):
-    _lark_key = "sub_resource"
-    _type_key : str = ""        ##node, ect.
-
-    _subres_by_key : dict[str, GdSubResource] = {}
-
+class GdProperties():
     gd_type : ResourceDef
-    properties : dict[GdValue]
-
-    def set_gd_type(self, ty: ResourceDef):
-        self.gd_type = ty
-
-
+    properties : dict[str, GdValue]
+    
     def __init__(self):
-        super().__init__()
         self.properties = {}
 
     def __getattr__(self, name):
@@ -196,6 +232,25 @@ class GdSubResource(GdType):
     def __setattr__(self, name, value):
         assert(name in self.gd_type.properties.keys())
         self.properties[name] = value
+
+class GdSubResource(GdType):
+    _lark_key = "sub_resource"
+    _type_key : str = ""        ##node, ect.
+    _subres_by_key : dict[str, GdSubResource] = {}
+
+    gd_type_set : Signal[ResourceDef]
+    gd_type : ResourceDef
+
+    properties : GdProperties
+
+    def set_gd_type(self, ty: ResourceDef):
+        self.gd_type = ty
+        self.gd_type_set.emit(ty)
+
+    def __init__(self):
+        super().__init__()
+        self.properties = GdProperties()
+        self.gd_type_set = Signal(self)
 
     def __init_subclass__(cls):
         cls._lark_key = ""
@@ -211,20 +266,15 @@ class GdSubResource(GdType):
         return cls.populate_lark(key, *properties)
 
     @classmethod
-    def populate_lark(cls, key:str, *properties:list[GdProperty]):
+    def populate_lark(cls, key:str, header_props:list[GdProperty], properties:list[GdProperty]):
         inst = cls()
+
+        for k,v in header_props.items():
+            setattr(inst, k, v) 
+
         for k,v in properties.items():
-            inst.properties[k] = v
-        return inst
+            setattr(inst.properties, k, v )
 
-class GdTyping(GdType):
-    _lark_key = "type"
-    value : list
-
-    @classmethod
-    def parse_lark(cls, tfm, meta, type_a:Token=None, type_b:Token=None)->Any:
-        inst = cls()
-        inst.value = [type_a, type_b]
         return inst
 
 class GdProperty(GdType):
@@ -245,6 +295,11 @@ class GdProperty(GdType):
     
     def __repr__(self)->str:
         return f"{self.__class__.__name__} ( {self.name} = {self.value} )" 
+    
+    def tree_children(self):
+        if self.value != None:
+            return [self.value]
+        return []
 
 class GdValue(GdType):
     _has_typing : bool = False
@@ -274,7 +329,6 @@ class GdValue(GdType):
         if isinstance(value, self.__class__):
             return (self.value == value.value) and (self.typing == value.typing)
         return super().__eq__(value)
-
 
 class GdValueExtResource(GdValue):
     _has_typing = True
