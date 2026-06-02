@@ -177,6 +177,10 @@ class GdSubResource(GdType):
     gd_type : ResourceDef
     properties : dict[GdValue]
 
+    def set_gd_type(self, ty: ResourceDef):
+        self.gd_type = ty
+
+
     def __init__(self):
         super().__init__()
         self.properties = {}
@@ -212,9 +216,6 @@ class GdSubResource(GdType):
         for k,v in properties.items():
             inst.properties[k] = v
         return inst
-
-class GdSubResourceNode(GdSubResource):
-    _type_key = "node"
 
 class GdTyping(GdType):
     _lark_key = "type"
