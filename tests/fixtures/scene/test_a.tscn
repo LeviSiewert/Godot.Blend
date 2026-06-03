@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://b41hu634aslto"]
+
+[node name="Root" type="Node" unique_id=380039000]
+
+[node name="A" type="Node" parent="." unique_id=1767533652]
+
+[node name="A" type="Node" parent="A" unique_id=569498331]
+
+[node name="B" type="Node" parent="A" unique_id=150287226]
+
+[node name="B" type="Node" parent="." unique_id=893798435]
+
+[node name="A" type="Node" parent="B" unique_id=1154036955]
+
+[node name="B" type="Node" parent="B" unique_id=374195944]
