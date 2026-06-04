@@ -19,15 +19,6 @@ class GdProject():
         self.files = FileDb()
         self.class_db = ClassDb()
 
-class GdPropertyDef():
-    default : GdValue
-
-class GdClassDef():
-    uuid : str
-    path : str
-    extends : GdClassDef
-    properties : list[GdPropertyDef]
-
 class GdType(ABC, SignalContainer):
     @abstractmethod
     @classmethod
