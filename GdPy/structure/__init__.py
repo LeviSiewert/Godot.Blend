@@ -1,21 +1,23 @@
 from __future__ import annotations
-from ..primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
 from typing import Self, Any, Type, LambdaType
-
-class STOP(): pass
-
-class File():
-    uuid : str
-    path : str
-    data : Any
+from ..primitives import Signal, SignalContainer
+from .gd_definitions import ClassDb, GdClassDef, GdPropertyDef
+from .file_db import File, FileDb
+from pathlib import Path
 
 class GdProject():
-    files : Collection[File]
-    class_db : Collection[GdClassDef]
+    files : FileDb
+    class_db : ClassDb
 
-    def __init__():
-        pass
+    path : Path
+
+    def __init__(self, path:str):
+        self.path = Path(path)
+        assert(self.path.exists())
+
+        self.files = FileDb()
+        self.class_db = ClassDb()
 
 class GdPropertyDef():
     default : GdValue
@@ -55,8 +57,7 @@ class GdType(ABC, SignalContainer):
 
     def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
         if not depth_first:
-            stop = getattr(self, func_id)(*args, **kwargs)
-            if stop is STOP: return
+            getattr(self, func_id)(*args, **kwargs)
 
         for x in filter(_filter, self.get_struct_children()):
             if hasattr(x, "call_struct"):
@@ -71,7 +72,7 @@ class GdType(ABC, SignalContainer):
 
 
 class GdResource(GdType):
-    script : GdScriptDef
+    script : GdClassDef
     properties : dict[str, GdValue]
     
     def __init__(self):

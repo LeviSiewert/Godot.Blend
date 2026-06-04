@@ -1,6 +1,8 @@
+from __future__ import annotations
 from typing import Self, Callable, Any
 from inspect import get_annotations
-
+from abc import ABC, abstractmethod
+from contextvars import ContextVar
 class SignalSubscriber():
     func : Callable
     pre_args : list
@@ -28,6 +30,9 @@ class Signal():
                 to_rem.append(res)
         for x in to_rem:
             self.subscribers.remove(res)
+    
+    def forward(self, *args, **kwargs):
+        self(self.owner, *args, **kwargs)
 
     def connect(self, func, include_owner=False):
         if include_owner:
@@ -55,6 +60,52 @@ class SignalContainer:
         super().__init__()
 
 
-class Collection():
-    ''' Dict with multiple keys & signals for changing keys '''
-    ## TODO
+class Collection[T](ABC, SignalContainer):
+    items : list[T]
+    item_appended : Signal
+    item_removed : Signal
+    
+    def __init__(self):
+        items = []
+        self.item_appended = Signal(self) 
+        self.item_removed = Signal(self)
+    
+    def append(self, item:T):
+        self._integrate(item)
+        self.item_appended.emit(item)
+
+    def remove(self, item:T):
+        self._disintegrate(item)
+        self.item_removed.emit(item)
+    
+    @abstractmethod
+    def _integrate(item:T):
+        pass
+    
+    @abstractmethod
+    def _disintegrate(item:T):
+        pass
+
+    @abstractmethod
+    def __getitem__(self, key)->T:
+        return None
+    
+class Context():
+    project      : ContextVar[Any]
+    load_session : ContextVar[Any]
+    file         : ContextVar[Any]
+    resource     : ContextVar[Any]
+    subresource  : ContextVar[Any]
+
+    def __init__(self,):
+        self.project = ContextVar(self.id+"_project")
+        self.load_session = ContextVar(self.id+"_load_session")
+        self.file = ContextVar(self.id+"_file")
+        self.resource = ContextVar(self.id+"_resource")
+        self.subresource = ContextVar(self.id+"_subresource")
+        
+    def w(self, key:str,val:Any):
+        if var := getattr(self,key):
+            token=var.set(val)
+            yield
+            var.reset(token)
