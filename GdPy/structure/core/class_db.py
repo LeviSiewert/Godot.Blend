@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ...primitives import Collection, Signal, SignalContainer
+from .primitives import Collection, Signal, SignalContainer
 from .file_db import File
 from typing import Any
 
@@ -45,9 +45,13 @@ class GdClassDef(SignalContainer):
     _extends_me : list[GdClassDef]
     extends_set : Signal[GdClassDef]
 
-    is_internal : bool
+    # is_internal : bool
+
+    is_abstract : str
+    language : str
 
     _properties : dict[str,GdPropertyDef]
+    _signals : dict[str,GdSignalDef]
 
     @property
     def parents(self)->tuple[GdClassDef]:

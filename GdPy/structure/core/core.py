@@ -1,8 +1,8 @@
 from __future__ import annotations
-from ...primitives import Signal, SignalContainer
+from .primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
 from typing import Self, Any, Type, LambdaType
-from ...primitives import Signal, SignalContainer, Context
+from .primitives import Signal, SignalContainer, Context
 from .class_db import ClassDb, GdClassDef, GdPropertyDef
 from .file_db import File, FileDb
 from pathlib import Path
@@ -53,16 +53,21 @@ class GdType(ABC, SignalContainer):
 
 
     @abstractmethod
-    def get_struct_children(self)->tuple[GdType|Any]:
-        return tuple()
+    def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
+        return {}
+    
+    @abstractmethod
+    def set_struct_children(self, key:str, items:tuple):
+        return
 
     def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
         if not depth_first:
             getattr(self, func_id)(*args, **kwargs)
 
-        for x in filter(_filter, self.get_struct_children()):
-            if hasattr(x, "call_struct"):
-                x.call_struct(func_id, depth_first, *args, **kwargs)
+        for k,v in self.get_struct_children():
+            for x in filter(_filter, v):
+                if hasattr(x, "call_struct"):
+                    x.call_struct(func_id, depth_first, *args, **kwargs)
 
         if depth_first:
             getattr(self, func_id)(*args, **kwargs)

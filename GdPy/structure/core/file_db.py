@@ -2,12 +2,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Type
-from ...primitives import Signal, SignalContainer, Collection, Context
+from .primitives import Signal, SignalContainer, Collection, Context
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
 from watchdog import Observer as _Observer #type:ignore
 
-class File(ABC, SignalContainer):
+class File[T:Any](ABC, SignalContainer):
     
     uuid : str
     uuid_set : Signal[str, str] #Fr, To
@@ -15,8 +15,8 @@ class File(ABC, SignalContainer):
     path : str
     path_set : Signal[str, str] #Fr, To
 
-    data : Any
-    data_loaded : Signal[Any]
+    data : T
+    data_loaded : Signal[T]
     data_dumped : Signal
     data_deleted : Signal
 
