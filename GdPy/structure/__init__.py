@@ -4,11 +4,13 @@ from typing import Self, Any, Type, LambdaType
 from ..primitives import Signal, SignalContainer
 from .gd_definitions import ClassDb, GdClassDef, GdPropertyDef
 from .file_db import File, FileDb
+from .secondary_transformers import TransformerDb
 from pathlib import Path
 
 class GdProject():
     files : FileDb
     class_db : ClassDb
+    ext_trfm : TransformerDb
 
     path : Path
 
@@ -18,6 +20,7 @@ class GdProject():
 
         self.files = FileDb()
         self.class_db = ClassDb()
+        self.ext_trfm = TransformerDb()
 
 class GdType(ABC, SignalContainer):
     @abstractmethod
