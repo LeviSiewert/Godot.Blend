@@ -86,6 +86,17 @@ class FileDb[T:File](Collection):
 
         self.uuid_set.connect(self._on_file_uuid_set)
         self.path_set.connect(self._on_file_path_set)
+        self.populate_existing()
+
+    def populate_existing(self,):
+        for path in self.root.rglob("*"):
+            if not path.is_file():
+                continue
+            if not self.file_filter(path):
+                continue
+            if self[path]:
+                continue
+            self.append(self.generate_file(path))
 
     def file_filter(self, path:str)->bool:
         ''' Override; Env based '''
