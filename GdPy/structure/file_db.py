@@ -79,11 +79,6 @@ class FileDb[T:File](Collection):
         self._observer.start()
         
         super().__init__()
-        self.fs_created.connect(self._on_fs_created)
-        self.fs_modified.connect(self._on_fs_modified)
-        self.fs_deleted.connect(self._on_fs_deleted)
-        self.fs_moved.connect(self._on_fs_moved)
-
         self.uuid_set.connect(self._on_file_uuid_set)
         self.path_set.connect(self._on_file_path_set)
         self.populate_existing()
