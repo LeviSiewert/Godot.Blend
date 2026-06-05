@@ -1,10 +1,8 @@
 from __future__ import annotations
 from .primitives import Collection, Signal, SignalContainer
 from .file_db import File
-from typing import Any
+from typing import Any, Self
 
-class GdSignalDef():
-    pass
 
 class GdPropertyDef():
     """ 
@@ -12,11 +10,53 @@ class GdPropertyDef():
     Secondary transformers: 
         - Will be a part of a standard per-env file
     """
+    default_value : Any
+    cls_name  : str
+    _type     : int
+    hint_type : int
+    hint_str  : str
+    usage     : int
 
-    name : str
-    default : Any
-    typeing : tuple
+    @staticmethod
+    def construct(
+            cls,
+            default_value : Any,
+            cls_name  : str,
+            _type     : int,
+            hint_type : int,
+            hint_str  : str,
+            usage     : int,
+        )->Self:
+        self = cls()
+        self.default_value = default_value
+        self.cls_name  = cls_name 
+        self._type     = _type    
+        self.hint_type = hint_type
+        self.hint_str  = hint_str 
+        self.usage     = usage    
+        return self
 
+class GdSignalDef():
+    args         : list[dict]
+    default_args : list
+    flags        : int
+    _id          : int
+    name         : str
+    
+    def construct(cls,
+            args         : list[dict],
+            default_args : list,
+            flags        : int,
+            _id          : int,
+            name         : str,
+            )->Self:
+        self = cls()
+        self.args         = args
+        self.default_args = default_args
+        self.flags        = flags
+        self._id          = _id
+        self.name         = name
+        return self
 
 class GdClassDef(SignalContainer):
     """ 
@@ -52,6 +92,27 @@ class GdClassDef(SignalContainer):
 
     _properties : dict[str,GdPropertyDef]
     _signals : dict[str,GdSignalDef]
+
+    @staticmethod
+    def construct(
+            cls,
+            name : str,
+            path : str,
+            c_extends : str = "",
+            properties : list[GdPropertyDef] = tuple(),
+            signals : list[GdSignalDef] = tuple(),
+            is_abstract : bool = False,
+            language : str = "gdscript",
+            )->Self:
+        self = cls()
+        self.name = name
+        self.path = path
+        self.extends = c_extends
+        self.is_abstract = is_abstract
+        self.langauge = language
+        self._properties = properties
+        self._signals = signals
+        return self
 
     @property
     def parents(self)->tuple[GdClassDef]:

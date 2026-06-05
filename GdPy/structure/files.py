@@ -13,6 +13,9 @@ class FileTres[T:GdResource](File):
             assert(self.path.exists())
             text = self.path.read()
             self.data = gdparser(context, text, start="tres")
+            
+            ## loading pipeline here for connecting secondary references as required 
+
             self.data_loaded()
         
     def save(self, context:Context, *args, **kwargs):
@@ -29,8 +32,12 @@ class FileTres[T:GdResource](File):
 class FileClassDefinition(FileTres):
 
     class _DefTransformer[I:GdType,T:list[GdClassDef]](SecondaryTransfomer):
-        ''' Local transfomer for results of GdPy/tools/godot/class_exporter '''
+        ''' Modified transfomer for results of GdPy/tools/godot/class_exporter '''
 
+        def transform(self, root:I|GdType, *args, **kwargs)->T:
+            res = self.matcher(root)(root, *args, **kwargs)
+            return res
+    
         def matcher(self, item:GdType)->Callable:
             if ref := item.properties.get("script"):
                 if ref.value.path.endswith("class_data.gd"):
@@ -44,16 +51,43 @@ class FileClassDefinition(FileTres):
             return self.__default__
         
         def class_data(self, val:GdResource)->GdClassDef:
-            pass
+            p = val.properties
+            res = GdClassDef.construct(
+                name        = p["name"],
+                path        = p["path"],
+                c_extends   = p["c_extends"],
+                properties  = self.transform_each(p["properties"]) ,
+                signals     = self.transform_each(p["signals"]) ,
+                is_abstract = p["is_abstract"],
+                language    = p["language"],
+            )
+            return res
         
         def property_data(self, val:GdResource)->GdPropertyDef:
-            pass
+            p = val.properties
+            res = GdPropertyDef.construct(
+                default_value = p["default_value"],
+                cls_name      = p["cls_name"],
+                _type         = p["type"],
+                hint_type     = p["hint_type"],
+                hint_str      = p["hint_str"],
+                usage         = p["usage"],
+            )
+            return res
         
         def signal_data(self, val:GdResource)->GdSignalDef:
-            pass
+            p = val.properties
+            res = GdSignalDef.construct(
+                args         = p["args"], 
+                default_args = p["default_args"], 
+                flags        = p["flags"], 
+                _id          = p["_id"], 
+                name         = p["name"], 
+            )
+            return res
         
         def class_db(self, val:GdResource)->list[GdClassDef]:
-            pass
+            return self.transform_each(val.properties["classes"])
             
     def get_definitions(self)->list[GdClassDef]:
         assert(self.data)
