@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any, Type
 from ...primitives import Signal, SignalContainer, Collection, Context
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
@@ -49,8 +49,10 @@ class File(ABC, SignalContainer):
 
 class FileDb[T:File](Collection):
     # TODO: Properly support all 3 paths of res:// uid:// {absolute} 
-    
+
     root : Path
+    file_types : list[Type[File]]
+    
     _observer : _Observer
 
     uuid_set : Signal[T,str,str]
@@ -67,8 +69,9 @@ class FileDb[T:File](Collection):
     _queue_targets : list[File]
 
 
-    def __init__(self, root:Path):
-        self.root = root
+    def __init__(self, root:Path, file_types:list[Type[File]]):
+        self.root = root        
+        self.file_types = file_types
 
         self.by_uuid = {}
         self.by_path = {}
@@ -94,11 +97,11 @@ class FileDb[T:File](Collection):
             self.append(self.generate_file(path))
 
     def file_filter(self, path:str)->bool:
-        ''' Override; Env based '''
+        ''' Override; Env based. Source data from self.file_types '''
         return True
 
     def generate_file(self, path:Path)->File:
-        ''' Override; Env based '''
+        ''' Override; Env based. Source data from self.file_types '''
         return File(path)
 
     def _integrate(self,item:T):

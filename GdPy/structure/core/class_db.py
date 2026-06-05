@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..primitives import Collection, Signal, SignalContainer
+from ...primitives import Collection, Signal, SignalContainer
 from .file_db import File
 from typing import Any
 
