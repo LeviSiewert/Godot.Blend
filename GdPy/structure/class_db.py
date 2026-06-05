@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..primitives import Collection, Signal, SignalContainer
+from ...primitives import Collection, Signal, SignalContainer
 from typing import Any
 
 class GdPropertyDef():
