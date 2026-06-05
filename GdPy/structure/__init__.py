@@ -2,28 +2,33 @@ from __future__ import annotations
 from ..primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
 from typing import Self, Any, Type, LambdaType
-from ..primitives import Signal, SignalContainer
+from ..primitives import Signal, SignalContainer, Context
 from .class_db import ClassDb, GdClassDef, GdPropertyDef
 from .file_db import File, FileDb
 from .secondary_transformers import TransformerDb
 from pathlib import Path
 
 class GdProject():
-    files : FileDb
+    file_db : FileDb
     class_db : ClassDb
 
     path : Path
     file_proj : Path
 
-    def __init__(self, path:str, files:FileDb, class_db:ClassDb):
+    def __init__(self, path:str, file_db:FileDb, class_db:ClassDb):
         self.path = Path(path)
         assert(self.path.exists())
 
         self.file_proj = self.path / "project.godot"
         assert(self.file_proj.exists())
 
-        self.files = files
+        self.file_db = file_db
         self.class_db = class_db
+
+    def context(self):
+        c = Context()
+        with c.w("project", self):
+            yield c
 
 class GdType(ABC, SignalContainer):
     @abstractmethod
