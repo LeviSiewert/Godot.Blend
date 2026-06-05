@@ -5,6 +5,4 @@ As this is built for continious use rather than one-off use, Signals should be s
 The transformer pipeline (via hooks) for use in blender is contained in a seperate lookup for env isolation.
 """
 
-
-
-
+from .structure import *

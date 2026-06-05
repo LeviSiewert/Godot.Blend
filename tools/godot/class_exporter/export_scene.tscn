@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://brpwt1li5xsub"]
+
+[ext_resource type="Script" uid="uid://k416w4pulge8" path="res://tools/godot/class_exporter/exporter_script.gd" id="1_omg5s"]
+
+[node name="ExportScene" type="Node" unique_id=1686805601]
+script = ExtResource("1_omg5s")
