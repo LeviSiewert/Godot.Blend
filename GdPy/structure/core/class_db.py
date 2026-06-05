@@ -1,6 +1,10 @@
 from __future__ import annotations
-from ...primitives import Collection, Signal, SignalContainer
+from ..primitives import Collection, Signal, SignalContainer
+from .file_db import File
 from typing import Any
+
+class GdSignalDef():
+    pass
 
 class GdPropertyDef():
     """ 
@@ -89,6 +93,7 @@ class GdClassDef(SignalContainer):
             self.definition_updated()
 
 class ClassDb[T:GdClassDef](Collection):
+    src_file : File #FileClassDefinition
 
     by_name: dict[str, T]
     by_uuid: dict[str, T]
@@ -122,3 +127,15 @@ class ClassDb[T:GdClassDef](Collection):
 
         for x in self.items:
             x.def_updated()
+
+    def set_src_file(self, file:File):
+        if self.file:
+            self.file.data_loaded.disconnect(self.load_fr_src_file)
+        self.file = file
+        file.data_loaded.connect(self.load_fr_src_file)
+        self.load_fr_src_file()
+    
+    def load_fr_src_file(self):
+        for x in self.file.get_definitions():
+            self.append(x)
+        

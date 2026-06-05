@@ -2,7 +2,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Callable
-from ..primitives import Signal, SignalContainer, Collection, Context
+from ...primitives import Signal, SignalContainer, Collection, Context
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
 from watchdog import Observer as _Observer #type:ignore
