@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Callable
 from ..primitives import Signal, SignalContainer, Collection, Context
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
@@ -48,6 +48,8 @@ class File(ABC, SignalContainer):
         pass
 
 class FileDb[T:File](Collection):
+    # TODO: Properly support all 3 paths of res:// uid:// {absolute} 
+    
     root : Path
     _observer : _Observer
 
@@ -85,9 +87,13 @@ class FileDb[T:File](Collection):
         self.uuid_set.connect(self._on_file_uuid_set)
         self.path_set.connect(self._on_file_path_set)
 
-    def _generate_file(self, path:Path)->File:
-        ## TODO: Overwrite in env for more file types
-        return File(Path)
+    def file_filter(self, path:str)->bool:
+        ''' Override; Env based '''
+        return True
+
+    def generate_file(self, path:Path)->File:
+        ''' Override; Env based '''
+        return File(path)
 
     def _integrate(self,item:T):
         if item.uuid: self.by_uuid[item.uuid] = item
@@ -113,14 +119,15 @@ class FileDb[T:File](Collection):
         if fr_path in self.by_path.keys():
             del self.by_path[fr_path]
         self.by_path[to_path] = file
-        
 
+
+    ## "Tells" called by FileDb && initial file discovery
     def tell_fs_created(self, path:str):
         if file := self[path]:
             file.fs_created(path)
             self._queue_targets.append(file)
         else: ## If untracked:
-            file = self._generate_file(path)
+            file = self.generate_file(path)
             self.append(file)
             self.fs_created(file)
             self._queue_targets.append(file)
@@ -131,7 +138,7 @@ class FileDb[T:File](Collection):
             self.fs_modified(file)
             self._queue_targets.append(file)
         else: ## If untracked:
-            file = self._generate_file(path)
+            file = self.generate_file(path)
             self.append(file)
             self.fs_created(file)
             self._queue_targets.append(file)
@@ -152,7 +159,7 @@ class FileDb[T:File](Collection):
         elif file := self[to_path]: ## File already has corrected path
             pass
         else:
-            self.append(self._generate_file(fr_path))
+            self.append(self.generate_file(fr_path))
     
     def tell_fs_queue_empty(self):
         for x in self._queue_targets:
@@ -168,18 +175,25 @@ class FileDb[T:File](Collection):
 
         def on_created(self, event):
             if event.is_directory: return
+            if not self.file_db.file_filter(event.src_path): return
             self.file_db.tell_fs_created(event.src_path)
             self._check_empty()
+        
         def on_modified(self, event):
             if event.is_directory: return
+            if not self.file_db.file_filter(event.src_path): return
             self.file_db.tell_fs_modified(event.src_path)
             self._check_empty()
+        
         def on_deleted(self, event):
             if event.is_directory: return
+            if not self.file_db.file_filter(event.src_path): return
             self.file_db.tell_fs_deleted(event.src_path)
             self._check_empty()
+
         def on_moved(self, event):
             if event.is_directory: return
+            if not self.file_db.file_filter(event.src_path): return
             self.file_db.tell_fs_moved(event.src_path, event.dest_path)
             self._check_empty()
 
