@@ -20,7 +20,14 @@ class File(ABC, SignalContainer):
     data_dumped : Signal
     data_deleted : Signal
 
-    def __init__(self, uuid, path):
+    ## Triggered by FileDb container
+    fs_created : Signal
+    fs_modified : Signal
+    fs_deleted : Signal
+    fs_moved : Signal[str, str]
+    fs_queue_empty : Signal
+
+    def __init__(self, uuid:str, path:str):
         self.uuid = uuid
         self.path = path
 
@@ -55,12 +62,16 @@ class FileDb[T:File](Collection):
     fs_deleted : Signal[str]
     fs_moved : Signal[str, str]
     fs_queue_empty : Signal
+    _queue_targets : list[File]
+
 
     def __init__(self, root:Path):
+        self.root = root
+
         self.by_uuid = {}
         self.by_path = {}
+        self._queue_targets = []
         
-        self.root = root
         self._observer = _Observer()
         self._observer.schedule(self._EventHandler(self), path=root, recursive=True)
         self._observer.start()
@@ -70,6 +81,13 @@ class FileDb[T:File](Collection):
         self.fs_modified.connect(self._on_fs_modified)
         self.fs_deleted.connect(self._on_fs_deleted)
         self.fs_moved.connect(self._on_fs_moved)
+
+        self.uuid_set.connect(self._on_file_uuid_set)
+        self.path_set.connect(self._on_file_path_set)
+
+    def _generate_file(self, path:Path)->File:
+        ## TODO: Overwrite in env for more file types
+        return File(Path)
 
     def _integrate(self,item:T):
         if item.uuid: self.by_uuid[item.uuid] = item
@@ -86,41 +104,60 @@ class FileDb[T:File](Collection):
     def __getitem__(self, key)->T:
         return self.by_uuid.get(key, self.by_path.get(key, None))
     
-    def _on_fs_created(self, path:str):
+    def _on_file_uuid_set(self, file:File, fr_uuid:str, to_uuid:str):
+        if fr_uuid in self.by_uuid.keys():
+            del self.by_uuid[fr_uuid]
+        self.by_uuid[to_uuid] = file
+        
+    def _on_file_path_set(self, file:File, fr_path:str, to_path:str):
+        if fr_path in self.by_path.keys():
+            del self.by_path[fr_path]
+        self.by_path[to_path] = file
+        
+
+    def tell_fs_created(self, path:str):
         if file := self[path]:
             file.fs_created(path)
-        else:
-            self.append(self._generate_file(path))
+            self._queue_targets.append(file)
+        else: ## If untracked:
+            file = self._generate_file(path)
+            self.append(file)
+            self.fs_created(file)
+            self._queue_targets.append(file)
 
-    def _on_fs_modified(self, path:str):
+    def tell_fs_modified(self, path:str):
         if file := self[path]:
             file.fs_modified()
-        else:
-            ## If untracked:
-            self.append(self._generate_file(path))
+            self.fs_modified(file)
+            self._queue_targets.append(file)
+        else: ## If untracked:
+            file = self._generate_file(path)
+            self.append(file)
+            self.fs_created(file)
+            self._queue_targets.append(file)
 
-    def _on_fs_deleted(self, path:str):
+    def tell_fs_deleted(self, path:str):
         if file := self[path]:
             file.fs_deleted()
-        else:
+            self.fs_deleted(file)
+            self.remove(file)
+            self._queue_targets.append(file)
+        else: ## If untracked:
             pass
 
-    def _on_fs_moved(self, fr_path:str, to_path:str):
+    def tell_fs_moved(self, fr_path:str, to_path:str):
         if file := self[fr_path]:
             file.fs_moved(fr_path, to_path)
+            self._queue_targets.append(file)
         elif file := self[to_path]: ## File already has corrected path
             pass
         else:
             self.append(self._generate_file(fr_path))
     
-    _queue_targets : list[File]
-    def _on_fs_queue_empty(self):
+    def tell_fs_queue_empty(self):
         for x in self._queue_targets:
             x.fs_queue_empty()
-
-    def _generate_file(path:Path)->File:
-        ## TODO: Overwrite in env for more file types
-        return File(Path)
+        self._queue_targets.clear()
 
     class _EventHandler(_FileSystemEventHandler):
         ''' Utility class, forward events to local signals '''
@@ -131,21 +168,21 @@ class FileDb[T:File](Collection):
 
         def on_created(self, event):
             if event.is_directory: return
-            self.file_db.fs_created(event.src_path)
+            self.file_db.tell_fs_created(event.src_path)
             self._check_empty()
         def on_modified(self, event):
             if event.is_directory: return
-            self.file_db.fs_modified(event.src_path)
+            self.file_db.tell_fs_modified(event.src_path)
             self._check_empty()
         def on_deleted(self, event):
             if event.is_directory: return
-            self.file_db.fs_deleted(event.src_path)
+            self.file_db.tell_fs_deleted(event.src_path)
             self._check_empty()
         def on_moved(self, event):
             if event.is_directory: return
-            self.file_db.fs_moved(event.src_path, event.dest_path)
+            self.file_db.tell_fs_moved(event.src_path, event.dest_path)
             self._check_empty()
 
         def _check_empty(self):
             if self.file_db._observer._event_queue.is_empty():
-                self.file_db.fs_queue_empty()
+                self.file_db.tell_fs_queue_empty()
