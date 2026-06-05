@@ -45,24 +45,17 @@ class GdType(ABC, SignalContainer):
     @classmethod
     def parse_lark_test(cls, )->None:
         pass
-    
-    @abstractmethod
-    @classmethod
-    def construct(cls, value:Any)->Self:
-        pass
 
-
-    @abstractmethod
     def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
         return {}
     
-    @abstractmethod
     def set_struct_children(self, key:str, items:tuple):
-        return
+        setattr(key, items)
 
     def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
         if not depth_first:
-            getattr(self, func_id)(*args, **kwargs)
+            if hasattr(self, func_id):
+                getattr(self, func_id)(*args, **kwargs)
 
         for k,v in self.get_struct_children():
             for x in filter(_filter, v):
@@ -70,7 +63,8 @@ class GdType(ABC, SignalContainer):
                     x.call_struct(func_id, depth_first, *args, **kwargs)
 
         if depth_first:
-            getattr(self, func_id)(*args, **kwargs)
+            if hasattr(self, func_id):
+                getattr(self, func_id)(*args, **kwargs)
 
     @abstractmethod
     def __eq__(self, value):
@@ -86,4 +80,13 @@ class GdResource(GdType):
         super().__init__()
 
 class GdValue(GdType):
-    pass
+    def __init__(self, value:Any=None):
+        self.set_value(value)
+
+    @abstractmethod
+    def set_value(self, value)->None:
+        pass
+
+class GdProperty(GdType):
+    name : str
+    value : GdValue
