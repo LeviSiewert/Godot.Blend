@@ -11,8 +11,8 @@ class FileTres[T:GdResource](File):
     def load(self, context:Context, *args, **kwargs):
         with context.w("file", self):
             assert(self.path.exists())
-            text = self.path.read()
-            self.data = gdparser(context, text, start="tres")
+            text = self.path.read_text()
+            self.data = gdparser.parse(context, text, start="tres")
             
             ## loading pipeline here for connecting secondary references as required 
 
@@ -30,6 +30,10 @@ class FileTres[T:GdResource](File):
         raise Exception("Not programmed in yet!")
 
 class FileClassDefinition(FileTres):
+    
+    @classmethod
+    def matches_file(cls, abs_path, rel_path):
+        return rel_path == ".PyGd/class_definitions.tres"
 
     class _DefTransformer[I:GdType,T:list[GdClassDef]](SecondaryTransfomer):
         ''' Modified transfomer for results of GdPy/tools/godot/class_exporter '''

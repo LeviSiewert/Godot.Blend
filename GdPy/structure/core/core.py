@@ -1,11 +1,12 @@
 from __future__ import annotations
 from .primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
-from typing import Self, Any, Type, LambdaType
+from typing import Self, Any, Type
 from .primitives import Signal, SignalContainer, Context, Collection
 from .class_db import ClassDb, GdClassDef, GdPropertyDef
 from .file_db import File, FileDb
 from pathlib import Path
+from contextlib import contextmanager
 
 class GdProject():
     file_db : FileDb
@@ -24,20 +25,21 @@ class GdProject():
         self.file_db = file_db
         self.class_db = class_db
 
+    @contextmanager
     def context(self):
         c = Context()
         with c.w("project", self):
             yield c
 
 class GdType(ABC, SignalContainer):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def lark_keys(cls,)->tuple[str]: 
         ''' Return the lark key(s) that this class can parse'''
         return ("",)
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def parse_lark(cls, key:str, *args, **kwargs)->Self:
         return
 

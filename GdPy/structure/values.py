@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .core import GdResource, GdType, GdValue, Signal
 from typing import Self, Type, Any
 from lark import Token #type: ignore 
@@ -269,7 +270,7 @@ class _packed_color(GdValueArray):
     def parse_lark(cls, key:str, tfm, meta, *children):
         return children
 
-_all : tuple[Type] = tuple(
+_all : tuple[Type] = (
     _GdValueNull,
     _GdValueFloat,
     _GdValueString,

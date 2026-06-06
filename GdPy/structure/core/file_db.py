@@ -5,10 +5,16 @@ from typing import Any, Type
 from .primitives import Signal, SignalContainer, Collection, Context
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
-from watchdog import Observer as _Observer #type:ignore
+from watchdog.observers import Observer as _Observer #type:ignore
 
 class File[T:Any](ABC, SignalContainer):
-    
+    _match_priority : int = 0
+
+    @classmethod
+    @abstractmethod
+    def matches_file(cls, abs_path:str, rel_path:str)->dict:
+        return False
+
     uuid : str
     uuid_set : Signal[str, str] #Fr, To
 
@@ -30,6 +36,7 @@ class File[T:Any](ABC, SignalContainer):
     def __init__(self, uuid:str, path:str):
         self.uuid = uuid
         self.path = path
+        super().__init__()
 
     @abstractmethod
     def load(self, context:Context, *args, **kwargs):
@@ -71,7 +78,7 @@ class FileDb[T:File](Collection):
 
     def __init__(self, root:Path, file_types:list[Type[File]]):
         self.root = root        
-        self.file_types = file_types
+        self.file_types = sorted(file_types, key=lambda x: x._match_priority)
 
         self.by_uuid = {}
         self.by_path = {}
@@ -94,15 +101,23 @@ class FileDb[T:File](Collection):
                 continue
             if self[path]:
                 continue
-            self.append(self.generate_file(path))
+            file = self.generate_file(path)
+            if file: 
+                self.append(file)
 
     def file_filter(self, path:str)->bool:
         ''' Override; Env based. Source data from self.file_types '''
         return True
 
     def generate_file(self, path:Path)->File:
-        ''' Override; Env based. Source data from self.file_types '''
-        return File(path)
+        ''' Override; Env based. Source data from self.file_types 
+        default behavior is asking input file_types
+        '''
+        ##TODO: Generate warnings here
+        for x in self.file_types:
+            if x.matches_file(path, path.relative_to(self.root)):
+                return x(path)
+        return None
 
     def _integrate(self,item:T):
         if item.uuid: self.by_uuid[item.uuid] = item

@@ -3,6 +3,8 @@ from typing import Self, Callable, Any
 from inspect import get_annotations
 from abc import ABC, abstractmethod
 from contextvars import ContextVar
+from contextlib import contextmanager
+
 class SignalSubscriber():
     func : Callable
     pre_args : list
@@ -21,6 +23,7 @@ class Signal():
 
     def __init__(self,owner):
         self.owner = owner
+        self.subscribers = []
 
     def __call__(self, *args, **kwds):
         to_rem = []
@@ -36,9 +39,9 @@ class Signal():
 
     def connect(self, func, include_owner=False):
         if include_owner:
-            self.subcribers.append(SignalSubscriber(func))
+            self.subscribers.append(SignalSubscriber(func))
         else:
-            self.subcribers.append(SignalSubscriber(func, self.owner))
+            self.subscribers.append(SignalSubscriber(func, self.owner))
 
     def disconnect(self, func):
         to_rem = []
@@ -50,12 +53,11 @@ class Signal():
         
 class SignalContainer: 
     def __init__(self):
-        
-        for k,v in get_annotations(self.__class__):
-            if isinstance(v,dict):
+        for k,v in get_annotations(self.__class__).items():
+            if not isinstance(v,str):
                 continue
-            if v is Signal:
-                setattr(self,k,Signal())
+            if v.startswith("Signal"):
+                setattr(self,k,Signal(self))
 
         super().__init__()
 
@@ -69,6 +71,7 @@ class Collection[T](ABC, SignalContainer):
         items = []
         self.item_appended = Signal(self) 
         self.item_removed = Signal(self)
+        super().__init__()
     
     def append(self, item:T):
         self._integrate(item)
@@ -90,6 +93,12 @@ class Collection[T](ABC, SignalContainer):
     def __getitem__(self, key)->T:
         return None
     
+    def get(self, key, default):
+        res = self[key]
+        if res is None:
+            return default
+        return res
+    
 class Context():
     project      : ContextVar[Any]
     load_session : ContextVar[Any]
@@ -98,12 +107,13 @@ class Context():
     subresource  : ContextVar[Any]
 
     def __init__(self,):
-        self.project = ContextVar(self.id+"_project")
-        self.load_session = ContextVar(self.id+"_load_session")
-        self.file = ContextVar(self.id+"_file")
-        self.resource = ContextVar(self.id+"_resource")
-        self.subresource = ContextVar(self.id+"_subresource")
-        
+        self.project = ContextVar(str(id(self))+"_project")
+        self.load_session = ContextVar(str(id(self))+"_load_session")
+        self.file = ContextVar(str(id(self))+"_file")
+        self.resource = ContextVar(str(id(self))+"_resource")
+        self.subresource = ContextVar(str(id(self))+"_subresource")
+    
+    @contextmanager
     def w(self, key:str,val:Any):
         if var := getattr(self,key):
             token=var.set(val)
