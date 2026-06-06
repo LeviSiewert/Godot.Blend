@@ -125,3 +125,91 @@ class Context():
             token=var.set(val)
             yield
             var.reset(token)
+
+class CacheTree():
+    ''' Secondary Layered Tree for optimizing tree calls in arbitrary data structures 
+    Planned usage is with parsing & secondary/defered calls to the tree.
+    IE: 
+        - Defered loading 
+        - Attaching References in a load pipeline
+        - Constructing a NodeTree
+    TODO:
+        - Consider integrated layers, instead of categorical
+        - Consider methods for tree joining
+        - Consider use of tree maintnance
+    '''
+    layers : dict[str, CacheTreeLayer]
+
+    def __init__(self, layers:list[str]):
+        self.layers = {}
+        for k in layers:
+            self.layers[k] = CacheTreeLayer()
+
+    def __getitem__(self, key):
+        return self.layers[key]
+    def __setitem__(self, key, val):
+        self.layers[key] = val
+
+class CacheTreeLayer():
+    buffer : list[CacheTreeNode]
+    root_nodes : list[CacheTreeNode]
+
+    def __init__(self):
+        self.buffer = []
+        self.root_nodes = []
+
+    def append(self, node:CacheTreeNode):
+        self.root_nodes.append(node)
+
+    def remove(self, node:CacheTreeNode):
+        self.root_nodes.remove(node)
+
+    def buffer_append(self, obj:CacheTreeNode|Any):
+        if obj in self.buffer:
+            return
+        if isinstance(obj, CacheTreeNode):
+            self.buffer.append(object)
+        else:
+            self.buffer.append(CacheTreeNode(obj))
+
+    def buffer_remove(self, obj:CacheTreeNode|Any):
+        self.buffer.remove(object)
+
+    def buffer_claim(self, obj:Any):
+        self.root_nodes.append(CacheTreeNode(obj, self.buffer))
+        self.buffer = []
+        
+    def call(self, func_name:str, _depth_first:bool=True, _ctx_func_name:str=None, *args, **kwargs):
+        for x in self.root_nodes:
+            x.call(func_name, _depth_first, _ctx_func_name, *args, **kwargs)
+
+class CacheTreeNode():
+    obj : Any
+    children : list[CacheTreeNode]
+
+    def __init__(self, obj, children:list[CacheTreeNode]):
+        self.obj = obj
+        self.children = children
+
+    def _call(self, func_name:str, _depth_first:bool=True, _ctx_func_name:str="add_context", *args, **kwargs):
+        if not _depth_first:
+            getattr(self.obj,func_name)(*args, **kwargs)
+        for x in self.children:
+            x.call(func_name, _depth_first, _ctx_func_name, *args, **kwargs)
+        if _depth_first:
+            getattr(self.obj,func_name)(*args, **kwargs)
+
+    def call(self, func_name:str, _depth_first:bool=True, _ctx_func_name:str="add_context", *args, **kwargs):
+        ctx = getattr(self.obj, _ctx_func_name, None)
+        if not (ctx is None):
+            with ctx(*args, **kwargs):
+                self._call(func_name, _depth_first, *args, **kwargs)
+        else:
+            self._call(func_name, _depth_first, _ctx_func_name, *args, **kwargs)
+    
+    def __eq__(self, obj):
+        if obj is self: 
+            return True
+        if obj is CacheTreeNode:
+            return obj.obj == self.obj
+        return False
