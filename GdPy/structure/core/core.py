@@ -41,11 +41,6 @@ class GdType(ABC, SignalContainer):
     def parse_lark(cls, key:str, *args, **kwargs)->Self:
         return
 
-    @abstractmethod
-    @classmethod
-    def parse_lark_test(cls, )->None:
-        pass
-
     def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
         return {}
     
