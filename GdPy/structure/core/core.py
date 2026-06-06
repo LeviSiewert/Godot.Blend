@@ -9,6 +9,9 @@ from pathlib import Path
 from contextlib import contextmanager
 
 class GdProject():
+    _cache_layers = ("*",)
+    _context_key = "project"
+
     file_db : FileDb
     class_db : ClassDb
 
@@ -32,6 +35,9 @@ class GdProject():
             yield c
 
 class GdType(ABC, SignalContainer):
+    _cache_layers : tuple = tuple()
+    _context_key : str|None = None
+
     @classmethod
     @abstractmethod
     def lark_keys(cls,)->tuple[str]: 
@@ -44,6 +50,9 @@ class GdType(ABC, SignalContainer):
         return
 
 class GdResource(GdType):
+    _cache_layers = ("*",)
+    _context_key = "resource"
+
     definition : GdClassDef
     definition_updated : Signal[GdClassDef]
 
@@ -56,28 +65,31 @@ class GdResource(GdType):
             self.properties = properties
         super().__init__()
 
-    @abstractmethod
-    def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
-        return {}
+    ## Depreciating in favor of cache-layers on parse:
+    # @abstractmethod
+    # def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
+    #     return {}
     
-    def set_struct_children(self, key:str, items:Any):
-        setattr(key, items)
+    # def set_struct_children(self, key:str, items:Any):
+    #     setattr(key, items)
 
-    def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
-        if not depth_first:
-            if hasattr(self, func_id):
-                getattr(self, func_id)(*args, **kwargs)
+    # def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
+    #     if not depth_first:
+    #         if hasattr(self, func_id):
+    #             getattr(self, func_id)(*args, **kwargs)
 
-        for k,v in self.get_struct_children():
-            for x in filter(_filter, v):
-                if hasattr(x, "call_struct"):
-                    x.call_struct(func_id, depth_first, *args, **kwargs)
+    #     for k,v in self.get_struct_children():
+    #         for x in filter(_filter, v):
+    #             if hasattr(x, "call_struct"):
+    #                 x.call_struct(func_id, depth_first, *args, **kwargs)
 
-        if depth_first:
-            if hasattr(self, func_id):
-                getattr(self, func_id)(*args, **kwargs)
+    #     if depth_first:
+    #         if hasattr(self, func_id):
+    #             getattr(self, func_id)(*args, **kwargs)
 
 class GdValue(GdType):
+    _context_key = "value"
+
     def __init__(self, value:Any=None):
         self.set_value(value)
 
@@ -90,5 +102,6 @@ class GdValue(GdType):
     #     return super().__eq__(value)
 
 class GdProperty(GdType):
+    _context_key = "property"
     name : str
     value : GdValue

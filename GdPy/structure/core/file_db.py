@@ -2,19 +2,24 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Type
-from .primitives import Signal, SignalContainer, Collection, Context
+from .primitives import Signal, SignalContainer, Collection, Context, CacheTree
 from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
 from watchdog.observers import Observer as _Observer #type:ignore
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 class File[T:Any](ABC, SignalContainer):
+    _cache_layers = ("*",)
+    _context_key = "file"
+
     _match_priority : int = 0
 
     @classmethod
     @abstractmethod
     def matches_file(cls, abs_path:str, rel_path:str)->dict:
         return False
-
+    
     uuid : str
     uuid_set : Signal[str, str] #Fr, To
 
@@ -36,7 +41,6 @@ class File[T:Any](ABC, SignalContainer):
     def __init__(self, uuid:str, path:str):
         self.uuid = uuid
         self.path = path
-        super().__init__()
 
     @abstractmethod
     def load(self, context:Context, *args, **kwargs):

@@ -150,7 +150,25 @@ class CacheTree():
     def __setitem__(self, key, val):
         self.layers[key] = val
 
+    def append(self, obj, *args, **kwargs):
+        for k in getattr(obj,"_cache_layers",tuple()):
+            self[k].append(obj, *args,**kwargs)
+    def remove(self, obj, *args, **kwargs):
+        for k in getattr(obj,"_cache_layers",tuple()):
+            self[k].remove(obj, *args,**kwargs)
+    def buffer_append(self, obj, *args, **kwargs):
+        for k in getattr(obj,"_cache_layers",tuple()):
+            self[k].buffer_append(obj, *args,**kwargs)
+    def buffer_remove(self, obj, *args, **kwargs):
+        for k in getattr(obj,"_cache_layers",tuple()):
+            self[k].buffer_remove(obj, *args,**kwargs)
+    def buffer_claim(self, obj, *args, **kwargs):
+        for k in getattr(obj,"_cache_layers",tuple()):
+            self[k].buffer_claim(obj, *args,**kwargs)
+
 class CacheTreeLayer():
+    # TODO: Find nested objects for pruning & joining
+
     buffer : list[CacheTreeNode]
     root_nodes : list[CacheTreeNode]
 
@@ -191,21 +209,22 @@ class CacheTreeNode():
         self.obj = obj
         self.children = children
 
-    def _call(self, func_name:str, _depth_first:bool=True, _ctx_func_name:str="add_context", *args, **kwargs):
+    def _call(self, func_name:str, context:Context, _depth_first:bool=True, *args, **kwargs):
         if not _depth_first:
             getattr(self.obj,func_name)(*args, **kwargs)
         for x in self.children:
-            x.call(func_name, _depth_first, _ctx_func_name, *args, **kwargs)
+            x.call(func_name, context, _depth_first, *args, **kwargs)
         if _depth_first:
             getattr(self.obj,func_name)(*args, **kwargs)
 
-    def call(self, func_name:str, _depth_first:bool=True, _ctx_func_name:str="add_context", *args, **kwargs):
-        ctx = getattr(self.obj, _ctx_func_name, None)
+    def call(self, func_name:str, context:Context, _depth_first:bool=True, *args, **kwargs):
+        ctx = getattr(self.obj, "context_key", None)
         if not (ctx is None):
-            with ctx(*args, **kwargs):
-                self._call(func_name, _depth_first, *args, **kwargs)
+            token = getattr(context,ctx).set(self.obj)
+            self._call(func_name, _depth_first, *args, **kwargs)
+            getattr(context,ctx).reset(token)
         else:
-            self._call(func_name, _depth_first, _ctx_func_name, *args, **kwargs)
+            self._call(func_name, _depth_first, *args, **kwargs)
     
     def __eq__(self, obj):
         if obj is self: 

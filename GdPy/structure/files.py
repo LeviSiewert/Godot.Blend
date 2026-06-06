@@ -4,12 +4,15 @@ from .core import File, GdType, GdClassDef, GdPropertyDef, GdSignalDef, GdParser
 from .core.primitives import Context
 from .core.core import GdResource
 from .standard_parser import gdparser
+from .core.gd_parser import cache_tree, ctx_cache_tree
+
 from .secondary_transformer import SecondaryTransfomer
+
 
 class FileTres[T:GdResource](File):
 
     def load(self, context:Context, *args, **kwargs):
-        with context.w("file", self):
+        with context.w("file", self) and cache_tree(include=[self]):
             assert(self.path.exists())
             text = self.path.read_text()
             self.data = gdparser.parse(context, text, start="file_resource")
