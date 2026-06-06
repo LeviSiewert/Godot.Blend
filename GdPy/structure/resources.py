@@ -9,6 +9,14 @@ class GdResourceFile(GdResource):
     type         : str
     uid          : str
 
+    @classmethod
+    def lark_keys(cls):
+        return ("gd_resource",)
+
+    @classmethod
+    def parse_lark(cls, key, *args, **kwargs):
+        raise Exception("undefined so far!")
+
     def __init__(self,
             type         : str,
             script_class : str,
@@ -40,6 +48,14 @@ class GdResourceFile(GdResource):
 class GdSubResource(GdResource):
     type : str
     id   : str
+
+    @classmethod
+    def lark_keys(cls):
+        return ("sub_resource",)
+
+    @classmethod
+    def parse_lark(cls, key, *args, **kwargs):
+        raise Exception("undefined so far!")
 
     def __init__(
             self,
@@ -84,7 +100,13 @@ class GdExtResource(GdResource):
 
 
 class GdEditResource(GdResource):
-    pass
+    @classmethod
+    def lark_keys(cls):
+        return ("edit_resource",)
+
+    @classmethod
+    def parse_lark(cls, key, *args, **kwargs):
+        raise Exception("undefined so far!")
 
 _all : tuple[Type] = (
     GdResourceFile,

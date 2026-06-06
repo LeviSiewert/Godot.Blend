@@ -83,9 +83,9 @@ class GdValue(GdType):
     def set_value(self, value)->None:
         pass
 
-    @abstractmethod
-    def __eq__(self, value)->bool:
-        return super().__eq__(value)
+    # @abstractmethod
+    # def __eq__(self, value)->bool:
+    #     return super().__eq__(value)
 
 class GdProperty(GdType):
     name : str
