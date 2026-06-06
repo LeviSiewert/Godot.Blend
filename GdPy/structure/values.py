@@ -5,6 +5,16 @@ from lark import Token #type: ignore
 
 ## PRIMITIVES
 
+class _GdValueInf(GdValue):
+    ''' Primitive, refer to for interpretation, but not use '''
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("INF",)
+
+    @classmethod
+    def parse_lark(cls, key:str, tfm, child:Token)->Any:
+        return float("inf")
+
 class _GdValueNull(GdValue):
     ''' Primitive, refer to for interpretation, but not use '''
     @classmethod
@@ -155,6 +165,16 @@ class GdValueRect2(_inherit_GdValueArray):
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("rect2",)
+class GdValueRect2i(_inherit_GdValueArray): 
+    types = (int,)
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("rect2i",)
+class GdValuePlane(_inherit_GdValueArray): 
+    types = (int,)
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("plane",)
 class GdValueColor(_inherit_GdValueArray): 
     types = (int,float)
     @classmethod
@@ -170,11 +190,16 @@ class GdValueQuaternion(_inherit_GdValueArray):
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("quaternion",)
-class GdValueTransform2D():
+class GdValueTransform2D(_inherit_GdValueArray):
     types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("Transform2d",)
+class GdValueBasis(_inherit_GdValueArray): 
+    types = (int,float)
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("basis",)
 class GdValueTransform3D(_inherit_GdValueArray): 
     types = (int,float)
     @classmethod
@@ -301,6 +326,7 @@ class _packed_color(GdValueArray):
         return children
 
 _all : tuple[Type] = (
+    _GdValueInf,
     _GdValueNull,
     _GdValueFloat,
     _GdValueString,
@@ -314,9 +340,12 @@ _all : tuple[Type] = (
     GdValueVector3i,
     GdValueVector4i,
     GdValueRect2,
+    GdValueRect2i,
+    GdValuePlane,
     GdValueColor,
     GdValueAABB,
     GdValueQuaternion,
+    GdValueBasis,
     GdValueTransform2D,
     GdValueTransform3D,
     GdValuePackedByteArray,

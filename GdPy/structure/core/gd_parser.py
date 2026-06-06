@@ -24,7 +24,8 @@ class GdParser():
             pass
 
         for x in self.types:
-            assert(getattr(x,"parse_lark", None))
+            if (not hasattr(x,"parse_lark")) or (not hasattr(x,"lark_keys")):
+                raise Exception("All supplied types must have parse_lark", x)
             for k in x.lark_keys():
                 setattr(transformer, k, self.construct_transformer_function(k, x.parse_lark))
 

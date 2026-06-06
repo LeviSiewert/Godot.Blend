@@ -43,8 +43,23 @@ class GdValueSubResource(GdValue):
         inst.value = str(address).strip('"')
         return inst
     
+class GdValueResourceID(GdValue):
+    ref : Any
+    
+    @classmethod
+    def lark_key()->tuple[str]: 
+        return ("rid",)
+
+    @classmethod
+    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
+        inst = cls()
+        if not (address is None):
+            inst.value = str(address).strip('"')
+        return inst
+    
 _all : tuple[Type] = [
     GdValueExtResource,
     GdValueNodePath,
-    GdValueSubResource
+    GdValueSubResource,
+    GdValueResourceID,
     ]
