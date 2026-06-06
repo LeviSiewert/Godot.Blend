@@ -24,9 +24,11 @@ value : NULL
       | vector2i
       | vector3i
       | vector4i
+      | rect2
       | aabb
       | color
       | quaternion
+      | transform2d
       | transform3d
       | packedbytearray
       | packedint32array
@@ -53,12 +55,13 @@ NULL : "null"
 
 bool : "true" | "false"
 
-type : "[" WORD ("," WORD)* "]"
+type_anno : "[" type ("," type)* "]"
+type : WORD|subresource|extresource
 
-array_explicit : "Array" [type] "(" array ")"
+array_explicit : "Array" [type_anno] "(" array ")"
 array : "[" [value ("," value)*]* "]"
 
-dictionary_explicit : "Dictionary" [type] "(" dictionary ")"
+dictionary_explicit : "Dictionary" [type_anno] "(" dictionary ")"
 dictionary : "{" [pair ("," pair)*]* "}"
 pair : value ":" value
 
@@ -66,9 +69,9 @@ STRINGNAME : "&" STRING
 
 // Defered References:
 
-nodepath : "NodePath" [type] "(" STRING ")"
-subresource : "SubResource" [type] "(" STRING ")"
-extresource : "ExtResource" [type] "(" STRING ")"
+nodepath : "NodePath" [type_anno] "(" STRING ")"
+subresource : "SubResource" [type_anno] "(" STRING ")"
+extresource : "ExtResource" [type_anno] "(" STRING ")"
 
 // Vector types:
 
@@ -83,6 +86,9 @@ packed_vector2 : [FLOAT ("," FLOAT)~1]
 packed_vector3 : [FLOAT ("," FLOAT)~2]
 packed_vector4 : [FLOAT ("," FLOAT)~3]
 
+
+rect2 : "Rect2(" [NUMBER ("," NUMBER)~3] ")"
+
 color : "Color(" packed_color ")"
 packed_color : [FLOAT ("," FLOAT)~3] 
 
@@ -90,6 +96,7 @@ aabb : "AABB(" [FLOAT ("," FLOAT)~5] ")"
 
 quaternion : "Quaternion(" [FLOAT ("," FLOAT)~3] ")"
 
+transform2d : "Transform2D(" [FLOAT ("," FLOAT)~5] ")"
 transform3d : "Transform3D(" [FLOAT ("," FLOAT)~11] ")"
 
 // Packed types:

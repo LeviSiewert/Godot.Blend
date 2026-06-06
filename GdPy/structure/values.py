@@ -121,82 +121,112 @@ class _inherit_GdValueArray(GdValueArray):
         super().__init__(val)
 
 class GdValueVector2(_inherit_GdValueArray):
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector2",)
 class GdValueVector3(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector3",)
 class GdValueVector4(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector4",)
 class GdValueVector2i(_inherit_GdValueArray): 
+    types = (int,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector2i",)
 class GdValueVector3i(_inherit_GdValueArray): 
+    types = (int,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector3i",)
 class GdValueVector4i(_inherit_GdValueArray): 
+    types = (int,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("vector4i",)
+class GdValueRect2(_inherit_GdValueArray): 
+    types = (int,float)
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("rect2",)
 class GdValueColor(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("color",)
 class GdValueAABB(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("aabb",)
 class GdValueQuaternion(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("quaternion",)
+class GdValueTransform2D():
+    types = (int,float)
+    @classmethod
+    def lark_key(cls)->tuple[str]: 
+        return ("Transform2d",)
 class GdValueTransform3D(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("transform3d",)
 class GdValuePackedByteArray(_inherit_GdValueArray): 
+    types = (int,str)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedbytearray",)
 class GdValuePackedInt32Array(_inherit_GdValueArray): 
+    types = (int,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedint32array",)
 class GdValuePackedInt64Array(_inherit_GdValueArray): 
+    types = (int,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedint64array",)
 class GdValuePackedFloat32Array(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedfloat32array",)
 class GdValuePackedFloat64Array(_inherit_GdValueArray): 
+    types = (int,float)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedfloat64array",)
 class GdValuePackedStringArray(_inherit_GdValueArray): 
+    types = (str,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedstringarray",)
 class GdValuePackedVector2Array(_inherit_GdValueArray): 
+    types = (GdValueVector2,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedvector2array",)
 class GdValuePackedVector3Array(_inherit_GdValueArray): 
+    types = (GdValueVector3,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedvector3array",)
 class GdValuePackedVector4Array(_inherit_GdValueArray): 
+    types = (GdValueVector4,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedvector4array",)
 class GdValuePackedColorArray(_inherit_GdValueArray): 
+    types = (GdValueColor,)
     @classmethod
     def lark_key(cls)->tuple[str]: 
         return ("packedcolorarray",)
@@ -283,9 +313,11 @@ _all : tuple[Type] = (
     GdValueVector2i,
     GdValueVector3i,
     GdValueVector4i,
+    GdValueRect2,
     GdValueColor,
     GdValueAABB,
     GdValueQuaternion,
+    GdValueTransform2D,
     GdValueTransform3D,
     GdValuePackedByteArray,
     GdValuePackedInt32Array,
