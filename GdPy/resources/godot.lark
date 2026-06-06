@@ -1,7 +1,8 @@
 start : file_resource
 
 file_project :  [COMMENT|property]* [resource]* 
-file_resource : resource [resource]*
+file_resource : resource [file_resource_contents|resource]* 
+file_resource_contents : "[resource]" resource_body
 
 resource : resource_header resource_body
 resource_header : "[" WORD [property]* "]" 

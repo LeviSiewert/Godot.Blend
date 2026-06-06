@@ -12,7 +12,7 @@ class FileTres[T:GdResource](File):
         with context.w("file", self):
             assert(self.path.exists())
             text = self.path.read_text()
-            self.data = gdparser.parse(context, text, start="tres")
+            self.data = gdparser.parse(context, text, start="file_resource")
             
             ## loading pipeline here for connecting secondary references as required 
 

@@ -12,6 +12,7 @@ class GdParser():
     def __init__(self, grammer:str, types:list[Type]):
         self.grammer = grammer
         self.types = types
+        self.construct_transformer()
 
     def construct_transformer_function(self,key,func)->Callable:
         def res(*args, **kwargs):
@@ -23,13 +24,14 @@ class GdParser():
             pass
 
         for x in self.types:
-            assert(getattr(x,"_lark_key", None))
-            assert(getattr(x,"_lark_transformer", None))
-            setattr(transformer, x._lark_key, self.construct_transformer_function(x._lark_key, x._lark_transformer))
+            assert(getattr(x,"parse_lark", None))
+            for k in x.lark_keys():
+                setattr(transformer, k, self.construct_transformer_function(k, x.parse_lark))
 
-        self._transformer = transformer
+        self._transformer = transformer()
 
-    def parse(self, data:str, context:Context, start:str=None)->GdType|None:
+    def parse(self, context:Context, data:str, start:str=None)->GdType|None:
         parser = Lark(self.grammer, maybe_placeholders=True, start=start)
-        tree = self._transformer.transform(parser.parse(data))
+        tree = parser.parse(data) 
+        result = self._transformer.transform(tree)
         return tree
