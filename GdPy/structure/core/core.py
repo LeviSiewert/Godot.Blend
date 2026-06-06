@@ -2,7 +2,7 @@ from __future__ import annotations
 from .primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
 from typing import Self, Any, Type, LambdaType
-from .primitives import Signal, SignalContainer, Context
+from .primitives import Signal, SignalContainer, Context, Collection
 from .class_db import ClassDb, GdClassDef, GdPropertyDef
 from .file_db import File, FileDb
 from pathlib import Path
@@ -41,10 +41,24 @@ class GdType(ABC, SignalContainer):
     def parse_lark(cls, key:str, *args, **kwargs)->Self:
         return
 
+class GdResource(GdType):
+    definition : GdClassDef
+    definition_updated : Signal[GdClassDef]
+
+    properties : dict[str, GdValue]
+    
+    def __init__(self, properties:dict=None):
+        if properties is None:
+            self.properties = {}
+        else:
+            self.properties = properties
+        super().__init__()
+
+    @abstractmethod
     def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
         return {}
     
-    def set_struct_children(self, key:str, items:tuple):
+    def set_struct_children(self, key:str, items:Any):
         setattr(key, items)
 
     def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
@@ -61,19 +75,6 @@ class GdType(ABC, SignalContainer):
             if hasattr(self, func_id):
                 getattr(self, func_id)(*args, **kwargs)
 
-    @abstractmethod
-    def __eq__(self, value):
-        return super().__eq__(value)
-
-
-class GdResource(GdType):
-    script : GdClassDef
-    properties : dict[str, GdValue]
-    
-    def __init__(self):
-        self.properties = {}
-        super().__init__()
-
 class GdValue(GdType):
     def __init__(self, value:Any=None):
         self.set_value(value)
@@ -81,6 +82,10 @@ class GdValue(GdType):
     @abstractmethod
     def set_value(self, value)->None:
         pass
+
+    @abstractmethod
+    def __eq__(self, value)->bool:
+        return super().__eq__(value)
 
 class GdProperty(GdType):
     name : str
