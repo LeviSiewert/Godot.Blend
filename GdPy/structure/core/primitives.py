@@ -53,11 +53,17 @@ class Signal():
         
 class SignalContainer: 
     def __init__(self):
-        for k,v in get_annotations(self.__class__).items():
-            if not isinstance(v,str):
-                continue
-            if v.startswith("Signal"):
-                setattr(self,k,Signal(self))
+        classes_limited = []
+        for x in self.__class__.__mro__:
+            if x is SignalContainer:
+                break
+            classes_limited.append(x)
+        for clss in classes_limited:
+            for k,v in get_annotations(clss).items():
+                if not isinstance(v,str):
+                    continue
+                if v.startswith("Signal"):
+                    setattr(self,k,Signal(self))
 
         super().__init__()
 
