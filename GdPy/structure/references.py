@@ -2,7 +2,6 @@ from .core import GdProject, File, GdResource, GdType, GdValue
 from .resources import *
 from typing import Type, Any
 from lark import Token #type:ignore
-from .core.gd_parser import ctx_cache_tree
 
 class GdValueExtResource(GdValue):
     _cache_layers = ("extresource",)

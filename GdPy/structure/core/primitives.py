@@ -142,6 +142,8 @@ class CacheTreeNode():
 
     @contextmanager
     def traverse(self, is_root:bool=False):
+        if is_root: 
+            buffer = {}
         tokens = self.enter()
         yield
         self.exit(tokens)

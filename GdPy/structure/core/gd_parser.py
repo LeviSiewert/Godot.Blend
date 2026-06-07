@@ -2,16 +2,9 @@ from typing import Type, Callable
 from lark.visitors import Transformer #type:ignore
 from lark import Lark #type:ignore
 from .core import GdType, Context
-from .core import CacheTree
+from .core import CacheTreeNode
 from contextvars import ContextVar
-
-ctx_cache_tree : ContextVar[CacheTree] = ContextVar("CacheTree")
-
-def standard_cache_tree(self):
-    inst = CacheTree([
-        "References"
-    ])
-    return inst
+from typing import Any
 
 class GdParser():
     types : list[Type]
@@ -41,16 +34,25 @@ class GdParser():
 
         self._transformer = transformer()
 
-    def parse(self, context:Context, cache_tree:CacheTree, data:str, start:str=None)->tuple[GdType|None, CacheTree]:
-        token = ctx_cache_tree.set(cache_tree)
+    def parse(self, context:Context, cache_tree:CacheTreeNode, data:str, start:str=None)->GdType|Any:
         parser = Lark(self.grammer, maybe_placeholders=True, start=start)
         tree = parser.parse(data) 
         result = self._transformer.transform(tree)
         if isinstance(result, GdType):
-            self.populate_ctx_cache_tree(result)
-        ctx_cache_tree.reset(token)
+            with cache_tree.traverse(True):
+                self.build_cache_tree(result)
         return tree
     
-    def populate_ctx_cache_tree(result):
-        
-        pass
+    def build_cache_tree(self, result:GdType):
+        ''' Iterate over objects here '''
+
+        if getattr(result,"_cache_layers"):
+            result.cache_tree_node = CacheTreeNode(result, result._cache_layers)
+            with result.cache_tree_node.traverse():
+                for x in result.get_struct_children():
+                    if isinstance(x, GdType):
+                        self.build_cache_tree(x)
+        else:
+            for x in result.get_struct_children():
+                if isinstance(x, GdType):
+                    self.build_cache_tree(x)

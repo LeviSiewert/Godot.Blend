@@ -1,24 +1,23 @@
 from typing import Type, Callable
 
 from .core import File, GdType, GdClassDef, GdPropertyDef, GdSignalDef, GdParser
-from .core.primitives import Context, CacheTree
+from .core.primitives import Context, CacheTreeNode
 from .core.core import GdResource
 from .standard_parser import gdparser
-from .core.gd_parser import standard_cache_tree
 
 from .secondary_transformer import SecondaryTransfomer
 
 
 class FileTres[T:GdResource](File):
-    cache_tree : CacheTree
+    cache_tree : CacheTreeNode
 
     def load(self, context:Context, *args, **kwargs):
         with context.w("file", self):
-            self.cache_tree = standard_cache_tree()
+            self.cache_tree = CacheTreeNode(self, self._cache_layers)
             assert(self.path.exists())
             text = self.path.read_text()
             self.data = gdparser.parse(context, self.cache_tree, text, start="file_resource")
-
+            self.cache_tree.call("references","attach",context)
             self.data_loaded()
         
     def save(self, context:Context, *args, **kwargs):
