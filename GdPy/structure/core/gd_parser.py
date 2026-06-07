@@ -2,7 +2,7 @@ from typing import Type, Callable
 from lark.visitors import Transformer #type:ignore
 from lark import Lark #type:ignore
 from .core import GdType, Context
-from .core import CacheTreeNode
+from .primitives import CacheTreeNode
 from contextvars import ContextVar
 from typing import Any
 
