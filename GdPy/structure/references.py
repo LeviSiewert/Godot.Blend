@@ -2,8 +2,10 @@ from .core import GdProject, File, GdResource, GdType, GdValue
 from .resources import *
 from typing import Type, Any
 from lark import Token #type:ignore
+from .core.gd_parser import ctx_cache_tree
 
 class GdValueExtResource(GdValue):
+    _cache_layers = ("extresource",)
     _has_typing = True
     ref : Any
     
@@ -18,6 +20,7 @@ class GdValueExtResource(GdValue):
         return inst
     
 class GdValueNodePath(GdValue):
+    _cache_layers = ("nodepath",)
     ref : Any
 
     @classmethod
@@ -31,6 +34,7 @@ class GdValueNodePath(GdValue):
         return inst
     
 class GdValueSubResource(GdValue):
+    _cache_layers = ("subresource",)
     ref : Any
     
     @classmethod
@@ -44,6 +48,7 @@ class GdValueSubResource(GdValue):
         return inst
     
 class GdValueResourceID(GdValue):
+    _cache_layers = ("ResourceId",)
     ref : Any
     
     @classmethod
@@ -55,7 +60,7 @@ class GdValueResourceID(GdValue):
         inst = cls()
         if not (address is None):
             inst.value = str(address).strip('"')
-        return inst
+            return inst
     
 _all : tuple[Type] = [
     GdValueExtResource,

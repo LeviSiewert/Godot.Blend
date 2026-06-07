@@ -3,17 +3,15 @@ from lark.visitors import Transformer #type:ignore
 from lark import Lark #type:ignore
 from .core import GdType, Context
 from .core import CacheTree
-from contextlib import contextmanager
 from contextvars import ContextVar
 
 ctx_cache_tree : ContextVar[CacheTree] = ContextVar("CacheTree")
 
-@contextmanager
-def cache_tree(self, layers):
-    inst = CacheTree(layers)
-    token = self.cache_tree.set(inst)
-    yield inst
-    self.ctx_cache_tree.reset(token)
+def standard_cache_tree(self):
+    inst = CacheTree([
+        "References"
+    ])
+    return inst
 
 class GdParser():
     types : list[Type]
@@ -43,8 +41,16 @@ class GdParser():
 
         self._transformer = transformer()
 
-    def parse(self, context:Context, data:str, start:str=None)->tuple[GdType|None, CacheTree]:
+    def parse(self, context:Context, cache_tree:CacheTree, data:str, start:str=None)->tuple[GdType|None, CacheTree]:
+        token = ctx_cache_tree.set(cache_tree)
         parser = Lark(self.grammer, maybe_placeholders=True, start=start)
         tree = parser.parse(data) 
         result = self._transformer.transform(tree)
-        return tree, cache_tree.get()
+        if isinstance(result, GdType):
+            self.populate_ctx_cache_tree(result)
+        ctx_cache_tree.reset(token)
+        return tree
+    
+    def populate_ctx_cache_tree(result):
+        
+        pass

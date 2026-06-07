@@ -151,20 +151,31 @@ class CacheTree():
         self.layers[key] = val
 
     def append(self, obj, *args, **kwargs):
-        for k in getattr(obj,"_cache_layers",tuple()):
+        layers = self.get_layers(obj)
+        for k in layers:
             self[k].append(obj, *args,**kwargs)
     def remove(self, obj, *args, **kwargs):
-        for k in getattr(obj,"_cache_layers",tuple()):
+        layers = self.get_layers(obj)
+        for k in layers:
             self[k].remove(obj, *args,**kwargs)
     def buffer_append(self, obj, *args, **kwargs):
-        for k in getattr(obj,"_cache_layers",tuple()):
+        layers = self.get_layers(obj)
+        for k in layers:
             self[k].buffer_append(obj, *args,**kwargs)
     def buffer_remove(self, obj, *args, **kwargs):
-        for k in getattr(obj,"_cache_layers",tuple()):
+        layers = self.get_layers(obj)
+        for k in layers:
             self[k].buffer_remove(obj, *args,**kwargs)
     def buffer_claim(self, obj, *args, **kwargs):
-        for k in getattr(obj,"_cache_layers",tuple()):
+        layers = self.get_layers(obj)
+        for k in layers:
             self[k].buffer_claim(obj, *args,**kwargs)
+
+    def get_layers(self,obj):
+        res = getattr(obj,"_cache_layers",tuple())
+        if "*" in res:
+            return self.layers.keys()
+        return res
 
 class CacheTreeLayer():
     # TODO: Find nested objects for pruning & joining
@@ -232,3 +243,60 @@ class CacheTreeNode():
         if obj is CacheTreeNode:
             return obj.obj == self.obj
         return False
+    
+
+buffer : ContextVar[dict[str, ContextVar[list]]] = ContextVar("CacheTreeNode_buffer")
+trailing : ContextVar[dict[str,list[CacheTreeNode]]] = ContextVar("CacheTreeNode_trailing")
+
+class CacheTreeNodeV21():
+    obj : Any
+    layer_keys : list[str]
+    layers : dict[str,list]
+    
+    def __init__(self, obj:Any, layer_keys:list[str]):
+        self.obj = obj
+        self.layers_keys = layer_keys
+        self.layers = {}
+
+    @contextmanager
+    def init_traversal(self,):
+        t1 = buffer.set({})
+        t2 = trailing.set({})
+        yield
+        buffer.reset(t1)
+        _trailing = trailing.get()
+        trailing.reset(t2)
+        return _trailing
+
+    @contextmanager
+    def traverse(self):
+        b = buffer.get()
+
+        tokens : dict[str, str] = {}
+        for k in self.layers_keys:
+            inst = []
+            if b[k].get() is None:
+                if not (k in trailing.get().keys()):
+                    trailing.get()[k] = []
+                trailing.get()[k].append(self) 
+                ## First instance of layer in this traversal, so there are no acces-root. thus is trailing-root
+            tokens[k] = b[k].set(inst)
+
+        yield #Population of context via subnodes traversal
+
+        for k,v in tokens:
+            self.layers[k] = b[k].get()  #incorperate children
+            b[k].reset(v)                #reset buffer per incoperated layer children
+
+    def call(self, layer:str, func_name:str, context:Context, *args, **kwargs):
+        ctx_key = getattr(self.obj, "context_key", None)
+        if ctx_key:
+            with context.w(ctx_key,self.obj):
+                self._call(layer,func_name,context,*args,**kwargs)
+        else:
+            self._call(layer,func_name,context,*args,**kwargs)
+
+    def _call(self, layer:str, func_name:str, context:Context, *args, **kwargs):
+        getattr(self.obj, func_name)(context, *args, **kwargs)
+        for x in self.layers.get(layer, tuple()):
+            x.call(layer:str, func_name:str, context, *args, **kwargs)

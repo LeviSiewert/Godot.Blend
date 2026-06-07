@@ -1,5 +1,6 @@
 from .core import GdResource, GdType, Context, GdClassDef, Collection
 from typing import Type
+from contextlib import contextmanager
 
 class GdResourceFile(GdResource):
     sub_resources : Collection[GdResource]
@@ -8,6 +9,11 @@ class GdResourceFile(GdResource):
     format       : str
     type         : str
     uid          : str
+
+    @contextmanager
+    def _add_context(self,ctx:Context, *args,**kwargs):
+        with ctx.w("fileresource",self):
+            yield
 
     @classmethod
     def lark_keys(cls):

@@ -48,6 +48,10 @@ class GdType(ABC, SignalContainer):
     @abstractmethod
     def parse_lark(cls, key:str, *args, **kwargs)->Self:
         return
+    
+    @abstractmethod
+    def get_struct_children(self)->tuple[GdType|Any]:
+        return tuple()
 
 class GdResource(GdType):
     _cache_layers = ("*",)
@@ -65,11 +69,10 @@ class GdResource(GdType):
             self.properties = properties
         super().__init__()
 
-    ## Depreciating in favor of cache-layers on parse:
-    # @abstractmethod
-    # def get_struct_children(self)->dict[str,tuple[GdType|Any]]:
-    #     return {}
+    def get_struct_children(self)->tuple[GdType|Any]:
+        return tuple(self.properties.values())
     
+    ## Depreciating in favor of a cache_tree with layers post parse via get_struct_children:
     # def set_struct_children(self, key:str, items:Any):
     #     setattr(key, items)
 
@@ -93,6 +96,9 @@ class GdValue(GdType):
     def __init__(self, value:Any=None):
         self.set_value(value)
 
+    def get_struct_children(self)->tuple[GdType|Any]:
+        return tuple()
+
     @abstractmethod
     def set_value(self, value)->None:
         pass
@@ -105,3 +111,8 @@ class GdProperty(GdType):
     _context_key = "property"
     name : str
     value : GdValue
+
+    def get_struct_children(self)->tuple[GdType|Any]:
+        if isinstance(self.value, GdType):
+            return (self.value,)
+        return tuple()
