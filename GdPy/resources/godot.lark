@@ -64,10 +64,10 @@ bool : "true" | "false"
 type_anno : "[" type ("," type)* "]"
 type : WORD|subresource|extresource
 
-array_explicit : "Array" [type_anno] "(" array ")"
+array_explicit : "Array" [type_anno] "(" [array] ")"
 array : "[" [value ("," value)*]* "]"
 
-dictionary_explicit : "Dictionary" [type_anno] "(" dictionary ")"
+dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"
 dictionary : "{" [pair ("," pair)*]* "}"
 pair : value ":" value
 
@@ -75,9 +75,9 @@ STRINGNAME : "&" STRING
 
 // Defered References:
 
-nodepath : "NodePath" [type_anno] "(" STRING ")"
-subresource : "SubResource" [type_anno] "(" STRING ")"
-extresource : "ExtResource" [type_anno] "(" STRING ")"
+nodepath : "NodePath" [type_anno] "(" [STRING] ")"
+subresource : "SubResource" [type_anno] "(" [STRING] ")"
+extresource : "ExtResource" [type_anno] "(" [STRING] ")"
 rid : "RID" [type_anno] "(" [STRING] ")"
 
 // Vector types:
@@ -86,12 +86,12 @@ vector2i : "Vector2i(" [NUMBER ("," NUMBER)~1] ")"
 vector3i : "Vector3i(" [NUMBER ("," NUMBER)~2] ")"
 vector4i : "Vector4i(" [NUMBER ("," NUMBER)~3] ")"
 
-vector2 : "Vector2(" packed_vector2 ")"
-vector3 : "Vector3(" packed_vector3 ")"
-vector4 : "Vector4(" packed_vector4 ")"
-packed_vector2 : [FLOAT ("," FLOAT)~1]
-packed_vector3 : [FLOAT ("," FLOAT)~2]
-packed_vector4 : [FLOAT ("," FLOAT)~3]
+vector2 : "Vector2(" [packed_vector2] ")"
+vector3 : "Vector3(" [packed_vector3] ")"
+vector4 : "Vector4(" [packed_vector4] ")"
+packed_vector2 : FLOAT ("," FLOAT)~1
+packed_vector3 : FLOAT ("," FLOAT)~2
+packed_vector4 : FLOAT ("," FLOAT)~3
 
 
 rect2 : "Rect2(" [FLOAT ("," FLOAT)~3] ")"
@@ -125,7 +125,7 @@ packedstringarray : "PackedStringArray(" ( [STRING ("," STRING)*] )* ")"
 packedvector2array : "PackedVector2Array(" ( [packed_vector2 ("," packed_vector2)*]* )* ")"
 packedvector3array : "PackedVector3Array(" ( [packed_vector3 ("," packed_vector3)*]* )* ")"
 packedvector4array : "PackedVector4Array(" ( [packed_vector4 ("," packed_vector4)*]* )* ")"
-packedcolorarray : "PackedColorArray(" ( [packed_color ("," packed_color)*] )* ")"
+packedcolorarray : "PackedColorArray(" [packed_color ("," packed_color)*] ")"
 
 WORD : (LETTER | "_" | NUMBER | "/")+
 

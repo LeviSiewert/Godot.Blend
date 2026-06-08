@@ -11,7 +11,7 @@ class _BaseTransformer(Transformer):
     """ Utility for thin "wrapper" or "router" style tokens that are not instanced, IE Value """
     
     def value(self, children):
-        return children
+        return children[0]
 
 class GdParser():
     types : list[Type]
