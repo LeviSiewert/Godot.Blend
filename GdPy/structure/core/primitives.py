@@ -189,6 +189,8 @@ class CacheTreeNode():
             self._call(layer,func_name,context,*args,**kwargs)
 
     def _call(self, layer:str, func_name:str, context:Context, *args, **kwargs):
-        getattr(self.obj, func_name)(context, *args, **kwargs)
-        for x in self.layers.get(layer, tuple()):
+        func = getattr(self.obj, func_name, None)
+        if not (func is None):
+            func(context, *args, **kwargs)
+        for x in self.layer_children.get(layer, tuple()):
             x.call(layer, func_name, context, *args, **kwargs)
