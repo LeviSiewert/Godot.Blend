@@ -12,7 +12,7 @@ class GdResourceFile(GdResource):
 
     @contextmanager
     def _add_context(self,ctx:Context, *args,**kwargs):
-        with ctx.w("fileresource",self):
+        with ctx.w("file_resource",self):
             yield
 
     @classmethod
@@ -57,7 +57,7 @@ class GdSubResource(GdResource):
 
     @classmethod
     def lark_keys(cls):
-        return ("sub_resource",)
+        return ("subresource",)
 
     @classmethod
     def parse_lark(cls, key, *args, **kwargs):
@@ -83,6 +83,11 @@ class GdSubResource(GdResource):
     def set_definition(self, class_def:GdClassDef):
         self.definition = class_def
         self.definition_updated(class_def)
+
+class GdResourceBody(GdResource):
+    @classmethod
+    def lark_keys(cls):
+        return ("resource",)
 
 class GdExtResource(GdResource):
     type : str
