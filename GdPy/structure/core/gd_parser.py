@@ -17,7 +17,6 @@ class _BaseTransformer(Transformer):
         return (k,v)
 
     def packed_vector2(self, key, *children):
-        raise Exception(key)
         return children
     def packed_vector3(self, key, *children):
         return children
