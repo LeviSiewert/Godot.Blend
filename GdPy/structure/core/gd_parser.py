@@ -12,6 +12,9 @@ class _BaseTransformer(Transformer):
     
     def value(self, children):
         return children[0]
+    
+    def parser(self, k,v):
+        return (k,v)
 
 class GdParser():
     types : list[Type]

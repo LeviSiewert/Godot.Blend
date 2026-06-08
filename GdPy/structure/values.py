@@ -336,14 +336,6 @@ class GdValuePackedColorArray(_GdValueArrayFixedType):
         return ("packedcolorarray",)
 
 
-class _GdValueDictionaryPair(GdValue):
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("pair",)
-    @classmethod
-    def parse_lark(cls, key:str, pre, value)->Any:
-        return tuple([pre, value])
-
 class GdValueDictionary(GdValue):
     value : dict
     @classmethod
@@ -437,7 +429,6 @@ _all : tuple[Type] = (
     GdValuePackedVector3Array,
     GdValuePackedVector4Array,
     GdValuePackedColorArray,
-    _GdValueDictionaryPair,
     GdValueDictionary,
     _packed_vector2,
     _packed_vector3,
