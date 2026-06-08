@@ -99,8 +99,8 @@ rect2i : "Rect2i(" [NUMBER ("," NUMBER)~3] ")"
 
 plane : "Plane(" [FLOAT ("," FLOAT)~3] ")"
 
-color : "Color(" packed_color ")"
-packed_color : [FLOAT ("," FLOAT)~3] 
+color : "Color(" [packed_color] ")"
+packed_color : FLOAT ("," FLOAT)~3
 
 aabb : "AABB(" [FLOAT ("," FLOAT)~5] ")"
 

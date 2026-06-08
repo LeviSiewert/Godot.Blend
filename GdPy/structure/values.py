@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .core import GdResource, GdType, GdValue, Signal, SignalContainer
-from typing import Self, Type, Any
+from typing import Self, Type, Any, Iterable
 from lark import Token #type: ignore 
 from array import array
 ## PRIMITIVES
@@ -141,6 +141,8 @@ class _GdValueArrayFixedType(GdValue):
 
     @classmethod
     def parse_lark(cls, key:str, tf, *args)->Any:
+        if args == (None,):
+            return cls()
         return cls(args)
     
     def __iter__(self,):
@@ -152,19 +154,23 @@ class _GdValueArrayFixedLength(GdValue):
     _arr_length : int = 0
 
     def __init__(self, val:Any=None):
-        self.set_value(val)
-        super().__init__()
-
-    def set_value(self, value):
-        if value is None:
-            self.value = array(self._arr_type, [0]*self._arr_length)
+        if (val is None):
+            self.def_value()
         else:
-            assert(len(value)==self._arr_length)
-            self.value = array(self._arr_type, value)
+            self.set_value(val)
+
+    def def_value(self,):
+        self.value = array(self._arr_type, [0]*self._arr_length)
+
+    def set_value(self, value:Iterable):
+        assert(len(value)==self._arr_length)
+        self.value = array(self._arr_type, value)
 
     @classmethod
     def parse_lark(cls, key:str, tf, *args)->Any:
-        assert(len(args) == cls.length)
+        if (len(args)==0) or (args == (None,)) or (args == ((None,)*cls._arr_length)):
+            return cls()
+        assert(len(args) == cls._arr_length)
         return cls(args)
     
     def __iter__(self,):
@@ -215,14 +221,14 @@ class GdValueVector4i(_GdValueArrayFixedLength):
 class GdValueRect2(_GdValueArrayFixedLength): 
     types = (float,)
     _arr_type : str = "f"
-    _arr_length : int = 2
+    _arr_length : int = 4
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("rect2",)
 class GdValueRect2i(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "i"
-    _arr_length : int = 2
+    _arr_length : int = 4
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("rect2i",)
@@ -260,7 +266,7 @@ class GdValueTransform2D(_GdValueArrayFixedLength):
     _arr_length : int = 6
     @classmethod
     def lark_keys(cls)->tuple[str]: 
-        return ("Transform2d",)
+        return ("transform2d",)
 class GdValueBasis(_GdValueArrayFixedLength): 
     types = (float,)
     _arr_type : str = "f"
