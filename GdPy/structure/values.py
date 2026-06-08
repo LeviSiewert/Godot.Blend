@@ -118,11 +118,12 @@ class GdValueArray(GdValue):
 
     @classmethod
     def _parse_explicit(cls, tfm, key, int_array:GdValueArray):
+        if int_array is None:
+            return cls()
         return int_array
     
     @classmethod
     def _parse_implicit(cls, tfm, *children:list[Token|Any]):
-        pass
         inst = cls()
         inst.value = children
         return inst
@@ -132,6 +133,9 @@ class GdValueArray(GdValue):
 
 class _GdValueArrayFixedType(GdValue):
     value : list
+
+    def __init__(self, value:Iterable=None):
+        self.set_value(value)
 
     def set_value(self, value):
         if value is None:
@@ -338,12 +342,46 @@ class GdValuePackedColorArray(_GdValueArrayFixedType):
 
 class GdValueDictionary(GdValue):
     value : dict
+    types : tuple[Type]
+
+    def __init__(self, value:list[tuple]|dict=None, types:tuple[Type]=None):
+        if types:
+            self.set_type(types)
+
+        if (value is None):
+            self.def_value()
+        elif hasattr(value, "items"):
+            self.set_value(value)
+        elif hasattr(value, "__iter__"):
+            self.def_value()
+            for v in value:
+                self.value[v[0]] = v[1]
+        else:
+            raise TypeError("Could not construct from type", value.__class__)
+
+        if types:
+            self.check_types()
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("dictionary","dictionary_explicit")
     
+    def set_value(self, value):
+        self.value = value
+    def def_value(self):
+        self.value = {}
+    def set_type(self, types):
+        self.types = types
+
+    def check_types(self):
+        pass
+
+    def check_type(self):
+        ##TODO
+        pass
+
     @classmethod
-    def _parse_lark(cls, key:str, *args, **kwargs)->Any:
+    def parse_lark(cls, key:str, *args, **kwargs)->Any:
         if key == "dictionary":
             return cls._parse_implicit(*args, **kwargs)
         elif key == "dictionary_explicit":
@@ -352,16 +390,17 @@ class GdValueDictionary(GdValue):
             raise Exception("Cannot find key", key)
 
     @classmethod
-    def _parse_implicit(cls, tfm, *children:list[Token|Any])->Any:
-        inst = cls()
-        inst.value = dict()
-        for x in children:
-            if x is None: continue
-            inst.value[x[0]] = x[1]
-        return inst
+    def _parse_implicit(cls, tfm, pairs:list[tuple])->Any:
+        if pairs != None: 
+            return cls(pairs)
+        return cls()
     
     @classmethod
-    def _parse_explicit(cls, tfm, int_dict:Self)->Any:
+    def _parse_explicit(cls, tfm, type_anno, int_dict:Self)->Any:
+        if int_dict is None:
+            int_dict = cls()
+        if type_anno:
+            int_dict.set_type(type_anno)
         return int_dict
 
 _all : tuple[Type] = (
