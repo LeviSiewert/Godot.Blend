@@ -65,10 +65,10 @@ type_anno : "[" type ("," type)* "]"
 type : WORD|subresource|extresource
 
 array_explicit : "Array" [type_anno] "(" [array] ")"
-array : "[" [value ("," value)*]* "]"
+array : "[" [value ("," value)*] "]"
 
 dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"
-dictionary : "{" [pair ("," pair)*]* "}"
+dictionary : "{" [pair ("," pair)*] "}"
 pair : value ":" value
 
 STRINGNAME : "&" STRING

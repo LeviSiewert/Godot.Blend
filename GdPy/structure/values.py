@@ -9,10 +9,12 @@ class _GdValueInf(GdValue):
     ''' Primitive, refer to for interpretation, but not use '''
     @classmethod
     def lark_keys(cls)->tuple[str]: 
-        return ("INF",)
+        return ("INF","INF_NEG")
 
     @classmethod
     def parse_lark(cls, key:str, tfm, child:Token)->Any:
+        if key == "INF_NEG":
+            return -float("inf")
         return float("inf")
 
 class _GdValueNull(GdValue):
