@@ -16,6 +16,16 @@ class _BaseTransformer(Transformer):
     def parser(self, k,v):
         return (k,v)
 
+    def packed_vector2(self, key, *children):
+        raise Exception(key)
+        return children
+    def packed_vector3(self, key, *children):
+        return children
+    def packed_vector4(self, key, *children):
+        return children
+    def packed_color(self, key, *children):
+        return children
+
 class GdParser():
     types : list[Type]
     grammer : str

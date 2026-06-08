@@ -364,37 +364,37 @@ class GdValueDictionary(GdValue):
     def _parse_explicit(cls, tfm, int_dict:Self)->Any:
         return int_dict
         
-class _packed_vector2(GdValueArray):
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packed_vector2",)
-    @classmethod
-    def parse_lark(cls, key:str, tfm, *children):
-        return children
+# class _packed_vector2(GdValueArray):
+#     @classmethod
+#     def lark_keys(cls)->tuple[str]: 
+#         return ("packed_vector2",)
+#     @classmethod
+#     def parse_lark(cls, key:str, tfm, *children):
+#         return children
 
-class _packed_vector3(GdValueArray):
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packed_vector3",)
-    @classmethod
-    def parse_lark(cls, key:str, tfm, *children):
-        return children
+# class _packed_vector3(GdValueArray):
+#     @classmethod
+#     def lark_keys(cls)->tuple[str]: 
+#         return ("packed_vector3",)
+#     @classmethod
+#     def parse_lark(cls, key:str, tfm, *children):
+#         return children
 
-class _packed_vector4(GdValueArray):
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packed_vector4",)
-    @classmethod
-    def parse_lark(cls, key:str, tfm, *children):
-        return children
+# class _packed_vector4(GdValueArray):
+#     @classmethod
+#     def lark_keys(cls)->tuple[str]: 
+#         return ("packed_vector4",)
+#     @classmethod
+#     def parse_lark(cls, key:str, tfm, *children):
+#         return children
 
-class _packed_color(GdValueArray):
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packed_color",)
-    @classmethod
-    def parse_lark(cls, key:str, tfm, *color):
-        return color
+# class _packed_color(GdValueArray):
+#     @classmethod
+#     def lark_keys(cls)->tuple[str]: 
+#         return ("packed_color",)
+#     @classmethod
+#     def parse_lark(cls, key:str, tfm, *color):
+#         return color
 
 _all : tuple[Type] = (
     _GdValueInf,
@@ -430,8 +430,8 @@ _all : tuple[Type] = (
     GdValuePackedVector4Array,
     GdValuePackedColorArray,
     GdValueDictionary,
-    _packed_vector2,
-    _packed_vector3,
-    _packed_vector4,
-    _packed_color,
+    # _packed_vector2,
+    # _packed_vector3,
+    # _packed_vector4,
+    # _packed_color,
 )
