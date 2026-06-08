@@ -3,59 +3,7 @@ from .core import GdResource, GdType, GdValue, Signal, SignalContainer
 from typing import Self, Type, Any, Iterable
 from lark import Token #type: ignore 
 from array import array
-## PRIMITIVES
 
-class _GdValueInf(GdValue):
-    ''' Primitive, refer to for interpretation, but not use '''
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("INF","INF_NEG")
-
-    @classmethod
-    def parse_lark(cls, key:str, tfm, child:Token)->Any:
-        if key == "INF_NEG":
-            return -float("inf")
-        return float("inf")
-
-class _GdValueNull(GdValue):
-    ''' Primitive, refer to for interpretation, but not use '''
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("NULL",)
-
-    @classmethod
-    def parse_lark(cls, key:str, tfm, child:Token)->Any:
-        return None
-    
-class _GdValueFloat(GdValue):
-    ''' Primitive, refer to for interpretation, but not use '''
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("FLOAT",)
-
-    @classmethod
-    def parse_lark(cls, key:str, tfm, child:Token)->Any:
-        return float(child)
-
-class _GdValueString(GdValue):
-    ''' Primitive, refer to for interpretation, but not use '''
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("STRING",)
-    
-    @classmethod
-    def parse_lark(cls, key:str, tfm, child:Token)->Any:
-        return str(child).strip('"')
-
-class _GdValueInteger(GdValue):
-    ''' Primitive, refer to for interpretation, but not use '''
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("NUMBER",)
-
-    @classmethod
-    def parse_lark(cls, key:str, tfm, child:Token)->Any:
-        return int(child)
 
 class GdValueStringName(GdValue):
     @classmethod
@@ -406,11 +354,6 @@ class GdValueDictionary(GdValue):
         return int_dict
 
 _all : tuple[Type] = (
-    _GdValueInf,
-    _GdValueNull,
-    _GdValueFloat,
-    _GdValueString,
-    _GdValueInteger,
     GdValueStringName,
     GdValueArray,
     GdValueVector2,

@@ -1,6 +1,6 @@
 from typing import Type, Callable
 from lark.visitors import Transformer, v_args #type:ignore
-from lark import Lark #type:ignore
+from lark import Lark,Token #type:ignore
 from .core import GdType, Context
 from .primitives import CacheTreeNode
 from contextvars import ContextVar
@@ -25,6 +25,24 @@ class _BaseTransformer(Transformer):
         return children
     def packed_color(self, key, *children):
         return children
+    
+    def NULL(self, *args):
+        return None
+    
+    def INF(self,*args):
+        return float("inf")
+    def INF_NEG(self,*args):
+        return -float("inf")
+    
+    def STRING(self, child:Token):
+        return str(child).strip('"')
+    
+    def NUMBER(self, child:Token):
+        return int(child)
+
+    def FLOAT(self, child:Token):
+        return float(child)
+
 
 class GdParser():
     types : list[Type]

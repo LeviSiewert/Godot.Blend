@@ -93,8 +93,8 @@ class GdResource(GdType):
 class GdValue(GdType):
     _context_key = "value"
 
-    def __init__(self, value:Any=None):
-        self.set_value(value)
+    # def __init__(self, value:Any=None):
+    #     self.set_value(value)
 
     def get_struct_children(self)->tuple[GdType|Any]:
         return tuple()
