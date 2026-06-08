@@ -26,7 +26,7 @@ class File[T:Any](ABC, SignalContainer):
     path : str
     path_set : Signal[str, str] #Fr, To
 
-    data : T
+    data : T = None
     data_loaded : Signal[T]
     data_dumped : Signal
     data_deleted : Signal

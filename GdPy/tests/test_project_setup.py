@@ -15,6 +15,6 @@ def test_project_setup():
     project = GdProject(root, file_db, class_db)
 
     def_file = project.file_db.get("res://.PyGd/class_definitions.tres", FileClassDefinition("", cls_def))
+    project.class_db.set_src_file(def_file)
     with project.context() as c:
-        def_file.load(c)
-    project.class_db.set_file(def_file)
+        project.class_db.load_fr_src_file(c)

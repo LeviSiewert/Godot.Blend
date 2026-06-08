@@ -41,7 +41,7 @@ class GdParser():
         if isinstance(result, GdType):
             with cache_tree.traverse(True):
                 self.build_cache_tree(result)
-        return tree
+        return result
     
     def build_cache_tree(self, result:GdType):
         ''' Iterate over objects here '''

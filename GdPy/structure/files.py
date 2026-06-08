@@ -41,6 +41,8 @@ class FileClassDefinition(FileTres):
         ''' Modified transfomer for results of GdPy/tools/godot/class_exporter '''
 
         def transform(self, root:I|GdType, *args, **kwargs)->T:
+            if not isinstance(root, GdType): 
+                raise TypeError()
             res = self.matcher(root)(root, *args, **kwargs)
             return res
     

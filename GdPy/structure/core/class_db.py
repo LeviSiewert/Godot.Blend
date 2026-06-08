@@ -158,7 +158,7 @@ class GdClassDef(SignalContainer):
             self.definition_updated()
 
 class ClassDb[T:GdClassDef](Collection):
-    src_file : File #FileClassDefinition
+    src_file : File = None#FileClassDefinition
 
     by_name: dict[str, T]
     by_uuid: dict[str, T]
@@ -194,13 +194,14 @@ class ClassDb[T:GdClassDef](Collection):
             x.def_updated()
 
     def set_src_file(self, file:File):
-        if self.file:
-            self.file.data_loaded.disconnect(self.load_fr_src_file)
-        self.file = file
+        if self.src_file:
+            self.src_file.data_loaded.disconnect(self.load_fr_src_file)
+        self.src_file = file
         file.data_loaded.connect(self.load_fr_src_file)
-        self.load_fr_src_file()
     
-    def load_fr_src_file(self):
-        for x in self.file.get_definitions():
+    def load_fr_src_file(self, context):
+        if (self.src_file.data is None):
+            self.src_file.load(context)
+        for x in self.src_file.get_definitions():
             self.append(x)
         
