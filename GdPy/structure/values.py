@@ -81,6 +81,11 @@ class GdValueArray(GdValue):
     def __iter__(self,):
         return self.value.__iter__()
 
+    def __eq__(self, other)->bool:
+        if hasattr(other,"__iter__"):
+            return self.value == other
+        return False
+
 class _GdValueArrayFixedType(GdValue):
     value : list
 
@@ -101,6 +106,11 @@ class _GdValueArrayFixedType(GdValue):
     
     def __iter__(self,):
         return self.value.__iter__()
+    
+    def __eq__(self, other)->bool:
+        if hasattr(other,"__iter__"):
+            return self.value == other
+        return False
 
 class _GdValueArrayFixedLength(GdValue):
     value : array
@@ -129,7 +139,12 @@ class _GdValueArrayFixedLength(GdValue):
     
     def __iter__(self,):
         return self.value.__iter__()
-
+    
+    def __eq__(self, other)->bool:
+        if hasattr(other,"__iter__"):
+            return self.value == other
+        return False
+    
 class GdValueVector2(_GdValueArrayFixedLength):
     types = (float,)
     _arr_type : str = "f"
