@@ -41,11 +41,11 @@ class GdParser():
         transformer = v_args(inline=True)(transformer)
         self._transformer = transformer()
 
-    def parse(self, context:Context, cache_tree:CacheTreeNode, data:str, start:str=None)->GdType|Any:
+    def parse(self, context:Context, data:str, cache_tree:CacheTreeNode=None, start:str=None)->GdType|Any:
         parser = Lark(self.grammer, maybe_placeholders=True, start=start)
         tree = parser.parse(data) 
         result = self._transformer.transform(tree)
-        if isinstance(result, GdType):
+        if isinstance(result, GdType) and cache_tree:
             with cache_tree.traverse(True):
                 self.build_cache_tree(result)
         return result

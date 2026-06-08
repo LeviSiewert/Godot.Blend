@@ -16,7 +16,7 @@ class FileTres[T:GdResource](File):
             self.cache_tree = CacheTreeNode(self, self._cache_layers)
             assert(self.path.exists())
             text = self.path.read_text()
-            self.data = gdparser.parse(context, self.cache_tree, text, start="file_resource")
+            self.data = gdparser.parse(context, text, cache_tree=self.cache_tree, start="file_resource")
             self.cache_tree.call("references","attach",context)
             self.data_loaded()
         
