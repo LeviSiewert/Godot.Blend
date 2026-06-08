@@ -41,6 +41,7 @@ class File[T:Any](ABC, SignalContainer):
     def __init__(self, uuid:str, path:str):
         self.uuid = uuid
         self.path = path
+        super().__init__()
 
     @abstractmethod
     def load(self, context:Context, *args, **kwargs):
