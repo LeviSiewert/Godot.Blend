@@ -1,10 +1,17 @@
 from typing import Type, Callable
-from lark.visitors import Transformer #type:ignore
+from lark.visitors import Transformer, v_args #type:ignore
 from lark import Lark #type:ignore
 from .core import GdType, Context
 from .primitives import CacheTreeNode
 from contextvars import ContextVar
 from typing import Any
+
+
+class _BaseTransformer(Transformer):
+    """ Utility for thin "wrapper" or "router" style tokens that are not instanced, IE Value """
+    
+    def value(self, children):
+        return children
 
 class GdParser():
     types : list[Type]
@@ -23,7 +30,7 @@ class GdParser():
         return res
 
     def construct_transformer(self):
-        class transformer(Transformer):
+        class transformer(_BaseTransformer):
             pass
 
         for x in self.types:
@@ -31,7 +38,7 @@ class GdParser():
                 raise Exception("All supplied types must have parse_lark", x)
             for k in x.lark_keys():
                 setattr(transformer, k, self.construct_transformer_function(k, x.parse_lark))
-
+        transformer = v_args(inline=True)(transformer)
         self._transformer = transformer()
 
     def parse(self, context:Context, cache_tree:CacheTreeNode, data:str, start:str=None)->GdType|Any:
