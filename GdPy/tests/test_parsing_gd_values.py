@@ -231,7 +231,7 @@ def test_GdValuePackedVector2Array():
     assert(isinstance(_run("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"), GdValuePackedVector2Array))
     assert(_run("value", "PackedVector2Array(0,1,0,1)") == _run("value", "PackedVector2Array(0.0,1.0,0.0,1.0)"))
     assert(_run("value", "PackedVector2Array()") == GdValuePackedVector2Array())
-    assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array(0,1,0,1))
+    assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array((0,1,0,1)))
     assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array(((0,1),(0,1))))
     assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array((GdValueVector3(0,1),GdValueVector3(0,1))))
 def test_GdValuePackedVector3Array():
@@ -241,7 +241,7 @@ def test_GdValuePackedVector3Array():
     assert(isinstance(_run("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"), GdValuePackedVector3Array))
     assert(_run("value", "PackedVector3Array()") == GdValuePackedVector3Array())
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == _run("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"))
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array(0,1,2,0,1,2))
+    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((0,1,2,0,1,2)))
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array(((0,1,2),(0,1,2))))
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((GdValueVector3(0,1,2),GdValueVector3(0,1,2))))
 def test_GdValuePackedVector4Array():

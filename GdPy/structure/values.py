@@ -85,18 +85,24 @@ class GdValueArray(GdValue):
         if hasattr(other,"__iter__"):
             return self.value == other
         return False
+    
+    def __len__(self):
+        return len(self.value)
 
-class _GdValueArrayFixedType(GdValue):
+class _GdValueArrayPackedType(GdValue):
     value : list
 
     def __init__(self, value:Iterable=None):
-        self.set_value(value)
+        if not (value is None):
+            self.set_value(value)
+        else:
+            self.def_value(value)
 
     def set_value(self, value):
-        if value is None:
-            self.value = list()
-        else:
-            self.value = list(*value)
+        self.value = list(value)
+
+    def def_value(self):
+        self.value = list()
 
     @classmethod
     def parse_lark(cls, key:str, tf, *args)->Any:
@@ -111,6 +117,9 @@ class _GdValueArrayFixedType(GdValue):
         if hasattr(other,"__iter__"):
             return self.value == other
         return False
+    
+    def __len__(self):
+        return len(self.value)
 
 class _GdValueArrayFixedLength(GdValue):
     value : array
@@ -145,22 +154,25 @@ class _GdValueArrayFixedLength(GdValue):
             return self.value == other
         return False
     
+    def __len__(self):
+        return len(self.value)
+
 class GdValueVector2(_GdValueArrayFixedLength):
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 2
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("vector2",)
 class GdValueVector3(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 3
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("vector3",)
 class GdValueVector4(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
     @classmethod
@@ -188,7 +200,7 @@ class GdValueVector4i(_GdValueArrayFixedLength):
     def lark_keys(cls)->tuple[str]: 
         return ("vector4i",)
 class GdValueRect2(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
     @classmethod
@@ -209,42 +221,42 @@ class GdValuePlane(_GdValueArrayFixedLength):
     def lark_keys(cls)->tuple[str]: 
         return ("plane",)
 class GdValueColor(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("color",)
 class GdValueAABB(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 6
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("aabb",)
 class GdValueQuaternion(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("quaternion",)
 class GdValueTransform2D(_GdValueArrayFixedLength):
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 6
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("transform2d",)
 class GdValueBasis(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 9
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("basis",)
 class GdValueTransform3D(_GdValueArrayFixedLength): 
-    types = (float,)
+    types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 12
     @classmethod
@@ -253,52 +265,84 @@ class GdValueTransform3D(_GdValueArrayFixedLength):
 
 
 
-class GdValuePackedByteArray(_GdValueArrayFixedType): 
+class GdValuePackedByteArray(_GdValueArrayPackedType): 
     types = (int,str)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedbytearray",)
-class GdValuePackedInt32Array(_GdValueArrayFixedType): 
+class GdValuePackedInt32Array(_GdValueArrayPackedType): 
     types = (int,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedint32array",)
-class GdValuePackedInt64Array(_GdValueArrayFixedType): 
+class GdValuePackedInt64Array(_GdValueArrayPackedType): 
     types = (int,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedint64array",)
-class GdValuePackedFloat32Array(_GdValueArrayFixedType): 
+class GdValuePackedFloat32Array(_GdValueArrayPackedType): 
     types = (int,float)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedfloat32array",)
-class GdValuePackedFloat64Array(_GdValueArrayFixedType): 
+class GdValuePackedFloat64Array(_GdValueArrayPackedType): 
     types = (int,float)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedfloat64array",)
-class GdValuePackedStringArray(_GdValueArrayFixedType): 
+class GdValuePackedStringArray(_GdValueArrayPackedType): 
     types = (str,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedstringarray",)
-class GdValuePackedVector2Array(_GdValueArrayFixedType): 
+
+class _GdValueArrayPackedTypeComplex(_GdValueArrayPackedType):
+    value : list
+    types : tuple[Type]
+
+    def __init__(self, value:Iterable[Iterable|Any]=None):
+        if value is None:
+            self.def_value()
+            return
+
+        assert hasattr(value, "__iter__")
+        if len(value) == 0:
+            self.def_value()
+            return
+
+        self.set_value(self._unpack(value))
+
+    @classmethod
+    def _unpack(cls, _value:Iterable):
+        values = list(_value)
+        ty = cls.types[0]
+        while len(values):
+            if isinstance(values[0], cls.types):
+                yield values.pop(0)
+            elif isinstance(values[0], ty.types):
+                yield ty(values[0:ty._arr_length])
+                values = values[ty._arr_length+1:-1]
+            elif hasattr(values[0], "__iter__"):
+                yield ty(values.pop(0))
+            else:
+                raise TypeError("Could not cast input to types", _value, ty)
+
+class GdValuePackedVector2Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector2,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedvector2array",)
-class GdValuePackedVector3Array(_GdValueArrayFixedType): 
+class GdValuePackedVector3Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector3,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedvector3array",)
-class GdValuePackedVector4Array(_GdValueArrayFixedType): 
+class GdValuePackedVector4Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector4,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedvector4array",)
-class GdValuePackedColorArray(_GdValueArrayFixedType): 
+class GdValuePackedColorArray(_GdValueArrayPackedTypeComplex): 
     types = (GdValueColor,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 

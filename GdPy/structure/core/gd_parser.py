@@ -16,13 +16,13 @@ class _BaseTransformer(Transformer):
     def parser(self, k,v):
         return (k,v)
 
-    def packed_vector2(self, key, *children):
+    def packed_vector2(self, children):
         return children
-    def packed_vector3(self, key, *children):
+    def packed_vector3(self, children):
         return children
-    def packed_vector4(self, key, *children):
+    def packed_vector4(self, children):
         return children
-    def packed_color(self, key, *children):
+    def packed_color(self, children):
         return children
     
     def NULL(self, *args):

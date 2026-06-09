@@ -103,6 +103,9 @@ class GdValue(GdType):
     def set_value(self, value)->None:
         pass
 
+    def __repr__(self,):
+        return f"{self.__class__.__name__}({str(self.value)})"
+
     # @abstractmethod
     # def __eq__(self, value)->bool:
     #     return super().__eq__(value)
