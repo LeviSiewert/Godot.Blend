@@ -76,8 +76,8 @@ def test_GdValueVector3():
 def test_GdValueVector4():
     assert(hasattr(gdparser._transformer, "vector4"))
     assert(isinstance(_run("value", "Vector4()"), GdValueVector4))
-    assert(isinstance(_run("value", "Vector4(0,1,2)"), GdValueVector4))
-    assert(isinstance(_run("value", "Vector4(0.0,1.0,2.0)"), GdValueVector4))
+    assert(isinstance(_run("value", "Vector4(0,1,2,3)"), GdValueVector4))
+    assert(isinstance(_run("value", "Vector4(0.0,1.0,2.0,3.0)"), GdValueVector4))
     assert(_run("value", "Vector4()") == GdValueVector4())
     assert(_run("value", "Vector4(0,1,2,3)") == _run("value", "Vector4(0.0,1.0,2.0,3.0)"))
     assert(_run("value", "Vector4(0,1,2,3)") == GdValueVector4((0,1,2,3)))
@@ -155,36 +155,36 @@ def test_GdValueQuaternion():
 def test_GdValueBasis():
     assert(hasattr(gdparser._transformer, "basis"))
     assert(isinstance(_run("value", "Basis()"), GdValueBasis))
-    assert(isinstance(_run("value", "Basis(0,1,2,3,4,5,6,7)"), GdValueBasis))
-    assert(isinstance(_run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0)"), GdValueBasis))
-    assert(_run("value", "Basis(0,1,2,3,4,5,6,7)") == _run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0)"))
+    assert(isinstance(_run("value", "Basis(0,1,2,3,4,5,6,7,8)"), GdValueBasis))
+    assert(isinstance(_run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"), GdValueBasis))
+    assert(_run("value", "Basis(0,1,2,3,4,5,6,7,8)") == _run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"))
     assert(_run("value", "Basis()") == GdValueBasis())
-    assert(_run("value", "Basis(0,1,2,3,4,5,6,7)") == GdValueBasis((0,1,2,3,4,5,6,7)))
+    assert(_run("value", "Basis(0,1,2,3,4,5,6,7,8)") == GdValueBasis((0,1,2,3,4,5,6,7,8)))
 
 def test_GdValueTransform2D():
     assert(hasattr(gdparser._transformer, "transform2d"))
     assert(isinstance(_run("value", "Transform2D()"), GdValueTransform2D))
-    assert(isinstance(_run("value", "Transform2D(0,1,2,3,4,5,6)"), GdValueTransform2D))
-    assert(isinstance(_run("value", "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0,6.0)"), GdValueTransform2D))
-    assert(_run("value", "Transform2D(0,1,2,3,4,5,6)") == "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0,6.0)")
+    assert(isinstance(_run("value", "Transform2D(0,1,2,3,4,5)"), GdValueTransform2D))
+    assert(isinstance(_run("value", "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"), GdValueTransform2D))
+    assert(_run("value", "Transform2D(0,1,2,3,4,5)") == _run("value","Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"))
     assert(_run("value", "Transform2D()") == GdValueTransform2D())
-    assert(_run("value", "Transform2D(0,1,2,3,4,5,6)") == GdValueTransform2D((0,1,2,3,4,5,6)))
+    assert(_run("value", "Transform2D(0,1,2,3,4,5)") == GdValueTransform2D((0,1,2,3,4,5)))
 
 def test_GdValueTransform3D():
     assert(hasattr(gdparser._transformer, "transform3d"))
     assert(isinstance(_run("value", "Transform3D()"), GdValueTransform3D))
-    assert(isinstance(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10)"), GdValueTransform3D))
-    assert(isinstance(_run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0)"), GdValueTransform3D))
-    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10)") == _run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0)"))
+    assert(isinstance(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)"), GdValueTransform3D))
+    assert(isinstance(_run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"), GdValueTransform3D))
+    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == _run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"))
     assert(_run("value", "Transform3D()") == GdValueTransform3D())
-    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10)") == GdValueTransform3D((0,1,2,3,4,5,6,7,8,9,10)))
+    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == GdValueTransform3D((0,1,2,3,4,5,6,7,8,9,10,11)))
 
 def test_GdValuePackedByteArray():
     assert(hasattr(gdparser._transformer, "packedbytearray"))
     assert(isinstance(_run("value", "PackedByteArray()"), GdValuePackedByteArray))
-    assert(isinstance(_run("value", "PackedByteArray(abc123)"), GdValuePackedByteArray))
+    assert(isinstance(_run("value", 'PackedByteArray("abc123")'), GdValuePackedByteArray))
     assert(_run("value", "PackedByteArray()") == GdValuePackedByteArray())
-    assert(_run("value", "PackedByteArray(abc123)") == GdValuePackedByteArray("abc123"))
+    assert(_run("value", 'PackedByteArray("abc123")') == GdValuePackedByteArray(("abc123",)))
 
 def test_GdValuePackedInt32Array():
     assert(hasattr(gdparser._transformer, "packedint32array"))
@@ -221,7 +221,7 @@ def test_GdValuePackedStringArray():
     assert(isinstance(_run("value", "PackedStringArray()"), GdValuePackedStringArray))
     assert(isinstance(_run("value", 'PackedStringArray("a","b")'), GdValuePackedStringArray))
     assert(_run("value", "PackedStringArray()") == GdValuePackedStringArray())
-    assert(_run("value", 'PackedStringArray("a","b")') != GdValuePackedStringArray("ab"))
+    assert(_run("value", 'PackedStringArray("a","b")') != GdValuePackedStringArray(("ab",)))
     assert(_run("value", 'PackedStringArray("a","b")') == GdValuePackedStringArray(("a","b")))
 
 def test_GdValuePackedVector2Array():
@@ -229,11 +229,13 @@ def test_GdValuePackedVector2Array():
     assert(isinstance(_run("value", "PackedVector2Array()"), GdValuePackedVector2Array))
     assert(isinstance(_run("value", "PackedVector2Array(0,1,2,3)"), GdValuePackedVector2Array))
     assert(isinstance(_run("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"), GdValuePackedVector2Array))
-    assert(_run("value", "PackedVector2Array(0,1,0,1)") == _run("value", "PackedVector2Array(0.0,1.0,0.0,1.0)"))
+    assert(_run("value", "PackedVector2Array(0,1,2,3)") == _run("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"))
     assert(_run("value", "PackedVector2Array()") == GdValuePackedVector2Array())
-    assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array((0,1,0,1)))
-    assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array(((0,1),(0,1))))
-    assert(_run("value", "PackedVector2Array(0,1,0,1)") == GdValuePackedVector2Array((GdValueVector3(0,1),GdValueVector3(0,1))))
+    assert(2 == len(GdValuePackedVector2Array((0,1,2,3))))
+    assert(3 == len(GdValuePackedVector2Array((0,1,2,3,4,5))))
+    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((0,1,2,3)))
+    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array(((0,1),(2,3))))
+    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((GdValueVector2((0,1)),GdValueVector2((2,3)))))
 def test_GdValuePackedVector3Array():
     assert(hasattr(gdparser._transformer, "packedvector3array"))
     assert(isinstance(_run("value", "PackedVector3Array()"), GdValuePackedVector3Array))
@@ -243,7 +245,7 @@ def test_GdValuePackedVector3Array():
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == _run("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"))
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((0,1,2,0,1,2)))
     assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array(((0,1,2),(0,1,2))))
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((GdValueVector3(0,1,2),GdValueVector3(0,1,2))))
+    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((GdValueVector3((0,1,2)),GdValueVector3((0,1,2)))))
 def test_GdValuePackedVector4Array():
     assert(hasattr(gdparser._transformer, "packedvector4array"))
     assert(isinstance(_run("value", "PackedVector4Array()"), GdValuePackedVector4Array))
@@ -251,9 +253,9 @@ def test_GdValuePackedVector4Array():
     assert(isinstance(_run("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedVector4Array))
     assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == _run("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"))
     assert(_run("value", "PackedVector4Array()") == GdValuePackedVector4Array())
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)" == GdValuePackedVector4Array((0,1,2,3,0,1,2,3))))
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)" == GdValuePackedVector4Array((0,1,2,3),(0,1,2,3))))
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)" == GdValuePackedVector4Array(GdValueVector4(0,1,2,3),GdValueVector4(0,1,2,3))))
+    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((0,1,2,3,0,1,2,3)))
+    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array(((0,1,2,3),(0,1,2,3))))
+    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((GdValueVector4((0,1,2,3)),GdValueVector4((0,1,2,3)))))
 
 def test_GdValuePackedColorArray():
     assert(hasattr(gdparser._transformer, "packedcolorarray" ))
@@ -263,4 +265,4 @@ def test_GdValuePackedColorArray():
     assert(isinstance(_run("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedColorArray))
     assert(_run("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)") == _run("value", "PackedColorArray(0,1,2,3,0,1,2,3)"))
     assert(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((0,1,2,3,0,1,2,3)))
-    assert(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((GdValueColor(0,1,2,3),GdValueColor(0,1,2,3))))
+    assert(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((GdValueColor((0,1,2,3)),GdValueColor((0,1,2,3)))))

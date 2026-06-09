@@ -96,7 +96,7 @@ class _GdValueArrayPackedType(GdValue):
         if not (value is None):
             self.set_value(value)
         else:
-            self.def_value(value)
+            self.def_value()
 
     def set_value(self, value):
         self.value = list(value)
@@ -140,11 +140,13 @@ class _GdValueArrayFixedLength(GdValue):
         self.value = array(self._arr_type, value)
 
     @classmethod
-    def parse_lark(cls, key:str, tf, *args)->Any:
-        if (len(args)==0) or (args == (None,)) or (args == ((None,)*cls._arr_length)):
+    def parse_lark(cls, key:str, tf, vals)->Any:
+        if vals is None:
             return cls()
-        assert(len(args) == cls._arr_length)
-        return cls(args)
+        if (len(vals)==0) or (vals == (None,)) or (vals == ((None,)*cls._arr_length)):
+            return cls()
+        assert(len(vals) == cls._arr_length)
+        return cls(vals)
     
     def __iter__(self,):
         return self.value.__iter__()
@@ -266,7 +268,7 @@ class GdValueTransform3D(_GdValueArrayFixedLength):
 
 
 class GdValuePackedByteArray(_GdValueArrayPackedType): 
-    types = (int,str)
+    types = (str,)
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("packedbytearray",)
@@ -321,7 +323,7 @@ class _GdValueArrayPackedTypeComplex(_GdValueArrayPackedType):
                 yield values.pop(0)
             elif isinstance(values[0], ty.types):
                 yield ty(values[0:ty._arr_length])
-                values = values[ty._arr_length+1:-1]
+                values = values[ty._arr_length:len(values)]
             elif hasattr(values[0], "__iter__"):
                 yield ty(values.pop(0))
             else:
@@ -388,6 +390,9 @@ class GdValueDictionary(GdValue):
     def check_type(self):
         ##TODO
         pass
+
+    def __eq__(self, value):
+        return self.value == value
 
     @classmethod
     def parse_lark(cls, key:str, *args, **kwargs)->Any:

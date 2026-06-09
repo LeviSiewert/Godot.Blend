@@ -15,15 +15,26 @@ class _BaseTransformer(Transformer):
     
     def parser(self, k,v):
         return (k,v)
+    
+    def packed_2(self, children): 
+        return children
+    def packed_2i(self, children): 
+        return children
+    def packed_3(self, children): 
+        return children
+    def packed_3i(self, children): 
+        return children
+    def packed_4(self, children): 
+        return children
+    def packed_4i(self, children): 
+        return children
+    def packed_6(self, children): 
+        return children
+    def packed_9(self, children): 
+        return children
+    def packed_12(self, children): 
+        return children
 
-    def packed_vector2(self, children):
-        return children
-    def packed_vector3(self, children):
-        return children
-    def packed_vector4(self, children):
-        return children
-    def packed_color(self, children):
-        return children
     
     def NULL(self, *args):
         return None

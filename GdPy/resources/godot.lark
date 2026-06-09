@@ -52,10 +52,24 @@ value : NULL
       | STRING
 
 
+
+// Uniform Fixed Len:
+packed_2i : NUMBER ("," NUMBER)~1
+packed_3i : NUMBER ("," NUMBER)~2
+packed_4i : NUMBER ("," NUMBER)~3
+
+packed_2 : FLOAT ("," FLOAT)~1
+packed_3 : FLOAT ("," FLOAT)~2
+packed_4 : FLOAT ("," FLOAT)~3
+packed_6 : FLOAT ("," FLOAT)~5
+packed_9 : FLOAT ("," FLOAT)~8
+packed_12 : FLOAT ("," FLOAT)~11
+
 // Primitives:
 
 COMMENT : /;.*/
 
+INF_NEG : "-inf"
 INF : "inf"
 NULL : "null"
 
@@ -73,6 +87,7 @@ pair : value ":" value
 
 STRINGNAME : "&" STRING
 
+
 // Defered References:
 
 nodepath : "NodePath" [type_anno] "(" [STRING] ")"
@@ -82,37 +97,35 @@ rid : "RID" [type_anno] "(" [STRING] ")"
 
 // Vector types:
 
-vector2i : "Vector2i(" [NUMBER ("," NUMBER)~1] ")"
-vector3i : "Vector3i(" [NUMBER ("," NUMBER)~2] ")"
-vector4i : "Vector4i(" [NUMBER ("," NUMBER)~3] ")"
+vector2i : "Vector2i(" [packed_2i] ")"
+vector3i : "Vector3i(" [packed_3i] ")"
+vector4i : "Vector4i(" [packed_4i] ")"
 
-vector2 : "Vector2(" [packed_vector2] ")"
-vector3 : "Vector3(" [packed_vector3] ")"
-vector4 : "Vector4(" [packed_vector4] ")"
-packed_vector2 : FLOAT ("," FLOAT)~1
-packed_vector3 : FLOAT ("," FLOAT)~2
-packed_vector4 : FLOAT ("," FLOAT)~3
+vector2 : "Vector2(" [packed_2] ")"
+vector3 : "Vector3(" [packed_3] ")"
+vector4 : "Vector4(" [packed_4] ")"
 
 
-rect2 : "Rect2(" [FLOAT ("," FLOAT)~3] ")"
-rect2i : "Rect2i(" [NUMBER ("," NUMBER)~3] ")"
+rect2 : "Rect2(" [packed_4] ")"
+rect2i : "Rect2i(" [packed_4i] ")"
 
-plane : "Plane(" [FLOAT ("," FLOAT)~3] ")"
+plane : "Plane(" [packed_4] ")"
 
-color : "Color(" [packed_color] ")"
-packed_color : FLOAT ("," FLOAT)~3
 
-aabb : "AABB(" [FLOAT ("," FLOAT)~5] ")"
+color : "Color(" [packed_4] ")"
+aabb : "AABB(" [packed_6] ")"
 
-quaternion : "Quaternion(" [FLOAT ("," FLOAT)~3] ")"
 
-basis : "Basis(" [FLOAT ("," FLOAT)~8] ")"
-transform2d : "Transform2D(" [FLOAT ("," FLOAT)~5] ")"
-transform3d : "Transform3D(" [FLOAT ("," FLOAT)~11] ")"
+quaternion : "Quaternion(" [packed_4] ")"
+
+
+transform2d : "Transform2D(" [packed_6] ")"
+transform3d : "Transform3D(" [packed_12] ")"
+basis : "Basis(" [packed_9] ")"
 
 // Packed types:
 
-packedbytearray : "PackedByteArray(" STRING* ")" 
+packedbytearray : "PackedByteArray(" [STRING] ")"
 
 packedint32array : "PackedInt32Array(" ( [NUMBER ("," NUMBER)*] )* ")" 
 packedint64array : "PackedInt64Array(" ( [NUMBER ("," NUMBER)*] )* ")" 
@@ -122,10 +135,10 @@ packedfloat64array : "PackedFloat64Array(" ( [FLOAT ("," FLOAT)*] )* ")"
 
 packedstringarray : "PackedStringArray(" ( [STRING ("," STRING)*] )* ")"
 
-packedvector2array : "PackedVector2Array(" ( [packed_vector2 ("," packed_vector2)*]* )* ")"
-packedvector3array : "PackedVector3Array(" ( [packed_vector3 ("," packed_vector3)*]* )* ")"
-packedvector4array : "PackedVector4Array(" ( [packed_vector4 ("," packed_vector4)*]* )* ")"
-packedcolorarray : "PackedColorArray(" [packed_color ("," packed_color)*] ")"
+packedvector2array : "PackedVector2Array(" [ [packed_2 ("," packed_2)*] ] ")"
+packedvector3array : "PackedVector3Array(" [ [packed_3 ("," packed_3)*] ] ")"
+packedvector4array : "PackedVector4Array(" [ [packed_4 ("," packed_4)*] ] ")"
+packedcolorarray : "PackedColorArray(" [packed_4 ("," packed_4)*] ")"
 
 WORD : (LETTER | "_" | NUMBER | "/")+
 
