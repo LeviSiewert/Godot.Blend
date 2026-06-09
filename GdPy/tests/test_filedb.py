@@ -8,37 +8,37 @@ _proj_root = _thisdir/"project"
 def test_filedb_construction():
     file_db = FileDb(_proj_root, files)
 
-def _compare(file_db,a,b):
+def _assert_eq(file_db,a,b):
     _a = file_db[a]
     _b = file_db[b]
-    assert(_a)
+    assert(not (_a is None))
     assert(_a is _b)
 
 def test_filedb_respath():
     file_db = FileDb(_proj_root, files)
-    _compare(file_db, "res://project.godot", _proj_root/"project.godot")
-    _compare(file_db, "res://assets/icon.svg", _proj_root/"assets/icon.svg")
-    _compare(file_db, "res://assets/blender.blend", _proj_root/"assets/blender.blend")
-    _compare(file_db, "res://assets/blender.glb", _proj_root/"assets/blender.glb")
-    _compare(file_db, "res://assets/script.gd", _proj_root/"assets/script.gd")
-    _compare(file_db, "res://assets/script_global.gd", _proj_root/"assets/script_global.gd")
-    _compare(file_db, "res://assets/tscn.tscn", _proj_root/"assets/tscn.tscn")
+    _assert_eq(file_db, "res://project.godot", _proj_root/"project.godot")
+    _assert_eq(file_db, "res://assets/icon.svg", _proj_root/"assets/icon.svg")
+    _assert_eq(file_db, "res://assets/blender.blend", _proj_root/"assets/blender.blend")
+    _assert_eq(file_db, "res://assets/blender.glb", _proj_root/"assets/blender.glb")
+    _assert_eq(file_db, "res://assets/script.gd", _proj_root/"assets/script.gd")
+    _assert_eq(file_db, "res://assets/script_global.gd", _proj_root/"assets/script_global.gd")
+    _assert_eq(file_db, "res://assets/tscn.tscn", _proj_root/"assets/tscn.tscn")
 
 def test_filedb_uidpath_importdefined():
     file_db = FileDb(_proj_root, files)
 
     ## Import defined UIDs
-    _compare(file_db,"res://assets/icon.svg", "uid://n7opm812ptfd")
-    _compare(file_db,"res://assets/blender.blend", "uid://gt2mbfsmssh1")
-    _compare(file_db,"res://assets/blender.glb", "uid://cocfi2vsn5qt2")
+    _assert_eq(file_db,"res://assets/icon.svg", "uid://n7opm812ptfd")
+    _assert_eq(file_db,"res://assets/blender.blend", "uid://gt2mbfsmssh1")
+    _assert_eq(file_db,"res://assets/blender.glb", "uid://cocfi2vsn5qt2")
 
 def test_filedb_uidpath_uidfiledefined():
     file_db = FileDb(_proj_root, files)
     ## .uid defined UIDs
-    _compare(file_db,"res://assets/script.gd", "uid://cr1tpol7u62kd")
-    _compare(file_db,"res://assets/script_global.gd", "uid://4ixpsfd7ehyv")
+    _assert_eq(file_db,"res://assets/script.gd", "uid://cr1tpol7u62kd")
+    _assert_eq(file_db,"res://assets/script_global.gd", "uid://4ixpsfd7ehyv")
 
 def test_filedb_uidpath_intrensicdefined():
     file_db = FileDb(_proj_root, files)
     ## Self Defined UIDs
-    _compare(file_db,"res://assets/tscn.tscn", "uid://c0irlon13iq4o")
+    _assert_eq(file_db,"res://assets/tscn.tscn", "uid://c0irlon13iq4o")
