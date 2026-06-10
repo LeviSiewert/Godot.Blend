@@ -100,19 +100,19 @@ class File[T:Any](ABC, SignalContainer):
         resolved after stack completed and does not raise errors if file path is missing '''
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def load(self, c:Context):
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def save(self, c:Context):
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def dump(self, c:Context):
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def delete(self, c:Context):
         pass
 
