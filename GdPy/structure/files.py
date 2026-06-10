@@ -12,12 +12,12 @@ class FileUnsupported(File):
     _file_match_priority = 10
     _file_match_extensions = ("*",)
     def get_uid(self, c):
-        if self.path.endswith(".import") or self.path.endswith(".uid"):
+        if str(self.path).endswith(".import") or str(self.path).endswith(".uid"):
             return None
-        if file := c.file_db.get().get_file(self.path / ".import", ensure=True, null_ok=True):
-            return file.internal_uid()
-        if file := c.file_db.get().get_file(self.path / ".uid", ensure=True, null_ok=True):
-            return file.internal_uid()
+        if file := c.file_db.get().get_file(str(self.path) + ".import", ensure=True, null_ok=True):
+            return file.rep_uid()
+        if file := c.file_db.get().get_file(str(self.path) + ".uid", ensure=True, null_ok=True):
+            return file.rep_uid()
         return None
     def load(self, c:Context):
         raise Exception("file type not supported,", self.path)
@@ -38,7 +38,10 @@ class FileTres[T:GdResource](File):
         if not (self.data is None):
             return self.data.uid
         with open(self.path) as f:
-            return re.search('uid="([^"]+|$)"', f[0]).group(1)
+            for ln in f:
+                return re.search('uid="([^"]+|$)"', ln).group(1)
+            return None
+
 
     def load(self, context:Context):
         with context.w("file", self):
@@ -63,7 +66,7 @@ class FileTscn(FileTres):
     def load(self, context:Context):
         with context.w("file", self):
             res = super().load(context)
-            self.cache_tree.call("nodes","tree", context)
+            self.cache_tree.call("nodes", "tree", context)
 
 class FileUid[T:str](File):
     _file_match_priority = 0
@@ -73,7 +76,16 @@ class FileUid[T:str](File):
         return None
     
     def rep_uid(self,)->str:
-        return self.path.read_text()
+        return self.path.read_text().strip()
+    
+    def load(self, context:Context):
+        self.data = self.path.read_text()
+    def save(self, c:Context):
+        raise Exception("file type not supported,", self.path)
+    def dump(self, c:Context):
+        raise Exception("file type not supported,", self.path)
+    def delete(self, c:Context):
+        raise Exception("file type not supported,", self.path)
 
 class FileImport(FileTres):
     _file_match_priority = 0
@@ -86,7 +98,18 @@ class FileImport(FileTres):
         if not (self.data is None):
             return self.data.uid
         with open(self.path) as f:
-            return re.search('uid="([^"]+|$)"', f[0]).group(1)
+            for ln in f:
+                if group := re.search('uid="([^"]+|$)"', ln):
+                    return group.group(1)
+        return None
+
+files = (
+    FileUnsupported,
+    FileTres,
+    FileTscn,
+    FileUid,
+    FileImport
+    )
 
 # class FileTres[T:GdResource](File):
 #     cache_tree : CacheTreeNode

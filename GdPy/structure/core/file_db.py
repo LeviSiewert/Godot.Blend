@@ -116,6 +116,15 @@ class File[T:Any](ABC, SignalContainer):
     def delete(self, c:Context):
         pass
 
+    def __str__(self):
+        return self.path
+
+    def __repr__(self):
+        length = len(self.path.parts)
+        r = min(length, 2)
+        pth = "/".join(self.path.parts[-r:])
+
+        return f'{self.__class__.__name__}(.../{pth})'
 
 class FileDb(ABC, SignalContainer):
     ''' Implimentation of project filesystem level abstraction 
@@ -182,7 +191,8 @@ class FileDb(ABC, SignalContainer):
         self.files[str(file.path)] = file
         with self.c() as c:
             if uid:=file.get_uid(c):
-                self.resource_uid.add(file.path, uid)
+                self.resource_uid.add_uid(file.path, uid)
+                # raise Exception((file, uid))
         self.item_appended(file)
     
     def unregister(self,file:File):
@@ -236,12 +246,12 @@ class FileDb(ABC, SignalContainer):
         ## Determine best secondary event/reactionary event resolutions?
         pass
              
-    def match_filetype(self, path):
+    def match_filetype(self, path:Path):
         for ft in self.file_types:
             for k in ft._file_match_extensions:
                 if k == "*":
                     return ft
-                if path.endswith(k):
+                if str(path).endswith(k):
                     return ft 
                 
         raise KeyError("Could not match filetype to File!")
