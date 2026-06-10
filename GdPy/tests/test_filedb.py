@@ -8,6 +8,17 @@ _proj_root = _thisdir/"project"
 def test_filedb_construction():
     file_db = FileDb(_proj_root, files)
 
+    assert(file_db["res://project.godot"])
+    assert(file_db["res://assets/icon.svg"])
+    assert(file_db["res://assets/blender.blend"])
+    assert(file_db["res://assets/blender.glb"])
+    assert(file_db["res://assets/script.gd"])
+    assert(file_db["res://assets/script_global.gd"])
+    assert(file_db["res://assets/tscn.tscn"])
+
+def test_filedb_population():
+    file_db = FileDb(_proj_root, files)
+
 def _assert_eq(file_db,a,b):
     _a = file_db[a]
     _b = file_db[b]

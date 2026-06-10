@@ -8,6 +8,14 @@ from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#ty
 from watchdog.observers import Observer as _Observer #type:ignore
 from contextlib import contextmanager
 from contextvars import ContextVars
+from enum import Enum
+
+class FsEvent(Enum):
+    LOAD = 0
+    SAVE = 1
+    DUMP = 2
+    MOVE = 3
+    DELETE = 4
 
 class ResourceUID(ABC, SignalContainer):
     ''' Equiv to Godot's ResourceUID
@@ -77,7 +85,7 @@ class File[T:Any](ABC, SignalContainer):
         ## TODO
         return tuple()
 
-    def fsevent_bundle(self, c:Context, event:str, is_reaction:bool)->tuple[File]:
+    def fsevent_bundle(self, c:Context, event:FsEvent, is_reaction:bool)->tuple[File]:
         ''' All fps returned will be bundled into current file system event, 
         resolved after stack completed and does not raise errors if file path is missing '''
         pass
@@ -85,19 +93,19 @@ class File[T:Any](ABC, SignalContainer):
     @abstractmethod
     def load(self, c:Context):
         pass
-     
+
     @abstractmethod
     def save(self, c:Context):
         pass
-     
+
     @abstractmethod
     def dump(self, c:Context):
         pass
-     
+
     @abstractmethod
     def delete(self, c:Context):
         pass
-     
+
 
 class FileDb(ABC, SignalContainer):
     ''' Implimentation of project filesystem level abstraction 
@@ -112,6 +120,8 @@ class FileDb(ABC, SignalContainer):
     files : dict[str, File]
     file_types : list[Type[File]]
     project_root : Path
+
+    gd_project : Any
 
     def __init__(self, project_root:Path, file_types:list[Type[File]]):
         self.project_root = project_root
@@ -171,30 +181,70 @@ class FileDb(ABC, SignalContainer):
             self.resource_uid.remove(path)
         self.item_removed(file, uid, path)
 
+    ## These are live env behavior features that the lion will concern himself with *later*
+    # @abstractmethod
+    # def _on_uid_changed(self, path, fr_uid, to_uid):
+    #     file = self.get_file(path)
+    #     for rfp in self.resource_uid.cached_references.get(fr_uid, tuple()):
+    #         referencer = self.get_file(referencer)
+    #         referencer.dep_uid_changed(file, path, fr_uid, to_uid)
+    # @abstractmethod
+    # def _on_fp_changed(self, fr_path, to_path):
+    #     file = self.get_file(fr_path, False)
+    #     if file is None:
+    #         file = self.get_file(to_path, False)
+    #     if file is None:
+    #         raise Exception("wtf")
+    #     for rfp in self.resource_uid.cached_references.get(fr_path, tuple()):
+    #         referencer = self.get_file(referencer)
+    #         referencer.dep_fp_changed(fr_path, to_path)
+    # def _on_file_deleted():
+    #     pass
+
+
     @abstractmethod
-    def exists(self, val:str|Path)->bool:
-        pass
+    def exists(self, path:str|Path)->bool:
+        return not (self.get_abs(path) is None)
+
+    @abstractmethod
+    def get_if_exists(self, paths:tuple[File|str|Path])->tuple[File]:
+        res = []
+        for x in paths:
+            if isinstance(x,File):
+                res.append(x)
+                continue
+            else:
+                _t = self.get_file(x)
+                if _t is None: 
+                    continue 
+                res.append(_t)
+        return tuple(res)
 
     @abstractmethod
     def load(self, file:File|Path|str)->File:
+        ## Determine best secondary event/reactionary event resolutions?
         pass
-
+             
     @abstractmethod
     def save(self, file:File|Path|str)->None:
+        ## Determine best secondary event/reactionary event resolutions?
         pass
-
+             
     @abstractmethod
     def dump(self, file:File|Path|str)->None:
+        ## Determine best secondary event/reactionary event resolutions?
         pass
-
+             
     @abstractmethod
     def move(self, file:File|Path|str, path:str|Path):
+        ## Determine best secondary event/reactionary event resolutions?
         pass
-
+             
     @abstractmethod
     def delete(self, file:File|Path|str):
+        ## Determine best secondary event/reactionary event resolutions?
         pass
-
+             
     def match_filetype(self, path):
         for ft in self.file_types:
             for k in ft._file_match_extensions:

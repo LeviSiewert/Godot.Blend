@@ -28,6 +28,9 @@ class GdProject():
         self.file_db = file_db
         self.class_db = class_db
 
+        file_db.gd_project = self
+        class_db.gd_project = self
+
     @contextmanager
     def context(self):
         c = Context()

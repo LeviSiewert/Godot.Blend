@@ -7,9 +7,26 @@ from .standard_parser import gdparser
 
 from .secondary_transformer import SecondaryTransfomer
 
+class FileUnsupported(File):
+    _match_priority = 10
+    @classmethod
+    def matches_file(cls, abs_path, rel_path):
+        return True
+    def load(self, context:Context, *args, **kwargs):
+        raise Exception("file type not supported,", self.path)
+    def save(self, context:Context, *args, **kwargs):
+        raise Exception("file type not supported,", self.path)
+    def dump(self):
+        raise Exception("file type not supported,", self.path)
+    def delete(self):
+        raise Exception("file type not supported,", self.path)
 
 class FileTres[T:GdResource](File):
     cache_tree : CacheTreeNode
+
+    @classmethod
+    def matches_file(cls, abs_path, rel_path):
+        return abs_path.endswith(".tres")
 
     def load(self, context:Context, *args, **kwargs):
         with context.w("file", self):
@@ -35,7 +52,9 @@ class FileClassDefinition(FileTres):
     
     @classmethod
     def matches_file(cls, abs_path, rel_path):
-        return rel_path == ".PyGd/class_definitions.tres"
+        return False
+    #     return rel_path == ".PyGd/class_definitions.tres"
+
 
     class _DefTransformer[I:GdType,T:list[GdClassDef]](SecondaryTransfomer):
         ''' Modified transfomer for results of GdPy/tools/godot/class_exporter '''
@@ -105,5 +124,6 @@ class FileClassDefinition(FileTres):
         
 
 files : tuple[Type[File]] = (
+    FileUnsupported,
     FileClassDefinition,
     )

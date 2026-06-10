@@ -160,6 +160,8 @@ class GdClassDef(SignalContainer):
 class ClassDb[T:GdClassDef](Collection):
     src_file : File = None#FileClassDefinition
 
+    gd_project : Any
+
     by_name: dict[str, T]
     by_uuid: dict[str, T]
     by_path: dict[str, T]
