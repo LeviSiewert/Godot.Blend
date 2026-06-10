@@ -18,7 +18,7 @@ class GdValueExtResource(GdValue):
     @classmethod
     def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
         inst = cls()
-        inst.value = str(address).strip('"')
+        inst.address = str(address).strip('"')
         return inst
     
     def set_value(self, value):
@@ -29,7 +29,6 @@ class GdValueExtResource(GdValue):
         res = c.resource.get()
         self.value = res.get_extresource(c, self.address)
         # res.get_subresource(c, self.address)
-
 
 class GdValueNodePath(GdValue):
     _cache_layers = ("postload_nodepath",)
@@ -44,7 +43,7 @@ class GdValueNodePath(GdValue):
     @classmethod
     def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
         inst = cls()
-        inst.value = str(address).strip('"')
+        inst.address = str(address).strip('"')
         return inst
     
     def set_value(self, value):
@@ -68,7 +67,7 @@ class GdValueSubResource(GdValue):
     @classmethod
     def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
         inst = cls()
-        inst.value = str(address).strip('"')
+        inst.address = str(address).strip('"')
         return inst
     
     def set_value(self, value):
@@ -83,7 +82,7 @@ class GdValueResourceID(GdValue):
     _cache_layers = ("postload_rid",)
     ref : Any
     address : str = None
-    value : GdSubResource = None
+    value : File = None
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -93,7 +92,7 @@ class GdValueResourceID(GdValue):
     def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
         inst = cls()
         if not (address is None):
-            inst.value = str(address).strip('"')
+            inst.address = str(address).strip('"')
         return inst
 
     def set_value(self, value):
