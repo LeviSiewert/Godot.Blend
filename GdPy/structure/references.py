@@ -4,10 +4,13 @@ from typing import Type, Any
 from lark import Token #type:ignore
 
 class GdValueExtResource(GdValue):
-    _cache_layers = ("extresource",)
+    _cache_layers = ("postload_extresource",)
     _has_typing = True
     ref : Any
     
+    address : str = None
+    value : GdResource = None ##GdExtResource object
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("extresource",)
@@ -20,10 +23,19 @@ class GdValueExtResource(GdValue):
     
     def set_value(self, value):
         return
-    
+
+    def postload_extresource(self, c:Context):
+        if not self.address: return
+        res = c.resource.get()
+        self.value = res.get_extresource(c, self.address)
+        # res.get_subresource(c, self.address)
+
+
 class GdValueNodePath(GdValue):
-    _cache_layers = ("nodepath",)
+    _cache_layers = ("postload_nodepath",)
     ref : Any
+    address : str = None
+    value : GdSubResource = None
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -38,10 +50,17 @@ class GdValueNodePath(GdValue):
     def set_value(self, value):
         return
     
+    def postload_nodepath(self, c:Context):
+        if not self.address: return
+        res = c.resource.get()
+        res.get_nodepath(c, self.address)
+
 class GdValueSubResource(GdValue):
-    _cache_layers = ("subresource",)
+    _cache_layers = ("postload_subresource",)
     ref : Any
-    
+    address : str = None
+    value : GdSubResource = None
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("subresource",)
@@ -55,10 +74,17 @@ class GdValueSubResource(GdValue):
     def set_value(self, value):
         return
     
-class GdValueResourceID(GdValue):
-    _cache_layers = ("ResourceId",)
-    ref : Any
+    def postload_subresource(self, c:Context):
+        if not self.address: return
+        res = c.resource.get()
+        self.value = res.get_subresource(c, self.address)
     
+class GdValueResourceID(GdValue):
+    _cache_layers = ("postload_rid",)
+    ref : Any
+    address : str = None
+    value : GdSubResource = None
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("rid",)
@@ -72,6 +98,11 @@ class GdValueResourceID(GdValue):
 
     def set_value(self, value):
         return    
+
+    def postload_rid(self, c:Context):
+        if not self.address: return
+        file_db = c.file_db.get()
+        self.value = file_db.get_file(self.address, null_ok=True)
 
 _all : tuple[Type] = [
     GdValueExtResource,
