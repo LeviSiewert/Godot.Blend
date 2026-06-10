@@ -108,6 +108,7 @@ class Collection[T](ABC, SignalContainer):
 class Context():
     project      : ContextVar[Any]
     load_session : ContextVar[Any]
+    file_db      : ContextVar[Any]
     file         : ContextVar[Any]
     resource     : ContextVar[Any]
     subresource  : ContextVar[Any]
@@ -118,6 +119,7 @@ class Context():
         self.file = ContextVar(str(id(self))+"_file")
         self.resource = ContextVar(str(id(self))+"_resource")
         self.subresource = ContextVar(str(id(self))+"_subresource")
+        self.file_db = ContextVar(str(id(self))+"_file_db")
     
     @contextmanager
     def w(self, key:str,val:Any):

@@ -8,17 +8,17 @@ from .standard_parser import gdparser
 from .secondary_transformer import SecondaryTransfomer
 
 class FileUnsupported(File):
-    _match_priority = 10
-    @classmethod
-    def matches_file(cls, abs_path, rel_path):
-        return True
-    def load(self, context:Context, *args, **kwargs):
+    _file_match_priority = 10
+    _file_match_extensions = ("*",)
+    def get_uid(self, c):
+        return None
+    def load(self, c:Context):
         raise Exception("file type not supported,", self.path)
-    def save(self, context:Context, *args, **kwargs):
+    def save(self, c:Context):
         raise Exception("file type not supported,", self.path)
-    def dump(self):
+    def dump(self, c:Context):
         raise Exception("file type not supported,", self.path)
-    def delete(self):
+    def delete(self, c:Context):
         raise Exception("file type not supported,", self.path)
 
 class FileTres[T:GdResource](File):

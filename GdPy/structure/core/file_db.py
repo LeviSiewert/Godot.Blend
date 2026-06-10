@@ -7,7 +7,7 @@ from pathlib import Path
 from watchdog.events import FileSystemEventHandler as _FileSystemEventHandler#type:ignore
 from watchdog.observers import Observer as _Observer #type:ignore
 from contextlib import contextmanager
-from contextvars import ContextVars
+from contextvars import ContextVar
 from enum import Enum
 
 class FsEvent(Enum):
@@ -27,25 +27,35 @@ class ResourceUID(ABC, SignalContainer):
     uids : dict[str,str]
     cached_references : dict[str,list[str]]
 
-    @abstractmethod
+    def __init__(self):
+        self.uids = {}
+        self.cached_references = {}
+        super().__init__()
+
     def exists(self, path_or_uid)->bool:
-        pass
+        if path_or_uid.startswith("uid://"):
+            return path_or_uid in self.uids.keys()
+        else:
+            return path_or_uid in self.uids.values()
 
-    @abstractmethod
-    def to_path(self, path)->str:
-        pass
+    def to_path(self, uid:str)->str:
+        return self.uids.get(uid)
 
-    @abstractmethod
-    def to_uid(self, path)->str:
-        pass
+    def to_uid(self, path:str)->str:
+        for k,v in self.uids.items:
+            if path == v:
+                return k
+        return False
 
-    @abstractmethod
     def add_uid(self, path, uid)->str:
-        pass
+        assert(not (uid in self.uids.keys()))
+        self.uids[uid] = path        
 
-    @abstractmethod
     def rem_uid(self, path_or_uid:str)->str:
-        pass
+        if path_or_uid.startswith("uid://"):
+            self.uids.pop(path_or_uid)
+        else:
+            self.rem_uid(self.to_uid(path_or_uid))
 
 class File[T:Any](ABC, SignalContainer):
     ''' Implimentation of File level abstraction
@@ -90,19 +100,19 @@ class File[T:Any](ABC, SignalContainer):
         resolved after stack completed and does not raise errors if file path is missing '''
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def load(self, c:Context):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def save(self, c:Context):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def dump(self, c:Context):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def delete(self, c:Context):
         pass
 
@@ -114,7 +124,7 @@ class FileDb(ABC, SignalContainer):
     Handles file movement dependencies
     '''
 
-    item_added : Signal[Any]
+    item_appended : Signal[Any]
     item_removed : Signal[Any]
 
     files : dict[str, File]
@@ -124,11 +134,13 @@ class FileDb(ABC, SignalContainer):
     gd_project : Any
 
     def __init__(self, project_root:Path, file_types:list[Type[File]]):
+        self.files = {}
         self.project_root = project_root
         self.file_types = sorted(file_types, key = lambda x: x._file_match_priority)
         self.resource_uid = ResourceUID()
-        self.setup_fs_listener()
         super().__init__()
+        self.setup_fs_listener()
+        self.populate_existing()
 
     def get_abs(self, value:str|Path)->str:
         if isinstance(value, Path):
@@ -166,12 +178,14 @@ class FileDb(ABC, SignalContainer):
     
     def register(self,file:File):
         self.files[str(file.path)] = file
-        if uid:=file.get_uid():
-            self.resource_uid.add(file.path, uid)
+        with self.c() as c:
+            if uid:=file.get_uid(c):
+                self.resource_uid.add(file.path, uid)
         self.item_appended(file)
     
     def unregister(self,file:File):
-        uid = file.get_uid()
+        with self.c() as c:
+            uid = file.get_uid(c)
         path = str(file.path)
         if path in self.files.keys():
             del self.files[path] ## Remove all instances of file
@@ -201,46 +215,41 @@ class FileDb(ABC, SignalContainer):
     # def _on_file_deleted():
     #     pass
 
-
-    @abstractmethod
-    def exists(self, path:str|Path)->bool:
-        return not (self.get_abs(path) is None)
-
-    @abstractmethod
-    def get_if_exists(self, paths:tuple[File|str|Path])->tuple[File]:
-        res = []
-        for x in paths:
-            if isinstance(x,File):
-                res.append(x)
+    def populate_existing(self,):
+        for path in self.project_root.rglob("*"):
+            if not path.is_file():
                 continue
-            else:
-                _t = self.get_file(x)
-                if _t is None: 
-                    continue 
-                res.append(_t)
-        return tuple(res)
+            self.get_file(path, ensure=True)
 
-    @abstractmethod
+
+    def exists(self, path:str|Path)->bool:
+        return Path(self.get_abs(path)).exists()
+
+    # @abstractmethod
     def load(self, file:File|Path|str)->File:
         ## Determine best secondary event/reactionary event resolutions?
-        pass
+        if not isinstance(file, File):
+            file = self.get_file(file)
+        with self.c() as c:
+            file.load(c)
+        return file 
              
-    @abstractmethod
+    # @abstractmethod
     def save(self, file:File|Path|str)->None:
         ## Determine best secondary event/reactionary event resolutions?
         pass
              
-    @abstractmethod
+    # @abstractmethod
     def dump(self, file:File|Path|str)->None:
         ## Determine best secondary event/reactionary event resolutions?
         pass
              
-    @abstractmethod
+    # @abstractmethod
     def move(self, file:File|Path|str, path:str|Path):
         ## Determine best secondary event/reactionary event resolutions?
         pass
              
-    @abstractmethod
+    # @abstractmethod
     def delete(self, file:File|Path|str):
         ## Determine best secondary event/reactionary event resolutions?
         pass
@@ -258,6 +267,21 @@ class FileDb(ABC, SignalContainer):
     def setup_fs_listener(self,):
         pass
 
+    @contextmanager
+    def c(self):
+        if proj := getattr(self,"gd_project",None):
+            with proj.c() as c:
+                with c.w("file_db",self):
+                    yield c
+            return
+        c = Context()
+        with c.w("file_db",self):
+            yield c
+
+    def __getitem__(self,key)->File:
+        if res:=self.get_file(key):
+            return res
+        raise KeyError(self, key)
 
 
 # class File[T:Any](ABC, SignalContainer):
