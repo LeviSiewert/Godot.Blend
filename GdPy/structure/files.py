@@ -11,6 +11,12 @@ class FileUnsupported(File):
     _file_match_priority = 10
     _file_match_extensions = ("*",)
     def get_uid(self, c):
+        if self.path.endswith(".import") or self.path.endswith(".uid"):
+            return None
+        if file := c.file_db.get().get_file(self.path / ".import", ensure=True, null_ok=True):
+            return file.internal_uid()
+        if file := c.file_db.get().get_file(self.path / ".uid", ensure=True, null_ok=True):
+            return file.internal_uid()
         return None
     def load(self, c:Context):
         raise Exception("file type not supported,", self.path)
@@ -47,6 +53,14 @@ class FileTres[T:GdResource](File):
 
     def delete(self, context:Context):
         raise Exception("Not programmed in yet!")
+
+# class FileImport(FileTres):
+#     def internal_uid(self,):
+#         pass
+
+# class FileUid(File):
+#     def internal_uid(self,):
+#         pass
 
 class FileClassDefinition(FileTres):
     

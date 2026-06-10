@@ -159,12 +159,14 @@ class FileDb(ABC, SignalContainer):
 
         return value
 
-    def get_file(self, value:str|Path, ensure:bool=True)->File|None:
+    def get_file(self, value:str|Path, ensure:bool=True, null_ok:bool=False)->File|None:
 
         path = Path(self.get_abs(value))
 
-        if not path.exists():
-            raise KeyError("Could not find filepath", path)
+        if (not path.exists()):
+            if not null_ok:
+                raise KeyError("Could not find filepath", path)
+            return None
 
         if res := self.files.get(str(path), None):
             return res
