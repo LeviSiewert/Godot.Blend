@@ -60,6 +60,7 @@ class FileTres[T:GdResource](File):
         raise Exception("file type not supported,", self.path)
 
 class FileTscn(FileTres):
+    ## TODO: Second call to construct nodes
     _file_match_priority = 0
     _file_match_extensions = ("tscn","escn")
 
@@ -67,6 +68,17 @@ class FileTscn(FileTres):
         with context.w("file", self):
             res = super().load(context)
             self.cache_tree.call("nodes", "tree", context)
+
+class FileClassDefinition(FileTres):
+    ## TODO: Second trasnformation call
+  
+    def get_definitions(self)->list[GdClassDef]:
+        if self.data is None:
+            self.load()
+        return []
+        # transformer = self._DefTransformer() 
+        # return transformer.transform(self.data)
+    
 
 class FileUid[T:str](File):
     _file_match_priority = 0

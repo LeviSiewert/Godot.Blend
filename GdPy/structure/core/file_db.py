@@ -72,6 +72,9 @@ class File[T:Any](ABC, SignalContainer):
     fs_moved : Signal[str, str]
     fs_queue_empty : Signal
 
+    data_loaded : Signal
+    data_dumped : Signal
+
     path_changed : Signal[str,str]
     uid_changed : Signal[str,str]
 
