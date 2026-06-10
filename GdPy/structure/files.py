@@ -33,14 +33,22 @@ class FileTres[T:GdResource](File):
     _file_match_extensions = ("tres",)
     
     cache_tree : CacheTreeNode = None
-    
+
     def get_uid(self, c):
         if not (self.data is None):
             return self.data.uid
         with open(self.path) as f:
             return re.search('uid="([^"]+|$)"', f[0]).group(1)
-    def load(self, c:Context):
-        raise Exception("file type not supported,", self.path)
+
+    def load(self, context:Context):
+        with context.w("file", self):
+            self.cache_tree = CacheTreeNode(self, self._cache_layers)
+            assert(self.path.exists())
+            text = self.path.read_text()
+            self.data = gdparser.parse(context, text, cache_tree=self.cache_tree, start="file_resource")
+            self.cache_tree.call("references","attach",context)
+            self.data_loaded()
+
     def save(self, c:Context):
         raise Exception("file type not supported,", self.path)
     def dump(self, c:Context):
@@ -52,7 +60,10 @@ class FileTscn(FileTres):
     _file_match_priority = 0
     _file_match_extensions = ("tscn","escn")
 
-    
+    def load(self, context:Context):
+        with context.w("file", self):
+            res = super().load(context)
+            self.cache_tree.call("nodes","tree", context)
 
 class FileUid[T:str](File):
     _file_match_priority = 0
