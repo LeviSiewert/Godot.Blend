@@ -195,26 +195,6 @@ class FileDb(ABC, SignalContainer):
             self.resource_uid.remove(path)
         self.item_removed(file, uid, path)
 
-    ## These are live env behavior features that the lion will concern himself with *later*
-    # @abstractmethod
-    # def _on_uid_changed(self, path, fr_uid, to_uid):
-    #     file = self.get_file(path)
-    #     for rfp in self.resource_uid.cached_references.get(fr_uid, tuple()):
-    #         referencer = self.get_file(referencer)
-    #         referencer.dep_uid_changed(file, path, fr_uid, to_uid)
-    # @abstractmethod
-    # def _on_fp_changed(self, fr_path, to_path):
-    #     file = self.get_file(fr_path, False)
-    #     if file is None:
-    #         file = self.get_file(to_path, False)
-    #     if file is None:
-    #         raise Exception("wtf")
-    #     for rfp in self.resource_uid.cached_references.get(fr_path, tuple()):
-    #         referencer = self.get_file(referencer)
-    #         referencer.dep_fp_changed(fr_path, to_path)
-    # def _on_file_deleted():
-    #     pass
-
     def populate_existing(self,):
         for path in self.project_root.rglob("*"):
             if not path.is_file():
@@ -283,140 +263,27 @@ class FileDb(ABC, SignalContainer):
             return res
         raise KeyError(self, key)
 
+    ## These are live env behavior features that the lion will concern himself with *later*
+    # @abstractmethod
+    # def _on_uid_changed(self, path, fr_uid, to_uid):
+    #     file = self.get_file(path)
+    #     for rfp in self.resource_uid.cached_references.get(fr_uid, tuple()):
+    #         referencer = self.get_file(referencer)
+    #         referencer.dep_uid_changed(file, path, fr_uid, to_uid)
 
-# class File[T:Any](ABC, SignalContainer):
-#     _cache_layers = ("*",)
-#     _context_key = "file"
+    # @abstractmethod
+    # def _on_fp_changed(self, fr_path, to_path):
+    #     file = self.get_file(fr_path, False)
+    #     if file is None:
+    #         file = self.get_file(to_path, False)
+    #     if file is None:
+    #         raise Exception("wtf")
+    #     for rfp in self.resource_uid.cached_references.get(fr_path, tuple()):
+    #         referencer = self.get_file(referencer)
+    #         referencer.dep_fp_changed(fr_path, to_path)
+    # def _on_file_deleted():
+    #     pass
 
-#     _match_priority : int = 0
-
-#     @classmethod
-#     @abstractmethod
-#     def matches_file(cls, abs_path:str, rel_path:str)->dict:
-#         return False
-    
-#     uuid : str = None
-#     def get_uuid(self,):pass
-#     def set_uuid(self,value):pass
-#     uuid_set : Signal[str, str] #Fr, To
-
-#     path : str
-#     def get_path(self,):pass
-#     def set_path(self,value):pass
-#     path_set : Signal[str, str] #Fr, To
-
-#     data : T = None
-#     data_loaded : Signal[T]
-#     data_dumped : Signal
-#     data_deleted : Signal
-
-#     ## Triggered by FileDb container
-#     fs_created : Signal
-#     fs_modified : Signal
-#     fs_deleted : Signal
-#     fs_moved : Signal[str, str]
-#     fs_queue_empty : Signal
-
-#     def __init__(self, path:str):
-#         self.path = path
-#         super().__init__()
-
-#     @abstractmethod
-#     def load(self, context:Context, *args, **kwargs):
-#         pass
-
-#     @abstractmethod
-#     def save(self,context:Context, *args, **kwargs):
-#         pass
-
-#     @abstractmethod
-#     def dump(self,):
-#         pass
-
-#     @abstractmethod
-#     def delete(self,):
-#         pass
-
-# class FileDb[T:File](Collection):
-#     # TODO: Properly support all 3 paths of res:// uid:// {absolute} 
-
-#     root : Path
-#     file_types : list[Type[File]]
-    
-#     _observer : _Observer
-
-#     uuid_set : Signal[T,str,str]
-#     path_set : Signal[T,str,str]
-
-#     by_uuid : dict[str:T]
-#     by_path : dict[str:T]
-
-#     fs_created : Signal[str]
-#     fs_modified : Signal[str]
-#     fs_deleted : Signal[str]
-#     fs_moved : Signal[str, str]
-#     fs_queue_empty : Signal
-#     _queue_targets : list[File]
-
-
-#     def __init__(self, root:Path, file_types:list[Type[File]]):
-#         self.root = root        
-#         self.file_types = sorted(file_types, key=lambda x: x._match_priority)
-
-#         self.by_uuid = {}
-#         self.by_path = {}
-#         self._queue_targets = []
-        
-#         self._observer = _Observer()
-#         self._observer.schedule(self._EventHandler(self), path=root, recursive=True)
-#         self._observer.start()
-        
-#         super().__init__()
-#         self.uuid_set.connect(self._on_file_uuid_set)
-#         self.path_set.connect(self._on_file_path_set)
-#         self.populate_existing()
-
-#     def populate_existing(self,):
-#         for path in self.root.rglob("*"):
-#             if not path.is_file():
-#                 continue
-#             if not self.file_filter(path):
-#                 continue
-#             if self[path]:
-#                 continue
-#             file = self.generate_file(path)
-#             if file: 
-#                 self.append(file)
-
-#     def file_filter(self, path:str)->bool:
-#         ''' Override; Env based. Source data from self.file_types '''
-#         return True
-
-#     def generate_file(self, path:Path)->File:
-#         ''' Override; Env based. Source data from self.file_types 
-#         default behavior is asking input file_types
-#         '''
-#         ##TODO: Generate warnings here
-#         for x in self.file_types:
-#             if x.matches_file(path, path.relative_to(self.root)):
-#                 return x(path)
-#         return None
-
-#     def _integrate(self,item:T):
-#         if item.uuid: self.by_uuid[item.uuid] = item
-#         if item.path: self.by_path[item.path] = item
-#         self.uuid_set.connect(item.uuid_set.forward)
-#         self.path_set.connect(item.path_set.forward)
-    
-#     def _disintegrate(self,item:T):
-#         self.uuid_set.disconnect(item.uuid_set.forward)
-#         self.path_set.disconnect(item.path_set.forward)
-#         self.by_uuid.rem(item.uuid)
-#         self.by_path.rem(item.path)
-
-#     def __getitem__(self, key)->T:
-#         return self.by_uuid.get(key, self.by_path.get(key, None))
-    
 #     def _on_file_uuid_set(self, file:File, fr_uuid:str, to_uuid:str):
 #         if fr_uuid in self.by_uuid.keys():
 #             del self.by_uuid[fr_uuid]
