@@ -87,6 +87,10 @@ class Collection[T](ABC, SignalContainer):
         self._disintegrate(item)
         self.item_removed.emit(item)
     
+    def extend(self, iterable):
+        for x in iterable:
+            self.append(x)
+
     @abstractmethod
     def _integrate(item:T):
         pass
@@ -104,6 +108,9 @@ class Collection[T](ABC, SignalContainer):
         if res is None:
             return default
         return res
+    
+    def values(self,):
+        return self.values.__iter__()
     
 class Context():
     project      : ContextVar[Any]

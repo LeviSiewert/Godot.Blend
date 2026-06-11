@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Self, Any, Type
 from .primitives import Signal, SignalContainer, Context, Collection
 from .class_db import ClassDb, GdClassDef, GdPropertyDef
-from .file_db import File, FileDb
+from .file_db import File, FileDb, ClassDbEnforcable
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -57,7 +57,7 @@ class GdType(ABC, SignalContainer):
         return tuple()
 
 class GdResource(GdType):
-    _cache_layers = ("*",)
+    _cache_layers = ("postload_resource",)
     _context_key = "resource"
 
     definition : GdClassDef
@@ -65,12 +65,12 @@ class GdResource(GdType):
 
     properties : dict[str, GdValue]
     
-    def __init__(self, properties:dict=None):
-        if properties is None:
-            self.properties = {}
-        else:
-            self.properties = properties
-        super().__init__()
+    # def __init__(self, properties:dict=None):
+    #     if properties is None:
+    #         self.properties = {}
+    #     else:
+    #         self.properties = properties
+    #     super().__init__()
 
     def get_struct_children(self)->tuple[GdType|Any]:
         return tuple(self.properties.values())
@@ -122,3 +122,50 @@ class GdProperty(GdType):
         if isinstance(self.value, GdType):
             return (self.value,)
         return tuple()
+    
+
+class PropertyCollection[T](Collection, ClassDbEnforcable):
+    pins : list[str]
+
+    def set_pin(self,k):
+        self.pins.append(k)
+        
+    def rem_pin(self,k):
+        if k in self.pins:
+            self.pins.remove(k)
+
+    def append(self, k:str, item:T):
+        self._integrate(k,item)
+        self.item_appended.emit((k,item))
+
+    def remove(self, k:str, item:T):
+        self._disintegrate(k,item)
+        self.item_removed.emit((k,item))
+    
+    def extend(self, iterable):
+        for k,v in iterable:
+            self.append(k,v)
+
+    def verify(self,):
+        ''' Verify Collection state '''
+        pass
+
+    def allowed(self, key:str, property:Any)->bool:
+        ''' Verify key:property being allowed '''
+        return False
+    
+    def default(self, key:str, property:Any)->T:
+        ''' Get default value, raise KeyError if default not found '''
+        return
+    
+    def _integrate(key, item):
+        return
+    
+    def _disintegrate(key, item):
+        return
+    
+    def __getitem__(self, key):
+        return
+    
+    def __setitem__(self, key, value):
+        return

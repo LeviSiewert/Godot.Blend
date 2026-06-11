@@ -2,7 +2,7 @@ from __future__ import annotations
 from .primitives import Collection, Signal, SignalContainer
 from .file_db import File
 from typing import Any, Self
-
+from abc import ABC, abstractmethod
 
 class GdPropertyDef():
     """ 
@@ -157,6 +157,7 @@ class GdClassDef(SignalContainer):
         if not is_bulk:
             self.definition_updated()
 
+
 class ClassDb[T:GdClassDef](Collection):
     src_file : File = None#FileClassDefinition
 
@@ -206,4 +207,21 @@ class ClassDb[T:GdClassDef](Collection):
             self.src_file.load(context)
         for x in self.src_file.get_definitions():
             self.append(x)
-        
+
+class ClassDbEnforcable(ABC,SignalContainer):
+    class_def : GdClassDef
+    script_def : GdClassDef
+
+    defintion_updated : Signal 
+
+    def set_class_def(self, definition:GdClassDef):
+        self.class_def = definition
+        self.defintion_updated()
+
+    def set_script_def(self, definition:GdClassDef):
+        self.script_def = definition
+        self.defintion_updated()
+
+    @abstractmethod
+    def validate(self):
+        pass

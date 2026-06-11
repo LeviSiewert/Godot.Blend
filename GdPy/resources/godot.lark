@@ -4,7 +4,7 @@ file_settings :  properties [prim_subcategory]*
 // file_import : [COMMENT|property]* [prim_resource|prim_subcategory]*
 
 file_resource : "[gd_resource" properties "]" [ext_resource]* [sub_resource]* [prim_resource]
-file_scene : "[gd_scene" properties "]" [ext_resource]* [sub_resource]* [node_resource]* [edit_resource]*
+file_scene : "[gd_scene" properties "]" [ext_resource]* [node_resource|sub_resource]* [edit_resource]*
 
 ext_resource : "[ext_resource" properties "]" properties
 sub_resource : "["WORD properties "]" properties
