@@ -3,63 +3,76 @@ from .core import GdResource, GdProperty, GdType, Context, GdClassDef, Collectio
 from typing import Type
 from contextlib import contextmanager
 
+
+## Resource (File) Types:
+
 class GdResourceFile(GdResource):
     sub_resources : Collection[GdResource]
-    
-    script_class : str
-    format       : str
-    type         : str
-    uid          : str
+    ext_resources : Collection[GdExtResource]
 
     @contextmanager
-    def _add_context(self,ctx:Context, *args,**kwargs):
+    def _add_context(self,ctx:Context,):
         with ctx.w("file_resource",self):
             yield
 
     @classmethod
     def lark_keys(cls):
-        return ("gd_resource",)
+        return ("file_resource",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, resource_header, sub_resources):
-        self = cls()
-        
-        _ext_res = filter(lambda x: isinstance(x, GdExtResource))
-        _edit_res = filter(lambda x: isinstance(x, GdEditResource))
-        _sub_res = filter(lambda x: isinstance(x, GdSubResource))
-        _props = filter(lambda x: isinstance(x, GdResourceFileBody))
+    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], ext_res:list[GdExtResource], sub_res:list[GdSubResource], prim_resource:_GdResourceFileBody):
+        raise Exception("not yet defined!")
 
+class GdResourceFileScene(GdResource):
+    @contextmanager
+    def _add_context(self,ctx:Context,):
+        with ctx.w("file_scene",self):
+            yield
+
+    @classmethod
+    def lark_keys(cls):
+        return ("file_scene",)
+
+    @classmethod
+    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], ext_res:list[GdExtResource], sub_res:list[GdSubResource], node_res:list[GdSubResourceNode], edit_res:list[GdSubResource]):
+        raise Exception("not yet defined!")
+
+class GdResourceFileImport(GdResource):
+    @contextmanager
+    def _add_context(self,ctx:Context,):
+        with ctx.w("file_settings",self):
+            yield
+
+    @classmethod
+    def lark_keys(cls):
+        return ("file_settings",)
+
+    @classmethod
+    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], categories:list[_GdResourseSubcategory]):
+        raise Exception("not yet defined!")
+    
+
+## SubResources:
+
+
+class GdSubResource(GdResource):
+    type : str
+    id   : str
+
+    @classmethod
+    def lark_keys(cls):
+        return ("sub_resource",)
+
+    @classmethod
+    def parse_lark(cls, key, resource_header, resource_body):
         raise Exception("undefined so far!")
+   
+    @contextmanager
+    def _add_context(self, ctx:Context):
+        with ctx.w("sub_resource",self):
+            yield
 
-    def __init__(self,
-            type         : str,
-            script_class : str,
-            format       : str,
-            uid          : str,
-            properties : dict = None,
-            sub_resources : Collection = None,
-            ):
-        self.type = type
-        self.script_class = script_class
-        self.format = format
-        self.uid = uid
-        super().__init__(properties)
-        if self.sub_resources is None:
-            self.sub_resources = Collection()
-        else:
-            self.sub_resources = sub_resources
-
-    def attach_definition(self, context:Context):
-        script = self.properties.get("script",None)
-        if not script: return
-        context.project.get().class_db[script]
-        self.set_definition()
-
-    def set_definition(self, class_def:GdClassDef):
-        self.definition = class_def
-        self.definition_updated(class_def)
-
-class GdResourceFileBody(GdResource):
+class _GdResourceFileBody(GdSubResource):
     """Utility class best served as an instance in the parser"""
 
     value : list
@@ -75,57 +88,25 @@ class GdResourceFileBody(GdResource):
     def __init__(self, key, value):
         self.value = value
 
-class GdResourseSubcategory(GdResource):
+class _GdResourseSubcategory(GdSubResource):
     """Utility class best served as an instance in the parser"""
 
     value : list
+    key : str
 
     @classmethod
     def lark_keys(cls):
         return ("prim_subcategory",)
     
     @classmethod
-    def parse_lark(cls, key, tfm, resource_body):
-        return cls(resource_body)
+    def parse_lark(cls, _key, tfm, key, resource_body):
+        return cls(key, resource_body)
 
     def __init__(self, key, value):
+        self.key = key
         self.value = value
 
-
-
-class GdSubResource(GdResource):
-    type : str
-    id   : str
-
-    @classmethod
-    def lark_keys(cls):
-        return ("sub_resource",)
-
-    @classmethod
-    def parse_lark(cls, key, resource_header, resource_body):
-        raise Exception("undefined so far!")
-
-    def __init__(
-            self,
-            type : str,
-            id   : str,
-            properties : dict = None,
-            ):
-        self.type = type 
-        self.id   = id
-        super().__init__(properties)
-   
-    def attach_definition(self, context:Context):
-        script = self.properties.get("script",None)
-        if not script: return
-        context.project.get().class_db[script]
-        self.set_definition()
-
-    def set_definition(self, class_def:GdClassDef):
-        self.definition = class_def
-        self.definition_updated(class_def)
-
-class GdExtResource(GdResource):
+class GdExtResource(GdSubResource):
     @classmethod
     def lark_keys(cls):
         return ("ext_resource",)
@@ -134,7 +115,7 @@ class GdExtResource(GdResource):
     def parse_lark(cls, key, resource_header, resource_body):
         raise Exception("undefined so far!")
 
-class GdEditResource(GdResource):
+class GdEditResource(GdSubResource):
     @classmethod
     def lark_keys(cls):
         return ("edit_resource",)
@@ -153,9 +134,11 @@ class GdSubResourceNode(GdSubResource):
         raise Exception("undefined so far!")
 
 _all : tuple[Type] = (
-    GdResourceFileBody,
-    GdResourseSubcategory,
     GdResourceFile,
+    GdResourceFileScene,
+    GdResourceFileImport,
+    _GdResourceFileBody,
+    _GdResourseSubcategory,
     GdSubResource,
     GdExtResource,
     GdEditResource,

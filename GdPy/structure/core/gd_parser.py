@@ -16,6 +16,12 @@ class _BaseTransformer(Transformer):
     def parser(self, k,v):
         return (k,v)
 
+    def properties(self, *props):
+        res = {}
+        for x in props:
+            res[x.key] = x
+        return res
+
     def file_resource_contents(self, resource_body):
         return resource_body
 
