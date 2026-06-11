@@ -15,6 +15,14 @@ class _BaseTransformer(Transformer):
     
     def parser(self, k,v):
         return (k,v)
+
+    def file_resource_contents(self, resource_body):
+        return resource_body
+
+    def resource_header(self, properties):
+        return properties
+    def resource_body(self, properties):
+        return properties
     
     def packed_2(self, children): 
         return children

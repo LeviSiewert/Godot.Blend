@@ -1,4 +1,5 @@
-from .core import GdResource, GdType, Context, GdClassDef, Collection
+from __future__ import annotations
+from .core import GdResource, GdProperty, GdType, Context, GdClassDef, Collection
 from typing import Type
 from contextlib import contextmanager
 
@@ -20,7 +21,14 @@ class GdResourceFile(GdResource):
         return ("gd_resource",)
 
     @classmethod
-    def parse_lark(cls, key, *args, **kwargs):
+    def parse_lark(cls, key:str, tfm, resource_header, sub_resources):
+        self = cls()
+        
+        _ext_res = filter(lambda x: isinstance(x, GdExtResource))
+        _edit_res = filter(lambda x: isinstance(x, GdEditResource))
+        _sub_res = filter(lambda x: isinstance(x, GdSubResource))
+        _props = filter(lambda x: isinstance(x, GdResourceFileBody))
+
         raise Exception("undefined so far!")
 
     def __init__(self,
@@ -51,16 +59,50 @@ class GdResourceFile(GdResource):
         self.definition = class_def
         self.definition_updated(class_def)
 
+class GdResourceFileBody(GdResource):
+    """Utility class best served as an instance in the parser"""
+
+    value : list
+
+    @classmethod
+    def lark_keys(cls):
+        return ("prim_resource",)
+    
+    @classmethod
+    def parse_lark(cls, key, tfm, resource_body):
+        return cls(resource_body)
+
+    def __init__(self, key, value):
+        self.value = value
+
+class GdResourseSubcategory(GdResource):
+    """Utility class best served as an instance in the parser"""
+
+    value : list
+
+    @classmethod
+    def lark_keys(cls):
+        return ("prim_subcategory",)
+    
+    @classmethod
+    def parse_lark(cls, key, tfm, resource_body):
+        return cls(resource_body)
+
+    def __init__(self, key, value):
+        self.value = value
+
+
+
 class GdSubResource(GdResource):
     type : str
     id   : str
 
     @classmethod
     def lark_keys(cls):
-        return ("subresource",)
+        return ("sub_resource",)
 
     @classmethod
-    def parse_lark(cls, key, *args, **kwargs):
+    def parse_lark(cls, key, resource_header, resource_body):
         raise Exception("undefined so far!")
 
     def __init__(
@@ -73,7 +115,6 @@ class GdSubResource(GdResource):
         self.id   = id
         super().__init__(properties)
    
-
     def attach_definition(self, context:Context):
         script = self.properties.get("script",None)
         if not script: return
@@ -84,31 +125,14 @@ class GdSubResource(GdResource):
         self.definition = class_def
         self.definition_updated(class_def)
 
-class GdResourceBody(GdResource):
+class GdExtResource(GdResource):
     @classmethod
     def lark_keys(cls):
-        return ("resource",)
+        return ("ext_resource",)
 
-class GdExtResource(GdResource):
-    type : str
-    uid  : str
-    path : str
-    id   : str
-
-    def __init__(
-            self,
-            type : str,
-            uid  : str,
-            path : str,
-            id   : str,
-            properties : dict = None,
-            ):
-        self.type = type 
-        self.uid  = uid  
-        self.path = path 
-        self.id   = id   
-        super().__init__(properties)
-
+    @classmethod
+    def parse_lark(cls, key, resource_header, resource_body):
+        raise Exception("undefined so far!")
 
 class GdEditResource(GdResource):
     @classmethod
@@ -116,12 +140,24 @@ class GdEditResource(GdResource):
         return ("edit_resource",)
 
     @classmethod
-    def parse_lark(cls, key, *args, **kwargs):
+    def parse_lark(cls, key, resource_header, resource_body):
+        raise Exception("undefined so far!")
+
+class GdSubResourceNode(GdSubResource):
+    @classmethod
+    def lark_keys(cls):
+        return ("node_resource",)
+
+    @classmethod
+    def parse_lark(cls, key, resource_header, resource_body):
         raise Exception("undefined so far!")
 
 _all : tuple[Type] = (
+    GdResourceFileBody,
+    GdResourseSubcategory,
     GdResourceFile,
     GdSubResource,
     GdExtResource,
     GdEditResource,
+    GdSubResourceNode,
 )

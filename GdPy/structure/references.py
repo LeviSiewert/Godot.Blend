@@ -24,7 +24,7 @@ class GdValueExtResource(GdValue):
     def set_value(self, value):
         return
 
-    def postload_extresource(self, c:Context):
+    def postload(self, c:Context):
         if not self.address: return
         res = c.resource.get()
         self.value = res.get_extresource(c, self.address)
@@ -49,7 +49,7 @@ class GdValueNodePath(GdValue):
     def set_value(self, value):
         return
     
-    def postload_nodepath(self, c:Context):
+    def postload(self, c:Context):
         if not self.address: return
         res = c.resource.get()
         res.get_nodepath(c, self.address)
@@ -73,7 +73,7 @@ class GdValueSubResource(GdValue):
     def set_value(self, value):
         return
     
-    def postload_subresource(self, c:Context):
+    def postload(self, c:Context):
         if not self.address: return
         res = c.resource.get()
         self.value = res.get_subresource(c, self.address)
@@ -98,7 +98,7 @@ class GdValueResourceID(GdValue):
     def set_value(self, value):
         return    
 
-    def postload_rid(self, c:Context):
+    def postload(self, c:Context):
         if not self.address: return
         file_db = c.file_db.get()
         self.value = file_db.get_file(self.address, null_ok=True)

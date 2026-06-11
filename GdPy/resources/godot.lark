@@ -1,12 +1,18 @@
 start : file_resource
 
-file_project :  [COMMENT|property]* [resource]* 
-file_resource : resource [file_resource_contents|resource]* 
-file_resource_contents : "[resource]" resource_body
+file_settings :  [COMMENT|property]* [prim_subcategory]* 
+// file_import : [COMMENT|property]* [prim_resource|prim_subcategory]*
 
-resource : resource_header resource_body
-resource_header : "[" WORD [property]* "]" 
-resource_body : [COMMENT|property]*
+file_resource : "[gd_resource" [property]* "]" [ext_resource]* [sub_resource]* [prim_resource]
+file_scene : "[gd_scene" [property]* "]" [ext_resource]* [sub_resource]* [node_resource]* [edit_resource]*
+
+ext_resource : "[ext_resource" [property]* "]" [property]*
+sub_resource : "["WORD [property]* "]" [property]*
+node_resource : "[node" [property]* "]" [property]*
+edit_resource : "[edit" [property]* "]" [property]*
+
+prim_resource : "[resource]" [property]*
+prim_subcategory : "[" WORD "]" [COMMENT|property]*
 
 property : WORD "=" value
 
