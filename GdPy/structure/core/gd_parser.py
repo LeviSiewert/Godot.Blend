@@ -1,7 +1,7 @@
 from typing import Type, Callable
 from lark.visitors import Transformer, v_args #type:ignore
 from lark import Lark,Token #type:ignore
-from .core import GdType, Context
+from .core import GdType, Context, PropertyCollection
 from .primitives import CacheTreeNode
 from contextvars import ContextVar
 from typing import Any
@@ -17,13 +17,13 @@ class _BaseTransformer(Transformer):
         return (k,v)
 
     def properties(self, *props):
-        res = {}
+        res = PropertyCollection()
         for x in props:
             res[x.key] = x
         return res
 
-    def file_resource_contents(self, resource_body):
-        return resource_body
+    def prim_resource(self, props):
+        return props
 
     def resource_header(self, properties):
         return properties
