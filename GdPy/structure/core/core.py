@@ -2,9 +2,10 @@ from __future__ import annotations
 from .primitives import Signal, SignalContainer
 from abc import ABC, abstractmethod
 from typing import Self, Any, Type
-from .primitives import Signal, SignalContainer, Context, Collection
-from .class_db import ClassDb, GdClassDef, GdPropertyDef
-from .file_db import File, FileDb, ClassDbEnforcable
+from .primitives import Signal, SignalContainer, Context, Collection, CacheTreeNode
+from .class_db import ClassDb, GdClassDef, GdPropertyDef,ClassDbEnforcable
+from .file_db import File, FileDb
+from .property_collection import PropertyCollection
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -60,44 +61,12 @@ class GdResource(GdType):
     _cache_layers = ("postload_resource",)
     _context_key = "resource"
 
-    definition : GdClassDef
-    definition_updated : Signal[GdClassDef]
-
-    properties : dict[str, GdValue]
-    
-    # def __init__(self, properties:dict=None):
-    #     if properties is None:
-    #         self.properties = {}
-    #     else:
-    #         self.properties = properties
-    #     super().__init__()
-
+    @abstractmethod
     def get_struct_children(self)->tuple[GdType|Any]:
-        return tuple(self.properties.values())
+        return tuple()
     
-    ## Depreciating in favor of a cache_tree with layers post parse via get_struct_children:
-    # def set_struct_children(self, key:str, items:Any):
-    #     setattr(key, items)
-
-    # def call_struct(self, func_id:str, args, kwargs, depth_first:bool=False, _filter:callable=lambda x: True):
-    #     if not depth_first:
-    #         if hasattr(self, func_id):
-    #             getattr(self, func_id)(*args, **kwargs)
-
-    #     for k,v in self.get_struct_children():
-    #         for x in filter(_filter, v):
-    #             if hasattr(x, "call_struct"):
-    #                 x.call_struct(func_id, depth_first, *args, **kwargs)
-
-    #     if depth_first:
-    #         if hasattr(self, func_id):
-    #             getattr(self, func_id)(*args, **kwargs)
-
 class GdValue(GdType):
     _context_key = "value"
-
-    # def __init__(self, value:Any=None):
-    #     self.set_value(value)
 
     def get_struct_children(self)->tuple[GdType|Any]:
         return tuple()
@@ -113,59 +82,14 @@ class GdValue(GdType):
     # def __eq__(self, value)->bool:
     #     return super().__eq__(value)
 
-class GdProperty(GdType):
-    _context_key = "property"
-    name : str
-    value : GdValue
+# class GdProperty(GdType):
+#     _context_key = "property"
+#     name : str
+#     value : GdValue
 
-    def get_struct_children(self)->tuple[GdType|Any]:
-        if isinstance(self.value, GdType):
-            return (self.value,)
-        return tuple()
+#     def get_struct_children(self)->tuple[GdType|Any]:
+#         if isinstance(self.value, GdType):
+#             return (self.value,)
+#         return tuple()
     
 
-class PropertyCollection[T](Collection, ClassDbEnforcable):
-    pins : list[str]
-
-    def set_pin(self,k):
-        self.pins.append(k)
-        
-    def rem_pin(self,k):
-        if k in self.pins:
-            self.pins.remove(k)
-
-    def append(self, k:str, item:T):
-        self._integrate(k,item)
-        self.item_appended.emit((k,item))
-
-    def remove(self, k:str, item:T):
-        self._disintegrate(k,item)
-        self.item_removed.emit((k,item))
-    
-    def extend(self, iterable):
-        for k,v in iterable:
-            self.append(k,v)
-
-    def verify(self,):
-        ''' Verify Collection state '''
-        pass
-
-    def allowed(self, key:str, property:Any)->bool:
-        ''' Verify key:property being allowed '''
-        return False
-    
-    def default(self, key:str, property:Any)->T:
-        ''' Get default value, raise KeyError if default not found '''
-        return
-    
-    def _integrate(key, item):
-        return
-    
-    def _disintegrate(key, item):
-        return
-    
-    def __getitem__(self, key):
-        return
-    
-    def __setitem__(self, key, value):
-        return

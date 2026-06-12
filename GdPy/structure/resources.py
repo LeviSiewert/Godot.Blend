@@ -1,21 +1,29 @@
 from __future__ import annotations
-from .core import GdResource, GdProperty, GdType, Context, GdClassDef, Collection, PropertyCollection, ClassDbEnforcable
+from .core import GdResource, GdType, Context, GdClassDef, Collection, PropertyCollection, ClassDbEnforcable
 from typing import Type
 from contextlib import contextmanager
 
 class SubresourceCollection[T:GdSubResource](Collection):
     items = []
+
     def __init__(self):
         self.items = []
         super().__init__()
+
     def _integrate(self, item:T):
         self.items.append(item)
+
     def _disintegrate(self, item:T):
         self.items.remove(item)
+
     def __getitem__(self, key)->T:
         return None
+
     def __setitem__(self, key)->T:
         return None
+
+    def __iter__(self):
+        return self.items.__iter__
 
 ## Resource (File) Types:
 
@@ -38,9 +46,9 @@ class GdResourceFileTres(GdResource, ClassDbEnforcable):
         return ("file_resource",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], ext_res:list[GdExtResource], sub_res:list[GdSubResource], prim_resource:_GdResourceFileBody):
+    def parse_lark(cls, key:str, tfm, header_props:PropertyCollection, ext_res:list[GdExtResource], sub_res:list[GdSubResource], prim_resource:PropertyCollection):
         self = cls()
-        self.properties = _GdResourceFileBody.value
+        self.properties = prim_resource
         self.header_props = header_props
         self.sub_resources.extend(sub_res)
         self.ext_resources.extend(ext_res)
@@ -81,7 +89,7 @@ class GdResourceFileScene(GdResource):
         return ("file_scene",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], ext_res:list[GdExtResource], sub_res:list[GdSubResource], edit_res:list[GdSubResource]):
+    def parse_lark(cls, key:str, tfm, header_props:PropertyCollection, ext_res:list[GdExtResource], sub_res:list[GdSubResource], edit_res:list[GdSubResource]):
         self = cls()
         self.header_props = header_props
         self.ext_resources.extend(ext_res)
@@ -109,7 +117,7 @@ class GdResourceFileScene(GdResource):
 
 class GdResourceFileImport(GdResource):
     header_props : PropertyCollection
-    categories : SubresourceCollection[_GdResourseSubcategory]
+    categories : SubresourceCollection[GdResourseSubcategory]
 
     @contextmanager
     def _add_context(self,ctx:Context,):
@@ -121,10 +129,9 @@ class GdResourceFileImport(GdResource):
         return ("file_settings",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, header_props:dict[str,GdProperty], categories:list[_GdResourseSubcategory]):
+    def parse_lark(cls, key:str, tfm, header_props:PropertyCollection, categories:list[GdResourseSubcategory]):
         self = cls()
-        for k,v in header_props:
-            setattr(self,k,v)
+        self.header_props = header_props
         self.categories.extend(categories)
         return self
     
@@ -208,24 +215,7 @@ class GdSubResourceNode(GdSubResource):
 
 ## Helper classes :
 
-
-class _GdResourceFileBody(GdSubResource):
-    """Utility class best served as an instance in the parser"""
-
-    value : list
-
-    @classmethod
-    def lark_keys(cls):
-        return ("prim_resource",)
-    
-    @classmethod
-    def parse_lark(cls, key, tfm, resource_body):
-        return cls(resource_body)
-
-    def __init__(self, key, value):
-        self.value = value
-
-class _GdResourseSubcategory(GdSubResource):
+class GdResourseSubcategory(GdSubResource):
     """Utility class best served as an instance in the parser"""
 
     value : list
@@ -248,8 +238,7 @@ _all : tuple[Type] = (
     GdResourceFileTres,
     GdResourceFileScene,
     GdResourceFileImport,
-    _GdResourceFileBody,
-    _GdResourseSubcategory,
+    GdResourseSubcategory,
     GdSubResource,
     GdExtResource,
     GdEditResource,
