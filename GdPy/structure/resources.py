@@ -4,26 +4,52 @@ from typing import Type
 from contextlib import contextmanager
 
 class SubresourceCollection[T:GdSubResource](Collection):
-    items = []
+    values : list[T]
+    values_by_id : dict[str, T]
 
     def __init__(self):
-        self.items = []
+        self.values = []
+        self.values_by_id = {}
         super().__init__()
 
     def _integrate(self, item:T):
-        self.items.append(item)
+        self.values.append(item)
+        self.values_by_id[item.header_props["id"]] = item
 
     def _disintegrate(self, item:T):
-        self.items.remove(item)
+        self.values.remove(item)
+        del self.values_by_id[item.header_props["id"]]
 
     def __getitem__(self, key)->T:
-        return None
-
-    def __setitem__(self, key)->T:
-        return None
+        if isinstance(key,(str,int)):
+            return self.get_by_id(key)
+        raise KeyError("Could not find key!", key)
 
     def __iter__(self):
-        return self.items.__iter__
+        return self.values.__iter__
+    
+    def items(self,):
+        return self.values_by_id.items()
+
+    def by_gdclass(self, cls:GdClassDef):
+        children = cls.children
+        for x in self.values:
+            if (x.class_def in children) or (x.script_def in children):
+                yield x
+    def by_typekey(self, key:str):
+        for x in self.values:
+            if x.header_props["type"] == key:
+                yield x
+    def by_instance(self, cls:Type[GdSubResource]):
+        for x in self.values:
+            if isinstance(x,cls):
+                yield x
+    def by_type(self, _type:str):
+        for x in self.values:
+            if x.type == _type:
+                yield x
+
+
 
 ## Resource (File) Types:
 
@@ -157,7 +183,7 @@ class GdSubResource(GdResource, ClassDbEnforcable):
     class_def : GdClassDef
     script_def : GdClassDef
 
-    key : str
+    type : str
 
     def set_class_def(self, definition:GdClassDef):
         self.header_props.set_class_def(definition)
@@ -178,12 +204,11 @@ class GdSubResource(GdResource, ClassDbEnforcable):
         return ("sub_resource",)
 
     @classmethod
-    def parse_lark(cls, key, resource_header, resource_body):
-        self = cls()
-        self.key = resource_header[0:]
-        _hprops = resource_header[1:]
-        self.header_props.extend(_hprops)
-        self.properties.extend(resource_body)
+    def parse_lark(cls, key, ty:str, header_props:PropertyCollection, resource_body:PropertyCollection):
+        self = cls(_constructing = True)
+        self.type = ty
+        self.header_props = header_props
+        self.properties = resource_body
         return self
    
     @contextmanager
@@ -191,9 +216,10 @@ class GdSubResource(GdResource, ClassDbEnforcable):
         with ctx.w("sub_resource",self):
             yield
 
-    def __init__(self):
-        self.header_props = PropertyCollection()
-        self.properties = PropertyCollection()
+    def __init__(self, _constructing:bool=False):
+        if not _constructing:
+            self.header_props = PropertyCollection()
+            self.properties = PropertyCollection()
         super().__init__()
 
 class GdExtResource(GdSubResource):

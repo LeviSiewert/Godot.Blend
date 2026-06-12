@@ -81,11 +81,11 @@ class Collection[T](ABC, SignalContainer):
     
     def append(self, item:T):
         self._integrate(item)
-        self.item_appended.emit(item)
+        self.item_appended(item)
 
     def remove(self, item:T):
         self._disintegrate(item)
-        self.item_removed.emit(item)
+        self.item_removed(item)
     
     def extend(self, iterable):
         for x in iterable:
