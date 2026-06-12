@@ -116,6 +116,16 @@ class SubresourceNodeCollection[T:GdSubResourceNode](SubresourceCollection):
             x = random.randint(10*(n-1),(10*n)-1)
         return x
 
+class SubresourceCategoryCollection[T:GdSubResourceNode](SubresourceCollection):
+    def _integrate(self, item:T):
+        self.values.append(item)
+        self.values_by_id[item.label] = item
+
+    def _disintegrate(self, item:T):
+        self.values.remove(item)
+        del self.values_by_id[item.label]
+    
+
 ## Resource (File) Types:
 
 class GdResourceFileTres(GdResource, ClassDbEnforcable):
@@ -208,7 +218,7 @@ class GdResourceFileScene(GdResource):
 
 class GdResourceFileImport(GdResource):
     header_props : PropertyCollection
-    categories : SubresourceCollection[GdResourseSubcategory]
+    categories : SubresourceCategoryCollection[GdSubresourseCategory]
 
     @contextmanager
     def _add_context(self,ctx:Context,):
@@ -220,7 +230,7 @@ class GdResourceFileImport(GdResource):
         return ("file_settings",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, header_props:PropertyCollection, categories:list[GdResourseSubcategory]):
+    def parse_lark(cls, key:str, tfm, header_props:PropertyCollection, *categories:list[GdSubresourseCategory]):
         self = cls()
         self.header_props = header_props
         self.categories.extend(categories)
@@ -228,14 +238,14 @@ class GdResourceFileImport(GdResource):
     
     def __init__(self):
         self.header_props = PropertyCollection()
-        self.categories = SubresourceCollection()
+        self.categories = SubresourceCategoryCollection()
         super().__init__()
 
 
     def get_struct_children(self)->list:
         res = []
         res.extend(self.header_props.values())
-        res.extend(self.categories.values())
+        res.extend(self.categories.items())
         return res
 
 ## SubResources:
@@ -421,11 +431,11 @@ class GdSubResourceNode(GdSubResource):
 
 ## Helper classes :
 
-class GdResourseSubcategory(GdSubResource):
+class GdSubresourseCategory(GdSubResource):
     """Utility class best served as an instance in the parser"""
 
-    value : list
-    key : str
+    label : str
+    properties : PropertyCollection
 
     @classmethod
     def lark_keys(cls):
@@ -435,16 +445,16 @@ class GdResourseSubcategory(GdSubResource):
     def parse_lark(cls, _key, tfm, key, resource_body):
         return cls(key, resource_body)
 
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
+    def __init__(self, label, properties):
+        self.label = label
+        self.properties = properties
 
 
 _all : tuple[Type] = (
     GdResourceFileTres,
     GdResourceFileScene,
     GdResourceFileImport,
-    GdResourseSubcategory,
+    GdSubresourseCategory,
     GdSubResource,
     GdExtResource,
     GdEditResource,

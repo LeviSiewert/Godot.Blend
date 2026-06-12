@@ -12,7 +12,7 @@ node_resource : "[node" properties "]" properties
 edit_resource : "[edit" properties "]" properties
 
 prim_resource : "[resource]" properties
-prim_subcategory : "[" WORD "]" [COMMENT|property]*
+prim_subcategory : "[" WORD "]" properties //[COMMENT|property]*
 
 properties : [property]*
 property : WORD "=" value
@@ -147,7 +147,7 @@ packedvector3array : "PackedVector3Array(" [ [packed_3 ("," packed_3)*] ] ")"
 packedvector4array : "PackedVector4Array(" [ [packed_4 ("," packed_4)*] ] ")"
 packedcolorarray : "PackedColorArray(" [packed_4 ("," packed_4)*] ")"
 
-WORD : (LETTER | "_" | NUMBER | "/")+
+WORD : (LETTER | "_" | NUMBER | "/" | ".")+
 
 FLOAT : SIGNED_FLOAT | NUMBER
 

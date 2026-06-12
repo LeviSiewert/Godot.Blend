@@ -16,10 +16,13 @@ class _BaseTransformer(Transformer):
     def parser(self, k,v):
         return (k,v)
 
-    def properties(self, *props):
+    def property(self, kv):
+        return kv
+
+    def properties(self, props):
         res = PropertyCollection()
-        for x in props:
-            res[x.key] = x
+        for kv in props:
+            res[kv[0]] = kv[1]
         return res
 
     def prim_resource(self, props):
@@ -66,6 +69,9 @@ class _BaseTransformer(Transformer):
 
     def FLOAT(self, child:Token):
         return float(child)
+
+    def WORD(self, child:Token):
+        return str(child)
 
 
 class GdParser():

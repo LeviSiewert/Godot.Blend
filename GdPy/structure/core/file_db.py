@@ -65,6 +65,7 @@ class File[T:Any](ABC, SignalContainer):
     Forwards file system signals
     Declares dependencies for moving asc files
     '''
+    _cache_layers = tuple()
     
     fs_created : Signal
     fs_modified : Signal

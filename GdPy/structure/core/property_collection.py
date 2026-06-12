@@ -3,13 +3,15 @@ from .class_db import ClassDbEnforcable
 from typing import Any
 
 class PropertyCollection[T](Collection, ClassDbEnforcable):
-    vals : dict[str, type]
+    items : dict[str, type]
     pins : list[str]
 
-    def __init__(self):
-        self.vals = {}
+    def __init__(self, values=None):
+        self.items = {}
         self.pins = []
         super().__init__()
+        if values:
+            self.extend(values)
 
     def set_pin(self,k):
         self.pins.append(k)
@@ -43,16 +45,16 @@ class PropertyCollection[T](Collection, ClassDbEnforcable):
     
     def _integrate(self, key, item):
         # assert(self.allowed(key,item)) ## Featureset ClassDbEnforceable
-        self.vals[key] = item
+        self.items[key] = item
         self.item_appended(key,item)
     
     def _disintegrate(self, key):
-        val = self.vals[key]
+        val = self.items[key]
         self.item_removed(key, val)
-        self.vals.remove(key)        
+        self.items.remove(key)        
     
     def __getitem__(self, key):
-        return self.vals.get(key, None)
+        return self.items.get(key, None)
     
     def __setitem__(self, key, value):
         self._integrate(key, value)

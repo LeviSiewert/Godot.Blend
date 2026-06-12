@@ -38,6 +38,7 @@ class FileTres[T:GdResource](File):
     _file_match_priority = 0
     _file_match_extensions = ("tres",)
     _gd_parser_start_key : str = "file_resource"    
+    _cache_layers = tuple()
     cache_tree : CacheTreeNode = None
 
     def get_uid(self, c):

@@ -110,7 +110,7 @@ class Collection[T](ABC, SignalContainer):
         return res
     
     def values(self,):
-        return self.values.__iter__()
+        return self.items.__iter__()
     
 class Context():
     project      : ContextVar[Any]
@@ -171,6 +171,9 @@ class CacheTreeNode():
     def enter(self,)->dict[str,str]:
         tokens = {}
         for k in self.layer_keys:
+            if not (k in buffer):
+                buffer[k] = ContextVar(k+str(id(self)))
+                buffer[k].set([]) ## Left in buffer as w/out claimant, claimed by root in claim_buffer
             buffer[k].get().append(self)
         for k in self.layer_keys:
             tokens[k] = buffer[k].set([]) #my Children
