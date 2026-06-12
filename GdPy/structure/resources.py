@@ -14,7 +14,11 @@ class SubresourceCollection[T:GdSubResource](Collection):
 
     def _integrate(self, item:T):
         self.values.append(item)
-        self.values_by_id[item.header_props["id"]] = item
+        srid = item.header_props.get("id", None)
+        if not srid:
+            srid = item.header_props["id"] = self._generate_unique_id()
+        assert(not(srid in self.values_by_id.keys()))
+        self.values_by_id[srid] = item
 
     def _disintegrate(self, item:T):
         self.values.remove(item)
@@ -22,7 +26,7 @@ class SubresourceCollection[T:GdSubResource](Collection):
 
     def __getitem__(self, key)->T:
         if isinstance(key,(str,int)):
-            return self.get_by_id(key)
+            return self.get(key)
         raise KeyError("Could not find key!", key)
 
     def __iter__(self):
@@ -36,20 +40,41 @@ class SubresourceCollection[T:GdSubResource](Collection):
         for x in self.values:
             if (x.class_def in children) or (x.script_def in children):
                 yield x
-    def by_typekey(self, key:str):
+    def by_restype(self, key:str):
         for x in self.values:
-            if x.header_props["type"] == key:
+            if x.header_props.get("type", None) == key:
                 yield x
     def by_instance(self, cls:Type[GdSubResource]):
         for x in self.values:
             if isinstance(x,cls):
                 yield x
-    def by_type(self, _type:str):
+    def by_headertype(self, _type:str):
         for x in self.values:
-            if x.type == _type:
+            if x.headertype == _type:
                 yield x
 
+    def get(self, key, default=None):
+        return self.values_by_id.get(key, default)
+    
+    def _generate_unique_id(self,)->str:
+        x = "Resource_" + random(int|float, 5)
+        while x in self.values_by_id.keys():
+            x = "Resource_" + random(int|float, 5)
+        return x
 
+class ResourceNodeCollection[T:GdSubResourceNode](SubresourceCollection):
+    root_node : GdSubResourceNode
+
+    def build_tree(self):
+        raise Exception("fuggggggs")
+        for node in self.by_headertype("node"): 
+            pass
+
+    def _generate_unique_id(self,)->str:
+        x = random(int, 9)
+        while x in self.values_by_id.keys():
+            x = random(int, 9)
+        return x
 
 ## Resource (File) Types:
 
@@ -183,7 +208,29 @@ class GdSubResource(GdResource, ClassDbEnforcable):
     class_def : GdClassDef
     script_def : GdClassDef
 
-    type : str
+    headertype : str = "sub_resource"
+
+    @classmethod
+    def parse_lark(cls, key, header_props:PropertyCollection, resource_body:PropertyCollection):
+        self = cls(_constructing = True)
+        self.header_props = header_props
+        self.properties = resource_body
+        return self
+    
+    @classmethod
+    def lark_keys(cls):
+        return ("sub_resource",)
+   
+    def __init__(self, _constructing:bool=False):
+        if not _constructing:
+            self.header_props = PropertyCollection()
+            self.properties = PropertyCollection()
+        super().__init__()
+
+    @contextmanager
+    def _add_context(self, ctx:Context):
+        with ctx.w("sub_resource",self):
+            yield
 
     def set_class_def(self, definition:GdClassDef):
         self.header_props.set_class_def(definition)
@@ -199,44 +246,34 @@ class GdSubResource(GdResource, ClassDbEnforcable):
         self.header_props.validate()
         self.properties.validate()
 
-    @classmethod
-    def lark_keys(cls):
-        return ("sub_resource",)
-
-    @classmethod
-    def parse_lark(cls, key, ty:str, header_props:PropertyCollection, resource_body:PropertyCollection):
-        self = cls(_constructing = True)
-        self.type = ty
-        self.header_props = header_props
-        self.properties = resource_body
-        return self
-   
-    @contextmanager
-    def _add_context(self, ctx:Context):
-        with ctx.w("sub_resource",self):
-            yield
-
-    def __init__(self, _constructing:bool=False):
-        if not _constructing:
-            self.header_props = PropertyCollection()
-            self.properties = PropertyCollection()
-        super().__init__()
+    def get_struct_children(self):
+        return (*self.header_props.values(), *self.properties.values())
 
 class GdExtResource(GdSubResource):
+    headertype = "ext"
     @classmethod
     def lark_keys(cls):
         return ("ext_resource",)
 
 class GdEditResource(GdSubResource):
+    headertype = "edit"
     @classmethod
     def lark_keys(cls):
         return ("edit_resource",)
 
 class GdSubResourceNode(GdSubResource):
+    headertype = "node"
     _cache_layers = ("postload_node",)
     @classmethod
     def lark_keys(cls):
         return ("node_resource",)
+    
+    @classmethod
+    def new(cls, name, path):
+        res = cls()
+        res.header_props["name"] = name
+        res.header_props["path"] = path
+        return res
 
 
 ## Helper classes :
