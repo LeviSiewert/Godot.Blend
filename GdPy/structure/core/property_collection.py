@@ -52,7 +52,7 @@ class PropertyCollection[T](Collection, ClassDbEnforcable):
         self.vals.remove(key)        
     
     def __getitem__(self, key):
-        return self.vals[key]
+        return self.vals.get(key, None)
     
     def __setitem__(self, key, value):
         self._integrate(key, value)

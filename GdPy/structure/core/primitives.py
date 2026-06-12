@@ -103,7 +103,7 @@ class Collection[T](ABC, SignalContainer):
     def __getitem__(self, key)->T:
         return None
     
-    def get(self, key, default):
+    def get(self, key, default=None):
         res = self[key]
         if res is None:
             return default

@@ -1,7 +1,10 @@
 from __future__ import annotations
-from .core import GdResource, GdType, Context, GdClassDef, Collection, PropertyCollection, ClassDbEnforcable
+from .core import GdResource, GdType, Context, GdClassDef, Collection, PropertyCollection, ClassDbEnforcable, Signal
 from typing import Type
 from contextlib import contextmanager
+
+import random
+import string
 
 class SubresourceCollection[T:GdSubResource](Collection):
     values : list[T]
@@ -40,40 +43,77 @@ class SubresourceCollection[T:GdSubResource](Collection):
         for x in self.values:
             if (x.class_def in children) or (x.script_def in children):
                 yield x
-    def by_restype(self, key:str):
-        for x in self.values:
-            if x.header_props.get("type", None) == key:
-                yield x
     def by_instance(self, cls:Type[GdSubResource]):
         for x in self.values:
             if isinstance(x,cls):
                 yield x
-    def by_headertype(self, _type:str):
+    def by_restype(self, key:str):
         for x in self.values:
-            if x.headertype == _type:
+            if x.restype == key:
                 yield x
+    # def by_headertype(self, _type:str):
+    #     for x in self.values:
+    #         if x.headertype == _type:
+    #             yield x
 
     def get(self, key, default=None):
         return self.values_by_id.get(key, default)
     
     def _generate_unique_id(self,)->str:
-        x = "Resource_" + random(int|float, 5)
+        x = "Resource_" + "".join(random.choices(string.ascii_letters + string.digits, k=5))
         while x in self.values_by_id.keys():
-            x = "Resource_" + random(int|float, 5)
+            x = "Resource_" + "".join(random.choices(string.ascii_letters + string.digits, k=5))
         return x
 
-class ResourceNodeCollection[T:GdSubResourceNode](SubresourceCollection):
-    root_node : GdSubResourceNode
+class SubresourceNodeCollection[T:GdSubResourceNode](SubresourceCollection):
+    root : GdSubResourceNode
 
     def build_tree(self):
-        raise Exception("fuggggggs")
-        for node in self.by_headertype("node"): 
-            pass
+        ## FUTURE: versions will require a matcher/suplimental/insertable tree for (LibOverrides || GLTF matching || External)
+        ## These will need to be collected as external & edit resources *before* tree construction.
+        ## ALSO: these incoming nodes will have to be be "generic" placeholder | intermediatary types, or dif owner defined
+
+        temp_namespace = {}
+        root : GdSubResourceNode = None
+        
+        nodes : tuple[GdSubResourceNode] = tuple(self.by_restype("node"))
+        assert(len(nodes))
+        # raise Exception(nodes)
+
+        ## Assign to temp_namespace
+        for node in nodes:
+            if (parent := node.header_props.get("parent", None)) is None:
+                temp_namespace["."] = node
+                root = node
+            elif parent == ".":
+                temp_namespace[node.name] = node 
+            else:
+                _fullpath = f"{parent}/{node.name}"
+                assert(not(_fullpath in temp_namespace.keys()))
+                temp_namespace[_fullpath] = node
+        # raise Exception(temp_namespace)
+    
+        assert(not (root is None))
+
+        for node in nodes:
+            if node is root:
+                continue
+            node.set_owner(root)
+            node.set_treecol(self)
+            if p:=temp_namespace[node.header_props["parent"]]:
+                p.add_child(node)
+            else:
+                node.header_props["name"] = node.header_props["parent"] + node.header_props["name"]  
+                root.add_child(node)
+
+        root._is_root = True
+        self.root = root
 
     def _generate_unique_id(self,)->str:
-        x = random(int, 9)
+        n = 9
+        x = random.randint(10*(n-1),(10*n)-1)
         while x in self.values_by_id.keys():
-            x = random(int, 9)
+            x = random.randint(10*(n-1),(10*n)-1)
         return x
 
 ## Resource (File) Types:
@@ -208,7 +248,7 @@ class GdSubResource(GdResource, ClassDbEnforcable):
     class_def : GdClassDef
     script_def : GdClassDef
 
-    headertype : str = "sub_resource"
+    restype : str = "sub_resource"
 
     @classmethod
     def parse_lark(cls, key, header_props:PropertyCollection, resource_body:PropertyCollection):
@@ -250,31 +290,134 @@ class GdSubResource(GdResource, ClassDbEnforcable):
         return (*self.header_props.values(), *self.properties.values())
 
 class GdExtResource(GdSubResource):
-    headertype = "ext"
+    restype = "ext"
     @classmethod
     def lark_keys(cls):
         return ("ext_resource",)
 
 class GdEditResource(GdSubResource):
-    headertype = "edit"
+    restype = "edit"
     @classmethod
     def lark_keys(cls):
         return ("edit_resource",)
 
 class GdSubResourceNode(GdSubResource):
-    headertype = "node"
+    restype = "node"
     _cache_layers = ("postload_node",)
-    @classmethod
-    def lark_keys(cls):
-        return ("node_resource",)
-    
+
+    _treecol : SubresourceNodeCollection
+    _is_root : bool = False
+    _owner : GdSubResourceNode = None
+    _parent : GdSubResourceNode = None
+    _children : list[GdSubResourceNode] = None
+
+    def __init__(self, _constructing = False):
+        if not _constructing:
+            self._children = []
+        super().__init__(_constructing)
+
+
     @classmethod
     def new(cls, name, path):
         res = cls()
         res.header_props["name"] = name
-        res.header_props["path"] = path
+        res.header_props["parent"] = path
         return res
 
+    @classmethod
+    def lark_keys(cls):
+        return ("node_resource",)
+
+
+
+    @property
+    def name(self):
+        val = self.header_props.get("name", None)
+        if val is None:
+            self.header_props["name"] = self.header_props.get("type", "Node")
+        return self.header_props["name"]
+
+    @name.setter
+    def name(self, value):
+        if self._parent:
+            assert(not (value in self._parent.get_childnames()))
+        self.header_props["name"] = value
+
+    def set_owner(self, owner:GdSubResourceNode):
+        self._owner = owner
+
+    def set_treecol(self, treecol:SubresourceNodeCollection):
+        self._treecol = treecol
+
+    # def duplicate(self,):
+    #     assert(not(self._parent is None))
+    #     assert(not(self._is_root))
+    #     raise Exception("not implimented yet!")
+
+    def add_child(self,node):
+        assert(node._parent is None)
+        _names = self.get_childnames()
+        if node.name in _names:
+            name = node.name
+            index = 2
+            while node.name in _names:
+                node.name = name + str(index)
+                index = index + 2
+        self._children.append(node)
+    
+    def remove_child(self,node):
+        assert(node._parent is self)
+        self._children.remove(node)
+        node._parent = None
+   
+    def get_child(self, name, default=None):
+        for x in self._children:
+            if x.name == name:
+                return x
+        return None
+
+    def get_childnames(self)->list[str]:
+        res = []
+        for x in self._children:
+            res.append(x.name)
+        return res
+        # raise KeyError("Could not find child", name)
+    
+    def get_children(self)->tuple[GdSubResourceNode]:
+        return tuple(self._children)
+    
+    def get_node(self,path:str):
+        return self._get_node_iter(path.split("/")) 
+    
+    def _get_node_iter(self, path:list[str])->GdSubResourceNode|None: 
+        if len(path)==0:
+            return self
+        val = path.pop()
+        match val:
+            case ".": return self._get_node_iter(path)
+            case "..": return self._parent._get_node_iter(path)
+            case _: return self.get_child(val)._get_node_iter(path)
+    
+    def get_path(self,)->str:
+        ## Get an "absolute" path
+        if self._is_root: 
+            return "."
+        if self._parent is None:
+            parentpath = self.header_props.get("parent", None)
+            return f"'{parentpath}'/" + self.name
+        return self._parent.get_path() + "/" + self.name
+
+    def get_path_to(self, node)->str:
+        if self.is_anscestor(node):
+            return node.get_path()[len(self.get_path()):]
+        return self._parent.get_path_to(node) + "/.."
+
+    def is_anscestor(self, node)->bool:
+        return node.get_path().startswith(self.get_path())
+    
+    def __repr__(self,):
+        return f"Node({self.get_path()})"
+        
 
 ## Helper classes :
 

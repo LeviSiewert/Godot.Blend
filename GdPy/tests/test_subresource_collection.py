@@ -1,4 +1,4 @@
-from ..structure.resources import SubresourceCollection, GdSubResource, GdSubResourceNode
+from ..structure.resources import SubresourceCollection, SubresourceNodeCollection, GdSubResource, GdSubResourceNode
 
 def test_base_behavior():
     col = SubresourceCollection()
@@ -14,14 +14,16 @@ def test_base_behavior():
     # raise Exception(SubresourceCollection, "Tests not yet implimented!")
 
 def test_tree_construction():
-    nodea = GdSubResourceNode.new("A", "")
-    nodeb = GdSubResourceNode.new("B", "/")
-    nodec = GdSubResourceNode.new("C", "/B/")
-    noded = GdSubResourceNode.new("D", "/B/")
-    
-    col = SubresourceCollection()
-    col.extend((nodea, nodeb, nodec))
+
+
+    nodea = GdSubResourceNode.new("A", None)
+    nodeb = GdSubResourceNode.new("B", ".")
+    nodec = GdSubResourceNode.new("C", "B")
+    noded = GdSubResourceNode.new("D", "B")
+
+    col = SubresourceNodeCollection()
+    col.extend((nodea, nodeb, nodec, noded))
     col.build_tree()
-    assert(col.tree_root is nodea)
-    assert(nodea.children == (nodeb,))
-    assert(nodeb.children == (nodec,noded))
+    assert(col.root is nodea)
+    assert(nodea.get_children() == (nodeb,))
+    assert(nodeb.get_children() == (nodec,noded))
