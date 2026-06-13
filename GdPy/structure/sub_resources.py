@@ -1,12 +1,12 @@
 from __future__ import annotations
-from .core import GdResource, GdType, Context, GdClassDef, Collection, PropertyCollection, ClassDbEnforcable, Signal
-from typing import Type
+from .core import GdResource, GdSubResource, PropertyCollection, ClassDbEnforcable, Collection
+from typing import Self
 from contextlib import contextmanager
 from abc import abstractmethod
 import random
 import string
 
-class _SubResource(GdType):
+class _SubResource(GdSubResource):
     properties : PropertyCollection
 
     def __init__(self,_construct:bool=False):
@@ -14,16 +14,23 @@ class _SubResource(GdType):
             self.setup()
         super().__init__()
 
-    @abstractmethod
     def setup(self):
         self.properties = PropertyCollection()
+
+    @classmethod
+    def new(cls, **kwargs)->Self:
+        self = cls()
+        for k,v in kwargs.items():
+            assert(hasattr(self,k))
+            setattr(self,k,v)
+        return self
 
     @classmethod
     def parse_lark(cls, key, trfm, header_properties:PropertyCollection, body_properties:PropertyCollection):
         self = cls(_construct = True)
         for k,v in header_properties.items():
             assert(hasattr(self, k))
-            setattr(self, k, v)
+            setattr(self, "_"+k, v)
         self.properties = body_properties
 
     def get_struct_children(self):
@@ -49,7 +56,7 @@ class SubResourceEdit(_SubResource):
     def lark_keys(cls):
         return ("edit_resource")
 
-class SubResourceSub(_SubResource, ClassDbEnforcable):
+class SubResource(_SubResource, ClassDbEnforcable):
     _type : str = None
     _id : int = None
 
@@ -62,6 +69,11 @@ class SubResourceNode(_SubResource, ClassDbEnforcable):
     _type : str = None
     _parent : str = None
     _unique_id : int = None
+
+    is_root : bool
+    owner : GdResource
+    parent : SubResourceNode
+    children : list[SubResourceNode]
 
     @classmethod
     def lark_keys(cls):
@@ -95,7 +107,7 @@ class ResourceContainer(_SubResource):
 _all = (
     SubResourceExt,
     SubResourceEdit,
-    SubResourceSub,
+    SubResource,
     SubResourceNode,
     SubResourceCategory,
     ResourceContainer,

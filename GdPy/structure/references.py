@@ -1,4 +1,4 @@
-from .core import GdProject, File, GdResource, GdType, GdValue
+from .core import GdProject, File, GdResource, GdType, GdValue, Context
 from .resources import *
 from typing import Type, Any
 from lark import Token #type:ignore

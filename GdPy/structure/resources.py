@@ -3,7 +3,6 @@ from .sub_resources import *
 from .sub_resource_collections import *
 
 class _GdResource(GdResource):
-    header : PropertyCollection
 
     def __init__(self, _construct:bool=False):
         if not _construct:
@@ -14,7 +13,7 @@ class _GdResource(GdResource):
     def setup(self,):
         pass
 
-class GdResourceFileTres(GdResource, ClassDbEnforcable):
+class GdResourceFileTres(_GdResource, ClassDbEnforcable):
     ext_resources : CollectionExtRes 
     sub_resources : CollectionSubRes
 
@@ -36,8 +35,11 @@ class GdResourceFileTres(GdResource, ClassDbEnforcable):
     def setup(self,):
         self.ext_resources=CollectionExtRes()
         self.sub_resources=CollectionSubRes()
+
+    def get_struct_children(self):
+        return tuple(self.ext_resources, self.sub_resources)
         
-class GdResourceFileScene(GdResource, ClassDbEnforcable):
+class GdResourceFileScene(_GdResource, ClassDbEnforcable):
     ext_resources : CollectionExtRes
     sub_resources : CollectionSubRes
     node_resources : CollectionNodeRes
@@ -65,7 +67,10 @@ class GdResourceFileScene(GdResource, ClassDbEnforcable):
         self.node_resources = CollectionNodeRes()
         self.edit_resources = CollectionEditRes()
 
-class GdResourceFileImport(GdResource):
+    def get_struct_children(self):
+        return tuple(self.ext_resources,self.sub_resources,self.node_resources,self.edit_resources)
+
+class GdResourceFileImport(_GdResource):
     ext_resources : CollectionExtRes
     cat_resources : CollectionCatRes
 
@@ -83,6 +88,9 @@ class GdResourceFileImport(GdResource):
         self.ext_resources = ext_res
         self.cat_resources = cat_res
         return self
+
+    def get_struct_children(self):
+        return tuple(self.ext_resources,self.cat_resources)
 
 _all = (
     GdResourceFileTres,

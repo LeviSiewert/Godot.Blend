@@ -38,7 +38,6 @@ class FileTres[T:GdResource](File):
     _file_match_priority = 0
     _file_match_extensions = ("tres",)
     _gd_parser_start_key : str = "file_resource"    
-    _cache_layers = tuple()
     cache_tree : CacheTreeNode = None
 
     def get_uid(self, c):
@@ -68,7 +67,6 @@ class FileTres[T:GdResource](File):
         raise Exception("file type not supported,", self.path)
     def delete(self, c:Context):
         raise Exception("file type not supported,", self.path)
-
 
 class FileTscn(FileTres):
     _file_match_priority = 0

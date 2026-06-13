@@ -52,14 +52,18 @@ class GdType(ABC, SignalContainer):
     @abstractmethod
     def parse_lark(cls, key:str, tfrm, *args, **kwargs)->Self:
         return
-    
-    @abstractmethod
-    def get_struct_children(self)->tuple[GdType|Any]:
-        return tuple()
 
 class GdResource(GdType):
     _cache_layers = ("postload_resource",)
     _context_key = "resource"
+
+    @abstractmethod
+    def get_struct_children(self)->tuple[GdType|Any]:
+        return tuple()
+
+class GdSubResource(GdType):
+    _cache_layers = ("postload_subresource",)
+    _context_key = "subresource"
 
     @abstractmethod
     def get_struct_children(self)->tuple[GdType|Any]:

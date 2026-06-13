@@ -206,3 +206,137 @@ class CacheTreeNode():
             func(context, *args, **kwargs)
         for x in self.layer_children.get(layer, tuple()):
             x.call(layer, func_name, context, *args, **kwargs)
+
+
+class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
+    item_appended : Signal[T]
+    item_removed : Signal[T]
+    # key_changed : Signal[T,PK,SK]
+
+    _keys : tuple[str] = tuple()
+    ## Keys that return a tuple of items matching
+    _unique_keys : tuple[str] = tuple()
+    ## Keys that require a single return per key
+    _required_keys : tuple[str] = tuple()
+    ## Keys that are generated and assigned if missing
+
+    _items : list[T]
+    _shared_dicts : dict[str,dict[str, list[T]]]
+    _unique_dicts : dict[str,dict[str, T]]
+    _cache : dict[T,tuple[str,str]]
+    _ignore_no_key = False
+
+    def __init__(self):
+        self._items = []
+        self._shared_dicts = {}
+        self._unique_dicts = {}
+        for k in self._unique_keys:
+            self._unique_dicts[k] = {}
+        for k in self._keys:
+            self._shared_dicts[k] = []
+        super().__init__()
+
+    def append(self,item:T):
+        keys = self._key_extractor(item)
+        self._append_item(item,keys)
+        self.item_appended(item)
+
+    def remove(self,item:T):
+        self._remove_item(item)
+        self.item_removed(item)
+
+    def _key_extractor(self, item:T)->dict:
+        res = {}
+        for k in (*self._keys, self._unique_keys):
+            _r = getattr(item, k, None)
+            if (_r is None):
+                _r = self._generate_missing_secondary_key(k,item)
+            if _r is None & self._ignore_no_key:
+                continue
+            elif _r is None:
+                raise KeyError(f"Could not extract or generate key;{item}.{k}",)
+        return res
+    
+    def _append_item(self, item:T, keys:dict)->None:
+        self._cache[item] = []
+        for pk, sk in keys.items():
+            if pk in self._keys:
+                self._append_item_shared(pk,sk,item)
+            elif pk in self._unique_keys:
+                self._append_item_unique(pk,sk,item)
+            else:
+                raise KeyError("Primary key not defined:", pk)
+            self._cache[item].append((pk,sk))
+
+    def _remove_item(self, item:T)->None:
+        if not (item in self._cache.items()):
+            raise LookupError("Item not in this collection", item)
+        for pk, sk in self._cache[item]:
+            if pk in self._keys:
+                self._remove_item_shared(pk,sk,item)
+            elif pk in self._unique_keys:
+                self._remove_item_unique(pk,sk,item)
+            else:
+                raise KeyError("Primary key not defined:", pk)
+        del self._cache[item]
+            
+    def _append_item_unique(self, p_key:PK, s_key:SK, item:T)->None:
+        pd = self._unique_dicts[p_key]
+        if s_key in pd.keys():
+            s_key = self._generate_unique_key(pd,p_key,s_key,item)
+            self._assign_unique_key(pd,s_key,item)
+        pd[s_key] = item
+
+    def _remove_item_unique(self, p_key:PK, s_key:SK, item:T)->None:
+        pd = self._unique_dicts[p_key]
+        assert(pd[s_key] is item)
+        del pd[s_key]
+
+    def _append_item_shared(self, p_key:PK, s_key:SK, item:T)->None:
+        pd = self._unique_dicts[p_key]
+        pd[s_key].append(item)
+
+    def _remove_item_shared(self, p_key:PK, s_key:SK, item:T)->None:
+        pd = self._unique_dicts[p_key]
+        pd[s_key].remove(item)
+
+    def _generate_missing_secondary_key(self, p_key:PK, item:T)->SK:
+        return None
+
+    def _generate_unique_key(self, di:dict, p_key:PK, s_key:SK, item:T)->SK:
+        raise NotImplementedError("Undefined behavior! Override Class to fullfill as req")
+
+    def _assign_unique_key(self, di:dict, p_key:PK, s_key:SK, item:T)->None:
+        raise NotImplementedError("Undefined behavior! Override Class to fullfill as req")
+
+    def get(self, pk, sk, default:Any=None)->T|list[T]:
+        if pk in self._keys:
+            pd = self._shared_dicts.get(pk, None)
+            if pd is None: return default
+            return pd.get(sk,default)
+        elif pk in self._unique_keys:
+            pd = self._unique_dicts.get(pk, None)
+            if pd is None: return default
+            return pd.get(sk,default)
+        else:
+            raise KeyError()
+        
+    def get_itemkeys(self, item:T)->dict[tuple[PK,SK]]:
+        return self._cache[item]
+        
+    def __getitem__(self, key:PK|tuple[PK, SK]):
+        if not isinstance(key, tuple):
+            if pk in self._keys:
+                return self._shared_dicts[pk]
+            elif pk in self._unique_keys:
+                return self._unique_dicts[pk]
+            else:
+                raise KeyError("Primary key not defined:", pk)
+        pk,sk = key
+        if pk in self._keys:
+            return self._shared_dicts[pk][sk]
+        elif pk in self._unique_keys:
+            return self._unique_dicts[pk][sk]
+        else:
+            raise KeyError("Primary key not defined:", pk)
+        
