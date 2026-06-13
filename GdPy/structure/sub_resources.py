@@ -37,9 +37,11 @@ class _SubResource(GdSubResource):
             assert(hasattr(self, k))
             setattr(self,+k, v)
         self.properties = body_properties
+        return self
+
 
     def get_struct_children(self):
-        return self.properties.items()
+        return self.properties.items.values()
 
 class SubResourceExt(_SubResource):
     type : str = None
@@ -130,13 +132,14 @@ class SubResourceCategory(_SubResource):
 
     @classmethod
     def lark_keys(cls):
-        return ("prim_subcategory")
+        return ("cat_resource",)
     
     @classmethod
     def parse_lark(cls, _key, trfm, name:str, body_properties:PropertyCollection):
         self = cls(_construct = True)
-        self._name = name
+        self.name = name
         self.properties = body_properties
+        return self
 
 class ResourceContainer(_SubResource):
     name : str = None
@@ -149,6 +152,8 @@ class ResourceContainer(_SubResource):
     def parse_lark(cls, key, trfm, body_properties:PropertyCollection):
         self = cls(True)
         self.properties = body_properties
+        return self
+
 
 _all = (
     SubResourceExt,

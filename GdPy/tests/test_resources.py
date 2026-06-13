@@ -18,25 +18,26 @@ _projdir = _Path(__file__).parent.resolve() / "project"
 
 def project_resource_expected()->GdResourceFileImport:
     res = GdResourceFileImport()
-    res._configuration_version = 5
+    res.configuration_version = 5
 
     res.cat_resources.extend([
-        SubResourceCategory.new(_name = "application", properties = PropertyCollection({
+        SubResourceCategory.new(name = "application", properties = PropertyCollection({
             "config/name":"New Game Project",
             "config/features":GdValuePackedStringArray(("4.7", "Forward Plus")),
             "config/icon":"res://icon.svg",
         }.items())),
-        SubResourceCategory.new(_name = "display", properties = PropertyCollection({
+        SubResourceCategory.new(name = "display", properties = PropertyCollection({
             "window/stretch/mode":"canvas_items",
             "window/stretch/aspect":"expand",
         }.items())),
-        SubResourceCategory.new(_name = "physics", properties = PropertyCollection({
+        SubResourceCategory.new(name = "physics", properties = PropertyCollection({
             "3d/physics_engine":"Jolt Physics",
         }.items())),
-        SubResourceCategory.new(_name = "rendering", properties = PropertyCollection({
+        SubResourceCategory.new(name = "rendering", properties = PropertyCollection({
             "rendering_device/driver.windows":"d3d12",
         }.items())),
     ])
+    return res
 
 def test_project_resource():
     c = Context()
@@ -45,8 +46,7 @@ def test_project_resource():
     file.load(c)
 
     res : GdResourceFileImport = file.data
-    
-    assert (res._configuration_version == exp._configuration_version)
+    assert (res.config_version == exp.config_version)
     assert(res.categories["application"] == exp.categories["application"])
     assert(res.categories["display"] == exp.categories["display"])
     assert(res.categories["physics"] == exp.categories["physics"])

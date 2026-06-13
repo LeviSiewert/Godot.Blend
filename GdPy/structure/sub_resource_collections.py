@@ -32,6 +32,9 @@ class _CollectionSubResource[T:_SubResource](GdType, MultiKeyCollection): #type:
                     break
 
         return n_key
+    
+    def get_struct_children(self,)->tuple[GdType]:
+        return tuple(self._items)
 
 class CollectionNodeRes[T:SubResourceNode](_CollectionSubResource):
     _unique_keys = ("unique_id",)

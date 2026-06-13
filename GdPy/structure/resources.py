@@ -37,7 +37,7 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
         self.sub_resources=CollectionSubRes()
 
     def get_struct_children(self):
-        return tuple(self.ext_resources, self.sub_resources)
+        return (self.ext_resources, self.sub_resources)
         
 class GdResourceFileScene(_GdResource, ClassDbEnforcable):
     ext_resources : CollectionExtRes
@@ -68,29 +68,31 @@ class GdResourceFileScene(_GdResource, ClassDbEnforcable):
         self.edit_resources = CollectionEditRes()
 
     def get_struct_children(self):
-        return tuple(self.ext_resources,self.sub_resources,self.node_resources,self.edit_resources)
+        return (self.ext_resources,self.sub_resources,self.node_resources,self.edit_resources)
 
 class GdResourceFileImport(_GdResource):
-    ext_resources : CollectionExtRes
     cat_resources : CollectionCatRes
+    config_version : int = None
 
     @classmethod
     def lark_keys(cls):
-        return ("file_settings")
+        return ("file_settings",)
 
     def setup(self,):
-        self.ext_resources = CollectionExtRes()
         self.cat_resources = CollectionCatRes()
 
     @classmethod
-    def parse_lark(cls, key, tfrm, ext_res:CollectionExtRes, cat_res:CollectionCatRes):
+    def parse_lark(cls, key, tfrm, properties:PropertyCollection, cat_res:CollectionCatRes):
         self = cls(True)
-        self.ext_resources = ext_res
+        for k,v in properties.items.items():
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of header attribute:", self,k)
+            setattr(self,k,v)
         self.cat_resources = cat_res
         return self
 
     def get_struct_children(self):
-        return tuple(self.ext_resources,self.cat_resources)
+        return (self.cat_resources)
 
 _all = (
     GdResourceFileTres,
