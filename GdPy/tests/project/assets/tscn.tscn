@@ -1,3 +1,17 @@
 [gd_scene format=3 uid="uid://c0irlon13iq4o"]
 
-[node name="Tscn" type="Node" unique_id=653408050]
+[ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="1_8dc4x"]
+
+[sub_resource type="Resource" id="Resource_1gj03"]
+resource_local_to_scene = true
+
+[node name="A" type="Node" unique_id=653408050]
+script = ExtResource("1_8dc4x")
+resource = SubResource("Resource_1gj03")
+
+[node name="B" type="Node" parent="." unique_id=1524297946]
+
+[node name="D" type="Node" parent="B" unique_id=1174449336]
+
+[node name="C" type="Node" parent="." unique_id=452580425]
+unique_name_in_owner = true

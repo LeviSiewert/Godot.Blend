@@ -1,5 +1,5 @@
 from typing import Type, Callable
-from lark.visitors import Transformer, v_args #type:ignore
+from lark.visitors import Transformer, v_args, Discard #type:ignore
 from lark import Lark,Token #type:ignore
 from .core import GdType, Context, PropertyCollection
 from .primitives import CacheTreeNode
@@ -17,16 +17,21 @@ class _BaseTransformer(Transformer):
         return (k,v)
 
     def property(self, kv):
+        if kv is None:
+            return Discard
         return kv
 
     def properties(self, props):
         res = PropertyCollection()
         for kv in props:
+            if kv is None: 
+                continue
             res[kv[0]] = kv[1]
         return res
 
     def prim_resource(self, props):
         return props
+
 
     def resource_header(self, properties):
         return properties

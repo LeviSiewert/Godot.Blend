@@ -50,7 +50,7 @@ class GdType(ABC, SignalContainer):
 
     @classmethod
     @abstractmethod
-    def parse_lark(cls, key:str, *args, **kwargs)->Self:
+    def parse_lark(cls, key:str, tfrm, *args, **kwargs)->Self:
         return
     
     @abstractmethod

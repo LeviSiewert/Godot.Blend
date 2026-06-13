@@ -1,18 +1,24 @@
 start : file_resource
 
-file_settings :  properties [prim_subcategory]* 
-// file_import : [COMMENT|property]* [prim_resource|prim_subcategory]*
+// file_import : [COMMENT|property]* cat_resources
 
-file_resource : "[gd_resource" properties "]" [ext_resource]* [sub_resource]* [prim_resource]
-file_scene : "[gd_scene" properties "]" [ext_resource]* [node_resource|sub_resource]* [edit_resource]*
+file_resource : "[gd_resource" properties "]" ext_resources sub_resources prim_resource
+file_scene : "[gd_scene" properties "]" ext_resources sub_resources node_resources edit_resources
+file_settings :  properties cat_resources 
+
+cat_resources : [prim_resource|cat_resource]*
+ext_resources : [ext_resource]*
+sub_resources : [sub_resource]*
+node_resources : [node_resource]*
+edit_resources : [edit_resource]*
 
 ext_resource : "[ext_resource" properties "]" properties
-sub_resource : "["WORD properties "]" properties
+sub_resource : "[sub_resource" properties "]" properties
 node_resource : "[node" properties "]" properties
 edit_resource : "[edit" properties "]" properties
 
 prim_resource : "[resource]" properties
-prim_subcategory : "[" WORD "]" properties //[COMMENT|property]*
+cat_resource : "[" WORD "]" properties //[COMMENT|property]*
 
 properties : [property]*
 property : WORD "=" value
