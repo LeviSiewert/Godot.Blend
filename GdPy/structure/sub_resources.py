@@ -3,6 +3,7 @@ from .core import GdResource, GdSubResource, PropertyCollection, ClassDbEnforcab
 from typing import Self
 from contextlib import contextmanager
 from abc import abstractmethod
+from .core.primitives import MultiKeyCollection
 import random
 import string
 
@@ -87,14 +88,42 @@ class SubResourceNode(_SubResource): #ClassDbEnforcable):
     parent : str = None
     unique_id : int = None
 
-    is_root : bool
-    owner : GdResource
-    parent : SubResourceNode
-    children : list[SubResourceNode]
+    is_root : bool = False
+    tree : MultiKeyCollection = None
+    owner : SubResourceNode = None
+    _parent : SubResourceNode = None
+    _children : list[SubResourceNode] = None
 
     @classmethod
     def lark_keys(cls):
         return ("node_resource")
+
+    def __init__(self, _construct = False):
+        self._children = []
+        # super().__init__(_construct)
+
+    def add_child(self,item:SubResourceNode):
+        assert(item._parent == None)
+        item._parent = self
+        self._children.append(item)
+
+    def remove_child(self,item:SubResourceNode):
+        assert(item._parent is self)
+        assert(item in self._children)
+        item._parent = None
+        self._children.remove(item)
+
+    def set_owner(self,owner):
+        self.owner = owner
+
+    def set_tree(self,treecol):
+        self.treecol = treecol
+
+    def get_children(self)->tuple[SubResourceNode]:
+        return tuple(self._children)
+
+    def __repr__(self):
+        return f"Node(name='{self.name}')"
 
 class SubResourceCategory(_SubResource):
     name : str = None

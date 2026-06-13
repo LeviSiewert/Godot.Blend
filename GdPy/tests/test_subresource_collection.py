@@ -1,6 +1,6 @@
+from ..structure.core.primitives import Context
 from ..structure.sub_resource_collections import CollectionSubRes, CollectionNodeRes
 from ..structure.sub_resources import SubResourceNode, SubResource
-
 
 # def test_base_behavior():
 #     col = CollectionSubRes()
@@ -21,10 +21,11 @@ def test_tree_construction():
     nodeb = SubResourceNode.new(name="B", parent=".")
     nodec = SubResourceNode.new(name="C", parent="B")
     noded = SubResourceNode.new(name="D", parent="B")
-
+    c = Context()
     col = CollectionNodeRes()
     col.extend((nodea, nodeb, nodec, noded))
-    col.build_tree()
+    assert(nodea.unique_id != None)
+    col.build_tree(c)
     assert(col.root is nodea)
     assert(nodea.get_children() == (nodeb,))
     assert(nodeb.get_children() == (nodec,noded))

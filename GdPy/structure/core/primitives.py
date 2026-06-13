@@ -255,16 +255,19 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
     def _key_extractor(self, item:T)->dict:
         res = {}
         for k in (*self._keys, *self._unique_keys):
-            _r = getattr(item, k, None)
-            if (_r is None):
-                _r = self._generate_missing_secondary_key(k,item)
-            if (_r is None) and (self._ignore_no_key):
+            s_key = getattr(item, k, None)
+            if (s_key is None):
+                s_key = self._generate_missing_secondary_key(k,item)
+                self._assign_unique_key(k, s_key, item)
+            if (s_key is None) and (self._ignore_no_key):
                 continue
-            elif _r is None:
+            elif s_key is None:
                 raise KeyError(f"Could not extract or generate key;{item}.{k}",)
+            res[k] = s_key
         return res
     
     def _append_item(self, item:T, keys:dict)->None:
+        self._items.append(item)
         self._cache[item] = []
         for pk, sk in keys.items():
             if pk in self._keys:
@@ -276,8 +279,7 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
             self._cache[item].append((pk,sk))
 
     def _remove_item(self, item:T)->None:
-        if not (item in self._cache.items()):
-            raise LookupError("Item not in this collection", item)
+        self._items.remove(item)
         for pk, sk in self._cache[item]:
             if pk in self._keys:
                 self._remove_item_shared(pk,sk,item)
@@ -313,7 +315,7 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
     def _generate_unique_key(self, di:dict, p_key:PK, s_key:SK, item:T)->SK:
         raise NotImplementedError("Undefined behavior! Override Class to fullfill as req")
 
-    def _assign_unique_key(self, di:dict, p_key:PK, s_key:SK, item:T)->None:
+    def _assign_unique_key(self, p_key:PK, s_key:SK, item:T)->None:
         raise NotImplementedError("Undefined behavior! Override Class to fullfill as req")
 
     def get(self, pk, sk, default:Any=None)->T|list[T]:
