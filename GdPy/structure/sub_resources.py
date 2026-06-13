@@ -4,6 +4,7 @@ from typing import Self
 from contextlib import contextmanager
 from abc import abstractmethod
 from .core.primitives import MultiKeyCollection
+from .values import GdValuePackedStringArray
 import random
 import string
 
@@ -12,7 +13,7 @@ class _SubResource(GdSubResource):
 
     def __init__(self,_construct:bool=False):
         if not _construct:
-            self.setup()
+            self.setup()            
         super().__init__()
 
     def setup(self):
@@ -33,15 +34,23 @@ class _SubResource(GdSubResource):
     @classmethod
     def parse_lark(cls, key, trfm, header_properties:PropertyCollection, body_properties:PropertyCollection):
         self = cls(_construct = True)
-        for k,v in header_properties.items():
+        for k,v in header_properties.items.items():
             assert(hasattr(self, k))
-            setattr(self,+k, v)
+            setattr(self, k, v)
         self.properties = body_properties
         return self
 
 
     def get_struct_children(self):
         return self.properties.items.values()
+    
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return self.properties == self.properties
+        return super().__eq__(value)
+    
+    def __hash__(self):
+        return super().__hash__()
 
 class SubResourceExt(_SubResource):
     type : str = None
@@ -51,7 +60,7 @@ class SubResourceExt(_SubResource):
 
     @classmethod
     def lark_keys(cls):
-        return ("sub_resource")
+        return ("ext_resource",)
 
 class SubResourceEdit(_SubResource):
     type : str = None
@@ -61,34 +70,22 @@ class SubResourceEdit(_SubResource):
     
     @classmethod
     def lark_keys(cls):
-        return ("edit_resource")
+        return ("edit_resource",)
 
 class SubResource(_SubResource): #ClassDbEnforcable):
     type : str = None
     id : int = None
 
-    @property
-    def type(self)->str:
-        return self._type
-    @type.setter
-    def type(self, value:str)->None:
-        self._type = value
-    @property
-    def id(self)->str:
-        return self._id
-    @id.setter
-    def id(self, value:str)->None:
-        self._id = value
-
     @classmethod
     def lark_keys(cls):
-        return ("sub_resource")
+        return ("sub_resource",)
 
 class SubResourceNode(_SubResource): #ClassDbEnforcable):
     name : str = None
     type : str = None
     parent : str = None
     unique_id : int = None
+    node_paths : GdValuePackedStringArray = None
 
     is_root : bool = False
     tree : MultiKeyCollection = None
@@ -98,11 +95,11 @@ class SubResourceNode(_SubResource): #ClassDbEnforcable):
 
     @classmethod
     def lark_keys(cls):
-        return ("node_resource")
+        return ("node_resource",)
 
     def __init__(self, _construct = False):
         self._children = []
-        # super().__init__(_construct)
+        super().__init__(_construct)
 
     def add_child(self,item:SubResourceNode):
         assert(item._parent == None)
@@ -146,7 +143,7 @@ class ResourceContainer(_SubResource):
 
     @classmethod
     def lark_keys(cls):
-        return ("prim_resource")
+        return ("prim_resource",)
     
     @classmethod
     def parse_lark(cls, key, trfm, body_properties:PropertyCollection):

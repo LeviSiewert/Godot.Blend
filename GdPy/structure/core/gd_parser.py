@@ -57,6 +57,10 @@ class _BaseTransformer(Transformer):
     def packed_12(self, children): 
         return children
 
+    def BOOL(self, k):
+        if k == "true": 
+            return True
+        return False
     
     def NULL(self, *args):
         return None
@@ -111,9 +115,9 @@ class GdParser():
         parser = Lark(self.grammer, maybe_placeholders=True, start=start)
         tree = parser.parse(data) 
         result = self._transformer.transform(tree)
-        if isinstance(result, GdType) and cache_tree:
-            with cache_tree.traverse(True):
-                self.build_cache_tree(result)
+        # if isinstance(result, GdType) and cache_tree:
+        #     with cache_tree.traverse(True):
+        #         self.build_cache_tree(result)
         return result
     
     def build_cache_tree(self, result:GdType):

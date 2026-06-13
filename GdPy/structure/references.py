@@ -11,6 +11,14 @@ class GdValueExtResource(GdValue):
     address : str = None
     value : GdResource = None ##GdExtResource object
 
+    def __init__(self, value:str|GdResource=None):
+        if isinstance(value,GdResource):
+            self.value = value
+            self.address = value.id
+        else:
+            self.address = value
+        super().__init__()
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("extresource",)
@@ -30,11 +38,25 @@ class GdValueExtResource(GdValue):
         self.value = res.get_extresource(c, self.address)
         # res.get_subresource(c, self.address)
 
+    def __eq__(self, val):
+        if isinstance(val,GdValueExtResource):
+            return val.address == self.address
+        else:
+            return val == self.address
+
 class GdValueNodePath(GdValue):
     _cache_layers = ("postload_nodepath",)
     ref : Any
     address : str = None
     value : GdSubResource = None
+
+    def __init__(self, value:str|GdResource=None):
+        if isinstance(value, GdResource):
+            self.value = value
+            self.address = value.get_nodepath()
+        else:
+            self.address = value
+        super().__init__()
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -54,11 +76,25 @@ class GdValueNodePath(GdValue):
         res = c.resource.get()
         res.get_nodepath(c, self.address)
 
+    def __eq__(self, val):
+        if isinstance(val,GdValueNodePath):
+            return val.address == self.address
+        else:
+            return val == self.address
+
 class GdValueSubResource(GdValue):
     _cache_layers = ("postload_subresource",)
     ref : Any
     address : str = None
     value : GdSubResource = None
+
+    def __init__(self, value:str|GdResource=None):
+        if isinstance(value, GdResource):
+            self.value = value
+            self.address = value.id
+        else:
+            self.address = value
+        super().__init__()
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -77,12 +113,26 @@ class GdValueSubResource(GdValue):
         if not self.address: return
         res = c.resource.get()
         self.value = res.get_subresource(c, self.address)
-    
+
+    def __eq__(self, val):
+        if isinstance(val,GdValueSubResource):
+            return val.address == self.address
+        else:
+            return val == self.address
+
 class GdValueResourceID(GdValue):
     _cache_layers = ("postload_rid",)
     ref : Any
     address : str = None
     value : File = None
+
+    def __init__(self, value:str|GdResource=None):
+        if isinstance(value, GdResource):
+            self.value = value
+            self.address = value.uid
+        else:
+            self.address = value
+        super().__init__()
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -102,6 +152,12 @@ class GdValueResourceID(GdValue):
         if not self.address: return
         file_db = c.file_db.get()
         self.value = file_db.get_file(self.address, null_ok=True)
+
+    def __eq__(self, val):
+        if isinstance(val,GdValueResourceID):
+            return val.address == self.address
+        else:
+            return val == self.address
 
 _all : tuple[Type] = [
     GdValueExtResource,

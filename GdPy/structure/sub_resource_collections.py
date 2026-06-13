@@ -35,6 +35,11 @@ class _CollectionSubResource[T:_SubResource](GdType, MultiKeyCollection): #type:
     
     def get_struct_children(self,)->tuple[GdType]:
         return tuple(self._items)
+    
+    def __eq__(self, value):
+        if isinstance(value, _CollectionSubResource):
+            return self._items == value._items
+        return super().__eq__(value)
 
 class CollectionNodeRes[T:SubResourceNode](_CollectionSubResource):
     _unique_keys = ("unique_id",)
@@ -137,6 +142,7 @@ class CollectionSubRes[T:SubResourceNode](_CollectionSubResource):
 
 class CollectionCatRes[T:SubResourceNode](_CollectionSubResource):
     _unique_keys = ("name",)
+    _get_default_key = "name"
     @classmethod
     def lark_keys(cls):
         return ("cat_resources",)

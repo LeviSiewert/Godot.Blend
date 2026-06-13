@@ -75,9 +75,9 @@ class GdValue(GdType):
     def get_struct_children(self)->tuple[GdType|Any]:
         return tuple()
 
-    @abstractmethod
-    def set_value(self, value)->None:
-        pass
+    # @abstractmethod
+    # def set_value(self, value)->None:
+    #     pass
 
     def __repr__(self,):
         return f"{self.__class__.__name__}({str(self.value)})"

@@ -18,7 +18,7 @@ _projdir = _Path(__file__).parent.resolve() / "project"
 
 def project_resource_expected()->GdResourceFileImport:
     res = GdResourceFileImport()
-    res.configuration_version = 5
+    res.config_version = 5
 
     res.cat_resources.extend([
         SubResourceCategory.new(name = "application", properties = PropertyCollection({
@@ -47,10 +47,10 @@ def test_project_resource():
 
     res : GdResourceFileImport = file.data
     assert (res.config_version == exp.config_version)
-    assert(res.categories["application"] == exp.categories["application"])
-    assert(res.categories["display"] == exp.categories["display"])
-    assert(res.categories["physics"] == exp.categories["physics"])
-    assert(res.categories["rendering"] == exp.categories["rendering"])
+    assert(res.cat_resources["application"] == exp.cat_resources["application"])
+    assert(res.cat_resources["display"] == exp.cat_resources["display"])
+    assert(res.cat_resources["physics"] == exp.cat_resources["physics"])
+    assert(res.cat_resources["rendering"] == exp.cat_resources["rendering"])
 
 def get_exp_tscn()->GdResourceFileScene:
     c = Context()
@@ -59,34 +59,34 @@ def get_exp_tscn()->GdResourceFileScene:
     res.uid = "uid://c0irlon13iq4o"
     
     res.node_resources.extend((
-            SubResourceNode(name="A", type="None", parent=None, unique_id=653408050, node_paths=GdValuePackedStringArray(("noderef",)), properties = PropertyCollection({
+            SubResourceNode.new(name="A", type="Node", parent=None, unique_id=653408050, node_paths=GdValuePackedStringArray(("noderef",)), properties = PropertyCollection({
                 "script" : GdValueExtResource("1_8dc4x"),
                 "resource" : GdValueSubResource("Resource_1gj03"),
                 "noderef" : GdValueNodePath("B/D"),
             }.items())),
-            SubResourceNode(name="D", type="None", parent="B", unique_id=1174449336, node_paths=GdValuePackedStringArray(("noderef",)), properties = PropertyCollection({
+            SubResourceNode.new(name="D", type="Node", parent="B", unique_id=1174449336, node_paths=GdValuePackedStringArray(("noderef",)), properties = PropertyCollection({
                 "script" : GdValueExtResource("1_8dc4x"),
                 "resource" : GdValueSubResource("Resource_8dc4x"),
                 "noderef" : GdValueNodePath("../../C/E"),
             }.items())),
-            SubResourceNode(name="C", type="None", parent=".", unique_id=452580425, properties = PropertyCollection({
+            SubResourceNode.new(name="C", type="Node", parent=".", unique_id=452580425, properties = PropertyCollection({
                 "unique_name_in_owner" : True
             }.items())),
-            SubResourceNode(name="B", type="None", parent=".", unique_id=1524297946),
-            SubResourceNode(name="E", type="None", parent="C", unique_id=1972079933),
+            SubResourceNode.new(name="B", type="Node", parent=".", unique_id=1524297946),
+            SubResourceNode.new(name="E", type="Node", parent="C", unique_id=1972079933),
     ))
     
     res.sub_resources.extend((
-        SubResource(id="Resource_1gj03", type="Resource", properties=PropertyCollection({
+        SubResource.new(id="Resource_1gj03", type="Resource", properties=PropertyCollection({
             "resource_local_to_scene" : True
         }.items())),
-        SubResource(id="Resource_8dc4x", type="Resource", properties=PropertyCollection({
+        SubResource.new(id="Resource_8dc4x", type="Resource", properties=PropertyCollection({
             "resource_local_to_scene" : True
         }.items())),
     ))
     
     res.ext_resources.extend((
-        SubResourceExt(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="1_8dc4x"),
+        SubResourceExt.new(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="1_8dc4x"),
     ))
     
     res.node_resources.build_tree(c)
@@ -99,6 +99,7 @@ def test_tscn():
     file = FileTscn(_projdir/"assets"/"tscn.tscn")
     file.load(c)
     res : GdResourceFileScene = file.data
+    res.node_resources.build_tree(c)
 
     assert(res.format == exp.format)
     assert(res.uid == exp.uid)
@@ -109,8 +110,14 @@ def test_tscn():
     assert(res.node_resources[452580425])
     assert(res.node_resources[1972079933])
 
-    assert(res.node_resources[653408050] == exp.node_resources[653408050])
-    assert(res.node_resources[1524297946] == exp.node_resources[1524297946])
-    assert(res.node_resources[1174449336] == exp.node_resources[1174449336])
-    assert(res.node_resources[452580425] == exp.node_resources[452580425])
-    assert(res.node_resources[1972079933] == exp.node_resources[1972079933])
+    def _compare(a, b):
+        assert(a.name == b.name)
+        assert(a.type == b.type)
+        assert(a.properties.items == b.properties.items)
+        assert(len(a._children) == len(b._children))
+
+    _compare(res.node_resources[653408050], exp.node_resources[653408050])
+    _compare(res.node_resources[1524297946], exp.node_resources[1524297946])
+    _compare(res.node_resources[1174449336], exp.node_resources[1174449336])
+    _compare(res.node_resources[452580425], exp.node_resources[452580425])
+    _compare(res.node_resources[1972079933], exp.node_resources[1972079933])

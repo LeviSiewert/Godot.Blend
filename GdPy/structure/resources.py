@@ -24,8 +24,9 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
     @classmethod
     def parse_lark(cls, key, tfrm, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, prim_res:PropertyCollection):
         self = cls(True)
-        for k,v in header.items():
-            assert(hasattr(k,v))
+        for k,v in header.items.items():
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of header attribute:", self,k)
             setattr(self,k,v)
         self.properties = prim_res
         self.ext_resources = ext_res
@@ -40,6 +41,9 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
         return (self.ext_resources, self.sub_resources)
         
 class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
+    format : int = None
+    uid : str = None
+
     ext_resources : CollectionExtRes
     sub_resources : CollectionSubRes
     node_resources : CollectionNodeRes
@@ -47,13 +51,15 @@ class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
 
     @classmethod
     def lark_keys(cls):
-        return ("file_tscn")
+        return ("file_tscn",)
 
     @classmethod
     def parse_lark(cls, key, tfrm, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, node_res:CollectionNodeRes, edit_res:CollectionEditRes):
         self = cls(True)
-        for k,v in header.items():
-            assert(hasattr(k,v))
+        # raise Exception(header.items)
+        for k,v in header.items.items():
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of header attribute:", self,k)
             setattr(self,k,v)
         self.ext_resources = ext_res
         self.sub_resources = sub_res

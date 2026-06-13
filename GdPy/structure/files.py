@@ -71,7 +71,7 @@ class FileTres[T:GdResource](File):
 class FileTscn(FileTres):
     _file_match_priority = 0
     _file_match_extensions = ("tscn","escn")
-    _gd_parser_start_key = "file_scene"
+    _gd_parser_start_key = "file_tscn"
 
     def load(self, context:Context):
         with context.w("file", self):
