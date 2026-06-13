@@ -15,7 +15,6 @@ class _CollectionSubResource[T:_SubResource](GdType, MultiKeyCollection): #type:
         return self
 
     def _assign_unique_key(self, di, p_key, s_key, item):
-        ## TODO: Replace with int w/ len 9
         setattr(item, p_key, s_key)
 
     def _generate_unique_key(self, di, p_key, s_key, item):
@@ -27,6 +26,9 @@ class _CollectionSubResource[T:_SubResource](GdType, MultiKeyCollection): #type:
 class CollectionNodeRes[T:SubResourceNode](_CollectionSubResource):
     _unique_keys = ("unique_id",)
     _get_default_key = "unique_id"
+    
+    root : T
+
     @classmethod
     def lark_keys(cls):
         return ("node_resources",)
@@ -34,6 +36,44 @@ class CollectionNodeRes[T:SubResourceNode](_CollectionSubResource):
     def _generate_missing_secondary_key(self, p_key, item):
         r = 9
         return random.randint(10^(r-1), (10^r)-1)
+    
+    def build_tree(self)->list[T]:
+        """ Build tree from Node.parent namespace 
+        return items that failed to attach to the tree correctly and were placed at the root 
+        """
+        ## TODO: Secondary trees imported & attached
+        ## FEATURE_SET: Tree matcher 
+
+        t_namespace = {}
+        root : T
+        hanging = []
+
+        for n in self._items:
+            if n.parent is None:
+                assert(root is None)
+                root = n
+                t_namespace["."] = n
+                continue
+            path = f"{n.parent}/{n.name}"
+            assert(not (path in t_namespace.keys()))
+            t_namespace[path] = n
+        
+        if root is None:
+            raise LookupError("Could not determine root!")
+        
+        for n in self._items:
+            if n.parent is None:
+                assert(n is root)
+                continue
+            if n.parent in t_namespace.keys():
+                t_namespace[n.parent].add_child(n)
+            else:
+                n.name = f"{n.parent}/{n.name}"
+                root.add_child(n)
+                hanging.append(n)
+
+        return hanging
+        
 
 class CollectionExtRes[T:SubResourceExt](_CollectionSubResource):
     _unique_keys = ("uid", "id")
