@@ -331,31 +331,30 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
     def get_itemkeys(self, item:T)->dict[tuple[PK,SK]]:
         return self._cache[item]
         
-    def _key_matcher(self,key)->tuple[PK,SK]|PK:
-        ## TODO: Improve this logic flow, not pleasing
-        if isinstance(key, tuple):
-            return key
-        elif (key in self._keys) or (key in self._unique_keys):
-            return key
-        elif self._get_default_key:
+    def _key_matcher(self, key)->tuple[PK,SK]|None:
+        """ Iterface to determine PK, SK by input key, if key not tuple & not matching primary keys """
+        if self._get_default_key:
             return (self._get_default_key, key)
-        else:
-            raise KeyError("Could not match key!")
+        # raise KeyError("Could not match key to (primary, secondary) key pair!")
 
-    def __getitem__(self, key:PK|tuple[PK, SK]):
-        key = self._key_matcher(key)
-        if not isinstance(key, tuple):
-            if pk in self._keys:
-                return self._shared_dicts[pk]
-            elif pk in self._unique_keys:
-                return self._unique_dicts[pk]
-            else:
-                raise KeyError("Primary key not defined:", pk)
-        pk,sk = key
-        if pk in self._keys:
-            return self._shared_dicts[pk][sk]
-        elif pk in self._unique_keys:
-            return self._unique_dicts[pk][sk]
+    def __getitem__(self, key:tuple[PK,SK]|SK|PK):
+        if (key in self._keys):
+            return self._shared_dicts[key]
+        if (key in self._unique_keys):
+            return self._unique_dicts[key]
+        
+        if isinstance(key, tuple):
+            pk,sk = key
         else:
-            raise KeyError("Primary key not defined:", pk)
+            keys = self._key_matcher(key)
+            if keys is None:
+                raise KeyError("Could not match key to (primary, secondary) key pair!")
+            pk,sk = keys
+                
+        if (pk in self._keys):
+            return self._shared_dicts[pk][sk]        
+        if (pk in self._unique_keys):
+            return self._unique_dicts[pk][sk]
+        
+        raise KeyError("(Primary,Secondary) key set not found", pk, sk)
         

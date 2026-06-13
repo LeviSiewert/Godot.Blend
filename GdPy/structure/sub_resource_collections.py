@@ -32,7 +32,6 @@ class CollectionNodeRes[T:SubResourceNode](_CollectionSubResource):
         return ("node_resources",)
     
     def _generate_missing_secondary_key(self, p_key, item):
-        ## TODO: Replace with int w/ len 9
         r = 9
         return random.randint(10^(r-1), (10^r)-1)
 
