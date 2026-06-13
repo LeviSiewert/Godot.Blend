@@ -29,7 +29,7 @@ class _SubResource(GdSubResource):
                 raise KeyError("Requires predefition of header attribute:", self,k)
             setattr(self,k,v)
         return self
-
+    
     @classmethod
     def parse_lark(cls, key, trfm, header_properties:PropertyCollection, body_properties:PropertyCollection):
         self = cls(_construct = True)

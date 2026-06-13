@@ -39,7 +39,7 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
     def get_struct_children(self):
         return (self.ext_resources, self.sub_resources)
         
-class GdResourceFileScene(_GdResource, ClassDbEnforcable):
+class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
     ext_resources : CollectionExtRes
     sub_resources : CollectionSubRes
     node_resources : CollectionNodeRes
