@@ -17,11 +17,15 @@ class _SubResource(GdSubResource):
     def setup(self):
         self.properties = PropertyCollection()
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
     @classmethod
     def new(cls, **kwargs)->Self:
         self = cls()
         for k,v in kwargs.items():
-            assert(hasattr(self,k))
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of header attribute:", self,k)
             setattr(self,k,v)
         return self
 
@@ -30,45 +34,58 @@ class _SubResource(GdSubResource):
         self = cls(_construct = True)
         for k,v in header_properties.items():
             assert(hasattr(self, k))
-            setattr(self, "_"+k, v)
+            setattr(self,+k, v)
         self.properties = body_properties
 
     def get_struct_children(self):
         return self.properties.items()
 
 class SubResourceExt(_SubResource):
-    _type : str = None
-    _path : str = None
-    _uid : int = None
-    _id : int = None
-    
+    type : str = None
+    path : str = None
+    uid : int = None
+    id : int = None
+
     @classmethod
     def lark_keys(cls):
         return ("sub_resource")
 
 class SubResourceEdit(_SubResource):
-    _type : str = None
-    _path : str = None
-    _uid : int = None
-    _id : int = None
+    type : str = None
+    path : str = None
+    uid : int = None
+    id : int = None
     
     @classmethod
     def lark_keys(cls):
         return ("edit_resource")
 
-class SubResource(_SubResource, ClassDbEnforcable):
-    _type : str = None
-    _id : int = None
+class SubResource(_SubResource): #ClassDbEnforcable):
+    type : str = None
+    id : int = None
+
+    @property
+    def type(self)->str:
+        return self._type
+    @type.setter
+    def type(self, value:str)->None:
+        self._type = value
+    @property
+    def id(self)->str:
+        return self._id
+    @id.setter
+    def id(self, value:str)->None:
+        self._id = value
 
     @classmethod
     def lark_keys(cls):
         return ("sub_resource")
 
-class SubResourceNode(_SubResource, ClassDbEnforcable):
-    _name : str = None
-    _type : str = None
-    _parent : str = None
-    _unique_id : int = None
+class SubResourceNode(_SubResource): #ClassDbEnforcable):
+    name : str = None
+    type : str = None
+    parent : str = None
+    unique_id : int = None
 
     is_root : bool
     owner : GdResource
@@ -80,7 +97,7 @@ class SubResourceNode(_SubResource, ClassDbEnforcable):
         return ("node_resource")
 
 class SubResourceCategory(_SubResource):
-    _name : str = None
+    name : str = None
 
     @classmethod
     def lark_keys(cls):
@@ -93,7 +110,7 @@ class SubResourceCategory(_SubResource):
         self.properties = body_properties
 
 class ResourceContainer(_SubResource):
-    _name : str = None
+    name : str = None
 
     @classmethod
     def lark_keys(cls):

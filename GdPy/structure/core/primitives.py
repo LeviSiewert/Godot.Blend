@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Self, Callable, Any
+from typing import Self, Callable, Any, Iterable
 from inspect import get_annotations
 from abc import ABC, abstractmethod
 from contextvars import ContextVar
@@ -213,23 +213,26 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
     item_removed : Signal[T]
     # key_changed : Signal[T,PK,SK]
 
-    _keys : tuple[str] = tuple()
+    _keys : tuple[PK] = tuple()
     ## Keys that return a tuple of items matching
-    _unique_keys : tuple[str] = tuple()
+    _unique_keys : tuple[PK] = tuple()
     ## Keys that require a single return per key
-    _required_keys : tuple[str] = tuple()
+    _required_keys : tuple[PK] = tuple()
     ## Keys that are generated and assigned if missing
+    _ignore_no_key = False
+    ## Ignore if a specific key cannot be generated
+    _get_default_key : PK = None
 
     _items : list[T]
-    _shared_dicts : dict[str,dict[str, list[T]]]
-    _unique_dicts : dict[str,dict[str, T]]
-    _cache : dict[T,tuple[str,str]]
-    _ignore_no_key = False
+    _shared_dicts : dict[PK,dict[SK, list[T]]]
+    _unique_dicts : dict[PK,dict[SK, T]]
+    _cache : dict[T,tuple[PK,SK]]
 
     def __init__(self):
         self._items = []
         self._shared_dicts = {}
         self._unique_dicts = {}
+        self._cache = {}
         for k in self._unique_keys:
             self._unique_dicts[k] = {}
         for k in self._keys:
@@ -241,17 +244,21 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
         self._append_item(item,keys)
         self.item_appended(item)
 
+    def extend(self,items:Iterable[T]):
+        for x in items:
+            self.append(x)
+
     def remove(self,item:T):
         self._remove_item(item)
         self.item_removed(item)
 
     def _key_extractor(self, item:T)->dict:
         res = {}
-        for k in (*self._keys, self._unique_keys):
+        for k in (*self._keys, *self._unique_keys):
             _r = getattr(item, k, None)
             if (_r is None):
                 _r = self._generate_missing_secondary_key(k,item)
-            if _r is None & self._ignore_no_key:
+            if (_r is None) and (self._ignore_no_key):
                 continue
             elif _r is None:
                 raise KeyError(f"Could not extract or generate key;{item}.{k}",)
@@ -324,7 +331,19 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
     def get_itemkeys(self, item:T)->dict[tuple[PK,SK]]:
         return self._cache[item]
         
+    def _key_matcher(self,key)->tuple[PK,SK]|PK:
+        ## TODO: Improve this logic flow, not pleasing
+        if isinstance(key, tuple):
+            return key
+        elif (key in self._keys) or (key in self._unique_keys):
+            return key
+        elif self._get_default_key:
+            return (self._get_default_key, key)
+        else:
+            raise KeyError("Could not match key!")
+
     def __getitem__(self, key:PK|tuple[PK, SK]):
+        key = self._key_matcher(key)
         if not isinstance(key, tuple):
             if pk in self._keys:
                 return self._shared_dicts[pk]
