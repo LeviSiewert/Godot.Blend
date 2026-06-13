@@ -62,6 +62,20 @@ class SubResourceExt(_SubResource):
     def lark_keys(cls):
         return ("ext_resource",)
 
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return all ([
+                self.properties == value.properties,
+                self.type == value.type,
+                self.path == value.path,
+                self.uid == value.uid,    
+                self.id == value.id,    
+            ])
+        return super().__eq__(value)
+
+    def __hash__(self):
+        return super().__hash__()
+
 class SubResourceEdit(_SubResource):
     type : str = None
     path : str = None
@@ -71,6 +85,20 @@ class SubResourceEdit(_SubResource):
     @classmethod
     def lark_keys(cls):
         return ("edit_resource",)
+    
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return all ([
+                self.properties == value.properties,
+                self.type == value.type,
+                self.path == value.path,
+                self.uid == value.uid,    
+                self.id == value.id,    
+            ])
+        return super().__eq__(value)
+
+    def __hash__(self):
+        return super().__hash__()
 
 class SubResource(_SubResource): #ClassDbEnforcable):
     type : str = None
@@ -79,13 +107,25 @@ class SubResource(_SubResource): #ClassDbEnforcable):
     @classmethod
     def lark_keys(cls):
         return ("sub_resource",)
+    
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return all ([
+                self.properties == value.properties,
+                self.type == value.type,  
+                self.id == value.id,    
+            ])
+        return super().__eq__(value)
+
+    def __hash__(self):
+        return super().__hash__()
 
 class SubResourceNode(_SubResource): #ClassDbEnforcable):
     name : str = None
     type : str = None
+    node_paths : GdValuePackedStringArray = None
     parent : str = None
     unique_id : int = None
-    node_paths : GdValuePackedStringArray = None
 
     is_root : bool = False
     tree : MultiKeyCollection = None
@@ -123,6 +163,19 @@ class SubResourceNode(_SubResource): #ClassDbEnforcable):
 
     def __repr__(self):
         return f"Node(name='{self.name}')"
+
+    def __eq__(self, value):
+        if isinstance(value, self.__class__):
+            return all ([
+                self.properties == value.properties,
+                self.name == value.name,
+                self.type == value.type,
+                self.node_paths == value.node_paths,
+            ])
+        return super().__eq__(value)
+
+    def __hash__(self):
+        return super().__hash__()
 
 class SubResourceCategory(_SubResource):
     name : str = None
