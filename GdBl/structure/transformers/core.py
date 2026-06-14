@@ -9,16 +9,19 @@ from ..core.structure import _all as bl_core_all
 from abc import ABC, abstractmethod
 from typing import Any, Type, Callable, Iterable
 
-from inspect import is_generator_function
+from inspect import isgeneratorfunction
 
 
-class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]():
-    
+class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]:
     data : dict[str|A|B, list[TRFM]]
-    _cache : dict[TRFM, dict[str|Type]]
 
     def __init__(self, modules:tuple[TRFM]=None): #, additional:tuple[TRFM]=None):
         self.data = {}
+        for m in modules:
+            m = m()
+            for k in m.get_gdbl_keys():
+                assert(not (k in self.data.keys()))
+                self.data[k] = m
 
     def fr_blender(self, c:BlContext, bl_item:A):
         return self._tree_iterator(c, bl_item, "fr_blender", lambda x: x.get_struct_children())
@@ -30,31 +33,37 @@ class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]():
         
         func = getattr(transformer, function_id)
 
-        if func.is_generator_function(func):
+        if isgeneratorfunction(func):
             _children = {}
             gen = func(c, key, node, _children)
+            
             children = next(gen)
-            if children is None:
-                children = get_children(node)
+            ## TODO: allow yielding of TERMINAL enum (or similar)
+
+            if (children is None) and (transformer._terminal):
+                return next(gen)
+            
+            if (children is None):
+                children = get_children(node) 
+            
             for child in children:
-                _children[child] = self._tree_iterator(child,c, node, function_id, get_children)
+                _children[child] = self._tree_iterator(c, child, function_id, get_children)
+            
             return next(gen)
         else:
             _children = {}
-            children = get_children(node)
-            for child in children:
-                _children[child] = self._tree_iterator(child,c, node, function_id, get_children)
+            if not transformer._terminal:
+                children = get_children(node)
+                for child in children:
+                    _children[child] = self._tree_iterator(c, child, function_id, get_children)
             return func(c, key, node, _children)
 
-    def matcher(self, item:A|B)->tuple[KEY,TRFM]:
-        if isinstance(item, GdType):
-            pass
-        elif isinstance(item, bl_core_all):
-            pass
-        else:
-            raise KeyError("")
+    def matcher(self, item:A|B|Any)->tuple[KEY,TRFM]:
+        return (item.__class__, self.data[item.__class__])
 
 class TransformerModule(ABC):
+    _terminal = False 
+    ## Flag to stop iteration and not call for children
     module_info : dict
 
     @classmethod

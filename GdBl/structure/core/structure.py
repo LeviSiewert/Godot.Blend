@@ -3,7 +3,8 @@ from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, PointerProperty, BoolProperty
 
 ## Project Structure:
-from ...GdPy import GdProject
+# from ....GdPy import GdProject
+
 from contextvars import ContextVar
 class BlProjectItem(PropertyGroup):
     name : StringProperty(name="Name") #type:ignore
@@ -12,7 +13,7 @@ class BlProjectItem(PropertyGroup):
 
 class BlProjects(PropertyGroup):
     items = CollectionProperty(type = BlProjectItem)
-    active_project : ContextVar[GdProject] = ContextVar("GdProject")
+    active_project : ContextVar = ContextVar("GdProject")
 
 
 class BlScene(PropertyGroup):
