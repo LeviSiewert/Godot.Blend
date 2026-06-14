@@ -140,7 +140,7 @@ class CollectionSubRes[T:SubResourceNode](_CollectionSubResource):
         return "Resource_" + "".join(random.choice(string.ascii_letters, string.digits) for i in range(5))
 
 
-class CollectionCatRes[T:SubResourceNode](_CollectionSubResource):
+class CollectionCatRes[T:SubResourceCategory](_CollectionSubResource):
     _unique_keys = ("name",)
     _get_default_key = "name"
     @classmethod
