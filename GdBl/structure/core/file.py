@@ -1,5 +1,5 @@
 from bpy.types import PropertyGroup
-from bpy.props import PointerProperty, StringProperty
+from bpy.props import PointerProperty, StringProperty, CollectionProperty
 from .resource import _BlResource, BlTres, BlTscn, BlSettings
 
 class _BlFile(PropertyGroup):

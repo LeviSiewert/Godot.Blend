@@ -4,7 +4,7 @@ from ....GdPy.structure.core import GdType
 from ....GdPy.structure.core.primitives import MultiKeyCollection
 
 from ..core.primitives import BlContext
-from ..core.structure import _all as bl_core_all
+from ..core import _all as bl_core_all
 
 from abc import ABC, abstractmethod
 from typing import Any, Type, Callable, Iterable

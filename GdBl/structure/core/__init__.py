@@ -25,5 +25,5 @@ def unregister():
         bpy.utils.unregister_class(c)
     del bpy.types.Text.gd
     del bpy.types.Scene.gd
-    del bpy.types.Collection.gd
+    # del bpy.types.Collection.gd
     del bpy.types.Object.gd

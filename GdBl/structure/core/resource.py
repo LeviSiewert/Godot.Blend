@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import PropertyGroup, Object
 from bpy.props import PointerProperty, StringProperty
-from .sub_resource import BlSubResourceCollection, BlExtResourceCollection, BlNodeResourceCollection, BlEditResourceCollection
+from .sub_resource import BlSubResourceCollection, BlExtResourceCollection, BlNodeResourceCollection, BlEditResourceCollection, BlCatResourceCollection
 
 class _BlResource(PropertyGroup):
     ''' Resource representation '''
@@ -33,4 +33,5 @@ _all = (
     BlTscn,
     BlTres,
     BlSettings,
+    BlTscnOnCollection,
 )
