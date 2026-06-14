@@ -45,7 +45,7 @@ class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]:
         key, transformer = self.matcher(node)
 
         func = getattr(transformer, function_id)
-        meta_tree_token = (*c.meta_tree.get(),node)
+        meta_tree_token = c.meta_tree.set((*c.meta_tree.get(),node))
         if isgeneratorfunction(func):
             _children = {}
             gen = func(c, key, node, _children)
@@ -107,7 +107,7 @@ class TransformerModule(ABC):
     #     pass
         
     @abstractmethod
-    def fr_blender(self, k:Any, c:BlContext, bl_item, _children:dict):
+    def fr_blender(self, c:BlContext, k:Any,  bl_item, _children:dict):
         ''' Transformer method, supports pre and post node traversal (depth-first) via yield w/a 
         return: return instance of target object (in bl, assumed to already be in data struct) 
         yield:
@@ -133,7 +133,7 @@ class TransformerModule(ABC):
         return ## New object, added to parent's children
 
     @abstractmethod
-    def to_blender(self, k:Any, c:BlContext, gd_item, _children:dict):
+    def to_blender(self, c:BlContext, k:Any,  gd_item, _children:dict):
         ''' Transformer method, supports pre and post node traversal (depth-first) via yield w/a 
         return: return instance of target object (in bl, assumed to already be in data struct) 
         yield:

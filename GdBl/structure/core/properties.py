@@ -7,10 +7,10 @@ class BlProperty(PropertyGroup):
     name : StringProperty() #type:ignore
     value : StringProperty() #type:ignore
 
-class PropertyCollection(PropertyGroup):
+class BlPropertyCollection(PropertyGroup):
     items : CollectionProperty(type = BlProperty) #type:ignore
 
 _all = (
     BlProperty,
-    PropertyCollection,
+    BlPropertyCollection,
 )
