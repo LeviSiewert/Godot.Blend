@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from ...GdPy.structure.core import GdType
 from contextvars import ContextVar
 from typing import Any
+from inspect import isgeneratorfunction
 
 class BlContext():
     gd_project : ContextVar
@@ -26,9 +27,43 @@ class Transformer():
     def to_blender(self, gd_item):
         pass
 
-    def matcher(self,item)->TransformerModule:
-        if isinstance(item,GdType):
-            pass
+    def tree_traversal(self, node, funcname, default_getchild_func:str)->Any:
+        _children = {}
+        _transformer = self.matcher(node)
+        if _transformer is None:
+            return None
+        transform = getattr(_transformer, funcname)
+        
+        if isgeneratorfunction(transform):
+            ## Call once, transform children!
+            tfm_children = transform(node)
+            if tfm_children is None:
+                tfm_children = getattr(node, default_getchild_func)
+            for _node in tfm_children:
+                _children[_node] = self.tree_traversal(_node, funcname, default_getchild_func)
+            return transform()
+            
+        else:
+            # tfm_children = getattr(node, default_getchild_func)
+            # for _node in tfm_children:
+            #     _children[_node] = self.tree_traversal(_node, funcname, default_getchild_func)
+            # return transform(node)
+            raise Exception("Tranform function must be Generator with one step!")        
+
+    def matcher(self,key)->TransformerModule:
+        ## TODO: for res/subres/nodes this needs to reference the cls_db 
+
+        if isinstance(key,GdType):
+            key = self._gd_key_extractor(key)
+        else:
+            key = self._bl_key_extractor(key)
+
+    def _gd_key_extractor(key)->tuple[str]:
+        ## Get key from 
+        pass
+
+    def _bl_key_extractor(key)->tuple[str]:
+        pass
 
 class TransformerModule(ABC):
     module_info : dict
@@ -121,7 +156,16 @@ class TransformerModuleNodeResource(TransformerModule):
     @abstractmethod
     def to_blender(self, c:BlContext, gd_item, _children:dict, gltf_node=None, edit_subres=None):
         pass
-    
+
     @abstractmethod
-    def fr_blender(self, c:BlContext, gd_item, _children:dict, gltf_node=None, edit_subres=None):
+    def fr_blender(self, c:BlContext, bl_item, _children:dict):
         pass
+
+# class _ExampleTransformer():    
+#     @classmethod
+#     def get_gd_keys(cls)->tuple[str|GdType]:
+#         return ("uid://", SubResourceNode)
+
+#     @classmethod
+#     def get_bl_keys(cls)->tuple[str|Any]:
+#         return ("uid://", bpy.types.Node)
