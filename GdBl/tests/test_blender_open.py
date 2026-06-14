@@ -1,6 +1,6 @@
 import bpy
 from ... import register, unregister, bl_info
-from ..structure.core import BlProjects
+# from ..structure.blcore import BlProjects
 
 
 from pathlib import Path

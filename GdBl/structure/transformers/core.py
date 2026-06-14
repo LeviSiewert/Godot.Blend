@@ -1,48 +1,65 @@
 from __future__ import annotations
+
+from ....GdPy.structure.core import GdType
+from ....GdPy.structure.core.primitives import MultiKeyCollection
+
+from ..core.primitives import BlContext
+from ..core.structure import _all as bl_core_all
+
 from abc import ABC, abstractmethod
-from ...GdPy.structure.core import GdType
-from contextvars import ContextVar
-from typing import Any
+from typing import Any, Type, Callable, Iterable
 
-class BlContext():
-    gd_project : ContextVar
-    gd_file : ContextVar
-    gd_resource : ContextVar
-    gd_subresource : ContextVar
+from inspect import is_generator_function
+
+
+class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]():
     
-    bl_project : ContextVar
-    bl_file : ContextVar
-    bl_resource : ContextVar
-    bl_subresource : ContextVar
+    data : dict[str|A|B, list[TRFM]]
+    _cache : dict[TRFM, dict[str|Type]]
 
-    bl_collection : ContextVar
+    def __init__(self, modules:tuple[TRFM]=None): #, additional:tuple[TRFM]=None):
+        self.data = {}
 
-class Transformer():
-    transfomers : list[TransformerModule]
+    def fr_blender(self, c:BlContext, bl_item:A):
+        return self._tree_iterator(c, bl_item, "fr_blender", lambda x: x.get_struct_children())
+    def to_blender(self, c:BlContext, gd_item:B):
+        return self._tree_iterator(c, gd_item, "to_blender", lambda x: x.get_struct_children())
     
-    def fr_blender(self, bl_item):
-        pass
+    def _tree_iterator(self, c:BlContext, node:A|B, function_id:str, get_children:Callable[...,Iterable|None])->B|A|None:
+        key, transformer = self.matcher(node)
+        
+        func = getattr(transformer, function_id)
 
-    def to_blender(self, gd_item):
-        pass
+        if func.is_generator_function(func):
+            _children = {}
+            gen = func(c, key, node, _children)
+            children = next(gen)
+            if children is None:
+                children = get_children(node)
+            for child in children:
+                _children[child] = self._tree_iterator(child,c, node, function_id, get_children)
+            return next(gen)
+        else:
+            _children = {}
+            children = get_children(node)
+            for child in children:
+                _children[child] = self._tree_iterator(child,c, node, function_id, get_children)
+            return func(c, key, node, _children)
 
-    def matcher(self,item)->TransformerModule:
-        if isinstance(item,GdType):
+    def matcher(self, item:A|B)->tuple[KEY,TRFM]:
+        if isinstance(item, GdType):
             pass
+        elif isinstance(item, bl_core_all):
+            pass
+        else:
+            raise KeyError("")
 
 class TransformerModule(ABC):
     module_info : dict
 
     @classmethod
     @abstractmethod
-    def get_gd_keys(cls)->tuple[str|GdType]:
-        """ Return Keys for GD->BL transformer """
-        return tuple()
-
-    @classmethod
-    @abstractmethod
-    def get_bl_keys(cls)->tuple[str|Any]:
-        """ Return Keys for BL->GD transformer """
+    def get_gdbl_keys(cls)->tuple[str|GdType|Any]:
         return tuple()
 
     # def register(self,):
@@ -63,10 +80,8 @@ class TransformerModule(ABC):
     #     ''' Use to draw on preferences window '''
     #     pass
         
-
-class TransformerModuleSubResource(TransformerModule):
     @abstractmethod
-    def fr_blender(self, c:BlContext, bl_item, _children:dict):
+    def fr_blender(self, k:Any, c:BlContext, bl_item, _children:dict):
         ''' Transformer method, supports pre and post node traversal (depth-first) via yield w/a 
         return: return instance of target object (in bl, assumed to already be in data struct) 
         yield:
@@ -92,7 +107,7 @@ class TransformerModuleSubResource(TransformerModule):
         return ## New object, added to parent's children
 
     @abstractmethod
-    def to_blender(self, c:BlContext, gd_item, _children:dict):
+    def to_blender(self, k:Any, c:BlContext, gd_item, _children:dict):
         ''' Transformer method, supports pre and post node traversal (depth-first) via yield w/a 
         return: return instance of target object (in bl, assumed to already be in data struct) 
         yield:
@@ -116,12 +131,3 @@ class TransformerModuleSubResource(TransformerModule):
         ## _children is now populated
         ## Post-Depth Transform
         return ## New object, added to parent's children
-    
-class TransformerModuleNodeResource(TransformerModule):
-    @abstractmethod
-    def to_blender(self, c:BlContext, gd_item, _children:dict, gltf_node=None, edit_subres=None):
-        pass
-    
-    @abstractmethod
-    def fr_blender(self, c:BlContext, gd_item, _children:dict, gltf_node=None, edit_subres=None):
-        pass
