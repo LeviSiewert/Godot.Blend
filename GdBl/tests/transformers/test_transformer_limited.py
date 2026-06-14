@@ -1,5 +1,5 @@
-from ..structure.transformers.core import TransformerModule, Transformer
-from ..structure.core.primitives import BlContext
+from ...structure.transformers.core import TransformerModule, Transformer
+from ...structure.core.primitives import BlContext
 
 class TrfmString(TransformerModule):
     _terminal = True

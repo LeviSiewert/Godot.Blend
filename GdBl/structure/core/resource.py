@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import PropertyGroup, Object
-from bpy.props import PointerProperty, StringProperty
+from bpy.props import PointerProperty, StringProperty, BoolProperty
 from .sub_resource import BlSubResourceCollection, BlExtResourceCollection, BlNodeResourceCollection, BlEditResourceCollection, BlCatResourceCollection
 
 class _BlResource(PropertyGroup):
@@ -16,6 +16,7 @@ class BlTscn(_BlResource):
 
 class BlTscnOnCollection(_BlResource):
     ''' Variant for nodes that are stored inside of a Collection'''
+    is_used : BoolProperty() #type:ignore
     root_node : PointerProperty(type=Object) #type:ignore
 
     sub_resources : PointerProperty(type=BlSubResourceCollection) #type:ignore

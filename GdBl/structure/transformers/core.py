@@ -24,15 +24,28 @@ class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]:
                 self.data[k] = m
 
     def fr_blender(self, c:BlContext, bl_item:A):
-        return self._tree_iterator(c, bl_item, "fr_blender", lambda x: x.get_struct_children())
+        if c.meta_tree.get() is None:
+            t = c.meta_tree.set(tuple())
+            reset = True
+        res = self._tree_iterator(c, bl_item, "fr_blender", lambda x: x.get_struct_children())
+        if reset:
+            c.meta_tree.reset(t)
+        return res
+    
     def to_blender(self, c:BlContext, gd_item:B):
-        return self._tree_iterator(c, gd_item, "to_blender", lambda x: x.get_struct_children())
+        if c.meta_tree.get() is None:
+            t = c.meta_tree.set(tuple())
+            reset = True
+        res = self._tree_iterator(c, gd_item, "to_blender", lambda x: x.get_struct_children())
+        if reset:
+            c.meta_tree.reset(t)
+        return res
     
     def _tree_iterator(self, c:BlContext, node:A|B, function_id:str, get_children:Callable[...,Iterable|None])->B|A|None:
         key, transformer = self.matcher(node)
-        
-        func = getattr(transformer, function_id)
 
+        func = getattr(transformer, function_id)
+        meta_tree_token = (*c.meta_tree.get(),node)
         if isgeneratorfunction(func):
             _children = {}
             gen = func(c, key, node, _children)
@@ -49,14 +62,18 @@ class Transformer[A,B, KEY:str|Any, TRFM:TransformerModule[A,B]]:
             for child in children:
                 _children[child] = self._tree_iterator(c, child, function_id, get_children)
             
-            return next(gen)
+            res = next(gen)
+            c.meta_tree.reset(meta_tree_token)
+            return res
         else:
             _children = {}
             if not transformer._terminal:
                 children = get_children(node)
                 for child in children:
                     _children[child] = self._tree_iterator(c, child, function_id, get_children)
-            return func(c, key, node, _children)
+            res = func(c, key, node, _children)
+            c.meta_tree.reset(meta_tree_token)
+            return res
 
     def matcher(self, item:A|B|Any)->tuple[KEY,TRFM]:
         return (item.__class__, self.data[item.__class__])
