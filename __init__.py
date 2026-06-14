@@ -22,10 +22,11 @@ bl_info = {
     "category": "Generic",
 }
 
+from .GdBl import structure 
 
 def register(): 
-    ...
+    structure.register()
 
 
 def unregister(): 
-    ...
+    structure.unregister()
