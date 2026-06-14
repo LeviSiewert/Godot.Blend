@@ -7,7 +7,7 @@ from ...GdPy import GdProject
 from contextvars import ContextVar
 class BlProjectItem(PropertyGroup):
     name : StringProperty(name="Name") #type:ignore
-    filepath : StringProperty(name="project_dir", subtype="DIR_PATH", help="Project directory, should have project.godot directly inside") #type:ignore
+    filepath : StringProperty(name="project_dir", subtype="DIR_PATH")# help="Project directory, should have project.godot directly inside") #type:ignore
     #Discovered Scripts here as well?
 
 class BlProjects(PropertyGroup):
@@ -93,8 +93,13 @@ _all = (
         BlSettings,
     )
 
+# _reg = bpy.utils.register_classes_factory(_all)
+
 def register():
-    bpy.utils.register_classes_factory(_all)
+    for c in _all:
+        bpy.utils.register_class(c)
+    bpy.types.Object.Gd = PointerProperty(type=BlNodeResource)
 
 def unregister():
-    bpy.utils.unregister_classes_factory(_all)
+    for c in reversed(_all):
+        bpy.utils.unregister_class(c)

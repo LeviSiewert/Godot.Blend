@@ -12,7 +12,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name": "Bl_gd_importer",
+    "name": "Bl_Gd_importer",
     "author": "Levi Siewert",
     "description": "",
     "blender": (2, 80, 0),
@@ -26,7 +26,6 @@ from .GdBl import structure
 
 def register(): 
     structure.register()
-
 
 def unregister(): 
     structure.unregister()
