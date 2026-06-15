@@ -13,7 +13,7 @@ class TrfmProperty(TransformerModule):
     
     def to_blender(self, c, k, gd_item:GdPropertyCollection, _children):
         map_to : BlPropertyCollection = c.meta_tree.get()[-1]#.property_collection
-        raise Exception(map_to.__class__)
+        
         items : bpy.types.CollectionProperty = map_to.items
         for k,v in gd_item.items.items():
             # item = items.new(name=k)
