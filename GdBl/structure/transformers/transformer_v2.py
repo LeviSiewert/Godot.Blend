@@ -1,17 +1,28 @@
 from __future__ import annotations
-from typing import Any, Iterable, Generator, Callable
+from typing import Any, Iterable, Generator, Callable, Type
 from contextvars import ContextVar, Token
 from inspect import isgeneratorfunction
 
 class TERMINAL: pass
 class IGNORE: pass
+class _DEFAULT: pass
 
 class TransformerContext():
+    def __init__(self, transformer, rulesets:Iterable[TransformerRuleset]):
+        self.transformer = ContextVar(str(id(self))+"transformer", default = transformer)
+        self.current_rulesets = ContextVar(str(id(self))+"current_rulesets", default = tuple(rulesets))
+        self.ruleset = ContextVar(str(id(self))+"ruleset")
+        self.key = ContextVar(str(id(self))+"key")
+        self.chain = ContextVar(str(id(self))+"chain", default = tuple())
+        self.children = ContextVar(str(id(self))+"children")
+        self.children_map = ContextVar(str(id(self))+"children_map")
+
     transformer : ContextVar
     ## Current transformer
 
     current_rulesets : ContextVar[tuple[TransformerRuleset]]
     ## Current rulsets the transformer evaluates in order
+    ## This should never be a mutable iterable for transformation safety
 
     ruleset : ContextVar[TransformerRuleset]                    
     ## Currently utilized ruleset
@@ -29,34 +40,92 @@ class TransformerContext():
     ## Converted Children mapped from prev->post, side-variable via context. Set via _transform_children
     
 class Transformer():
-    def __init__():
-        pass
+    ''' A ModularTransformer Header class, where rulesets are in inverse priority. IE last is evaluted first
+    It should be noted that once called with a specific context, the original rulsets are ignored.
+    '''
 
-    def transform_tree(self, node, c:TransformerContext|None, *args, **kwargs)->IGNORE|None:
-        module, ruleset, key = self.matcher(node)
+    rulesets : list[TransformerRuleset] 
+    ## "Seed" rulesets, runtime uses c.rulesets for evalutation (as subsets of trees may need different rules)
+    ## These are in inverse priority. First to catch a key is returned. If none return a KeyError is raised
+
+    def __init__(self, rulesets:Iterable[TransformerRuleset]=tuple()):
+        self.rulesets = []
+        self.rulesets.extend(rulesets)
+
+    def make_context(self, **kwargs)->TransformerContext:
+        c = TransformerContext(self, self.rulesets)
+        return c 
+    
+    def transform_tree(self, c:TransformerContext|None, node,  *args, **kwargs)->IGNORE|None:
+        if c is None:
+            c = self.make_context(c)
+        
+        ruleset, module, key = self.matcher(c, node)
         
         t0 = c.ruleset.set(ruleset)
         t1 = c.key.set(key)
         
-        res = module.transform_tree()
+        res = module.transform_tree(c,node, *args, **kwargs)
         
         c.key.reset(t1)
         c.ruleset.reset(t0)
         
         return res
     
-    def matcher()->tuple[TransformerModule, TransformerRuleset, Any]:
-        pass
+    def matcher(self, c:TransformerContext, node)->tuple[TransformerRuleset, TransformerModule, str|Any|Type]:
+        rulsets = c.current_rulesets.get(self.rulesets)
+        for r in reversed(rulsets):
+            res = r.matcher()
+            if res:
+                return (r,*res)
+        raise KeyError("Could not determine match node within current ruleset!", node, self.rulesets)
 
 class TransformerRuleset():
-    def __default__(self,):
-        pass
+    ''' This class contains transformer modules, and should be treated as immutable for transformation safety
+    if behavior desires a same index ruleset change, replace in context.
+    '''
+
+    modules : tuple[TransformerModule]
+    data : dict[str|Any|Type,TransformerModule]
+
+    def __init__(self, modules:Iterable[TransformerModule], _reverse=True, _key_safety=True):
+        ''' 
+        _key_safety asserts that each key in a ruleset is unique, default is true
+        _reverse inverts the order of the module, when true and key_safety is off, "key-priority" is effectivly first in modules
+        '''
+
+        self.modules = tuple(modules)
+        if _reverse:
+            self.modules = reversed(self.modules)
+
+        self.data = {}
+
+        for m in self.modules:
+            for k in m.get_keys():
+                if _key_safety:
+                    assert(not (k in self.data.keys()))
+                self.data[k] = m
+
+    def matcher(self, key:str|Any|Type)->None|tuple[TransformerModule,str|Any|Type]:
+        ''' Return TransformerModule and key.
+        if _DEFAULT is present, always return matched item
+        '''
+        if res:=self.data.get(_DEFAULT,None):
+            return (res,_DEFAULT)
+        
+        if res:=self.data.get(key,None):
+            return (res,key)
+        
+        if res:=self.data.get(key.__class__,None):
+            return (res,key.__class__)
+        
+        return None
 
 class TransformerModule():
     _transform_depth_first : True
 
     @classmethod
-    def get_keys(cls)->tuple[str|Any]:
+    def get_keys(cls)->tuple[str|Any|_DEFAULT]:
         ''' Returns keys for the matcher '''
         return tuple()
     
@@ -93,7 +162,7 @@ class TransformerModule():
             "children_map" : c.children_map.set(children_map),
         }        
             
-    def transform_tree(self, c:TransformerContext, key:str|Any, node:Any, *args, **kwargs)->IGNORE|Any:
+    def transform_tree(self, c:TransformerContext, node:Any, *args, **kwargs)->IGNORE|Any:
         # TODO: Determine if I can just make it so that the entire grouping of contextvars is reset after calling children 
 
         kt : dict[str,Token] = {
