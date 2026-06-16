@@ -5,7 +5,7 @@ from inspect import isgeneratorfunction
 
 class TERMINAL: pass
 class IGNORE: pass
-class _DEFAULT: pass
+class DEFAULT: pass
 
 class TransformerContext():
     def __init__(self, transformer, rulesets:Iterable[TransformerRuleset]):
@@ -14,10 +14,14 @@ class TransformerContext():
         self.ruleset = ContextVar(str(id(self))+"ruleset")
         self.key = ContextVar(str(id(self))+"key")
         self.chain = ContextVar(str(id(self))+"chain", default = tuple())
-        self.children = ContextVar(str(id(self))+"children")
+        self.children = ContextVar(str(id(self))+"children", default=tuple())
         self.children_map = ContextVar(str(id(self))+"children_map")
+        self.node = ContextVar(str(id(self))+"node")
 
-    transformer : ContextVar
+    node: ContextVar[Any]
+    ## Current node that is being transformed!
+
+    transformer : ContextVar[Transformer]
     ## Current transformer
 
     current_rulesets : ContextVar[tuple[TransformerRuleset]]
@@ -52,13 +56,13 @@ class Transformer():
         self.rulesets = []
         self.rulesets.extend(rulesets)
 
-    def make_context(self, **kwargs)->TransformerContext:
+    def make_context(self)->TransformerContext:
         c = TransformerContext(self, self.rulesets)
         return c 
     
     def transform_tree(self, c:TransformerContext|None, node,  *args, **kwargs)->IGNORE|None:
         if c is None:
-            c = self.make_context(c)
+            c = self.make_context()
         
         ruleset, module, key = self.matcher(c, node)
         
@@ -73,9 +77,11 @@ class Transformer():
         return res
     
     def matcher(self, c:TransformerContext, node)->tuple[TransformerRuleset, TransformerModule, str|Any|Type]:
+        if c is None:
+            c = self.make_context()
         rulsets = c.current_rulesets.get(self.rulesets)
         for r in reversed(rulsets):
-            res = r.matcher()
+            res = r.matcher(node)
             if res:
                 return (r,*res)
         raise KeyError("Could not determine match node within current ruleset!", node, self.rulesets)
@@ -102,33 +108,37 @@ class TransformerRuleset():
 
         for m in self.modules:
             for k in m.get_keys():
-                if _key_safety:
-                    assert(not (k in self.data.keys()))
+                if _key_safety and (k in self.data.keys()):
+                    raise KeyError("k already registered in ruleset", k, m)
                 self.data[k] = m
 
     def matcher(self, key:str|Any|Type)->None|tuple[TransformerModule,str|Any|Type]:
         ''' Return TransformerModule and key.
-        if _DEFAULT is present, always return matched item
+        if DEFAULT is present, always return matched item
         to customize key extraction, override _key_extractor
         '''
-        if res:=self.data.get(_DEFAULT,None):
-            return (res,_DEFAULT)
         
-        for k in self._key_extractor:
+        for k in self._key_extractor(key):
             if res:=self.data.get(k,None):
                 return (res,k)
+
+        if res:=self.data.get(DEFAULT,None):
+            # raise VisitorException("res", key)
+            return (res, DEFAULT)
         
         return None
     
     def _key_extractor(self,key)->tuple[str|Any|Type]:
         return (key,key.__class__)
 
-class TransformerModule():
-    _transform_depth_first : True
+class VisitorException(Exception):
+    pass
 
-    @classmethod
-    def get_keys(cls)->tuple[str|Any|_DEFAULT]:
-        ''' Returns keys for the matcher '''
+class TransformerModule():
+    _transform_depth_first : bool = True
+
+    def get_keys(self)->tuple[str|Any|DEFAULT]:
+        ''' Returns keys for the matcher, only called once on addition to a Ruleset. Malbehavior can occur if dependencies & behavior are not uniform '''
         return tuple()
     
     def _get_children_default(self, node:Any)->None|TERMINAL|Iterable:
@@ -168,7 +178,8 @@ class TransformerModule():
         # TODO: Determine if I can just make it so that the entire grouping of contextvars is reset after calling children 
 
         kt : dict[str,Token] = {
-            "chain" : c.chain_incoming.set(*c.chain.get(tuple()), node),
+            "node" : c.node.set(node),
+            "chain" : c.chain.set((*c.chain.get(tuple()), node)),
             "children" : c.children.set(None),
             "children_map" : c.children_map.set(None),
         }
@@ -194,12 +205,17 @@ class TransformerModule():
         if (children is None):
             children = self._get_children_default(node)
             if not ((children is None) or (children is TERMINAL)):
-                _kt = self._transform_children_default(children) #-> SIDE EFFECT: context.?
+                _kt = self._transform_children_default(c, node, children, args, kwargs) #-> SIDE EFFECT: context.?
                 
         elif not (children is TERMINAL):
-            _kt = self._transform_children_yielded(children)  #-> SIDE EFFECT: context.?
+            _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
 
+        # try:
         res = next(generator)
+        # except Exception as e:
+        #     if isinstance(e,VisitorException):
+        #         raise e
+        #     raise VisitorException("Transformer exception on", c.key.get(), e)
 
         if _kt:
             kt = _kt | kt   ## oldest key priority

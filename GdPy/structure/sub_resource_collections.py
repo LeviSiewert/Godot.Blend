@@ -9,7 +9,7 @@ from typing import Any
 
 class _CollectionSubResource[T:_SubResource](GdType, MultiKeyCollection): #type:ignore
     @classmethod
-    def parse_lark(cls, key, tscn, *children:T):
+    def parse_lark(cls, key, tc, gdc, *children:T):
         self = cls()
         self.extend(children)
         return self

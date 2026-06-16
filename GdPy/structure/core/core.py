@@ -9,6 +9,8 @@ from .property_collection import PropertyCollection
 from pathlib import Path
 from contextlib import contextmanager
 
+from .transformer_v2 import TransformerContext as Tcontext
+
 class GdProject():
     _cache_layers = ("*",)
     _context_key = "project"
@@ -50,7 +52,7 @@ class GdType(ABC, SignalContainer):
 
     @classmethod
     @abstractmethod
-    def parse_lark(cls, key:str, tfrm, *args, **kwargs)->Self:
+    def parse_lark(cls, key:str|Any, tc:Tcontext, gdc:Context, *args, **kwargs)->Self:
         return
 
 class GdResource(GdType):

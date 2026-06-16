@@ -22,7 +22,7 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
         return ("file_resource")
     
     @classmethod
-    def parse_lark(cls, key, tfrm, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, prim_res:PropertyCollection):
+    def parse_lark(cls, key, tc, gdc, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, prim_res:PropertyCollection):
         self = cls(True)
         for k,v in header.items.items():
             if not hasattr(self,k):
@@ -54,7 +54,7 @@ class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
         return ("file_tscn",)
 
     @classmethod
-    def parse_lark(cls, key, tfrm, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, node_res:CollectionNodeRes, edit_res:CollectionEditRes):
+    def parse_lark(cls, key, tc, gdc, header:PropertyCollection, ext_res:CollectionExtRes, sub_res:CollectionSubRes, node_res:CollectionNodeRes, edit_res:CollectionEditRes):
         self = cls(True)
         # raise Exception(header.items)
         for k,v in header.items.items():
@@ -88,7 +88,7 @@ class GdResourceFileImport(_GdResource):
         self.cat_resources = CollectionCatRes()
 
     @classmethod
-    def parse_lark(cls, key, tfrm, properties:PropertyCollection, cat_res:CollectionCatRes):
+    def parse_lark(cls, key, tc, gdc, properties:PropertyCollection, cat_res:CollectionCatRes):
         self = cls(True)
         for k,v in properties.items.items():
             if not hasattr(self,k):

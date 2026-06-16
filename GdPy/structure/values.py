@@ -11,7 +11,7 @@ class GdValueStringName(GdValue):
         return ("STRINGNAME",)
 
     @classmethod
-    def parse_lark(cls, key:str, tfm, address:Token)->Any:
+    def parse_lark(cls, key, tc, gdc, address): #, address:Token)->Any:
         inst = cls()
         inst.value = str(address).strip('"&')
         return inst
@@ -58,22 +58,22 @@ class GdValueArray(GdValue):
         return ("array","array_explicit")
     
     @classmethod
-    def parse_lark(cls, key:str, *args, **kwargs)->Any:
+    def parse_lark(cls, key, tc, gdc, *args, **kwargs)->Any:
         if key == "array":
-            return cls._parse_implicit(*args, **kwargs)
+            return cls._parse_implicit(tc, gdc, *args, **kwargs)
         elif key == "array_explicit":
-            return cls._parse_explicit(*args, **kwargs)
+            return cls._parse_explicit(tc, gdc, *args, **kwargs)
         else:
             raise Exception("Could not determine key", key)
 
     @classmethod
-    def _parse_explicit(cls, tfm, key, int_array:GdValueArray):
+    def _parse_explicit(cls, tc, gdc, int_array:GdValueArray):
         if int_array is None:
             return cls()
         return int_array
     
     @classmethod
-    def _parse_implicit(cls, tfm, *children:list[Token|Any]):
+    def _parse_implicit(cls, tc, gdc, *children:list[Token|Any]):
         inst = cls()
         inst.value = children
         return inst
@@ -105,7 +105,7 @@ class _GdValueArrayPackedType(GdValue):
         self.value = list()
 
     @classmethod
-    def parse_lark(cls, key:str, tf, *args)->Any:
+    def parse_lark(cls, key, tc, gdc, *args)->Any:
         if args == (None,):
             return cls()
         return cls(args)
@@ -136,16 +136,18 @@ class _GdValueArrayFixedLength(GdValue):
         self.value = array(self._arr_type, [0]*self._arr_length)
 
     def set_value(self, value:Iterable):
-        assert(len(value)==self._arr_length)
+        if len(value) != self._arr_length:
+            raise Exception("len(vals) != cls._arr_length", self._arr_length, value )
         self.value = array(self._arr_type, value)
 
     @classmethod
-    def parse_lark(cls, key:str, tf, vals)->Any:
+    def parse_lark(cls, key, tc, gdc, vals)->Any:
         if vals is None:
             return cls()
         if (len(vals)==0) or (vals == (None,)) or (vals == ((None,)*cls._arr_length)):
             return cls()
-        assert(len(vals) == cls._arr_length)
+        if (len(vals) != cls._arr_length):
+            raise Exception("len(vals) != cls._arr_length", cls._arr_length, vals,)
         return cls(vals)
     
     def __iter__(self,):
@@ -395,7 +397,7 @@ class GdValueDictionary(GdValue):
         return self.value == value
 
     @classmethod
-    def parse_lark(cls, key:str, *args, **kwargs)->Any:
+    def parse_lark(cls, key, tc, gdc, *args, **kwargs)->Any:
         if key == "dictionary":
             return cls._parse_implicit(*args, **kwargs)
         elif key == "dictionary_explicit":
@@ -404,13 +406,13 @@ class GdValueDictionary(GdValue):
             raise Exception("Cannot find key", key)
 
     @classmethod
-    def _parse_implicit(cls, tfm, pairs:list[tuple])->Any:
+    def _parse_implicit(cls, pairs:list[tuple])->Any:
         if pairs != None: 
             return cls(pairs)
         return cls()
     
     @classmethod
-    def _parse_explicit(cls, tfm, type_anno, int_dict:Self)->Any:
+    def _parse_explicit(cls, type_anno, int_dict:Self)->Any:
         if int_dict is None:
             int_dict = cls()
         if type_anno:

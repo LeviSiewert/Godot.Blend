@@ -32,7 +32,7 @@ class _SubResource(GdSubResource):
         return self
     
     @classmethod
-    def parse_lark(cls, key, trfm, header_properties:PropertyCollection, body_properties:PropertyCollection):
+    def parse_lark(cls, key, tc, gdc, header_properties:PropertyCollection, body_properties:PropertyCollection):
         self = cls(_construct = True)
         for k,v in header_properties.items.items():
             assert(hasattr(self, k))
@@ -185,7 +185,7 @@ class SubResourceCategory(_SubResource):
         return ("cat_resource",)
     
     @classmethod
-    def parse_lark(cls, _key, trfm, name:str, body_properties:PropertyCollection):
+    def parse_lark(cls, _key, tc, gdc, name:str, body_properties:PropertyCollection):
         self = cls(_construct = True)
         self.name = name
         self.properties = body_properties
@@ -199,7 +199,7 @@ class ResourceContainer(_SubResource):
         return ("prim_resource",)
     
     @classmethod
-    def parse_lark(cls, key, trfm, body_properties:PropertyCollection):
+    def parse_lark(cls, key, tc, gdc, body_properties:PropertyCollection):
         self = cls(True)
         self.properties = body_properties
         return self

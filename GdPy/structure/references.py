@@ -24,7 +24,7 @@ class GdValueExtResource(GdValue):
         return ("extresource",)
 
     @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
+    def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
         inst = cls()
         inst.address = str(address).strip('"')
         return inst
@@ -63,7 +63,7 @@ class GdValueNodePath(GdValue):
         return ("nodepath",)
 
     @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
+    def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
         inst = cls()
         inst.address = str(address).strip('"')
         return inst
@@ -101,7 +101,8 @@ class GdValueSubResource(GdValue):
         return ("subresource",)
 
     @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
+    def parse_lark(cls, key, tc, gdc, type:GdType, *address:Token)->Any:
+        raise Exception(cls, key, tc, gdc, type)
         inst = cls()
         inst.address = str(address).strip('"')
         return inst
@@ -139,7 +140,7 @@ class GdValueResourceID(GdValue):
         return ("rid",)
 
     @classmethod
-    def parse_lark(cls, tfm, meta, type:GdType, address:Token)->Any:
+    def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
         inst = cls()
         if not (address is None):
             inst.address = str(address).strip('"')
