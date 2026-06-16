@@ -109,17 +109,19 @@ class TransformerRuleset():
     def matcher(self, key:str|Any|Type)->None|tuple[TransformerModule,str|Any|Type]:
         ''' Return TransformerModule and key.
         if _DEFAULT is present, always return matched item
+        to customize key extraction, override _key_extractor
         '''
         if res:=self.data.get(_DEFAULT,None):
             return (res,_DEFAULT)
         
-        if res:=self.data.get(key,None):
-            return (res,key)
-        
-        if res:=self.data.get(key.__class__,None):
-            return (res,key.__class__)
+        for k in self._key_extractor:
+            if res:=self.data.get(k,None):
+                return (res,k)
         
         return None
+    
+    def _key_extractor(self,key)->tuple[str|Any|Type]:
+        return (key,key.__class__)
 
 class TransformerModule():
     _transform_depth_first : True
