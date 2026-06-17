@@ -61,7 +61,7 @@ value : NULL
       | BOOL
       | NUMBER
       | FLOAT
-      | STRINGNAME
+      | stringname
       | STRING
 
 
@@ -98,7 +98,7 @@ dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"
 dictionary : "{" [pair ("," pair)*] "}"
 pair : value ":" value
 
-STRINGNAME : "&" STRING
+stringname : "&" STRING
 
 
 // Defered References:
