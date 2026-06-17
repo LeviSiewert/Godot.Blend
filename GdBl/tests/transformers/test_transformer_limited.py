@@ -14,7 +14,7 @@ class TrfmString(TransformerModule):
         assert(len(_children) == 0)
         yield
         assert(len(_children) == 0)
-        yield str(gd_item)
+        return str(gd_item)
 
     def fr_blender(self, c:BlContext, key, bl_item, _children):
         assert(key in self.get_gdbl_keys())
@@ -22,7 +22,7 @@ class TrfmString(TransformerModule):
         assert(len(_children) == 0)
         yield
         assert(len(_children) == 0)
-        yield str(bl_item)
+        return str(bl_item)
 
 class TrfmInt(TransformerModule):
     _terminal = True
@@ -50,7 +50,7 @@ class TrfmArray():
         yield tuple(gd_item)
         
         assert(len(_children) == 3)
-        yield list(_children.values())
+        return list(_children.values())
 
     def fr_blender(self, c:BlContext, key, bl_item, _children):
         assert(key in self.get_gdbl_keys())
@@ -60,7 +60,7 @@ class TrfmArray():
         yield tuple(bl_item)
 
         assert(len(_children) == 3)
-        yield list(_children.values())
+        return list(_children.values())
 
 def test_equivilents():
     transformer = Transformer([TrfmString,TrfmArray])

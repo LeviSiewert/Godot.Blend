@@ -7,14 +7,10 @@ from ..core.primitives import BlContext
 from ..core import _all as bl_core_all
 
 from abc import ABC, abstractmethod
-<<<<<<< HEAD:GdBl/structure/transformer.py
 from ...GdPy.structure.core import GdType
 from contextvars import ContextVar
 from typing import Any
 from inspect import isgeneratorfunction
-=======
-from typing import Any, Type, Callable, Iterable
->>>>>>> bd96feba7fb3a0548806ac0b71e8b553defb5134:GdBl/structure/transformers/core.py
 
 from inspect import isgeneratorfunction
 

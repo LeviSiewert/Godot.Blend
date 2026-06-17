@@ -190,36 +190,40 @@ class TransformerModule():
             if self._transform_depth_first:
                 def func(node, c, *args, **kwargs):
                     yield self._get_children_default(node)
-                    yield self.transform(node, c, *args, **kwargs)
+                    return self.transform(node, c, *args, **kwargs)
             else:
                 def func(node, c, *args, **kwargs):
                     res = self.transform(node, c, *args, **kwargs)
                     yield self._get_children_default(node)
-                    yield res
+                    return res
 
+        # children : None|TERMINAL|Iterable = next(generator) 
+        
         generator = func(node, c, *args, **kwargs)
-        children : None|TERMINAL|Iterable = next(generator)
+        cv = ContextVar("result")
+        def generator_closure(gen:Generator):
+            ## `yield from` forwards iterator results, and returns the res value locally
+            res = yield from gen
+            cv.set(res)
 
-        if (children is None):
-            children = self._get_children_default(node)
-            if not ((children is None) or (children is TERMINAL)):
-                _kt = self._transform_children_default(c, node, children, args, kwargs) #-> SIDE EFFECT: context.?
-                
-        elif not (children is TERMINAL):
-            _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
+        for children in generator_closure(generator):
+            if (children is None):
+                children = self._get_children_default(node)
+                if not ((children is None) or (children is TERMINAL)):
+                    _kt = self._transform_children_default(c, node, children, args, kwargs) #-> SIDE EFFECT: context.?
+                    
+            elif not (children is TERMINAL):
+                _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
 
-        elif (children is TERMINAL):
-            c.children.set(TERMINAL)
-            c.children_map.set(TERMINAL)
-        # try:
-        res : IGNORE|Any = next(generator)
-        # except Exception as e:
-        #     if isinstance(e,VisitorException):
-        #         raise e
-        #     raise VisitorException("Transformer exception on", c.key.get(), e)
+            elif (children is TERMINAL):
+                c.children.set(TERMINAL)
+                c.children_map.set(TERMINAL)
 
-        if _kt:
-            kt = _kt | kt   ## oldest key priority
+            if _kt:
+                kt = _kt | kt   ## oldest key priority
+            _kt = None
+
+        res : IGNORE|Any = cv.get()
 
         for k,t in kt.items():
             getattr(c,k).reset(t)
@@ -229,12 +233,13 @@ class TransformerModule():
     def transform(self, node, c:TransformerContext, *args, **kwargs):
         ''' Transform this node
         If Generator:
-            - Yield children first to transform them or TERMINAL to not set any children
+            - Yield children first to transform them or TERMINAL|None to not set any children
             - transformed children are then set in c.children and c.children_map
                 - set by function (_transform_children_default | _transform_children_yielded | _transform_children)
-            - Yield result after to return the transformed value
+            - Multiple yields are allowed, c.children will be changed for each
+            - return after to return the transformed value
             - before first yield, timing is eq to root first
-            - after second yield timing is eq to depth first
+            - directly before final return, timing is eq to depth first
         If Not Generator:
             - default timing is eq to depth first, all children should be transformed.
             - Root first timing;
@@ -243,4 +248,4 @@ class TransformerModule():
                 - in this case, c.children and c.children_map will *always* be None
         '''
         yield TERMINAL #None|TERMINAL|Iterable[MyChildren]
-        yield IGNORE
+        return IGNORE
