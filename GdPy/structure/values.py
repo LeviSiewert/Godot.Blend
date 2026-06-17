@@ -6,6 +6,11 @@ from array import array
 
 
 class GdValueStringName(GdValue):
+    def __init__(self, val=None):
+        super().__init__()
+        if val != None:
+            self.set_value(val)
+
     @classmethod
     def lark_keys(cls)->tuple[str]: 
         return ("stringname",)
@@ -18,6 +23,12 @@ class GdValueStringName(GdValue):
         
     def set_value(self, value):
         self.value = str(value)
+
+    def __eq__(self, value)->bool:
+        if isinstance(value, self.__class__):
+            return self.value == value
+        return value == self.value
+
 
 class GdValueArray(GdValue):
     value : list
