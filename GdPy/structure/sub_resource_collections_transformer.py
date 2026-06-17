@@ -15,8 +15,8 @@ class GdToPy_CollectionNodeRes(GdToPy):
         return CollectionNodeRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionNodeRes(PyToGd):
     _keys = (CollectionNodeRes,)
-    def _transform(self, *args, **kwargs)->CollectionNodeRes:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionExtRes(GdToPy):
     _keys = CollectionExtRes.lark_keys()
@@ -24,8 +24,8 @@ class GdToPy_CollectionExtRes(GdToPy):
         return CollectionExtRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionExtRes(PyToGd):
     _keys = (CollectionExtRes,)
-    def _transform(self, *args, **kwargs)->CollectionExtRes:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionEditRes(GdToPy):
     _keys = CollectionEditRes.lark_keys()
@@ -33,8 +33,8 @@ class GdToPy_CollectionEditRes(GdToPy):
         return CollectionEditRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionEditRes(PyToGd):
     _keys = (CollectionEditRes,)
-    def _transform(self, *args, **kwargs)->CollectionEditRes:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionSubRes(GdToPy):
     _keys = CollectionSubRes.lark_keys()
@@ -42,8 +42,8 @@ class GdToPy_CollectionSubRes(GdToPy):
         return CollectionSubRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionSubRes(PyToGd):
     _keys = (CollectionSubRes,)
-    def _transform(self, *args, **kwargs)->CollectionSubRes:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionCatRes(GdToPy):
     _keys = CollectionCatRes.lark_keys()
@@ -51,8 +51,8 @@ class GdToPy_CollectionCatRes(GdToPy):
         return CollectionCatRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionCatRes(PyToGd):
     _keys = (CollectionCatRes,)
-    def _transform(self, *args, **kwargs)->CollectionCatRes:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_CollectionNodeRes(),

@@ -14,8 +14,8 @@ class GdToPy_GdValueExtResource(GdToPy):
         return GdValueExtResource.parse_lark(*args, **kwargs)
 class PyToGd_GdValueExtResource(PyToGd):
     _keys = (GdValueExtResource,)
-    def _transform(self, *args, **kwargs)->GdValueExtResource:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_GdValueNodePath(GdToPy):
     _keys = GdValueNodePath.lark_keys()
@@ -23,8 +23,8 @@ class GdToPy_GdValueNodePath(GdToPy):
         return GdValueNodePath.parse_lark(*args, **kwargs)
 class PyToGd_GdValueNodePath(PyToGd):
     _keys = (GdValueNodePath,)
-    def _transform(self, *args, **kwargs)->GdValueNodePath:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_GdValueSubResource(GdToPy):
     _keys = GdValueSubResource.lark_keys()
@@ -32,8 +32,8 @@ class GdToPy_GdValueSubResource(GdToPy):
         return GdValueSubResource.parse_lark(*args, **kwargs)
 class PyToGd_GdValueSubResource(PyToGd):
     _keys = (GdValueSubResource,)
-    def _transform(self, *args, **kwargs)->GdValueSubResource:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_GdValueResourceID(GdToPy):
     _keys = GdValueResourceID.lark_keys()
@@ -41,8 +41,8 @@ class GdToPy_GdValueResourceID(GdToPy):
         return GdValueResourceID.parse_lark(*args, **kwargs)
 class PyToGd_GdValueResourceID(PyToGd):
     _keys = (GdValueResourceID,)
-    def _transform(self, *args, **kwargs)->GdValueResourceID:
-        raise Exception("Not yet implimented!")
+    def _transform(self, *args, **kwargs)->str:
+        raise NotImplementedError("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_GdValueExtResource(),
