@@ -4,282 +4,347 @@ from ..structure.values import *
 from ..structure.references import *
 from ..structure.core.primitives import Context
 
-from ..structure.values_transformer import gd_to_py_ruleset as values_ruleset
-from ..structure.sub_resources_transformer import gd_to_py_ruleset as subres_ruleset
-from ..structure.sub_resource_collections_transformer import gd_to_py_ruleset as subrescol_ruleset
-from ..structure.resources_transformer import gd_to_py_ruleset as res_ruleset
-from ..structure.references_transformer import gd_to_py_ruleset as ref_ruleset
-
-from ..structure.core.gd_parser import GdParser
-from ..resources import grammer
-
-gdparser = GdParser(grammer, (
-    values_ruleset, 
-    subres_ruleset,
-    subrescol_ruleset,
-    res_ruleset,
-    ref_ruleset,
-    ),
-    start = "value")
+from ..structure._standard_parser import construct_keyed_parser
+gdparser = construct_keyed_parser("value")
 
 c = Context()
-def _run(key:str, txt:str):
+def _parse(key:str, txt:str):
     return gdparser.parse(c,txt,start=key)
+def _render(object):
+    return gdparser.render(c,object)
 
-def test_GdValueResourceID():
-    assert(gdparser._transformer.matcher(None, "rid"))
-    assert(isinstance(_run("value", "RID()"), GdValueResourceID)) 
-    # assert(_run("value", "RID()") == GdValueResourceID())
-    # assert(_run("value", 'RID("")') == GdValueResourceID())
-def test_GdValueExtResource():
-    assert(gdparser._transformer.matcher(None, "extresource"))
-    assert(isinstance(_run("value", 'ExtResource()'), GdValueExtResource))
-    assert(isinstance(_run("value", 'ExtResource("")'), GdValueExtResource))
-    # assert(_run("value", 'ExtResource()') == GdValueExtResource())
-    # assert(_run("value", 'ExtResource("")') == GdValueExtResource())
-def test_GdValueNodePath():
-    assert(gdparser._transformer.matcher(None, "nodepath"))
-    assert(isinstance(_run("value", 'NodePath()'), GdValueNodePath))
-    assert(isinstance(_run("value", 'NodePath("")'), GdValueNodePath))
-    # assert(_run("value", 'NodePath()') == GdValueNodePath())
-    # assert(_run("value", 'NodePath("")') == GdValueNodePath())
-def test_GdValueSubResource():
-    assert(gdparser._transformer.matcher(None, "subresource"))
-    assert(isinstance(_run("value", 'SubResource()'), GdValueSubResource))
-    assert(isinstance(_run("value", 'SubResource("")'), GdValueSubResource))
-    # assert(_run("value", 'SubResource()') == GdValueSubResource())
-    # assert(_run("value", 'SubResource("")') == GdValueSubResource())
+class TestGdValueResourceID():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "rid"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "RID()"), GdValueResourceID)) 
+        # assert(_parse("value", "RID()") == GdValueResourceID())
+        # assert(_parse("value", 'RID("")') == GdValueResourceID())
+    # def test_rendering(self,):
+    #     assert(_render(GdValueResourceID()) == "RID()")
 
+class TestGdValueExtResource():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "extresource"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", 'ExtResource()'), GdValueExtResource))
+        assert(isinstance(_parse("value", 'ExtResource("")'), GdValueExtResource))
+        # assert(_parse("value", 'ExtResource()') == GdValueExtResource())
+        # assert(_parse("value", 'ExtResource("")') == GdValueExtResource())
+
+class TestGdValueNodePath():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "nodepath"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", 'NodePath()'), GdValueNodePath))
+        assert(isinstance(_parse("value", 'NodePath("")'), GdValueNodePath))
+        # assert(_parse("value", 'NodePath()') == GdValueNodePath())
+        # assert(_parse("value", 'NodePath("")') == GdValueNodePath())
+
+class TestGdValueSubResource():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "subresource"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", 'SubResource()'), GdValueSubResource))
+        assert(isinstance(_parse("value", 'SubResource("")'), GdValueSubResource))
+        # assert(_parse("value", 'SubResource()') == GdValueSubResource())
+        # assert(_parse("value", 'SubResource("")') == GdValueSubResource())
     
-def test_GdValueStringName():
-    assert(gdparser._transformer.matcher(None, "stringname"))
-    assert(isinstance(_run("value", '&"value"'), GdValueStringName))
-    # assert(_run("value", '&"va) ==e()"') GdValueStringName))
+class TestGdValueStringName():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "stringname"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", '&"value"'), GdValueStringName))
+        assert (_parse("value", '&"value"') == GdValueStringName('value'))
+        # assert(_parse("value", '&"va) ==e()"') GdValueStringName))
+    def test_rendering(self,):
+        assert(_render(GdValueResourceID()) == "RID()")
 
-def test_GdValueDictionary():
-    assert(gdparser._transformer.matcher(None, "dictionary"))
-    assert(gdparser._transformer.matcher(None, "dictionary_explicit"))
-    assert(isinstance(_run("value", "{}"), GdValueDictionary))
-    # assert(_run("value", "{}"), GdValueDiction) ==y())
-    assert(isinstance(_run("value", "Dictionary()"), GdValueDictionary))
-    assert(_run("value", "Dictionary()") == GdValueDictionary())
-    assert(isinstance(_run("value", "Dictionary[Variant,Variant]()"), GdValueDictionary))
-    # assert(_run("value", "Dictionary[Varia) ==,Variant()]()") GdValueDictionary))
-def test_GdValueArray():
-    assert(gdparser._transformer.matcher(None,  "array"))
-    assert(isinstance(_run("value", "Array[Variant]()"), GdValueArray))
-    # assert(_run("value", "Array[Vari) ==t()]()") GdValueArray))
-    assert(isinstance(_run("value", "Array()"), GdValueArray))
-    assert(_run("value", "Array()") == GdValueArray())
-    assert(isinstance(_run("value", "[]"), GdValueArray))
-    # assert(_run("value", "[]"), GdValueAr) ==y())
+class TestGdValueDictionary():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None, "dictionary"))
+    def test_parsing(self,):
+        assert(gdparser._parser_transformer.matcher(None, "dictionary_explicit"))
+        assert(isinstance(_parse("value", "{}"), GdValueDictionary))
+        # assert(_parse("value", "{}"), GdValueDiction) ==y())
+        assert(isinstance(_parse("value", "Dictionary()"), GdValueDictionary))
+        assert(_parse("value", "Dictionary()") == GdValueDictionary())
+        assert(isinstance(_parse("value", "Dictionary[Variant,Variant]()"), GdValueDictionary))
+        # assert(_parse("value", "Dictionary[Varia) ==,Variant()]()") GdValueDictionary))
 
-def test_GdValueVector2():
-    assert(gdparser._transformer.matcher(None,  "vector2"))
-    assert(isinstance(_run("value", "Vector2()"), GdValueVector2))
-    assert(isinstance(_run("value", "Vector2(0,1)"), GdValueVector2))
-    assert(isinstance(_run("value", "Vector2(0.0,1.0)"), GdValueVector2))
-    assert(_run("value", "Vector2()") == GdValueVector2())
-    assert(_run("value", "Vector2(0,1)") == _run("value", "Vector2(0.0,1.0)"))
-    assert(_run("value", "Vector2(0,1)") == GdValueVector2((0,1)))
-def test_GdValueVector3():
-    assert(gdparser._transformer.matcher(None,  "vector3"))
-    assert(isinstance(_run("value", "Vector3()"), GdValueVector3))
-    assert(isinstance(_run("value", "Vector3(0,1,2)"), GdValueVector3))
-    assert(isinstance(_run("value", "Vector3(0.0,1.0,2.0)"), GdValueVector3))
-    assert(_run("value", "Vector3()") == GdValueVector3())
-    assert(_run("value", "Vector3(0,1,2)") == _run("value", "Vector3(0.0,1.0,2.0)"))
-    assert(_run("value", "Vector3(0,1,2)") == GdValueVector3((0,1,2)))
-def test_GdValueVector4():
-    assert(gdparser._transformer.matcher(None,  "vector4"))
-    assert(isinstance(_run("value", "Vector4()"), GdValueVector4))
-    assert(isinstance(_run("value", "Vector4(0,1,2,3)"), GdValueVector4))
-    assert(isinstance(_run("value", "Vector4(0.0,1.0,2.0,3.0)"), GdValueVector4))
-    assert(_run("value", "Vector4()") == GdValueVector4())
-    assert(_run("value", "Vector4(0,1,2,3)") == _run("value", "Vector4(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "Vector4(0,1,2,3)") == GdValueVector4((0,1,2,3)))
+class TestGdValueArray():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Array[Variant]()"), GdValueArray))
+        # assert(_parse("value", "Array[Vari) ==t()]()") GdValueArray))
+        assert(isinstance(_parse("value", "Array()"), GdValueArray))
+        assert(_parse("value", "Array()") == GdValueArray())
+        assert(isinstance(_parse("value", "[]"), GdValueArray))
+        # assert(_parse("value", "[]"), GdValueAr) ==y())
+
+class TestGdValueVector2():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector2"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector2()"), GdValueVector2))
+        assert(isinstance(_parse("value", "Vector2(0,1)"), GdValueVector2))
+        assert(isinstance(_parse("value", "Vector2(0.0,1.0)"), GdValueVector2))
+        assert(_parse("value", "Vector2()") == GdValueVector2())
+        assert(_parse("value", "Vector2(0,1)") == _parse("value", "Vector2(0.0,1.0)"))
+        assert(_parse("value", "Vector2(0,1)") == GdValueVector2((0,1)))
+
+class TestGdValueVector3():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector3"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector3()"), GdValueVector3))
+        assert(isinstance(_parse("value", "Vector3(0,1,2)"), GdValueVector3))
+        assert(isinstance(_parse("value", "Vector3(0.0,1.0,2.0)"), GdValueVector3))
+        assert(_parse("value", "Vector3()") == GdValueVector3())
+        assert(_parse("value", "Vector3(0,1,2)") == _parse("value", "Vector3(0.0,1.0,2.0)"))
+        assert(_parse("value", "Vector3(0,1,2)") == GdValueVector3((0,1,2)))
+
+class TestGdValueVector4():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector4"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector4()"), GdValueVector4))
+        assert(isinstance(_parse("value", "Vector4(0,1,2,3)"), GdValueVector4))
+        assert(isinstance(_parse("value", "Vector4(0.0,1.0,2.0,3.0)"), GdValueVector4))
+        assert(_parse("value", "Vector4()") == GdValueVector4())
+        assert(_parse("value", "Vector4(0,1,2,3)") == _parse("value", "Vector4(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "Vector4(0,1,2,3)") == GdValueVector4((0,1,2,3)))
+
+class TestGdValueVector2i():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector2i"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector2i()"), GdValueVector2i))
+        assert(isinstance(_parse("value", "Vector2i(0,1)"), GdValueVector2i))
+        assert(_parse("value", "Vector2i()") == GdValueVector2i())
+        assert(_parse("value", "Vector2i(0,1)") == GdValueVector2i((0,1)))
+
+class TestGdValueVector3i():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector3i"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector3i()"), GdValueVector3i))
+        assert(isinstance(_parse("value", "Vector3i(0,1,2)"), GdValueVector3i))
+        assert(_parse("value", "Vector3i()") == GdValueVector3i())
+        assert(_parse("value", "Vector3i(0,1,2)") == GdValueVector3i((0,1,2)))
+
+class TestGdValueVector4i():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "vector4i"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Vector4i()"), GdValueVector4i))
+        assert(isinstance(_parse("value", "Vector4i(0,1,2,3)"), GdValueVector4i))
+        assert(_parse("value", "Vector4i()") == GdValueVector4i())
+        assert(_parse("value", "Vector4i(0,1,2,3)") == GdValueVector4i((0,1,2,3)))
 
 
-def test_GdValueVector2i():
-    assert(gdparser._transformer.matcher(None,  "vector2i"))
-    assert(isinstance(_run("value", "Vector2i()"), GdValueVector2i))
-    assert(isinstance(_run("value", "Vector2i(0,1)"), GdValueVector2i))
-    assert(_run("value", "Vector2i()") == GdValueVector2i())
-    assert(_run("value", "Vector2i(0,1)") == GdValueVector2i((0,1)))
-def test_GdValueVector3i():
-    assert(gdparser._transformer.matcher(None,  "vector3i"))
-    assert(isinstance(_run("value", "Vector3i()"), GdValueVector3i))
-    assert(isinstance(_run("value", "Vector3i(0,1,2)"), GdValueVector3i))
-    assert(_run("value", "Vector3i()") == GdValueVector3i())
-    assert(_run("value", "Vector3i(0,1,2)") == GdValueVector3i((0,1,2)))
-def test_GdValueVector4i():
-    assert(gdparser._transformer.matcher(None,  "vector4i"))
-    assert(isinstance(_run("value", "Vector4i()"), GdValueVector4i))
-    assert(isinstance(_run("value", "Vector4i(0,1,2,3)"), GdValueVector4i))
-    assert(_run("value", "Vector4i()") == GdValueVector4i())
-    assert(_run("value", "Vector4i(0,1,2,3)") == GdValueVector4i((0,1,2,3)))
+class TestGdValueRect2():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "rect2"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Rect2()"), GdValueRect2))
+        assert(isinstance(_parse("value", "Rect2(0,1,2,3)"), GdValueRect2))
+        assert(isinstance(_parse("value", "Rect2(0.0,1.0,2.0,3.0)"), GdValueRect2))
+        assert(_parse("value", "Rect2(0,1,2,3)") == _parse("value", "Rect2(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "Rect2()") == GdValueRect2())
+        assert(_parse("value", "Rect2(0,1,2,3)") == GdValueRect2((0,1,2,3)))
 
+class TestGdValueRect2i():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "rect2i"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Rect2i()"), GdValueRect2i))
+        assert(isinstance(_parse("value", "Rect2i(0,1,2,3)"), GdValueRect2i))
+        assert(_parse("value", "Rect2i()") == GdValueRect2i())
+        assert(_parse("value", "Rect2i(0,1,2,3)") == GdValueRect2i((0,1,2,3)))
 
-def test_GdValueRect2():
-    assert(gdparser._transformer.matcher(None,  "rect2"))
-    assert(isinstance(_run("value", "Rect2()"), GdValueRect2))
-    assert(isinstance(_run("value", "Rect2(0,1,2,3)"), GdValueRect2))
-    assert(isinstance(_run("value", "Rect2(0.0,1.0,2.0,3.0)"), GdValueRect2))
-    assert(_run("value", "Rect2(0,1,2,3)") == _run("value", "Rect2(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "Rect2()") == GdValueRect2())
-    assert(_run("value", "Rect2(0,1,2,3)") == GdValueRect2((0,1,2,3)))
-def test_GdValueRect2i():
-    assert(gdparser._transformer.matcher(None,  "rect2i"))
-    assert(isinstance(_run("value", "Rect2i()"), GdValueRect2i))
-    assert(isinstance(_run("value", "Rect2i(0,1,2,3)"), GdValueRect2i))
-    assert(_run("value", "Rect2i()") == GdValueRect2i())
-    assert(_run("value", "Rect2i(0,1,2,3)") == GdValueRect2i((0,1,2,3)))
+class TestGdValuePlane():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "plane"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Plane()"), GdValuePlane))
+        assert(isinstance(_parse("value", "Plane(0,1,2,3)"), GdValuePlane))
+        assert(isinstance(_parse("value", "Plane(0.0,1.0,2.0,3.0)"), GdValuePlane))
+        assert(_parse("value", "Plane()") == GdValuePlane())
+        assert(_parse("value", "Plane(0,1,2,3)") == _parse("value", "Plane(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "Plane(0,1,2,3)") == GdValueColor((0,1,2,3)))
 
-def test_GdValuePlane():
-    assert(gdparser._transformer.matcher(None,  "plane"))
-    assert(isinstance(_run("value", "Plane()"), GdValuePlane))
-    assert(isinstance(_run("value", "Plane(0,1,2,3)"), GdValuePlane))
-    assert(isinstance(_run("value", "Plane(0.0,1.0,2.0,3.0)"), GdValuePlane))
-    assert(_run("value", "Plane()") == GdValuePlane())
-    assert(_run("value", "Plane(0,1,2,3)") == _run("value", "Plane(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "Plane(0,1,2,3)") == GdValueColor((0,1,2,3)))
-def test_GdValueColor():
-    assert(gdparser._transformer.matcher(None,  "color"))
-    assert(isinstance(_run("value", "Color()"), GdValueColor))
-    assert(isinstance(_run("value", "Color(0,1,2,3)"), GdValueColor))
-    assert(isinstance(_run("value", "Color(0.0,1.0,2.0,3.0)"), GdValueColor))
-    assert(_run("value", "Color()") == GdValueColor())
-    assert(_run("value", "Color(0,1,2,3)") == _run("value", "Color(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "Color(0,1,2,3)") == GdValueColor((0,1,2,3)))
+class TestGdValueColor():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "color"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Color()"), GdValueColor))
+        assert(isinstance(_parse("value", "Color(0,1,2,3)"), GdValueColor))
+        assert(isinstance(_parse("value", "Color(0.0,1.0,2.0,3.0)"), GdValueColor))
+        assert(_parse("value", "Color()") == GdValueColor())
+        assert(_parse("value", "Color(0,1,2,3)") == _parse("value", "Color(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "Color(0,1,2,3)") == GdValueColor((0,1,2,3)))
 
-def test_GdValueAABB():
-    assert(gdparser._transformer.matcher(None,  "aabb"))
-    assert(isinstance(_run("value", "AABB()"), GdValueAABB))
-    assert(isinstance(_run("value", "AABB(1,2,3,4,5,6)"), GdValueAABB))
-    assert(isinstance(_run("value", "AABB(1.0,2.0,3.0,4.0,5.0,6.0)"), GdValueAABB))
-    assert(_run("value", "AABB()") == GdValueAABB())
-    assert(_run("value", "AABB(1,2,3,4,5,6)")== _run("value", "AABB(1.0,2.0,3.0,4.0,5.0,6.0)"))
+class TestGdValueAABB():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "aabb"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "AABB()"), GdValueAABB))
+        assert(isinstance(_parse("value", "AABB(1,2,3,4,5,6)"), GdValueAABB))
+        assert(isinstance(_parse("value", "AABB(1.0,2.0,3.0,4.0,5.0,6.0)"), GdValueAABB))
+        assert(_parse("value", "AABB()") == GdValueAABB())
+        assert(_parse("value", "AABB(1,2,3,4,5,6)")== _parse("value", "AABB(1.0,2.0,3.0,4.0,5.0,6.0)"))
 
-def test_GdValueQuaternion():
-    assert(gdparser._transformer.matcher(None,  "quaternion"))
-    assert(isinstance(_run("value", "Quaternion()"), GdValueQuaternion))
-    assert(isinstance(_run("value", "Quaternion(0,1,2,3)"), GdValueQuaternion))
-    assert(isinstance(_run("value", "Quaternion(0.0,1.0,2.0,3.0)"), GdValueQuaternion))
-    assert(_run("value", "Quaternion()") == GdValueQuaternion())
-    assert(_run("value", "Quaternion(0,1,2,3)") == _run("value", "Quaternion(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "Quaternion(0,1,2,3)") == GdValueQuaternion((0,1,2,3)))
+class TestGdValueQuaternion():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "quaternion"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Quaternion()"), GdValueQuaternion))
+        assert(isinstance(_parse("value", "Quaternion(0,1,2,3)"), GdValueQuaternion))
+        assert(isinstance(_parse("value", "Quaternion(0.0,1.0,2.0,3.0)"), GdValueQuaternion))
+        assert(_parse("value", "Quaternion()") == GdValueQuaternion())
+        assert(_parse("value", "Quaternion(0,1,2,3)") == _parse("value", "Quaternion(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "Quaternion(0,1,2,3)") == GdValueQuaternion((0,1,2,3)))
 
-def test_GdValueBasis():
-    assert(gdparser._transformer.matcher(None,  "basis"))
-    assert(isinstance(_run("value", "Basis()"), GdValueBasis))
-    assert(isinstance(_run("value", "Basis(0,1,2,3,4,5,6,7,8)"), GdValueBasis))
-    assert(isinstance(_run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"), GdValueBasis))
-    assert(_run("value", "Basis(0,1,2,3,4,5,6,7,8)") == _run("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"))
-    assert(_run("value", "Basis()") == GdValueBasis())
-    assert(_run("value", "Basis(0,1,2,3,4,5,6,7,8)") == GdValueBasis((0,1,2,3,4,5,6,7,8)))
+class TestGdValueBasis():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "basis"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Basis()"), GdValueBasis))
+        assert(isinstance(_parse("value", "Basis(0,1,2,3,4,5,6,7,8)"), GdValueBasis))
+        assert(isinstance(_parse("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"), GdValueBasis))
+        assert(_parse("value", "Basis(0,1,2,3,4,5,6,7,8)") == _parse("value", "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)"))
+        assert(_parse("value", "Basis()") == GdValueBasis())
+        assert(_parse("value", "Basis(0,1,2,3,4,5,6,7,8)") == GdValueBasis((0,1,2,3,4,5,6,7,8)))
 
-def test_GdValueTransform2D():
-    assert(gdparser._transformer.matcher(None,  "transform2d"))
-    assert(isinstance(_run("value", "Transform2D()"), GdValueTransform2D))
-    assert(isinstance(_run("value", "Transform2D(0,1,2,3,4,5)"), GdValueTransform2D))
-    assert(isinstance(_run("value", "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"), GdValueTransform2D))
-    assert(_run("value", "Transform2D(0,1,2,3,4,5)") == _run("value","Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"))
-    assert(_run("value", "Transform2D()") == GdValueTransform2D())
-    assert(_run("value", "Transform2D(0,1,2,3,4,5)") == GdValueTransform2D((0,1,2,3,4,5)))
+class TestGdValueTransform2D():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "transform2d"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Transform2D()"), GdValueTransform2D))
+        assert(isinstance(_parse("value", "Transform2D(0,1,2,3,4,5)"), GdValueTransform2D))
+        assert(isinstance(_parse("value", "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"), GdValueTransform2D))
+        assert(_parse("value", "Transform2D(0,1,2,3,4,5)") == _parse("value","Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)"))
+        assert(_parse("value", "Transform2D()") == GdValueTransform2D())
+        assert(_parse("value", "Transform2D(0,1,2,3,4,5)") == GdValueTransform2D((0,1,2,3,4,5)))
 
-def test_GdValueTransform3D():
-    assert(gdparser._transformer.matcher(None,  "transform3d"))
-    assert(isinstance(_run("value", "Transform3D()"), GdValueTransform3D))
-    assert(isinstance(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)"), GdValueTransform3D))
-    assert(isinstance(_run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"), GdValueTransform3D))
-    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == _run("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"))
-    assert(_run("value", "Transform3D()") == GdValueTransform3D())
-    assert(_run("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == GdValueTransform3D((0,1,2,3,4,5,6,7,8,9,10,11)))
+class TestGdValueTransform3D():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "transform3d"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "Transform3D()"), GdValueTransform3D))
+        assert(isinstance(_parse("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)"), GdValueTransform3D))
+        assert(isinstance(_parse("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"), GdValueTransform3D))
+        assert(_parse("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == _parse("value", "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)"))
+        assert(_parse("value", "Transform3D()") == GdValueTransform3D())
+        assert(_parse("value", "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)") == GdValueTransform3D((0,1,2,3,4,5,6,7,8,9,10,11)))
 
-def test_GdValuePackedByteArray():
-    assert(gdparser._transformer.matcher(None,  "packedbytearray"))
-    assert(isinstance(_run("value", "PackedByteArray()"), GdValuePackedByteArray))
-    assert(isinstance(_run("value", 'PackedByteArray("abc123")'), GdValuePackedByteArray))
-    assert(_run("value", "PackedByteArray()") == GdValuePackedByteArray())
-    assert(_run("value", 'PackedByteArray("abc123")') == GdValuePackedByteArray(("abc123",)))
+class TestGdValuePackedByteArray():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedbytearray"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedByteArray()"), GdValuePackedByteArray))
+        assert(isinstance(_parse("value", 'PackedByteArray("abc123")'), GdValuePackedByteArray))
+        assert(_parse("value", "PackedByteArray()") == GdValuePackedByteArray())
+        assert(_parse("value", 'PackedByteArray("abc123")') == GdValuePackedByteArray(("abc123",)))
 
-def test_GdValuePackedInt32Array():
-    assert(gdparser._transformer.matcher(None,  "packedint32array"))
-    assert(isinstance(_run("value", "PackedInt32Array()"), GdValuePackedInt32Array))
-    assert(isinstance(_run("value", "PackedInt32Array(0,1,2,3)"), GdValuePackedInt32Array))
-    assert(_run("value", "PackedInt32Array()") == GdValuePackedInt32Array())
-    assert(_run("value", "PackedInt32Array(0,1,2,3,4)") == GdValuePackedInt32Array((0,1,2,3,4)))
-def test_GdValuePackedInt64Array():
-    assert(gdparser._transformer.matcher(None,  "packedint64array"))
-    assert(isinstance(_run("value", "PackedInt64Array()"), GdValuePackedInt64Array))
-    assert(isinstance(_run("value", "PackedInt64Array(0,1,2,3)"), GdValuePackedInt64Array))
-    assert(_run("value", "PackedInt64Array()") == GdValuePackedInt64Array())
-    assert(_run("value", "PackedInt64Array(0,1,2,3,4)") == GdValuePackedInt64Array((0,1,2,3,4)))
+class TestGdValuePackedInt32Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedint32array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedInt32Array()"), GdValuePackedInt32Array))
+        assert(isinstance(_parse("value", "PackedInt32Array(0,1,2,3)"), GdValuePackedInt32Array))
+        assert(_parse("value", "PackedInt32Array()") == GdValuePackedInt32Array())
+        assert(_parse("value", "PackedInt32Array(0,1,2,3,4)") == GdValuePackedInt32Array((0,1,2,3,4)))
 
-def test_GdValuePackedFloat32Array():
-    assert(gdparser._transformer.matcher(None,  "packedfloat32array"))
-    assert(isinstance(_run("value", "PackedFloat32Array()"), GdValuePackedFloat32Array))
-    assert(isinstance(_run("value", "PackedFloat32Array(0,1,2,3,4)"), GdValuePackedFloat32Array))
-    assert(isinstance(_run("value", "PackedFloat32Array(0.0,1.0,2.0,3.0,4.0)"), GdValuePackedFloat32Array))
-    assert(_run("value", "PackedFloat32Array()") == GdValuePackedFloat32Array())
-    assert(_run("value", "PackedFloat32Array(0,1,2,3,4)") == _run("value", "PackedFloat32Array(0.0,1.0,2.0,3.0,4.0)"))
-    assert(_run("value", "PackedFloat32Array(0,1,2,3,4)") == GdValuePackedFloat32Array((0,1,2,3,4)))
-def test_GdValuePackedFloat64Array():
-    assert(gdparser._transformer.matcher(None,  "packedfloat64array"))
-    assert(isinstance(_run("value", "PackedFloat64Array()"), GdValuePackedFloat64Array))
-    assert(isinstance(_run("value", "PackedFloat64Array(0,1,2,3,4)"), GdValuePackedFloat64Array))
-    assert(isinstance(_run("value", "PackedFloat64Array(0.0,1.0,2.0,3.0,4.0)"), GdValuePackedFloat64Array))
-    assert(_run("value", "PackedFloat64Array(0,1,2,3,4)") == _run("value", "PackedFloat64Array(0.0,1.0,2.0,3.0,4.0)"))
-    assert(_run("value", "PackedFloat64Array(0,1,2,3,4)") == GdValuePackedFloat64Array((0,1,2,3,4)))
-    assert(_run("value", "PackedFloat64Array()") == GdValuePackedFloat64Array())
+class TestGdValuePackedInt64Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedint64array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedInt64Array()"), GdValuePackedInt64Array))
+        assert(isinstance(_parse("value", "PackedInt64Array(0,1,2,3)"), GdValuePackedInt64Array))
+        assert(_parse("value", "PackedInt64Array()") == GdValuePackedInt64Array())
+        assert(_parse("value", "PackedInt64Array(0,1,2,3,4)") == GdValuePackedInt64Array((0,1,2,3,4)))
 
-def test_GdValuePackedStringArray():
-    assert(gdparser._transformer.matcher(None,  "packedstringarray"))
-    assert(isinstance(_run("value", "PackedStringArray()"), GdValuePackedStringArray))
-    assert(isinstance(_run("value", 'PackedStringArray("a","b")'), GdValuePackedStringArray))
-    assert(_run("value", "PackedStringArray()") == GdValuePackedStringArray())
-    assert(_run("value", 'PackedStringArray("a","b")') != GdValuePackedStringArray(("ab",)))
-    assert(_run("value", 'PackedStringArray("a","b")') == GdValuePackedStringArray(("a","b")))
+class TestGdValuePackedFloat32Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedfloat32array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedFloat32Array()"), GdValuePackedFloat32Array))
+        assert(isinstance(_parse("value", "PackedFloat32Array(0,1,2,3,4)"), GdValuePackedFloat32Array))
+        assert(isinstance(_parse("value", "PackedFloat32Array(0.0,1.0,2.0,3.0,4.0)"), GdValuePackedFloat32Array))
+        assert(_parse("value", "PackedFloat32Array()") == GdValuePackedFloat32Array())
+        assert(_parse("value", "PackedFloat32Array(0,1,2,3,4)") == _parse("value", "PackedFloat32Array(0.0,1.0,2.0,3.0,4.0)"))
+        assert(_parse("value", "PackedFloat32Array(0,1,2,3,4)") == GdValuePackedFloat32Array((0,1,2,3,4)))
+class TestGdValuePackedFloat64Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedfloat64array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedFloat64Array()"), GdValuePackedFloat64Array))
+        assert(isinstance(_parse("value", "PackedFloat64Array(0,1,2,3,4)"), GdValuePackedFloat64Array))
+        assert(isinstance(_parse("value", "PackedFloat64Array(0.0,1.0,2.0,3.0,4.0)"), GdValuePackedFloat64Array))
+        assert(_parse("value", "PackedFloat64Array(0,1,2,3,4)") == _parse("value", "PackedFloat64Array(0.0,1.0,2.0,3.0,4.0)"))
+        assert(_parse("value", "PackedFloat64Array(0,1,2,3,4)") == GdValuePackedFloat64Array((0,1,2,3,4)))
+        assert(_parse("value", "PackedFloat64Array()") == GdValuePackedFloat64Array())
 
-def test_GdValuePackedVector2Array():
-    assert(gdparser._transformer.matcher(None,  "packedvector2array"))
-    assert(isinstance(_run("value", "PackedVector2Array()"), GdValuePackedVector2Array))
-    assert(isinstance(_run("value", "PackedVector2Array(0,1,2,3)"), GdValuePackedVector2Array))
-    assert(isinstance(_run("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"), GdValuePackedVector2Array))
-    assert(_run("value", "PackedVector2Array(0,1,2,3)") == _run("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "PackedVector2Array()") == GdValuePackedVector2Array())
-    assert(2 == len(GdValuePackedVector2Array((0,1,2,3))))
-    assert(3 == len(GdValuePackedVector2Array((0,1,2,3,4,5))))
-    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((0,1,2,3)))
-    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array(((0,1),(2,3))))
-    assert(_run("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((GdValueVector2((0,1)),GdValueVector2((2,3)))))
-def test_GdValuePackedVector3Array():
-    assert(gdparser._transformer.matcher(None,  "packedvector3array"))
-    assert(isinstance(_run("value", "PackedVector3Array()"), GdValuePackedVector3Array))
-    assert(isinstance(_run("value", "PackedVector3Array(0,1,2,0,1,2)"), GdValuePackedVector3Array))
-    assert(isinstance(_run("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"), GdValuePackedVector3Array))
-    assert(_run("value", "PackedVector3Array()") == GdValuePackedVector3Array())
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == _run("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"))
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((0,1,2,0,1,2)))
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array(((0,1,2),(0,1,2))))
-    assert(_run("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((GdValueVector3((0,1,2)),GdValueVector3((0,1,2)))))
-def test_GdValuePackedVector4Array():
-    assert(gdparser._transformer.matcher(None,  "packedvector4array"))
-    assert(isinstance(_run("value", "PackedVector4Array()"), GdValuePackedVector4Array))
-    assert(isinstance(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)"), GdValuePackedVector4Array))
-    assert(isinstance(_run("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedVector4Array))
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == _run("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"))
-    assert(_run("value", "PackedVector4Array()") == GdValuePackedVector4Array())
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((0,1,2,3,0,1,2,3)))
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array(((0,1,2,3),(0,1,2,3))))
-    assert(_run("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((GdValueVector4((0,1,2,3)),GdValueVector4((0,1,2,3)))))
+class TestGdValuePackedStringArray():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedstringarray"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedStringArray()"), GdValuePackedStringArray))
+        assert(isinstance(_parse("value", 'PackedStringArray("a","b")'), GdValuePackedStringArray))
+        assert(_parse("value", "PackedStringArray()") == GdValuePackedStringArray())
+        assert(_parse("value", 'PackedStringArray("a","b")') != GdValuePackedStringArray(("ab",)))
+        assert(_parse("value", 'PackedStringArray("a","b")') == GdValuePackedStringArray(("a","b")))
 
-def test_GdValuePackedColorArray():
-    assert(gdparser._transformer.matcher(None,  "packedcolorarray" ))
-    assert(isinstance(_run("value", "PackedColorArray()"), GdValuePackedColorArray))
-    assert(_run("value", "PackedColorArray()")== GdValuePackedColorArray())
-    assert(isinstance(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)"), GdValuePackedColorArray))
-    assert(isinstance(_run("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedColorArray))
-    assert(_run("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)") == _run("value", "PackedColorArray(0,1,2,3,0,1,2,3)"))
-    assert(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((0,1,2,3,0,1,2,3)))
-    assert(_run("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((GdValueColor((0,1,2,3)),GdValueColor((0,1,2,3)))))
+class TestGdValuePackedVector2Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedvector2array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedVector2Array()"), GdValuePackedVector2Array))
+        assert(isinstance(_parse("value", "PackedVector2Array(0,1,2,3)"), GdValuePackedVector2Array))
+        assert(isinstance(_parse("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"), GdValuePackedVector2Array))
+        assert(_parse("value", "PackedVector2Array(0,1,2,3)") == _parse("value", "PackedVector2Array(0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "PackedVector2Array()") == GdValuePackedVector2Array())
+        assert(2 == len(GdValuePackedVector2Array((0,1,2,3))))
+        assert(3 == len(GdValuePackedVector2Array((0,1,2,3,4,5))))
+        assert(_parse("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((0,1,2,3)))
+        assert(_parse("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array(((0,1),(2,3))))
+        assert(_parse("value", "PackedVector2Array(0,1,2,3)") == GdValuePackedVector2Array((GdValueVector2((0,1)),GdValueVector2((2,3)))))
+class TestGdValuePackedVector3Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedvector3array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedVector3Array()"), GdValuePackedVector3Array))
+        assert(isinstance(_parse("value", "PackedVector3Array(0,1,2,0,1,2)"), GdValuePackedVector3Array))
+        assert(isinstance(_parse("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"), GdValuePackedVector3Array))
+        assert(_parse("value", "PackedVector3Array()") == GdValuePackedVector3Array())
+        assert(_parse("value", "PackedVector3Array(0,1,2,0,1,2)") == _parse("value", "PackedVector3Array(0.0,1.0,2.0,0.0,1.0,2.0)"))
+        assert(_parse("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((0,1,2,0,1,2)))
+        assert(_parse("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array(((0,1,2),(0,1,2))))
+        assert(_parse("value", "PackedVector3Array(0,1,2,0,1,2)") == GdValuePackedVector3Array((GdValueVector3((0,1,2)),GdValueVector3((0,1,2)))))
+class TestGdValuePackedVector4Array():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedvector4array"))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedVector4Array()"), GdValuePackedVector4Array))
+        assert(isinstance(_parse("value", "PackedVector4Array(0,1,2,3,0,1,2,3)"), GdValuePackedVector4Array))
+        assert(isinstance(_parse("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedVector4Array))
+        assert(_parse("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == _parse("value", "PackedVector4Array(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"))
+        assert(_parse("value", "PackedVector4Array()") == GdValuePackedVector4Array())
+        assert(_parse("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((0,1,2,3,0,1,2,3)))
+        assert(_parse("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array(((0,1,2,3),(0,1,2,3))))
+        assert(_parse("value", "PackedVector4Array(0,1,2,3,0,1,2,3)") == GdValuePackedVector4Array((GdValueVector4((0,1,2,3)),GdValueVector4((0,1,2,3)))))
+
+class TestGdValuePackedColorArray():
+    def test_in_matcher(self,):
+        assert(gdparser._parser_transformer.matcher(None,  "packedcolorarray" ))
+    def test_parsing(self,):
+        assert(isinstance(_parse("value", "PackedColorArray()"), GdValuePackedColorArray))
+        assert(_parse("value", "PackedColorArray()")== GdValuePackedColorArray())
+        assert(isinstance(_parse("value", "PackedColorArray(0,1,2,3,0,1,2,3)"), GdValuePackedColorArray))
+        assert(isinstance(_parse("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)"), GdValuePackedColorArray))
+        assert(_parse("value", "PackedColorArray(0.0,1.0,2.0,3.0,0.0,1.0,2.0,3.0)") == _parse("value", "PackedColorArray(0,1,2,3,0,1,2,3)"))
+        assert(_parse("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((0,1,2,3,0,1,2,3)))
+        assert(_parse("value", "PackedColorArray(0,1,2,3,0,1,2,3)") == GdValuePackedColorArray((GdValueColor((0,1,2,3)),GdValueColor((0,1,2,3)))))

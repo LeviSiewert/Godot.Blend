@@ -120,6 +120,9 @@ class GdValueSubResource(GdValue):
         else:
             return val == self.address
 
+    def __hash__(self):
+        return super().__hash__()
+
 class GdValueResourceID(GdValue):
     _cache_layers = ("postload_rid",)
     ref : Any
@@ -158,6 +161,9 @@ class GdValueResourceID(GdValue):
             return val.address == self.address
         else:
             return val == self.address
+
+    def __hash__(self):
+        return super().__hash__()
 
 _all : tuple[Type] = [
     GdValueExtResource,

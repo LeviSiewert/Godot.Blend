@@ -1,5 +1,5 @@
 from .core.transformer_v2 import TransformerModule, TransformerRuleset, TransformerContext, TERMINAL, IGNORE
-from .core.lark_transformer import GdToPyRuleset, GdToPy, PyToGd
+from .core.lark_transformer import GdToPyRuleset, GdToPy, PyToGd, PyToGdRuleset
 from .core.property_collection import PropertyCollection
 from lark.visitors import Tree, Token #type:ignore
 from abc import ABC, abstractmethod
@@ -411,7 +411,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     ))
 
 
-py_to_gd_ruleset = TransformerRuleset((
+py_to_gd_ruleset = PyToGdRuleset((
     PyToGd_StringName(),
     PyToGd_Array(),
     PyToGd_Vector2(),

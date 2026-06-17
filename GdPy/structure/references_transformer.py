@@ -1,5 +1,5 @@
 from .core.transformer_v2 import TransformerRuleset
-from .core.lark_transformer import GdToPy, PyToGd, GdToPyRuleset
+from .core.lark_transformer import GdToPy, PyToGd, GdToPyRuleset, PyToGdRuleset
 
 from .references import (
     GdValueExtResource,
@@ -51,7 +51,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_GdValueResourceID(),
 ))
 
-py_to_gd_ruleset = TransformerRuleset((
+py_to_gd_ruleset = PyToGdRuleset((
     PyToGd_GdValueExtResource(),
     PyToGd_GdValueNodePath(),
     PyToGd_GdValueSubResource(),

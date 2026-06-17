@@ -1,16 +1,36 @@
 from .core import GdParser
 
 from ..resources import grammer
-from .values_transformer import gd_to_py_ruleset as values_ruleset
-from .sub_resources_transformer import gd_to_py_ruleset as subres_ruleset
-from .sub_resource_collections_transformer import gd_to_py_ruleset as subrescol_ruleset
-from .resources_transformer import gd_to_py_ruleset as res_ruleset
-from .references_transformer import gd_to_py_ruleset as ref_ruleset
+from .values_transformer import gd_to_py_ruleset as gd_to_py_values_ruleset
+from .sub_resources_transformer import gd_to_py_ruleset as gd_to_py_subres_ruleset
+from .sub_resource_collections_transformer import gd_to_py_ruleset as gd_to_py_subrescol_ruleset
+from .resources_transformer import gd_to_py_ruleset as gd_to_py_res_ruleset
+from .references_transformer import gd_to_py_ruleset as gd_to_py_ref_ruleset
 
-gdparser = GdParser(grammer, (
-    values_ruleset, 
-    subres_ruleset,
-    subrescol_ruleset,
-    res_ruleset,
-    ref_ruleset,
-    ))
+from .values_transformer import py_to_gd_ruleset as py_to_gd_values_ruleset
+from .sub_resources_transformer import py_to_gd_ruleset as py_to_gd_subres_ruleset
+from .sub_resource_collections_transformer import py_to_gd_ruleset as py_to_gd_subrescol_ruleset
+from .resources_transformer import py_to_gd_ruleset as py_to_gd_res_ruleset
+from .references_transformer import py_to_gd_ruleset as py_to_gd_ref_ruleset
+
+def construct_keyed_parser(start:str):
+    ''' Test utility function, for constructing a gdparser with a different key '''
+    return GdParser(grammer, 
+    parser_rulesets=(
+        gd_to_py_values_ruleset, 
+        gd_to_py_subres_ruleset,
+        gd_to_py_subrescol_ruleset,
+        gd_to_py_res_ruleset,
+        gd_to_py_ref_ruleset,
+    ),
+    render_rulesets=(
+        py_to_gd_values_ruleset,
+        py_to_gd_subres_ruleset,
+        py_to_gd_subrescol_ruleset,
+        py_to_gd_res_ruleset,
+        py_to_gd_ref_ruleset,
+    ),
+    start = start,
+    )
+
+gdparser = construct_keyed_parser("start")

@@ -1,7 +1,5 @@
 from .core.transformer_v2 import TransformerModule, TransformerRuleset, TransformerContext, TERMINAL, IGNORE
-from .core.lark_transformer import GdToPyRuleset
-
-from .core.lark_transformer import GdToPy, PyToGd
+from .core.lark_transformer import GdToPy, PyToGd, GdToPyRuleset, PyToGdRuleset
 
 from .sub_resources import (
     SubResourceExt,
@@ -74,7 +72,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_SubResourceCategory(),
     GdToPy_ResourceContainer(),
 ))
-py_to_gd_ruleset = TransformerRuleset((
+py_to_gd_ruleset = PyToGdRuleset((
     PyToGd_SubResourceExt(),
     PyToGd_SubResourceEdit(),
     PyToGd_SubResource(),

@@ -184,7 +184,6 @@ class TransformerModule():
         }
         _kt : dict[str,Token]|None = None
 
-        res : IGNORE|Any 
 
         func : Generator|Callable = self.transform
         if not isgeneratorfunction(self.transform): ## Ensuring uniform interface
@@ -213,7 +212,7 @@ class TransformerModule():
             c.children.set(TERMINAL)
             c.children_map.set(TERMINAL)
         # try:
-        res = next(generator)
+        res : IGNORE|Any = next(generator)
         # except Exception as e:
         #     if isinstance(e,VisitorException):
         #         raise e
