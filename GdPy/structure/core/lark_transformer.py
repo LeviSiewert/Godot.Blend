@@ -75,7 +75,7 @@ class LarkTransformerModuleCentralized(LarkTransformerModule):
 
 class LarkTransformerModuleTerminals(LarkTransformerModule):
     def get_keys(self):
-        return ( "value", "property", "properties", "resource_header", "resource_body", "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12", "BOOL", "NULL", "INF", "INF_NEG", "STRING", "NUMBER", "FLOAT", "WORD", DEFAULT, None )
+        return ( "type_anno","type", "value", "property", "properties", "resource_header", "resource_body", "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12", "BOOL", "NULL", "INF", "INF_NEG", "STRING", "NUMBER", "FLOAT", "WORD", DEFAULT, None )
 
     # def _transform(self, key:str|DEFAULT, c:Context, *args, **kwargs)->Any:
     def _transform(self, key:str, tc:TransformerContext, gdc:Context, *children)->Any:
@@ -88,6 +88,11 @@ class LarkTransformerModuleTerminals(LarkTransformerModule):
         if isinstance(tc.node.get(), Token):
             return getattr(self,key)(key, tc, gdc, tc.node.get())
         raise Exception("Should not get here")
+    
+    def type_anno(self, key, c, gdc, a, b=None):
+        return (a,b)
+    def type(self, key, c, gdc, a):
+        return a
         
     def __default__(self, key, c, gdc, *children):
         raise Exception("DEFAULT", key, c.node.get())

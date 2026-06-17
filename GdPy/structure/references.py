@@ -101,8 +101,7 @@ class GdValueSubResource(GdValue):
         return ("subresource",)
 
     @classmethod
-    def parse_lark(cls, key, tc, gdc, type:GdType, *address:Token)->Any:
-        raise Exception(cls, key, tc, gdc, type)
+    def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
         inst = cls()
         inst.address = str(address).strip('"')
         return inst

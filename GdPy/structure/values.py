@@ -67,9 +67,12 @@ class GdValueArray(GdValue):
             raise Exception("Could not determine key", key)
 
     @classmethod
-    def _parse_explicit(cls, tc, gdc, int_array:GdValueArray):
+    def _parse_explicit(cls, tc, gdc, typing, int_array:GdValueArray):
         if int_array is None:
-            return cls()
+            res = cls()
+            res.set_types(typing)
+            return res
+        int_array.set_types(typing)
         return int_array
     
     @classmethod

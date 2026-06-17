@@ -89,7 +89,7 @@ NULL : "null"
 BOOL : "true" | "false"
 
 type_anno : "[" type ("," type)* "]"
-type : WORD|subresource|extresource
+type : WORD|subresource|extresource|rid
 
 array_explicit : "Array" [type_anno] "(" [array] ")"
 array : "[" [value ("," value)*] "]"
