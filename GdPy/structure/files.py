@@ -6,8 +6,6 @@ from .core.primitives import Context, CacheTreeNode
 from .core.core import GdResource
 from .standard_parser import gdparser
 
-from .secondary_transformer import SecondaryTransfomer
-
 
 class FileUnsupported(File):
     _file_match_priority = 10

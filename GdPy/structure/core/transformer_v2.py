@@ -125,7 +125,6 @@ class TransformerRuleset():
         if res:=self.data.get(DEFAULT,None):
             # raise VisitorException("res", key)
             return (res, DEFAULT)
-        
         return None
     
     def _key_extractor(self,key)->tuple[str|Any|Type]:
@@ -210,6 +209,9 @@ class TransformerModule():
         elif not (children is TERMINAL):
             _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
 
+        elif (children is TERMINAL):
+            c.children.set(TERMINAL)
+            c.children_map.set(TERMINAL)
         # try:
         res = next(generator)
         # except Exception as e:

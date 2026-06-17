@@ -8,7 +8,7 @@ from array import array
 class GdValueStringName(GdValue):
     @classmethod
     def lark_keys(cls)->tuple[str]: 
-        return ("STRINGNAME",)
+        return ("stringname",)
 
     @classmethod
     def parse_lark(cls, key, tc, gdc, address): #, address:Token)->Any:
