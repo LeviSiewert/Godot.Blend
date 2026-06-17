@@ -129,8 +129,12 @@ class GdToPy_StringName(GdToPy):
         return GdValueStringName.parse_lark(*args, **kwargs)
 class PyToGd_StringName(PyToGd):
     _keys = (GdValueStringName,)
-    def _transform(self, *args, **kwargs)->str:
-        raise NotImplementedError("Not yet implimented!")
+    def _transform(self, key, tc, gdc, node:GdValueStringName, *children)->str:
+        assert(isinstance(node, self._keys))
+        if node.value is None:
+            return f'&""'
+        return f'&"{node.value}"'
+        # raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_Array(GdToPy):
     _keys = GdValueArray.lark_keys()

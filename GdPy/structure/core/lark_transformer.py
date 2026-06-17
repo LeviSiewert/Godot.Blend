@@ -61,9 +61,9 @@ class PyToGd(TransformerModule, ABC):
         return self._keys
     def transform(self, node:Any, tc:TransformerContext, c:Context, *args, **kwargs):
         if tc.children.get() is TERMINAL:
-            return self._transform(tc.key.get(), tc, c)
+            return self._transform(tc.key.get(), tc, c, tc.node.get())
         else:
-            return self._transform(tc.key.get(), tc, c, *args, *tc.children.get(tuple()), **kwargs)
+            return self._transform(tc.key.get(), tc, c, tc.node.get(), *args, *tc.children.get(tuple()), **kwargs)
     @abstractmethod
     def _transform(self, key, tc, gdc, *children):
         pass
