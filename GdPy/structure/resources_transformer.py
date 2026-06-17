@@ -25,11 +25,11 @@ class PyToGd_GdResourceFileImport(PyToGd):
         raise Exception("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
-    GdToPy_GdResourceFileScene,
-    GdToPy_GdResourceFileImport,
+    GdToPy_GdResourceFileScene(),
+    GdToPy_GdResourceFileImport(),
 ))
 
 py_to_gd_ruleset = TransformerRuleset((
-    PyToGd_GdResourceFileScene,
-    PyToGd_GdResourceFileImport,
+    PyToGd_GdResourceFileScene(),
+    PyToGd_GdResourceFileImport(),
 ))

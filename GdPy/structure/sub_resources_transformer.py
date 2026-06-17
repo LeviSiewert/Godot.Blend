@@ -67,18 +67,18 @@ class PyToGd_ResourceContainer(PyToGd):
         raise Exception("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
-    GdToPy_SubResourceExt,
-    GdToPy_SubResourceEdit,
-    GdToPy_SubResource,
-    GdToPy_SubResourceNode,
-    GdToPy_SubResourceCategory,
-    GdToPy_ResourceContainer,
+    GdToPy_SubResourceExt(),
+    GdToPy_SubResourceEdit(),
+    GdToPy_SubResource(),
+    GdToPy_SubResourceNode(),
+    GdToPy_SubResourceCategory(),
+    GdToPy_ResourceContainer(),
 ))
 py_to_gd_ruleset = TransformerRuleset((
-    PyToGd_SubResourceExt,
-    PyToGd_SubResourceEdit,
-    PyToGd_SubResource,
-    PyToGd_SubResourceNode,
-    PyToGd_SubResourceCategory,
-    PyToGd_ResourceContainer,
+    PyToGd_SubResourceExt(),
+    PyToGd_SubResourceEdit(),
+    PyToGd_SubResource(),
+    PyToGd_SubResourceNode(),
+    PyToGd_SubResourceCategory(),
+    PyToGd_ResourceContainer(),
 ))

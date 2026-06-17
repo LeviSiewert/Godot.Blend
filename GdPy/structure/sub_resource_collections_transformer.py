@@ -55,17 +55,17 @@ class PyToGd_CollectionCatRes(PyToGd):
         raise Exception("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
-    GdToPy_CollectionNodeRes,
-    GdToPy_CollectionExtRes,
-    GdToPy_CollectionEditRes,
-    GdToPy_CollectionSubRes,
-    GdToPy_CollectionCatRes,
+    GdToPy_CollectionNodeRes(),
+    GdToPy_CollectionExtRes(),
+    GdToPy_CollectionEditRes(),
+    GdToPy_CollectionSubRes(),
+    GdToPy_CollectionCatRes(),
 ))
 
 py_to_gd_ruleset = TransformerRuleset((
-    PyToGd_CollectionCatRes,
-    PyToGd_CollectionSubRes,
-    PyToGd_CollectionEditRes,
-    PyToGd_CollectionExtRes,
-    PyToGd_CollectionNodeRes,
+    PyToGd_CollectionCatRes(),
+    PyToGd_CollectionSubRes(),
+    PyToGd_CollectionEditRes(),
+    PyToGd_CollectionExtRes(),
+    PyToGd_CollectionNodeRes(),
 ))

@@ -45,15 +45,15 @@ class PyToGd_GdValueResourceID(PyToGd):
         raise Exception("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
-    GdToPy_GdValueExtResource,
-    GdToPy_GdValueNodePath,
-    GdToPy_GdValueSubResource,
-    GdToPy_GdValueResourceID,
+    GdToPy_GdValueExtResource(),
+    GdToPy_GdValueNodePath(),
+    GdToPy_GdValueSubResource(),
+    GdToPy_GdValueResourceID(),
 ))
 
 py_to_gd_ruleset = TransformerRuleset((
-    PyToGd_GdValueExtResource,
-    PyToGd_GdValueNodePath,
-    PyToGd_GdValueSubResource,
-    PyToGd_GdValueResourceID,
+    PyToGd_GdValueExtResource(),
+    PyToGd_GdValueNodePath(),
+    PyToGd_GdValueSubResource(),
+    PyToGd_GdValueResourceID(),
 ))
