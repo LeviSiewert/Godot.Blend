@@ -11,10 +11,13 @@ class GdValueExtResource(GdValue):
     address : str = None
     value : GdResource = None ##GdExtResource object
 
-    def __init__(self, value:str|GdResource=None):
-        if isinstance(value,GdResource):
+    def __init__(self, value:str|GdSubResource=None):
+        if isinstance(value, GdSubResource):
             self.value = value
-            self.address = value.id
+            self.address = value.nodepath()
+        elif isinstance(value,str):
+            if value != "":
+                self.address = value
         else:
             self.address = value
         super().__init__()
@@ -25,9 +28,9 @@ class GdValueExtResource(GdValue):
 
     @classmethod
     def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.address = str(address).strip('"')
-        return inst
+        if address:
+            return cls(str(address).strip('"'))
+        return cls()
     
     def set_value(self, value):
         return
@@ -50,10 +53,13 @@ class GdValueNodePath(GdValue):
     address : str = None
     value : GdSubResource = None
 
-    def __init__(self, value:str|GdResource=None):
-        if isinstance(value, GdResource):
+    def __init__(self, value:str|GdSubResource=None):
+        if isinstance(value, GdSubResource):
             self.value = value
-            self.address = value.get_nodepath()
+            self.address = value.nodepath()
+        elif isinstance(value,str):
+            if value != "":
+                self.address = value
         else:
             self.address = value
         super().__init__()
@@ -64,9 +70,9 @@ class GdValueNodePath(GdValue):
 
     @classmethod
     def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.address = str(address).strip('"')
-        return inst
+        if address:
+            return cls(str(address).strip('"'))
+        return cls()
     
     def set_value(self, value):
         return
@@ -88,10 +94,13 @@ class GdValueSubResource(GdValue):
     address : str = None
     value : GdSubResource = None
 
-    def __init__(self, value:str|GdResource=None):
-        if isinstance(value, GdResource):
+    def __init__(self, value:str|GdSubResource=None):
+        if isinstance(value, GdSubResource):
             self.value = value
-            self.address = value.id
+            self.address = value.uid
+        elif isinstance(value,str):
+            if value != "":
+                self.address = value
         else:
             self.address = value
         super().__init__()
@@ -102,9 +111,9 @@ class GdValueSubResource(GdValue):
 
     @classmethod
     def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
-        inst = cls()
-        inst.address = str(address).strip('"')
-        return inst
+        if address:
+            return cls(str(address).strip('"'))
+        return cls()
     
     def set_value(self, value):
         return
@@ -133,6 +142,9 @@ class GdValueResourceID(GdValue):
         if isinstance(value, GdResource):
             self.value = value
             self.address = value.uid
+        elif isinstance(value,str):
+            if value != "":
+                self.address = value
         else:
             self.address = value
         super().__init__()
@@ -143,10 +155,9 @@ class GdValueResourceID(GdValue):
 
     @classmethod
     def parse_lark(cls, key, tc, gdc, type:GdType, address:Token)->Any:
-        inst = cls()
-        if not (address is None):
-            inst.address = str(address).strip('"')
-        return inst
+        if address:
+            return cls(str(address).strip('"'))
+        return cls()
 
     def set_value(self, value):
         return    

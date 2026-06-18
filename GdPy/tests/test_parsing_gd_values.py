@@ -59,9 +59,9 @@ class TestGdValueSubResource():
         assert(isinstance(_parse("value", 'SubResource()'), GdValueSubResource))
         assert(isinstance(_parse("value", 'SubResource("")'), GdValueSubResource))
         assert(isinstance(_parse("value", 'SubResource("ID")'), GdValueSubResource))
-        assert(_parse("value", 'SubResource()' ==  GdValueSubResource()))
-        assert(_parse("value", 'SubResource("")' ==  GdValueSubResource()))
-        assert(_parse("value", 'SubResource("ID")' ==  GdValueSubResource("ID")))
+        assert(_parse("value", 'SubResource()') ==  GdValueSubResource())
+        assert(_parse("value", 'SubResource("")') ==  GdValueSubResource())
+        assert(_parse("value", 'SubResource("ID")') ==  GdValueSubResource("ID"))
     def test_rendering(self,):
         assert('SubResource()' ==  _render(GdValueSubResource()))
         assert('SubResource("ID")' ==  _render(GdValueSubResource("ID")))
