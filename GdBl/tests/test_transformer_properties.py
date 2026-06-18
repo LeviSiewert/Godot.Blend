@@ -5,31 +5,45 @@ from ..structure.core.properties import BlPropertyCollection, BlProperty
 from ..structure.transformers import BlToPyTransformer, PyToBlTransformer
 from ...GdPy.structure.core.transformer_v2 import TransformerContext as TC
 
-import bpy #type:ignore
+from contextlib import contextmanager
 
+import bpy #type:ignore
 
 bl_to_py_c = TC(transformer=BlToPyTransformer)
 
 def _bl_to_py(node):
     return BlToPyTransformer.transform_tree(bl_to_py_c, node)
 
-class TestGdValueStringName(BlenderPytestAttr):
+class _Base(BlenderPytestAttr):
+    @contextmanager
+    def _bl(self,**kwargs):
+        prop, original_values = self.set_prop(**kwargs)
+        t = bl_to_py_c.existing_object.set(prop)
+        yield prop
+        bl_to_py_c.existing_object.reset(t)
+        self.clean_prop(prop, original_values)
+
+    def set_prop(self, **kwargs)->tuple[BlProperty,dict]:
+        prop = self.get_attr()
+        original = {}
+        for k,v in kwargs.items():
+            original[k]=getattr(prop,k)
+            setattr(prop,k,v)
+        return prop,original
+
+    def clean_prop(self, prop:BlProperty, original_values:dict):
+        for k,v in original_values.items():
+            setattr(prop,k,v)
+
+
+class TestGdValueStringName(_Base):
     attr_name = "test"
     attr_value = bpy.props.PointerProperty(type=BlProperty)
 
-    def _bl(self,type:str,value:str):
-        prop : BlProperty = self.get_attr()
-        prop.type = type
-        prop.value = value
-        
-        return prop
-
     def test_bl_to_py(self,):
-        prop = self._bl("GdValueStringName","value")
-        t = bl_to_py_c.existing_object.set(prop)
-        assert (_bl_to_py(prop)  == GdValueStringName("value"))
-        bl_to_py_c.existing_object.reset(t)
-
+        with self._bl(type="GdValueStringName", value="value") as prop:
+            assert(_bl_to_py(prop) == GdValueStringName("value"))
+        
     def test_py_to_bl(self,):
         raise NotImplementedError()
     
