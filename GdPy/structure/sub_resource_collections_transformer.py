@@ -15,7 +15,7 @@ class GdToPy_CollectionNodeRes(GdToPy):
         return CollectionNodeRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionNodeRes(PyToGd):
     _keys = (CollectionNodeRes,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:CollectionNodeRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionExtRes(GdToPy):
@@ -24,7 +24,7 @@ class GdToPy_CollectionExtRes(GdToPy):
         return CollectionExtRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionExtRes(PyToGd):
     _keys = (CollectionExtRes,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:CollectionExtRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionEditRes(GdToPy):
@@ -33,7 +33,7 @@ class GdToPy_CollectionEditRes(GdToPy):
         return CollectionEditRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionEditRes(PyToGd):
     _keys = (CollectionEditRes,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:CollectionEditRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionSubRes(GdToPy):
@@ -42,7 +42,7 @@ class GdToPy_CollectionSubRes(GdToPy):
         return CollectionSubRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionSubRes(PyToGd):
     _keys = (CollectionSubRes,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:CollectionSubRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_CollectionCatRes(GdToPy):
@@ -51,7 +51,7 @@ class GdToPy_CollectionCatRes(GdToPy):
         return CollectionCatRes.parse_lark(*args, **kwargs)
 class PyToGd_CollectionCatRes(PyToGd):
     _keys = (CollectionCatRes,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:CollectionCatRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((

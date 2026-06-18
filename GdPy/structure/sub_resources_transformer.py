@@ -16,7 +16,7 @@ class GdToPy_SubResourceExt(GdToPy):
         return SubResourceExt.parse_lark(*args, **kwargs)
 class PyToGd_SubResourceExt(PyToGd):
     _keys = (SubResourceExt,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:SubResourceExt, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_SubResourceEdit(GdToPy):
@@ -25,7 +25,7 @@ class GdToPy_SubResourceEdit(GdToPy):
         return SubResourceEdit.parse_lark(*args, **kwargs)
 class PyToGd_SubResourceEdit(PyToGd):
     _keys = (SubResourceEdit,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:SubResourceEdit, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_SubResource(GdToPy):
@@ -34,7 +34,7 @@ class GdToPy_SubResource(GdToPy):
         return SubResource.parse_lark(*args, **kwargs)
 class PyToGd_SubResource(PyToGd):
     _keys = (SubResource,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:SubResource, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_SubResourceNode(GdToPy):
@@ -43,7 +43,7 @@ class GdToPy_SubResourceNode(GdToPy):
         return SubResourceNode.parse_lark(*args, **kwargs)
 class PyToGd_SubResourceNode(PyToGd):
     _keys = (SubResourceNode,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:SubResourceNode, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_SubResourceCategory(GdToPy):
@@ -52,7 +52,7 @@ class GdToPy_SubResourceCategory(GdToPy):
         return SubResourceCategory.parse_lark(*args, **kwargs)
 class PyToGd_SubResourceCategory(PyToGd):
     _keys = (SubResourceCategory,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:SubResourceCategory, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_ResourceContainer(GdToPy):
@@ -61,7 +61,7 @@ class GdToPy_ResourceContainer(GdToPy):
         return ResourceContainer.parse_lark(*args, **kwargs)
 class PyToGd_ResourceContainer(PyToGd):
     _keys = (ResourceContainer,)
-    def _transform(self, *args, **kwargs)->str:
+    def _transform(self, key, tc, gdc, node:ResourceContainer, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
 gd_to_py_ruleset = GdToPyRuleset((
