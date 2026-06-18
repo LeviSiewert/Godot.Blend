@@ -49,6 +49,7 @@ _all = (
     BlProperty,
     BlPropertyArrayInt,
     BlPropertyArrayFloat,
+    BlPropertyDictItem,
     BlPropertyDict,
     BlPropertyArray,
     BlPropertyCollection,
