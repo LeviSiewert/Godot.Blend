@@ -24,9 +24,3 @@ class BlToPy(TransformerModule):
     _keys : tuple[Any] = tuple()
     def get_keys(self):
         return self._keys
-
-class PyToBlContext(TransformerContext):
-    existing_object : ContextVar[tuple[object,str]]
-    def __init__(self, transformer, rulesets):
-        self.existing_object = ContextVar(str(id(self))+"existing_object")
-        super().__init__(transformer, rulesets)

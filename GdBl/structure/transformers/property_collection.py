@@ -1,5 +1,5 @@
 from .core import BlToPy, BlToPyRuleset
-from .core import PyToBl, PyToBlRuleset, PyToBlContext
+from .core import PyToBl, PyToBlRuleset
 
 # from ....GdPy.structure.values
 from ....GdPy.structure.core.property_collection import PropertyCollection
@@ -7,7 +7,7 @@ from ..core.properties import BlProperty, BlPropertyCollection
 
 class PyToBl_Properties(PyToBl):
     _keys = (PropertyCollection,)
-    def transform(self, node:PropertyCollection, c:PyToBlContext, *args, **kwargs):
+    def transform(self, node:PropertyCollection, c, *args, **kwargs):
         """ This transform should be a side effect on resulting container's parent, 
         as target object's properylist already exists. 
         This will have to be a existing_object "thrown" by the parent into the context... somehow
@@ -46,8 +46,8 @@ class BlToPy_Properties(BlToPy):
         
 
 py_to_bl_rulset = BlToPyRuleset(
-    BlToPy_Properties,
+    BlToPy_Properties(),
     )
 bl_to_gd_rulset = PyToBlRuleset(
-    BlToPy_Properties,
+    BlToPy_Properties(),
     )

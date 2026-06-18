@@ -17,9 +17,13 @@ class TransformerContext():
         self.children = ContextVar(str(id(self))+"children", default=tuple())
         self.children_map = ContextVar(str(id(self))+"children_map")
         self.node = ContextVar(str(id(self))+"node")
+        self.existing_object = ContextVar(str(id(self))+"existing_object")
 
     node: ContextVar[Any]
     ## Current node that is being transformed!
+
+    existing_object: ContextVar[Any]
+    ## Object that may or may not already exist and needs to be altered, passed from the parent
 
     transformer : ContextVar[Transformer]
     ## Current transformer

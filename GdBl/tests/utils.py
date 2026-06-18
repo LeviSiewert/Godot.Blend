@@ -2,7 +2,7 @@ import bpy
 from pathlib import Path
 from typing import Any
 
-from ... import register, unregister, bl_info
+from ... import register, unregister
 
 # def is_registered()->bool:
 #     if not (bl_info["name"] in bpy.context.preferences.addons.keys()):
