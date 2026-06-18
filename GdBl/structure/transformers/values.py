@@ -23,9 +23,9 @@ class BlToPy_GdValueStringName(BlToPy):
     def transform(self, node, c, *args, **kwargs):
         return GdValueStringName(node.value)
 
-bl_to_py_ruleset = PyToBlRuleset((
+bl_to_py_ruleset = BlToPyRuleset_Property((
     BlToPy_GdValueStringName(),
 ))
-py_to_bl_ruleset = BlToPyRuleset_Property((
+py_to_bl_ruleset = PyToBlRuleset((
     PyToBl_GdValueStringName(),
 ))
