@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import PropertyGroup
-from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
+from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty, PointerProperty
 
 class BlProperty(PropertyGroup):
     name : StringProperty() #type:ignore
