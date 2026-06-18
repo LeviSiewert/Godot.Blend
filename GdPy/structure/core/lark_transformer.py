@@ -9,6 +9,7 @@ from .core import GdType
 ''' Custom transformer for lark types of (Tree|Token) for uniformity of first and second pass transformer implementations, along with parsing flexibility '''
 
 class GdToPyRuleset(TransformerRuleset):
+    ''' Ruleset for iterating over Lark Tree|Token trees '''
     def _key_extractor(self, key:Tree|Token|None):
         if isinstance(key, Tree):
             return (str(key.data),)
@@ -46,7 +47,8 @@ class GdToPy(TransformerModule, ABC):
         pass
 
 
-class PyToGdRuleset(TransformerRuleset):
+class BasePyStructureRuleset(TransformerRuleset):
+    ''' Ruleset structure for iterating over GdPy Objects, Inherit here as future key rules will extract project level information '''
     def _key_extractor(self,key)->tuple[str|Any|Type]:
         return (key.__class__,)
     
@@ -54,16 +56,21 @@ class PyToGdRuleset(TransformerRuleset):
         if hasattr(node, "get_struct_children"):
             return node.get_struct_children()
         return TERMINAL
+    
+class PyToGdRuleset(BasePyStructureRuleset):
+    pass
 
 class PyToGd(TransformerModule, ABC):
     _keys : tuple = tuple()
     def get_keys(self):
         return self._keys
+
     def transform(self, node:Any, tc:TransformerContext, c:Context, *args, **kwargs):
         if tc.children.get() is TERMINAL:
             return self._transform(tc.key.get(), tc, c, tc.node.get())
         else:
             return self._transform(tc.key.get(), tc, c, tc.node.get(), *args, *tc.children.get(tuple()), **kwargs)
+    
     @abstractmethod
     def _transform(self, key, tc, gdc, *children):
         pass
