@@ -214,6 +214,11 @@ class TransformerModule():
             cv.set(res)
 
         for children in generator_closure(generator):
+            if _kt:
+                for k,t in _kt.items():
+                    getattr(c,k).reset(t)
+                _kt = None
+
             if (children is None):
                 children = self._get_children_default(node)
                 if not ((children is None) or (children is TERMINAL)):
@@ -226,10 +231,12 @@ class TransformerModule():
                 c.children.set(TERMINAL)
                 c.children_map.set(TERMINAL)
 
-            if _kt:
-                for k,t in kt.items():
-                    getattr(c,k).reset(t)
+        if _kt:
+            ## NOTE: Have to offset context reset due to `return` happening *after* last yield completes
+            for k,t in _kt.items():
+                getattr(c,k).reset(t)
             _kt = None
+
 
         res : IGNORE|Any = cv.get()
 
