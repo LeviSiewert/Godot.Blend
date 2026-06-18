@@ -220,7 +220,8 @@ class TransformerModule():
                 c.children_map.set(TERMINAL)
 
             if _kt:
-                kt = _kt | kt   ## oldest key priority
+                for k,t in kt.items():
+                    getattr(c,k).reset(t)
             _kt = None
 
         res : IGNORE|Any = cv.get()
