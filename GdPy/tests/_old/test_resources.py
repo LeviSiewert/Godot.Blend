@@ -5,14 +5,14 @@ from pathlib import Path as _Path
 # from ..structure.files import FileGodotProject, FileTscn, FileTres
 # from ..structure.values import *
 
-from ..structure.core import PropertyCollection, Context
-from ..structure.resources import GdResourceFileImport, GdResourceFileScene, GdResourceFileTres
-from ..structure.sub_resource_collections import CollectionExtRes, CollectionEditRes, CollectionNodeRes, CollectionNodeRes, CollectionCatRes
-from ..structure.sub_resources import SubResource, SubResourceCategory, SubResourceEdit, SubResourceExt, SubResourceNode 
-from ..structure.files import FileGodotProject, FileTscn
-from ..structure.references import GdValueExtResource, GdValueSubResource, GdValueNodePath
+from ...structure.core import PropertyCollection, Context
+from ...structure.resources import GdResourceFileImport, GdResourceFileScene, GdResourceFileTres
+from ...structure.sub_resource_collections import CollectionExtRes, CollectionEditRes, CollectionNodeRes, CollectionNodeRes, CollectionCatRes
+from ...structure.sub_resources import SubResource, SubResourceCategory, SubResourceEdit, SubResourceExt, SubResourceNode 
+from ...structure.files import FileGodotProject, FileTscn
+from ...structure.references import GdValueExtResource, GdValueSubResource, GdValueNodePath
 
-from ..structure.values import GdValuePackedStringArray
+from ...structure.values import GdValuePackedStringArray
 
 _projdir = _Path(__file__).parent.resolve() / "project"
 

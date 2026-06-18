@@ -1,6 +1,6 @@
-from ..structure.core.primitives import Context
-from ..structure.sub_resource_collections import CollectionSubRes, CollectionNodeRes
-from ..structure.sub_resources import SubResourceNode, SubResource
+from ...structure.core.primitives import Context
+from ...structure.sub_resource_collections import CollectionSubRes, CollectionNodeRes
+from ...structure.sub_resources import SubResourceNode, SubResource
 
 # def test_base_behavior():
 #     col = CollectionSubRes()

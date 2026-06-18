@@ -1,4 +1,4 @@
-from ..structure.core.class_db import ClassDbEnforcable, GdClassDef, GdPropertyDef
+from ...structure.core.class_db import ClassDbEnforcable, GdClassDef, GdPropertyDef
 
 def test_GdPropertyDef():
     raise Exception(GdPropertyDef, "Tests not yet implimented!")

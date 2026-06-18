@@ -1,7 +1,7 @@
-from .. import *
-from ..structure.files import FileClassDefinition, files
+from ... import *
+from ...structure.files import FileClassDefinition, files
 # from ..core.files import files
-from ..resources import cls_def
+from ...resources import cls_def
 from pathlib import Path as _Path
 # import pytest
 

@@ -1,4 +1,4 @@
-from ..structure.core import PropertyCollection
+from ...structure.core import PropertyCollection
 
 def test_behavior():
     props = PropertyCollection()

@@ -1,5 +1,5 @@
-from ..structure.core.file_db import FileDb
-from ..structure.files import files
+from ...structure.core.file_db import FileDb
+from ...structure.files import files
 from pathlib import Path as _Path
 
 _thisdir = _Path(__file__).parent.resolve()
