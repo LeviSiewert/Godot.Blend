@@ -29,6 +29,8 @@ class GdValueStringName(GdValue):
             return self.value == value
         return value == self.value
 
+    def __hash__(self):
+        return super().__hash__()
 
 class GdValueArray(GdValue):
     value : list
