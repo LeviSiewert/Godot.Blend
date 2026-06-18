@@ -45,9 +45,9 @@ class BlToPy_Properties(BlToPy):
 
         
 
-py_to_bl_rulset = BlToPyRuleset(
+py_to_bl_ruleset = BlToPyRuleset(
     BlToPy_Properties(),
     )
-bl_to_gd_rulset = PyToBlRuleset(
+bl_to_py_ruleset = PyToBlRuleset(
     BlToPy_Properties(),
     )

@@ -1,5 +1,5 @@
 from .core import BlToPy, BlToPyRuleset
-from .core import PyToBl, PyToBlRuleset, PyToBlContext
+from .core import PyToBl, PyToBlRuleset
 
 from ....GdPy.structure.values import GdValueStringName
 from ..core.properties import BlProperty
@@ -13,7 +13,7 @@ class BlToPyRuleset_Property(BlToPyRuleset):
 
 class PyToBl_GdValueStringName(PyToBl):
     _keys = (GdValueStringName,)
-    def transform(self, node, c:PyToBlContext, *args, **kwargs):
+    def transform(self, node, c, *args, **kwargs):
         target : BlProperty = c.existing_object.get()
         target.type = "GdValueStringName"
         target.value = str(GdValueStringName)
@@ -23,9 +23,9 @@ class BlToPy_GdValueStringName(BlToPy):
     def transform(self, node, c, *args, **kwargs):
         return GdValueStringName(node.value)
 
-bl_to_gd_rulset = PyToBlRuleset(
+bl_to_py_ruleset = PyToBlRuleset((
     BlToPy_GdValueStringName(),
-)
-py_to_bl_rulset = BlToPyRuleset_Property(
+))
+py_to_bl_ruleset = BlToPyRuleset_Property((
     PyToBl_GdValueStringName(),
-)
+))

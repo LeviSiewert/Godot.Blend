@@ -1,5 +1,5 @@
 from .core import BlToPy, BlToPyRuleset
 from .core import PyToBl, PyToBlRuleset
 
-gd_to_bl_rulset = BlToPyRuleset(tuple())
-bl_to_gd_rulset = PyToBlRuleset(tuple())
+py_to_bl_ruleset = BlToPyRuleset(tuple())
+bl_to_py_ruleset = PyToBlRuleset(tuple())

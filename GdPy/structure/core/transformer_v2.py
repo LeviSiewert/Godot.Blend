@@ -8,9 +8,12 @@ class IGNORE: pass
 class DEFAULT: pass
 
 class TransformerContext():
-    def __init__(self, transformer, rulesets:Iterable[TransformerRuleset]):
+    def __init__(self, transformer:Transformer, rulesets:Iterable[TransformerRuleset]=None):
         self.transformer = ContextVar(str(id(self))+"transformer", default = transformer)
-        self.current_rulesets = ContextVar(str(id(self))+"current_rulesets", default = tuple(rulesets))
+        if rulesets is None:
+            self.current_rulesets = ContextVar(str(id(self))+"current_rulesets", default = transformer.rulesets)
+        else:
+            self.current_rulesets = ContextVar(str(id(self))+"current_rulesets", default = tuple(rulesets))
         self.ruleset = ContextVar(str(id(self))+"ruleset")
         self.key = ContextVar(str(id(self))+"key")
         self.chain = ContextVar(str(id(self))+"chain", default = tuple())
