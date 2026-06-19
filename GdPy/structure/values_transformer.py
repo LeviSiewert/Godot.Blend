@@ -73,6 +73,30 @@ class GdToPy_Terminals(GdToPy):
             case _:
                 raise Exception("Could not match type of node", node.type)
 
+_inf = float("inf")
+_inf_neg = -float("inf")
+
+class PyToGd_Terminals(PyToGd):
+    ''' Terminals Wrapper, where node's value is simple '''
+    def get_keys(self,):
+        return (bool,float,int,str,None)
+    def transform(self, node, tc, c, *args, **kwargs):
+        if isinstance(node, float):
+            if node == _inf:
+                return "inf"
+            elif node == _inf_neg:
+                return "-inf"
+            return f'{node:g}'
+        if isinstance(node, bool):
+            if node:
+                return "true"
+            return "false"
+        if isinstance(node, str):
+            return node
+        if node is None:
+            return "null"
+        raise KeyError()
+
 class GdToPy_Simple(GdToPy):
     ''' Simple Children Wrapper, where node's value is typically simple to impliment '''
     def get_keys(self,):
@@ -407,6 +431,7 @@ gd_to_py_ruleset = GdToPyRuleset((
 
 
 py_to_gd_ruleset = PyToGdRuleset((
+    PyToGd_Terminals(),
     PyToGd_StringName(),
     PyToGd_Array(),
     PyToGd_Vector2(),
