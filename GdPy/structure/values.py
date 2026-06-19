@@ -6,6 +6,7 @@ from array import array
 
 
 class GdValueStringName(GdValue):
+    value : str|None = None
     def __init__(self, val=None):
         super().__init__()
         if val != None:
@@ -34,37 +35,39 @@ class GdValueStringName(GdValue):
 
 class GdValueArray(GdValue):
     value : list
-    types : tuple[Type[GdValue|Any]]
+    _type : str = "Variant"
 
     item_appended : Signal
     item_removed : Signal
     
-    def __init__(self, val:Any=None, types:tuple=None):
-        if not (types is None):
-            self.types = types
-        if val != None:
-            self.set_value(val)
-        else:
-            self.value = []
+    def __init__(self, val:Any=None, type:str="Variant"):
+        self.set_type(type)
+        self.set_value(val)
         super().__init__()
 
-    def set_types(self, types:tuple[Type[GdValue|Any]]):
-        self.types = types
+    def set_type(self, _type:str):
+        if _type is None: 
+            self._type = "Variant"
+            return
+        self._type = _type
 
     def set_value(self, value):
         self.value = []
+        if value is None:
+            return
         for x in value:
             self.append(x)
 
     def append(self, item:Any):
-        if self.types:
-            assert(isinstance(item,self.types))
+        # if self._type:
+        #     assert(isinstance(item,self._type))
+        #   FUTURE
         self.value.append(item)
-        self.item_appended(item)
+        # self.item_appended(item) #FUTURE 
         
     def remove(self, item:Any):
         self.value.remove(item)
-        self.item_removed(item)
+        # self.item_removed(item) #FUTURE
 
     @classmethod
     def lark_keys(cls)->tuple[str]: 
@@ -80,19 +83,16 @@ class GdValueArray(GdValue):
             raise Exception("Could not determine key", key)
 
     @classmethod
-    def _parse_explicit(cls, tc, gdc, typing, int_array:GdValueArray):
-        if int_array is None:
-            res = cls()
-            res.set_types(typing)
+    def _parse_explicit(cls, tc, gdc, typing, interior_array:GdValueArray|None):
+        if interior_array is None:
+            res = cls(None, typing)
             return res
-        int_array.set_types(typing)
-        return int_array
+        interior_array.set_type(typing)
+        return interior_array
     
     @classmethod
     def _parse_implicit(cls, tc, gdc, *children:list[Token|Any]):
-        inst = cls()
-        inst.value = children
-        return inst
+        return cls(children)
     
     def __iter__(self,):
         return self.value.__iter__()
@@ -104,6 +104,9 @@ class GdValueArray(GdValue):
     
     def __len__(self):
         return len(self.value)
+    
+    def _get_struct_children(self,)->Iterable:
+        return self.value
 
 class _GdValueArrayPackedType(GdValue):
     value : list
@@ -141,7 +144,7 @@ class _GdValueArrayFixedLength(GdValue):
     value : array
     _arr_type : str = "f"
     _arr_length : int = 0
-
+    
     def __init__(self, val:Any=None):
         if (val is None):
             self.def_value()
@@ -371,11 +374,10 @@ class GdValuePackedColorArray(_GdValueArrayPackedTypeComplex):
 
 class GdValueDictionary(GdValue):
     value : dict
-    types : tuple[Type]
+    types : tuple[Type] = ("Variant","Variant")
 
-    def __init__(self, value:list[tuple]|dict=None, types:tuple[Type]=None):
-        if types:
-            self.set_type(types)
+    def __init__(self, value:Iterable[tuple]|dict=None, types:tuple[Type]=None):
+        self.set_type(types)
 
         if (value is None):
             self.def_value()
@@ -388,7 +390,7 @@ class GdValueDictionary(GdValue):
         else:
             raise TypeError("Could not construct from type", value.__class__)
 
-        if types:
+        if self.types:
             self.check_types()
 
     @classmethod
@@ -399,13 +401,11 @@ class GdValueDictionary(GdValue):
         self.value = value
     def def_value(self):
         self.value = {}
-    def set_type(self, types):
+    def set_type(self, types:tuple[str,str]):
+        if types is None: return
         self.types = types
 
     def check_types(self):
-        pass
-
-    def check_type(self):
         ##TODO
         pass
 
@@ -422,10 +422,8 @@ class GdValueDictionary(GdValue):
             raise Exception("Cannot find key", key)
 
     @classmethod
-    def _parse_implicit(cls, pairs:list[tuple])->Any:
-        if pairs != None: 
-            return cls(pairs)
-        return cls()
+    def _parse_implicit(cls, pairs:list[tuple]=tuple())->Any: 
+        return cls(pairs)
     
     @classmethod
     def _parse_explicit(cls, type_anno, int_dict:Self)->Any:

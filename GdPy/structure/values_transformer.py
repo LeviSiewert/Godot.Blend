@@ -142,17 +142,19 @@ class GdToPy_Array(GdToPy):
         return GdValueArray.parse_lark(*args, **kwargs)
 class PyToGd_Array(PyToGd):
     _keys = (GdValueArray,)
-    def _transform(self, key, tc, gdc, node:GdValueArray, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
-          
-class GdToPy_Vector2(GdToPy):
-    _keys = GdValueVector2.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector2:
-        return GdValueVector2.parse_lark(*args, **kwargs)
-class PyToGd_Vector2(PyToGd):
-    _keys = (GdValueVector2,)
-    def _transform(self, key, tc, gdc, node:GdValueVector2, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+    def transform(self, node:GdValueArray, tc:TransformerContext, c:Context, *args, **kwargs):
+        # yield node.type 
+        # types = tc.children.get()
+        yield node.value
+        children = tc.children.get()
+        if children is None:
+            children = tuple()
+        if node._type == "Variant":
+            return f'[{",".join(children)}]'
+        return f'Array[{node._type}]({",".join(children)})'
+        # return f'Array[{",".join(types)}]({",".join(children)})'0
+
+## FIXED LENGTH ARRAY
 
 class GdToPy_Vector3(GdToPy):
     _keys = GdValueVector3.lark_keys()
@@ -280,6 +282,11 @@ class PyToGd_Transform3D(PyToGd):
     def _transform(self, key, tc, gdc, node:GdValueTransform3D, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
+
+
+
+
+
 class GdToPy_PackedByteArray(GdToPy):
     _keys = GdValuePackedByteArray.lark_keys()
     def _transform(self, *args, **kwargs)->GdValuePackedByteArray:
@@ -376,8 +383,23 @@ class GdToPy_Dictionary(GdToPy):
         return GdValueDictionary.parse_lark(*args, **kwargs)
 class PyToGd_Dictionary(PyToGd):
     _keys = (GdValueDictionary,)
-    def _transform(self, key, tc, gdc, node:GdValueDictionary, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+    
+    def transform(self, node:GdValueArray, tc:TransformerContext, c:Context, *args, **kwargs):
+        yield (*node.value.values(), *node.value.items())
+
+        conv : dict = tc.children_map.get()
+
+        reps = []
+        for k,v in node.value.items():
+            reps.append(f"{conv[k]}:{conv[v]}") 
+        
+        inner = '{' + ",".join(reps) + "}" 
+        if (node.types == ("Variant", "Variant")):
+            return inner
+        if len(reps) != 0:
+            return f"Dictionary[{",".join(node.types)}]({inner})"
+        return f"Dictionary[{",".join(node.types)}]()"
+
 
 
 
