@@ -173,7 +173,9 @@ class _PyToGd_FixedTypeArray(PyToGd):
     
     def get_keys(self):
         return (self._type,)
-    def transform(self, node:Any, tc:TransformerContext, c:Context, *args, **kwargs):
+    def transform(self, node:GdValueVector2, tc:TransformerContext, c:Context, *args, **kwargs):
+        if node.is_def_value():
+            return f"{self._text_key}()"
         yield node.value
         return f"{self._text_key}({",".join(tc.children.get())})"
     
@@ -325,31 +327,48 @@ class PyToGd_PackedStringArray(_PyToGd_FixedTypeArray):
     _type = GdValuePackedStringArray
     _text_key = "PackedStringArray"
 
+
+class _PyToGd_FixedTypeArrayPacked(PyToGd):
+    ## Packed arrays require all subarrays are expanded
+    _text_key : str 
+    _type:Type
+    
+    def get_keys(self):
+        return (self._type,)
+    def transform(self, node:GdValueVector2, tc:TransformerContext, c:Context, *args, **kwargs):
+        if node.is_def_value():
+            return f"{self._text_key}()"
+        _children = []
+        for sa in node.value:
+            _children.extend(sa.value)
+        yield _children
+        return f"{self._text_key}({",".join(tc.children.get())})"
+
 class GdToPy_PackedVector2Array(_GdToPy_FixedTypeArray):
     _type = GdValuePackedVector2Array
     _keys = ("packedvector2array",)
-class PyToGd_PackedVector2Array(_PyToGd_FixedTypeArray):
+class PyToGd_PackedVector2Array(_PyToGd_FixedTypeArrayPacked):
     _type = GdValuePackedVector2Array
     _text_key = "PackedVector2Array"
 
 class GdToPy_PackedVector3Array(_GdToPy_FixedTypeArray):
     _type = GdValuePackedVector3Array
     _keys = ("packedvector3array",)
-class PyToGd_PackedVector3Array(_PyToGd_FixedTypeArray):
+class PyToGd_PackedVector3Array(_PyToGd_FixedTypeArrayPacked):
     _type = GdValuePackedVector3Array
     _text_key = "PackedVector3Array"
 
 class GdToPy_PackedVector4Array(_GdToPy_FixedTypeArray):
     _type = GdValuePackedVector4Array
     _keys = ("packedvector4array",)
-class PyToGd_PackedVector4Array(_PyToGd_FixedTypeArray):
+class PyToGd_PackedVector4Array(_PyToGd_FixedTypeArrayPacked):
     _type = GdValuePackedVector4Array
     _text_key = "PackedVector4Array"
 
 class GdToPy_PackedColorArray(_GdToPy_FixedTypeArray):
     _type = GdValuePackedColorArray
     _keys = ("packedcolorarray",)
-class PyToGd_PackedColorArray(_PyToGd_FixedTypeArray):
+class PyToGd_PackedColorArray(_PyToGd_FixedTypeArrayPacked):
     _type = GdValuePackedColorArray
     _text_key = "PackedColorArray"
 

@@ -76,14 +76,14 @@ NULL : "null"
 
 BOOL : "true" | "false"
 
-type_anno : "[" type* ("," type)* "]"
+type_anno : "[" type+ ("," type)* "]"
 type : WORD|subresource|extresource|rid
 
 array_explicit : "Array" [type_anno] "(" [array] ")"
-array : "[" [value* ("," value)*] "]"
+array : "[" [value+ ("," value)*] "]"
 
 dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"
-dictionary : "{" [pair* ("," pair)*] "}"
+dictionary : "{" [pair+ ("," pair)*] "}"
 pair : value ":" value
 
 stringname : "&" STRING
@@ -126,20 +126,20 @@ basis : "Basis(" [FLOAT ("," FLOAT)~8] ")"
 
 // Packed types:
 
-packedbytearray : "PackedByteArray(" STRING+ ")"
+packedbytearray : "PackedByteArray(" [STRING] ")"
 
-packedint32array : "PackedInt32Array(" ( [NUMBER* ("," NUMBER)*] )* ")" 
-packedint64array : "PackedInt64Array(" ( [NUMBER* ("," NUMBER)*] )* ")" 
+packedint32array : "PackedInt32Array(" ( [NUMBER+ ("," NUMBER)*] )* ")" 
+packedint64array : "PackedInt64Array(" ( [NUMBER+ ("," NUMBER)*] )* ")" 
 
-packedfloat32array : "PackedFloat32Array(" ( [FLOAT* ("," FLOAT)*] )* ")" 
-packedfloat64array : "PackedFloat64Array(" ( [FLOAT* ("," FLOAT)*] )* ")" 
+packedfloat32array : "PackedFloat32Array(" ( [FLOAT+ ("," FLOAT)*] )* ")" 
+packedfloat64array : "PackedFloat64Array(" ( [FLOAT+ ("," FLOAT)*] )* ")" 
 
-packedstringarray : "PackedStringArray(" ( [STRING* ("," STRING)*] )* ")"
+packedstringarray : "PackedStringArray(" ( [STRING+ ("," STRING)*] )* ")"
 
-packedvector2array : "PackedVector2Array(" [ [packed_2* ("," packed_2)*] ] ")"
-packedvector3array : "PackedVector3Array(" [ [packed_3* ("," packed_3)*] ] ")"
-packedvector4array : "PackedVector4Array(" [ [packed_4* ("," packed_4)*] ] ")"
-packedcolorarray : "PackedColorArray(" [packed_4* ("," packed_4)*] ")"
+packedvector2array : "PackedVector2Array(" [ [packed_2+ ("," packed_2)*] ] ")"
+packedvector3array : "PackedVector3Array(" [ [packed_3+ ("," packed_3)*] ] ")"
+packedvector4array : "PackedVector4Array(" [ [packed_4+ ("," packed_4)*] ] ")"
+packedcolorarray : "PackedColorArray(" [packed_4+ ("," packed_4)*] ")"
 
 // Uniform Fixed Len:
 packed_2 : FLOAT ("," FLOAT)~1

@@ -58,6 +58,9 @@ class GdValueArray(GdValue):
         for x in value:
             self.append(x)
 
+    def is_def_value(self):
+        return self.value == tuple()
+
     def append(self, item:Any):
         # if self._type:
         #     assert(isinstance(item,self._type))
@@ -134,27 +137,31 @@ class _GdValueArrayPackedType(GdValue):
     def __len__(self):
         return len(self.value)
 
+    def is_def_value(self):
+        return self.value == tuple()
+
 class _GdValueArrayFixedLength(GdValue):
     value : array|tuple = tuple()
+    _arr_item_def = 0
     _arr_type : str = "f"
     _arr_length : int = 0
-    
+
     def __init__(self, val:Any=None):
-        if (val is None):
+        if (val is None) or (tuple(val) == ((None,)*self._arr_length)):
             self.def_value()
         else:
             self.set_value(val)
 
     def def_value(self,):
-        self.value = array(self._arr_type, [0]*self._arr_length)
+        self.value = self.get_def_value()
+    def get_def_value(self,):
+        return array(self._arr_type, (self.types[0](self._arr_item_def),)*self._arr_length)
+    def is_def_value(self):
+        return self.value == self.get_def_value()
 
     def set_value(self, value:Iterable):
         if len(value) != self._arr_length:
             raise Exception("len(vals) != cls._arr_length", self._arr_length, value )
-        c = tuple(value)
-        if c == ((None,)*self._arr_length):
-            self.value = array(self._arr_type, (self.types[0](),)*self._arr_length )
-            return 
         self.value = array(self._arr_type, value)
     
     def __iter__(self,):
@@ -165,6 +172,9 @@ class _GdValueArrayFixedLength(GdValue):
             return self.value == other
         return False
     
+    def __hash__(self):
+        return super().__hash__()
+
     def __len__(self):
         return len(self.value)
 
