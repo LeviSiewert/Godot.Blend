@@ -40,9 +40,6 @@ from .values import (
     GdValueDictionary,
 )
 
-
-
-
 class GdToPy_Terminals(GdToPy):
     ''' Terminals Wrapper, where node's value is simple '''
     def get_keys(self,):
@@ -178,7 +175,6 @@ class _PyToGd_FixedTypeArray(PyToGd):
             return f"{self._text_key}()"
         yield node.value
         return f"{self._text_key}({",".join(tc.children.get())})"
-    
 
 class GdToPy_Vector2(_GdToPy_FixedTypeArray):
     _type = GdValueVector2
@@ -292,6 +288,12 @@ class PyToGd_PackedByteArray(_PyToGd_FixedTypeArray):
     _type = GdValuePackedByteArray
     _text_key = "PackedByteArray"
 
+    def transform(self, node:GdValueVector2, tc:TransformerContext, c:Context, *args, **kwargs):
+        if node.is_def_value():
+            return f"{self._text_key}()"
+        yield node.value
+        return f'{self._text_key}("{','.join(tc.children.get())}")'
+
 class GdToPy_PackedInt32Array(_GdToPy_FixedTypeArray):
     _type = GdValuePackedInt32Array
     _keys = ("packedint32array",)
@@ -326,6 +328,14 @@ class GdToPy_PackedStringArray(_GdToPy_FixedTypeArray):
 class PyToGd_PackedStringArray(_PyToGd_FixedTypeArray):
     _type = GdValuePackedStringArray
     _text_key = "PackedStringArray"
+    def transform(self, node:GdValueVector2, tc:TransformerContext, c:Context, *args, **kwargs):
+        if node.is_def_value():
+            return f"{self._text_key}()"
+        yield node.value
+        children = []
+        for x in tc.children.get():
+            children.append(f'"{x}"')
+        return f'{self._text_key}({','.join(children)})'
 
 
 class _PyToGd_FixedTypeArrayPacked(PyToGd):

@@ -126,6 +126,9 @@ class _GdValueArrayPackedType(GdValue):
     def def_value(self):
         self.value = list()
 
+    def is_def_value(self):
+        return self.value == tuple()
+
     def __iter__(self,):
         return self.value.__iter__()
     
@@ -137,8 +140,6 @@ class _GdValueArrayPackedType(GdValue):
     def __len__(self):
         return len(self.value)
 
-    def is_def_value(self):
-        return self.value == tuple()
 
 class _GdValueArrayFixedLength(GdValue):
     value : array|tuple = tuple()
