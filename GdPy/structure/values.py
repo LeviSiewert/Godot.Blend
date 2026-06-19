@@ -135,7 +135,7 @@ class _GdValueArrayPackedType(GdValue):
         return len(self.value)
 
 class _GdValueArrayFixedLength(GdValue):
-    value : array
+    value : array|tuple = tuple()
     _arr_type : str = "f"
     _arr_length : int = 0
     

@@ -45,7 +45,7 @@ class GdToPy(TransformerModule, ABC):
             if children is None:
                 children = tuple()
             return self._transform(tc.key.get(), tc, c, *args, *children, **kwargs)
-    @abstractmethod
+    
     def _transform(self, key, tc, gdc, *children):
         pass
 

@@ -153,17 +153,21 @@ class PyToGd_Array(PyToGd):
 
 class _GdToPy_FixedTypeArray(GdToPy):
     _type:Type
-    def _transform(self, key, tc, gdc, node, *children):
+    def transform(self, node, tc, c, *args, **kwargs):
+        children = tc.children.get()
         if len(children) == 0:
             return self._type()
         return self._type(children)
 class _PyToGd_FixedTypeArray(PyToGd):
     _text_key : str 
     _type:Type
+    
     def get_keys(self):
         return (self._type,)
-    def _transform(self, key, tc, gdc, node, *children):
-        return f"{self._text_key}({",".join(children)})"
+    def transform(self, node:Any, tc:TransformerContext, c:Context, *args, **kwargs):
+        yield node.value
+        return f"{self._text_key}({",".join(tc.children.get())})"
+    
 
 class GdToPy_Vector2(_GdToPy_FixedTypeArray):
     _type = GdValueVector2
