@@ -75,5 +75,5 @@ class PyToGd(TransformerModule, ABC):
             return self._transform(tc.key.get(), tc, c, tc.node.get(), *args, *tc.children.get(tuple()), **kwargs)
     
     # @abstractmethod
-    def _transform(self, key, tc, gdc, *children):
+    def _transform(self, key, tc, gdc, node, *children):
         pass

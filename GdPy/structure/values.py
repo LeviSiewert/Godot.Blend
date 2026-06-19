@@ -123,12 +123,6 @@ class _GdValueArrayPackedType(GdValue):
     def def_value(self):
         self.value = list()
 
-    @classmethod
-    def parse_lark(cls, key, tc, gdc, *args)->Any:
-        if args == (None,):
-            return cls()
-        return cls(args)
-    
     def __iter__(self,):
         return self.value.__iter__()
     
@@ -158,16 +152,6 @@ class _GdValueArrayFixedLength(GdValue):
         if len(value) != self._arr_length:
             raise Exception("len(vals) != cls._arr_length", self._arr_length, value )
         self.value = array(self._arr_type, value)
-
-    @classmethod
-    def parse_lark(cls, key, tc, gdc, vals)->Any:
-        if vals is None:
-            return cls()
-        if (len(vals)==0) or (vals == (None,)) or (vals == ((None,)*cls._arr_length)):
-            return cls()
-        if (len(vals) != cls._arr_length):
-            raise Exception("len(vals) != cls._arr_length", cls._arr_length, vals,)
-        return cls(vals)
     
     def __iter__(self,):
         return self.value.__iter__()
@@ -184,107 +168,62 @@ class GdValueVector2(_GdValueArrayFixedLength):
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 2
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector2",)
 class GdValueVector3(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 3
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector3",)
 class GdValueVector4(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector4",)
 class GdValueVector2i(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "i"
     _arr_length : int = 2
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector2i",)
 class GdValueVector3i(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "i"
     _arr_length : int = 3
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector3i",)
 class GdValueVector4i(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "i"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("vector4i",)
 class GdValueRect2(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("rect2",)
 class GdValueRect2i(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "i"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("rect2i",)
 class GdValuePlane(_GdValueArrayFixedLength): 
     types = (int,)
     _arr_type : str = "f"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("plane",)
 class GdValueColor(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("color",)
 class GdValueAABB(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 6
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("aabb",)
 class GdValueQuaternion(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 4
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("quaternion",)
 class GdValueTransform2D(_GdValueArrayFixedLength):
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 6
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("transform2d",)
 class GdValueBasis(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 9
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("basis",)
 class GdValueTransform3D(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 12
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("transform3d",)
 
 
 

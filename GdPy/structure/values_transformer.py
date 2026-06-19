@@ -4,13 +4,13 @@ from .core.property_collection import PropertyCollection
 from lark.visitors import Tree, Token #type:ignore
 from abc import ABC, abstractmethod
 from .core.primitives import Context
-from typing import Any
+from typing import Any, Type
 
 from .values import ( 
     GdValueStringName,
     GdValueArray,
 #   _GdValueArrayPackedType,
-#   _GdValueArrayFixedLength,
+#   _FixedTypeArray,
     GdValueVector2,
     GdValueVector3,
     GdValueVector4,
@@ -122,7 +122,6 @@ class GdToPy_Simple(GdToPy):
             case _:
                 raise Exception("Could not match type of tree", node.type)
 
-
 class GdToPy_StringName(GdToPy):
     _keys = GdValueStringName.lark_keys()
     def _transform(self, *args, **kwargs)->GdValueStringName:
@@ -134,7 +133,6 @@ class PyToGd_StringName(PyToGd):
         if node.value is None:
             return f'&""'
         return f'&"{node.value}"'
-        # raise NotImplementedError("Not yet implimented!")
 
 class GdToPy_Array(GdToPy):
     _keys = GdValueArray.lark_keys()
@@ -143,8 +141,6 @@ class GdToPy_Array(GdToPy):
 class PyToGd_Array(PyToGd):
     _keys = (GdValueArray,)
     def transform(self, node:GdValueArray, tc:TransformerContext, c:Context, *args, **kwargs):
-        # yield node.type 
-        # types = tc.children.get()
         yield node.value
         children = tc.children.get()
         if children is None:
@@ -152,230 +148,200 @@ class PyToGd_Array(PyToGd):
         if node._type == "Variant":
             return f'[{",".join(children)}]'
         return f'Array[{node._type}]({",".join(children)})'
-        # return f'Array[{",".join(types)}]({",".join(children)})'0
 
-## FIXED LENGTH ARRAY
+## ARRAY TYPES:
 
-class GdToPy_Vector3(GdToPy):
-    _keys = GdValueVector3.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector3:
-        return GdValueVector3.parse_lark(*args, **kwargs)
-class PyToGd_Vector3(PyToGd):
-    _keys = (GdValueVector3,)
-    def _transform(self, key, tc, gdc, node:GdValueVector3, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class _GdToPy_FixedTypeArray(GdToPy):
+    _type:Type
+    def _transform(self, key, tc, gdc, node, *children):
+        if len(children) == 0:
+            return self._type()
+        return self._type(children)
+class _PyToGd_FixedTypeArray(PyToGd):
+    _text_key : str 
+    _type:Type
+    def get_keys(self):
+        return (self._type,)
+    def _transform(self, key, tc, gdc, node, *children):
+        return f"{self._text_key}({",".join(children)})"
 
-class GdToPy_Vector4(GdToPy):
-    _keys = GdValueVector4.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector4:
-        return GdValueVector4.parse_lark(*args, **kwargs)
-class PyToGd_Vector4(PyToGd):
-    _keys = (GdValueVector4,)
-    def _transform(self, key, tc, gdc, node:GdValueVector4, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector2(_GdToPy_FixedTypeArray):
+    _type = GdValueVector2
+    _keys = ("vector2",)
+class PyToGd_Vector2(_PyToGd_FixedTypeArray):
+    _type = GdValueVector2
+    _text_key = "Vector2"
 
-class GdToPy_Vector2i(GdToPy):
-    _keys = GdValueVector2i.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector2i:
-        return GdValueVector2i.parse_lark(*args, **kwargs)
-class PyToGd_Vector2i(PyToGd):
-    _keys = (GdValueVector2i,)
-    def _transform(self, key, tc, gdc, node:GdValueVector2i, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector3(_GdToPy_FixedTypeArray):
+    _type = GdValueVector3
+    _keys = ("vector3",)
+class PyToGd_Vector3(_PyToGd_FixedTypeArray):
+    _type = GdValueVector3
+    _text_key = "Vector3"
 
-class GdToPy_Vector3i(GdToPy):
-    _keys = GdValueVector3i.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector3i:
-        return GdValueVector3i.parse_lark(*args, **kwargs)
-class PyToGd_Vector3i(PyToGd):
-    _keys = (GdValueVector3i,)
-    def _transform(self, key, tc, gdc, node:GdValueVector3i, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector4(_GdToPy_FixedTypeArray):
+    _type = GdValueVector4
+    _keys = ("vector4",)
+class PyToGd_Vector4(_PyToGd_FixedTypeArray):
+    _type = GdValueVector4
+    _text_key = "Vector4"
 
-class GdToPy_Vector4i(GdToPy):
-    _keys = GdValueVector4i.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueVector4i:
-        return GdValueVector4i.parse_lark(*args, **kwargs)
-class PyToGd_Vector4i(PyToGd):
-    _keys = (GdValueVector4i,)
-    def _transform(self, key, tc, gdc, node:GdValueVector4i, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector2i(_GdToPy_FixedTypeArray):
+    _type = GdValueVector2i
+    _keys = ("vector2i",)
+class PyToGd_Vector2i(_PyToGd_FixedTypeArray):
+    _type = GdValueVector2i
+    _text_key = "Vector2i"
 
-class GdToPy_Rect2(GdToPy):
-    _keys = GdValueRect2.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueRect2:
-        return GdValueRect2.parse_lark(*args, **kwargs)
-class PyToGd_Rect2(PyToGd):
-    _keys = (GdValueRect2,)
-    def _transform(self, key, tc, gdc, node:GdValueRect2, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector3i(_GdToPy_FixedTypeArray):
+    _type = GdValueVector3i
+    _keys = ("vector3i",)
+class PyToGd_Vector3i(_PyToGd_FixedTypeArray):
+    _type = GdValueVector3i
+    _text_key = "Vector3i"
 
-class GdToPy_Rect2i(GdToPy):
-    _keys = GdValueRect2i.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueRect2i:
-        return GdValueRect2i.parse_lark(*args, **kwargs)
-class PyToGd_Rect2i(PyToGd):
-    _keys = (GdValueRect2i,)
-    def _transform(self, key, tc, gdc, node:GdValueRect2i, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Vector4i(_GdToPy_FixedTypeArray):
+    _type = GdValueVector4i
+    _keys = ("vector4i",)
+class PyToGd_Vector4i(_PyToGd_FixedTypeArray):
+    _type = GdValueVector4i
+    _text_key = "Vector4i"
 
-class GdToPy_Plane(GdToPy):
-    _keys = GdValuePlane.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePlane:
-        return GdValuePlane.parse_lark(*args, **kwargs)
-class PyToGd_Plane(PyToGd):
-    _keys = (GdValuePlane,)
-    def _transform(self, key, tc, gdc, node:GdValuePlane, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Rect2(_GdToPy_FixedTypeArray):
+    _type = GdValueRect2
+    _keys = ("rect2",)
+class PyToGd_Rect2(_PyToGd_FixedTypeArray):
+    _type = GdValueRect2
+    _text_key = "Rect2"
 
-class GdToPy_Color(GdToPy):
-    _keys = GdValueColor.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueColor:
-        return GdValueColor.parse_lark(*args, **kwargs)
-class PyToGd_Color(PyToGd):
-    _keys = (GdValueColor,)
-    def _transform(self, key, tc, gdc, node:GdValueColor, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Rect2i(_GdToPy_FixedTypeArray):
+    _type = GdValueRect2i
+    _keys = ("rect2i",)
+class PyToGd_Rect2i(_PyToGd_FixedTypeArray):
+    _type = GdValueRect2i
+    _text_key = "Rect2i"
 
-class GdToPy_AABB(GdToPy):
-    _keys = GdValueAABB.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueAABB:
-        return GdValueAABB.parse_lark(*args, **kwargs)
-class PyToGd_AABB(PyToGd):
-    _keys = (GdValueAABB,)
-    def _transform(self, key, tc, gdc, node:GdValueAABB, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Plane(_GdToPy_FixedTypeArray):
+    _type = GdValuePlane
+    _keys = ("plane",)
+class PyToGd_Plane(_PyToGd_FixedTypeArray):
+    _type = GdValuePlane
+    _text_key = "Plane"
 
-class GdToPy_Quaternion(GdToPy):
-    _keys = GdValueQuaternion.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueQuaternion:
-        return GdValueQuaternion.parse_lark(*args, **kwargs)
-class PyToGd_Quaternion(PyToGd):
-    _keys = (GdValueQuaternion,)
-    def _transform(self, key, tc, gdc, node:GdValueQuaternion, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Color(_GdToPy_FixedTypeArray):
+    _type = GdValueColor
+    _keys = ("color",)
+class PyToGd_Color(_PyToGd_FixedTypeArray):
+    _type = GdValueColor
+    _text_key = "Color"
 
-class GdToPy_Transform2D(GdToPy):
-    _keys = GdValueTransform2D.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueTransform2D:
-        return GdValueTransform2D.parse_lark(*args, **kwargs)
-class PyToGd_Transform2D(PyToGd):
-    _keys = (GdValueTransform2D,)
-    def _transform(self, key, tc, gdc, node:GdValueTransform2D, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_AABB(_GdToPy_FixedTypeArray):
+    _type = GdValueAABB
+    _keys = ("aabb",)
+class PyToGd_AABB(_PyToGd_FixedTypeArray):
+    _type = GdValueAABB
+    _text_key = "AABB"
 
-class GdToPy_Basis(GdToPy):
-    _keys = GdValueBasis.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueBasis:
-        return GdValueBasis.parse_lark(*args, **kwargs)
-class PyToGd_Basis(PyToGd):
-    _keys = (GdValueBasis,)
-    def _transform(self, key, tc, gdc, node:GdValueBasis, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Quaternion(_GdToPy_FixedTypeArray):
+    _type = GdValueQuaternion
+    _keys = ("quaternion",)
+class PyToGd_Quaternion(_PyToGd_FixedTypeArray):
+    _type = GdValueQuaternion
+    _text_key = "Quaternion"
 
-class GdToPy_Transform3D(GdToPy):
-    _keys = GdValueTransform3D.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValueTransform3D:
-        return GdValueTransform3D.parse_lark(*args, **kwargs)
-class PyToGd_Transform3D(PyToGd):
-    _keys = (GdValueTransform3D,)
-    def _transform(self, key, tc, gdc, node:GdValueTransform3D, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+class GdToPy_Transform2D(_GdToPy_FixedTypeArray):
+    _type = GdValueTransform2D
+    _keys = ("transform2d",)
+class PyToGd_Transform2D(_PyToGd_FixedTypeArray):
+    _type = GdValueTransform2D
+    _text_key = "Transform2D"
+
+class GdToPy_Basis(_GdToPy_FixedTypeArray):
+    _type = GdValueBasis
+    _keys = ("basis",)
+class PyToGd_Basis(_PyToGd_FixedTypeArray):
+    _type = GdValueBasis
+    _text_key = "Basis"
+
+class GdToPy_Transform3D(_GdToPy_FixedTypeArray):
+    _type = GdValueTransform3D
+    _keys = ("transform3d",)
+class PyToGd_Transform3D(_PyToGd_FixedTypeArray):
+    _type = GdValueTransform3D
+    _text_key = "Transform3D"
+
+class GdToPy_PackedByteArray(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedByteArray
+    _keys = ("packedbytearray",)
+class PyToGd_PackedByteArray(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedByteArray
+    _text_key = "PackedByteArray"
+
+class GdToPy_PackedInt32Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedInt32Array
+    _keys = ("packedint32array",)
+class PyToGd_PackedInt32Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedInt32Array
+    _text_key = "PackedInt32Array"
+
+class GdToPy_PackedInt64Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedInt64Array
+    _keys = ("packedint64array",)
+class PyToGd_PackedInt64Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedInt64Array
+    _text_key = "PackedInt64Array"
+
+class GdToPy_PackedFloat32Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedFloat32Array
+    _keys = ("packedfloat32array",)
+class PyToGd_PackedFloat32Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedFloat32Array
+    _text_key = "PackedFloat32Array"
+
+class GdToPy_PackedFloat64Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedFloat64Array
+    _keys = ("packedfloat64array",)
+class PyToGd_PackedFloat64Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedFloat64Array
+    _text_key = "PackedFloat64Array"
+
+class GdToPy_PackedStringArray(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedStringArray
+    _keys = ("packedstringarray",)
+class PyToGd_PackedStringArray(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedStringArray
+    _text_key = "PackedStringArray"
+
+class GdToPy_PackedVector2Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedVector2Array
+    _keys = ("packedvector2array",)
+class PyToGd_PackedVector2Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedVector2Array
+    _text_key = "PackedVector2Array"
+
+class GdToPy_PackedVector3Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedVector3Array
+    _keys = ("packedvector3array",)
+class PyToGd_PackedVector3Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedVector3Array
+    _text_key = "PackedVector3Array"
+
+class GdToPy_PackedVector4Array(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedVector4Array
+    _keys = ("packedvector4array",)
+class PyToGd_PackedVector4Array(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedVector4Array
+    _text_key = "PackedVector4Array"
+
+class GdToPy_PackedColorArray(_GdToPy_FixedTypeArray):
+    _type = GdValuePackedColorArray
+    _keys = ("packedcolorarray",)
+class PyToGd_PackedColorArray(_PyToGd_FixedTypeArray):
+    _type = GdValuePackedColorArray
+    _text_key = "PackedColorArray"
 
 
-
-
-
-
-class GdToPy_PackedByteArray(GdToPy):
-    _keys = GdValuePackedByteArray.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedByteArray:
-        return GdValuePackedByteArray.parse_lark(*args, **kwargs)
-class PyToGd_PackedByteArray(PyToGd):
-    _keys = (GdValuePackedByteArray,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedByteArray)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedInt32Array(GdToPy):
-    _keys = GdValuePackedInt32Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedInt32Array:
-        return GdValuePackedInt32Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedInt32Array(PyToGd):
-    _keys = (GdValuePackedInt32Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedInt32Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedInt64Array(GdToPy):
-    _keys = GdValuePackedInt64Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedInt64Array:
-        return GdValuePackedInt64Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedInt64Array(PyToGd):
-    _keys = (GdValuePackedInt64Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedInt64Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedFloat32Array(GdToPy):
-    _keys = GdValuePackedFloat32Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedFloat32Array:
-        return GdValuePackedFloat32Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedFloat32Array(PyToGd):
-    _keys = (GdValuePackedFloat32Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedFloat32Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedFloat64Array(GdToPy):
-    _keys = GdValuePackedFloat64Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedFloat64Array:
-        return GdValuePackedFloat64Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedFloat64Array(PyToGd):
-    _keys = (GdValuePackedFloat64Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedFloat64Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedStringArray(GdToPy):
-    _keys = GdValuePackedStringArray.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedStringArray:
-        return GdValuePackedStringArray.parse_lark(*args, **kwargs)
-class PyToGd_PackedStringArray(PyToGd):
-    _keys = (GdValuePackedStringArray,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedStringArray)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedVector2Array(GdToPy):
-    _keys = GdValuePackedVector2Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedVector2Array:
-        return GdValuePackedVector2Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedVector2Array(PyToGd):
-    _keys = (GdValuePackedVector2Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedVector2Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedVector3Array(GdToPy):
-    _keys = GdValuePackedVector3Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedVector3Array:
-        return GdValuePackedVector3Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedVector3Array(PyToGd):
-    _keys = (GdValuePackedVector3Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedVector3Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedVector4Array(GdToPy):
-    _keys = GdValuePackedVector4Array.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedVector4Array:
-        return GdValuePackedVector4Array.parse_lark(*args, **kwargs)
-class PyToGd_PackedVector4Array(PyToGd):
-    _keys = (GdValuePackedVector4Array,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedVector4Array)->str:
-        raise NotImplementedError("Not yet implimented!")
-
-class GdToPy_PackedColorArray(GdToPy):
-    _keys = GdValuePackedColorArray.lark_keys()
-    def _transform(self, *args, **kwargs)->GdValuePackedColorArray:
-        return GdValuePackedColorArray.parse_lark(*args, **kwargs)
-class PyToGd_PackedColorArray(PyToGd):
-    _keys = (GdValuePackedColorArray,)
-    def _transform(self, key, tc, gdc, node:GdValueStringName, *GdValuePackedColorArray)->str:
-        raise NotImplementedError("Not yet implimented!")
+## DICTIONARY:
 
 class GdToPy_Dictionary(GdToPy):
     _keys = GdValueDictionary.lark_keys()
@@ -399,7 +365,6 @@ class PyToGd_Dictionary(PyToGd):
         if len(reps) != 0:
             return f"Dictionary[{",".join(node.types)}]({inner})"
         return f"Dictionary[{",".join(node.types)}]()"
-
 
 
 

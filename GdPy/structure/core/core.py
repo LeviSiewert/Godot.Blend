@@ -44,16 +44,16 @@ class GdType(ABC, SignalContainer):
     _cache_layers : tuple = tuple()
     _context_key : str|None = None
 
-    @classmethod
-    @abstractmethod
-    def lark_keys(cls,)->tuple[str]: 
-        ''' Return the lark key(s) that this class can parse'''
-        return ("",)
+    # @classmethod
+    # @abstractmethod
+    # def lark_keys(cls,)->tuple[str]: 
+    #     ''' Return the lark key(s) that this class can parse'''
+    #     return ("",)
 
-    @classmethod
-    @abstractmethod
-    def parse_lark(cls, key:str|Any, tc:Tcontext, gdc:Context, *args, **kwargs)->Self:
-        return
+    # @classmethod
+    # @abstractmethod
+    # def parse_lark(cls, key:str|Any, tc:Tcontext, gdc:Context, *args, **kwargs)->Self:
+    #     return
 
 class GdResource(GdType):
     _cache_layers = ("postload_resource",)
