@@ -1,3 +1,5 @@
+from typing import Type
+
 from .core import BlToPy, BlToPyRuleset
 from .core import PyToBl, PyToBlRuleset
 
@@ -96,255 +98,199 @@ class BlToPy_GdValueArray(BlToPy):
     def transform(self, node:BlProperty, c, *args, **kwargs):
         raise NotImplementedError("PyToBl GdValueArray: ", node)
     
-class PyToBl_GdValueVector2(PyToBl):
+class _PyToBl_IntArray(PyToBl):
+    _key : str
+    def get_keys(self):
+        return (self._key,)
+    def transform(self, node:BlProperty, c, *args, **kwargs):
+        raise NotImplementedError("PyToBl Generic Int Array: ", node)
+class _BlToPy_IntArray(BlToPy):
+    def transform(self, node:BlProperty, c, *args, **kwargs):
+        raise NotImplementedError("BlToPy Generic Int Array: ", node)
+
+class _PyToBl_FloatArray(PyToBl):
+    _blkey : str
+    def transform(self, node:BlProperty, c, *args, **kwargs):
+        raise NotImplementedError("BlToPy Generic Float Array: ", node)
+class _BlToPy_FloatArray(BlToPy):
+    _key : str
+    _type : Type
+    def get_keys(self):
+        return (self._key,)
+    def transform(self, node:BlProperty, c, *args, **kwargs):
+        raise NotImplementedError("PyToBl Generic Float Array: ", node)
+
+class PyToBl_GdValueVector2(_PyToBl_FloatArray):
     _keys = (GdValueVector2,)
-    def transform(self, node:GdValueVector2, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector2: ", node, target)
-class BlToPy_GdValueVector2(BlToPy):
-    _keys = ("GdValueVector2",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector2: ", node)
+    _blkey = "GdValueVector2"
+class BlToPy_GdValueVector2(_BlToPy_FloatArray):
+    _type = GdValueVector2
+    _key = "GdValueVector2"
     
-class PyToBl_GdValueVector3(PyToBl):
+class PyToBl_GdValueVector3(_PyToBl_FloatArray):
     _keys = (GdValueVector3,)
-    def transform(self, node:GdValueVector3, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector3: ", node, target)
-class BlToPy_GdValueVector3(BlToPy):
+class BlToPy_GdValueVector3(_BlToPy_FloatArray):
+    _type = GdValueVector3
     _keys = ("GdValueVector3",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector3: ", node)
 
-class PyToBl_GdValueVector4(PyToBl):
+class PyToBl_GdValueVector4(_PyToBl_FloatArray):
     _keys = (GdValueVector4,)
-    def transform(self, node:GdValueVector4, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector4: ", node, target)
-class BlToPy_GdValueVector4(BlToPy):
-    _keys = ("GdValueVector4",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector4: ", node)
+    _blkey = "GdValueVector4"
+class BlToPy_GdValueVector4(_BlToPy_FloatArray):
+    _type = GdValueVector4
+    _key = "GdValueVector4"
 
-class PyToBl_GdValueVector2i(PyToBl):
+class PyToBl_GdValueVector2i(_PyToBl_IntArray):
+    _blkey = "GdValueVector2i"
     _keys = (GdValueVector2i,)
-    def transform(self, node:GdValueVector2i, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector2i: ", node, target)
-class BlToPy_GdValueVector2i(BlToPy):
-    _keys = ("GdValueVector2i",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector2i: ", node)
+class BlToPy_GdValueVector2i(_BlToPy_IntArray):
+    _key = "GdValueVector2i"
     
-class PyToBl_GdValueVector3i(PyToBl):
+class PyToBl_GdValueVector3i(_PyToBl_IntArray):
+    _blkey = "GdValueVector3i"
     _keys = (GdValueVector3i,)
-    def transform(self, node:GdValueVector3i, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector3i: ", node, target)
-class BlToPy_GdValueVector3i(BlToPy):
-    _keys = ("GdValueVector3i",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector3i: ", node)
+class BlToPy_GdValueVector3i(_BlToPy_IntArray):
+    _key = "GdValueVector3i"
 
-class PyToBl_GdValueVector4i(PyToBl):
+class PyToBl_GdValueVector4i(_PyToBl_IntArray):
+    _blkey = "GdValueVector4i"
     _keys = (GdValueVector4i,)
-    def transform(self, node:GdValueVector4i, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueVector4i: ", node, target)
-class BlToPy_GdValueVector4i(BlToPy):
-    _keys = ("GdValueVector4i",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueVector4i: ", node)
+class BlToPy_GdValueVector4i(_BlToPy_IntArray):
+    _key = "GdValueVector4i"
 
-class PyToBl_GdValueRect2(PyToBl):
+class PyToBl_GdValueRect2(_PyToBl_FloatArray):
     _keys = (GdValueRect2,)
-    def transform(self, node:GdValueRect2, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueRect2: ", node, target)
-class BlToPy_GdValueRect2(BlToPy):
-    _keys = ("GdValueRect2",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueRect2: ", node)
+    _blkey = "GdValueRect2"
+class BlToPy_GdValueRect2(_BlToPy_FloatArray):
+    _type = GdValueRect2
+    _key = "GdValueRect2"
 
-class PyToBl_GdValueRect2i(PyToBl):
+class PyToBl_GdValueRect2i(_PyToBl_IntArray):
+    _blkey = "GdValueRect2i"
     _keys = (GdValueRect2i,)
-    def transform(self, node:GdValueRect2i, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueRect2i: ", node, target)
-class BlToPy_GdValueRect2i(BlToPy):
-    _keys = ("GdValueRect2i",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueRect2i: ", node)
+class BlToPy_GdValueRect2i(_BlToPy_IntArray):
+    _key = "GdValueRect2i"
 
-class PyToBl_GdValuePlane(PyToBl):
+class PyToBl_GdValuePlane(_PyToBl_FloatArray):
     _keys = (GdValuePlane,)
-    def transform(self, node:GdValuePlane, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePlane: ", node, target)
-class BlToPy_GdValuePlane(BlToPy):
-    _keys = ("GdValuePlane",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePlane: ", node)
+    _blkey = "GdValuePlane"
+class BlToPy_GdValuePlane(_BlToPy_FloatArray):
+    _type = GdValuePlane
+    _key = "GdValuePlane"
 
-class PyToBl_GdValueColor(PyToBl):
+class PyToBl_GdValueColor(_PyToBl_FloatArray):
     _keys = (GdValueColor,)
-    def transform(self, node:GdValueColor, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueColor: ", node, target)
-class BlToPy_GdValueColor(BlToPy):
-    _keys = ("GdValueColor",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueColor: ", node)
+    _blkey = "GdValueColor"
+class BlToPy_GdValueColor(_BlToPy_FloatArray):
+    _type = GdValueColor
+    _key = "GdValueColor"
 
-class PyToBl_GdValueAABB(PyToBl):
+class PyToBl_GdValueAABB(_PyToBl_FloatArray):
     _keys = (GdValueAABB,)
-    def transform(self, node:GdValueAABB, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueAABB: ", node, target)
-class BlToPy_GdValueAABB(BlToPy):
-    _keys = ("GdValueAABB",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueAABB: ", node)
+    _blkey = "GdValueAABB"
+class BlToPy_GdValueAABB(_BlToPy_FloatArray):
+    _type = GdValueAABB
+    _key = "GdValueAABB"
 
-class PyToBl_GdValueQuaternion(PyToBl):
+class PyToBl_GdValueQuaternion(_PyToBl_FloatArray):
     _keys = (GdValueQuaternion,)
-    def transform(self, node:GdValueQuaternion, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueQuaternion: ", node, target)
-class BlToPy_GdValueQuaternion(BlToPy):
-    _keys = ("GdValueQuaternion",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueQuaternion: ", node)
+    _blkey = "GdValueQuaternion"
+class BlToPy_GdValueQuaternion(_BlToPy_FloatArray):
+    _type = GdValueQuaternion
+    _key = "GdValueQuaternion"
 
-class PyToBl_GdValueTransform2D(PyToBl):
+class PyToBl_GdValueTransform2D(_PyToBl_FloatArray):
     _keys = (GdValueTransform2D,)
-    def transform(self, node:GdValueTransform2D, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueTransform2D: ", node, target)
-class BlToPy_GdValueTransform2D(BlToPy):
-    _keys = ("GdValueTransform2D",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueTransform2D: ", node)
+    _blkey = "GdValueTransform2D"
+class BlToPy_GdValueTransform2D(_BlToPy_FloatArray):
+    _type = GdValueTransform2D
+    _key = "GdValueTransform2D"
 
-class PyToBl_GdValueBasis(PyToBl):
+class PyToBl_GdValueBasis(_PyToBl_FloatArray):
     _keys = (GdValueBasis,)
-    def transform(self, node:GdValueBasis, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueBasis: ", node, target)
-class BlToPy_GdValueBasis(BlToPy):
-    _keys = ("GdValueBasis",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueBasis: ", node)
+    _blkey = "GdValueBasis"
+class BlToPy_GdValueBasis(_BlToPy_FloatArray):
+    _type = GdValueBasis
+    _key = "GdValueBasis"
 
-class PyToBl_GdValueTransform3D(PyToBl):
+class PyToBl_GdValueTransform3D(_PyToBl_FloatArray):
     _keys = (GdValueTransform3D,)
-    def transform(self, node:GdValueTransform3D, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValueTransform3D: ", node, target)
-class BlToPy_GdValueTransform3D(BlToPy):
-    _keys = ("GdValueTransform3D",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValueTransform3D: ", node)
-
-class PyToBl_GdValuePackedByteArray(PyToBl):
+    _blkey = "GdValueTransform3D"
+class BlToPy_GdValueTransform3D(_BlToPy_FloatArray):
+    _type = GdValueTransform3D
+    _key = "GdValueTransform3D"
+    
+class _PyToBl_PackedArray(PyToBl):
     _keys = (GdValuePackedByteArray,)
     def transform(self, node:GdValuePackedByteArray, c, *args, **kwargs):
         target : BlProperty = c.existing_object.get()
         raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node, target)
-class BlToPy_GdValuePackedByteArray(BlToPy):
-    _keys = ("GdValuePackedByteArray",)
+class _BlToPy_PackedArray(BlToPy):
+    _key : str
+    def get_keys(self):
+        return (self._key,)
     def transform(self, node:BlProperty, c, *args, **kwargs):
         raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node)
 
-class PyToBl_GdValuePackedInt32Array(PyToBl):
+class PyToBl_GdValuePackedByteArray(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedByteArray"
+    _keys = (GdValuePackedByteArray,)
+class BlToPy_GdValuePackedByteArray(_BlToPy_PackedArray):
+    _key = "GdValuePackedByteArray"
+
+class PyToBl_GdValuePackedInt32Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedInt32Array"
     _keys = (GdValuePackedInt32Array,)
-    def transform(self, node:GdValuePackedInt32Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedInt32Array: ", node, target)
-class BlToPy_GdValuePackedInt32Array(BlToPy):
-    _keys = ("GdValuePackedInt32Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedInt32Array: ", node)
+class BlToPy_GdValuePackedInt32Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedInt32Array"
 
-class PyToBl_GdValuePackedInt64Array(PyToBl):
+class PyToBl_GdValuePackedInt64Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedInt64Array"
     _keys = (GdValuePackedInt64Array,)
-    def transform(self, node:GdValuePackedInt64Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedInt64Array: ", node, target)
-class BlToPy_GdValuePackedInt64Array(BlToPy):
-    _keys = ("GdValuePackedInt64Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedInt64Array: ", node)
+class BlToPy_GdValuePackedInt64Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedInt64Array"
 
-class PyToBl_GdValuePackedFloat32Array(PyToBl):
+class PyToBl_GdValuePackedFloat32Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedFloat32Array"
     _keys = (GdValuePackedFloat32Array,)
-    def transform(self, node:GdValuePackedFloat32Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedFloat32Array: ", node, target)
-class BlToPy_GdValuePackedFloat32Array(BlToPy):
-    _keys = ("GdValuePackedFloat32Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedFloat32Array: ", node)
+class BlToPy_GdValuePackedFloat32Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedFloat32Array"
 
-class PyToBl_GdValuePackedFloat64Array(PyToBl):
+class PyToBl_GdValuePackedFloat64Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedFloat64Array"
     _keys = (GdValuePackedFloat64Array,)
-    def transform(self, node:GdValuePackedFloat64Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedFloat64Array: ", node, target)
-class BlToPy_GdValuePackedFloat64Array(BlToPy):
-    _keys = ("GdValuePackedFloat64Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedFloat64Array: ", node)
+class BlToPy_GdValuePackedFloat64Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedFloat64Array"
 
-class PyToBl_GdValuePackedStringArray(PyToBl):
+class PyToBl_GdValuePackedStringArray(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedStringArray"
     _keys = (GdValuePackedStringArray,)
-    def transform(self, node:GdValuePackedStringArray, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedStringArray: ", node, target)
-class BlToPy_GdValuePackedStringArray(BlToPy):
-    _keys = ("GdValuePackedStringArray",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedStringArray: ", node)
+class BlToPy_GdValuePackedStringArray(_BlToPy_PackedArray):
+    _key = "GdValuePackedStringArray"
 
-class PyToBl_GdValuePackedVector2Array(PyToBl):
+class PyToBl_GdValuePackedVector2Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedVector2Array"
     _keys = (GdValuePackedVector2Array,)
-    def transform(self, node:GdValuePackedVector2Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedVector2Array: ", node, target)
-class BlToPy_GdValuePackedVector2Array(BlToPy):
-    _keys = ("GdValuePackedVector2Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedVector2Array: ", node)
+class BlToPy_GdValuePackedVector2Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedVector2Array"
 
-class PyToBl_GdValuePackedVector3Array(PyToBl):
+class PyToBl_GdValuePackedVector3Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedVector3Array"
     _keys = (GdValuePackedVector3Array,)
-    def transform(self, node:GdValuePackedVector3Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedVector3Array: ", node, target)
-class BlToPy_GdValuePackedVector3Array(BlToPy):
-    _keys = ("GdValuePackedVector3Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedVector3Array: ", node)
+class BlToPy_GdValuePackedVector3Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedVector3Array"
 
-class PyToBl_GdValuePackedVector4Array(PyToBl):
+class PyToBl_GdValuePackedVector4Array(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedVector4Array"
     _keys = (GdValuePackedVector4Array,)
-    def transform(self, node:GdValuePackedVector4Array, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedVector4Array: ", node, target)
-class BlToPy_GdValuePackedVector4Array(BlToPy):
-    _keys = ("GdValuePackedVector4Array",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedVector4Array: ", node)
+class BlToPy_GdValuePackedVector4Array(_BlToPy_PackedArray):
+    _key = "GdValuePackedVector4Array"
 
-class PyToBl_GdValuePackedColorArray(PyToBl):
+class PyToBl_GdValuePackedColorArray(_PyToBl_PackedArray):
+    _blkey = "GdValuePackedColorArray"
     _keys = (GdValuePackedColorArray,)
-    def transform(self, node:GdValuePackedColorArray, c, *args, **kwargs):
-        target : BlProperty = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedColorArray: ", node, target)
-class BlToPy_GdValuePackedColorArray(BlToPy):
-    _keys = ("GdValuePackedColorArray",)
-    def transform(self, node:BlProperty, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedColorArray: ", node)
+class BlToPy_GdValuePackedColorArray(_BlToPy_PackedArray):
+    _key = "GdValuePackedColorArray"
 
 class PyToBl_GdValueDictionary(PyToBl):
     _keys = (GdValueDictionary,)

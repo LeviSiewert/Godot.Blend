@@ -1,5 +1,7 @@
 import bpy
 from bpy.types import PropertyGroup
+# from bpy.types import IntProperty as IntPropertyType
+# from bpy.types import StringProperty as FloatPropertyType
 from bpy.props import StringProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty, PointerProperty
 
 class BlProperty(PropertyGroup):
@@ -16,11 +18,18 @@ class BlProperty(PropertyGroup):
     ## FUTURE: Allowence for refering back to another property as a nested property
     ## IE dict[str,list[dict]] ...
 
-class BlPropertyArrayInt(PropertyGroup):
-    items : CollectionProperty(type = IntProperty) #type:ignore
 
+class ArrayIntItem(PropertyGroup):
+    val : IntProperty() #type:ignore
+class BlPropertyArrayInt(PropertyGroup):
+    items : CollectionProperty(type = ArrayIntItem) #type:ignore
+    # items : CollectionProperty(type = IntPropertyType) #type:ignore
+
+class ArrayFloatItem(PropertyGroup):
+    val : IntProperty() #type:ignore
 class BlPropertyArrayFloat(PropertyGroup):
-    items : CollectionProperty(type = FloatProperty) #type:ignore
+    items : CollectionProperty(type = ArrayFloatItem) #type:ignore
+    # items : CollectionProperty(type = FloatPropertyType) #type:ignore
 
 class BlPropertyDictItem(PropertyGroup):
     key : PointerProperty(type = BlProperty) #type:ignore
@@ -47,6 +56,8 @@ class BlPropertyCollection(PropertyGroup):
 
 _all = (
     BlProperty,
+    ArrayIntItem,
+    ArrayFloatItem,
     BlPropertyArrayInt,
     BlPropertyArrayFloat,
     BlPropertyDictItem,
