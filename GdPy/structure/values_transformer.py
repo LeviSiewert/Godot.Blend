@@ -93,6 +93,8 @@ class PyToGd_Terminals(PyToGd):
             return "false"
         if isinstance(node, str):
             return node
+        if isinstance(node, int):
+            return str(node)
         if node is None:
             return "null"
         raise KeyError()
@@ -104,7 +106,7 @@ class GdToPy_Simple(GdToPy):
     def _transform(self, key, tc, gdc, *children):
         node = tc.node.get()
         assert(isinstance(node, Tree))
-        match tc.key.get():
+        match key:
             case "value":
                 return tc.children.get()[0]
             case "type_anno":
@@ -125,26 +127,9 @@ class GdToPy_Simple(GdToPy):
                 return tc.children.get()[0] ## expected: PropertiesCollection
             case "resource_body":
                 return tc.children.get()[0] ## expected: PropertiesCollection
-            case "packed_2":
-                return tc.children.get()
-            case "packed_2i":
-                return tc.children.get()
-            case "packed_3":
-                return tc.children.get()
-            case "packed_3i":
-                return tc.children.get()
-            case "packed_4":
-                return tc.children.get()
-            case "packed_4i":
-                return tc.children.get()
-            case "packed_6":
-                return tc.children.get()
-            case "packed_9":
-                return tc.children.get()
-            case "packed_12":
-                return tc.children.get()
-            case _:
-                raise Exception("Could not match type of tree", node.type)
+        if key.startswith("packed"):
+            return tc.children.get()
+        raise Exception("Could not match type of tree", node.type)
 
 class GdToPy_StringName(GdToPy):
     _keys = GdValueStringName.lark_keys()
@@ -171,7 +156,7 @@ class PyToGd_Array(PyToGd):
             children = tuple()
         if node._type == "Variant":
             return f'[{",".join(children)}]'
-        return f'Array[{node._type}]({",".join(children)})'
+        return f'Array[{node._type}]([{",".join(children)}])'
 
 ## ARRAY TYPES:
 

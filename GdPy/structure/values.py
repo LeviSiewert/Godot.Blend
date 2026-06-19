@@ -151,6 +151,10 @@ class _GdValueArrayFixedLength(GdValue):
     def set_value(self, value:Iterable):
         if len(value) != self._arr_length:
             raise Exception("len(vals) != cls._arr_length", self._arr_length, value )
+        c = tuple(value)
+        if c == ((None,)*self._arr_length):
+            self.value = array(self._arr_type, (self.types[0](),)*self._arr_length )
+            return 
         self.value = array(self._arr_type, value)
     
     def __iter__(self,):
@@ -226,37 +230,18 @@ class GdValueTransform3D(_GdValueArrayFixedLength):
     _arr_length : int = 12
 
 
-
 class GdValuePackedByteArray(_GdValueArrayPackedType): 
     types = (str,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedbytearray",)
 class GdValuePackedInt32Array(_GdValueArrayPackedType): 
     types = (int,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedint32array",)
 class GdValuePackedInt64Array(_GdValueArrayPackedType): 
     types = (int,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedint64array",)
 class GdValuePackedFloat32Array(_GdValueArrayPackedType): 
     types = (int,float)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedfloat32array",)
 class GdValuePackedFloat64Array(_GdValueArrayPackedType): 
     types = (int,float)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedfloat64array",)
 class GdValuePackedStringArray(_GdValueArrayPackedType): 
     types = (str,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedstringarray",)
 
 class _GdValueArrayPackedTypeComplex(_GdValueArrayPackedType):
     value : list
@@ -291,24 +276,12 @@ class _GdValueArrayPackedTypeComplex(_GdValueArrayPackedType):
 
 class GdValuePackedVector2Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector2,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedvector2array",)
 class GdValuePackedVector3Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector3,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedvector3array",)
 class GdValuePackedVector4Array(_GdValueArrayPackedTypeComplex): 
     types = (GdValueVector4,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedvector4array",)
 class GdValuePackedColorArray(_GdValueArrayPackedTypeComplex): 
     types = (GdValueColor,)
-    @classmethod
-    def lark_keys(cls)->tuple[str]: 
-        return ("packedcolorarray",)
 
 
 class GdValueDictionary(GdValue):
