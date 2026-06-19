@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from ... import register, unregister
+from contextvars import ContextVar
 
 # def is_registered()->bool:
 #     if not (bl_info["name"] in bpy.context.preferences.addons.keys()):
@@ -36,7 +37,9 @@ class BlenderPytest():
     def teardown_class(cls):
         unregister()
 
-class BlenderPytestAttr(BlenderPytest):
+is_registered : ContextVar[bool] = ContextVar("is_registered", default=False)
+
+class BlenderPytestAttr():
     ''' Provide a property of the given type on a scene for testing purposes
     self.get_attr & self.get_attr_loc are accessors
     '''
@@ -53,10 +56,14 @@ class BlenderPytestAttr(BlenderPytest):
 
     @classmethod
     def setup_class(cls):
-        super().setup_class()
+        if not is_registered.get():
+            register()    
+            is_registered.set(True)
         setattr(bpy.types.Scene,cls.attr_name, cls.attr_value)
 
     @classmethod
     def teardown_class(cls):
         delattr(bpy.types.Scene, cls.attr_name)
-        super().teardown_class()
+        if is_registered.get():
+            unregister()
+            is_registered.set(False)
