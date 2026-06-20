@@ -4,11 +4,38 @@ from contextlib import contextmanager
 
 from .utils import BlenderPytestAttr
 
-from ..structure.core.properties import BlPropertyCollection, BlProperty
+from ..structure.core.properties import BlPropertyCollection, BlProperty, BlPropertyArray, BlPropertyDict, BlPropertyArrayFloat,BlPropertyArrayInt,BlPropertyArrayVector
 from ..structure.transformers import BlToPyTransformer, PyToBlTransformer
 from ...GdPy.structure.core import GdType
 from ...GdPy.structure.values import (
     GdValueStringName,
+    GdValueArray,
+    GdValueDictionary,
+    GdValueVector2,
+    GdValueVector3,
+    GdValueVector4,
+    GdValueVector2i,
+    GdValueVector3i,
+    GdValueVector4i,
+    GdValueRect2,
+    GdValueRect2i,
+    GdValuePlane,
+    GdValueColor,
+    GdValueAABB,
+    GdValueQuaternion,
+    GdValueTransform2D,
+    GdValueBasis,
+    GdValueTransform3D,
+    GdValuePackedByteArray,
+    GdValuePackedInt32Array,
+    GdValuePackedInt64Array,
+    GdValuePackedFloat32Array,
+    GdValuePackedFloat64Array,
+    GdValuePackedStringArray,
+    GdValuePackedVector2Array,
+    GdValuePackedVector3Array,
+    GdValuePackedVector4Array,
+    GdValuePackedColorArray,
 )
 
 _bl_to_py_context = BlToPyTransformer.make_context()
@@ -27,7 +54,6 @@ def py_to_bl_transform(property:BlProperty, gdtype:GdType)->Any:
 
 class _Base(BlenderPytestAttr):
     attr_name = "test"
-    attr_value = bpy.props.PointerProperty(type=BlProperty)
 
     @contextmanager
     def set_prop(self, **kwargs):
@@ -45,6 +71,7 @@ class _Base(BlenderPytestAttr):
         yield py_to_bl_transform(self.get_attr(), gdtype)
 
 class TestGdValueStringName(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlProperty)
     def test_bl_to_py(self,):
         with self.set_prop(type="GdValueStringName", val_str="value") as prop:
             assert(isinstance(bl_to_py_transform(prop), GdValueStringName))
@@ -56,7 +83,55 @@ class TestGdValueStringName(_Base):
             assert(prop.value == "value")
 
 
-class TestGdValueArray(_Base):
+class TestGdValueArray_Simple(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyArray)
+    def test_bl_to_py(self,):
+        raise NotImplementedError()
+    def test_py_to_bl(self,):
+        raise NotImplementedError()
+    
+class TestGdValueArray_Complex(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
+    ## [Variant|Array|Dict] typed arrays requires property collection, which catches recursive elements
+    def test_bl_to_py(self,):
+        raise NotImplementedError()
+    def test_py_to_bl(self,):
+        raise NotImplementedError()
+
+
+class TestGdValueDictionary_Simple(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyDict)
+    def test_bl_to_py(self,):
+        raise NotImplementedError()
+
+    def test_py_to_bl(self,):
+        raise NotImplementedError()
+
+class TestGdValueDictionary_Complex(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
+    ## [Variant|Array|Dict] typed dicts requires property collection, which catches recursive elements
+    def test_bl_to_py(self,):
+        raise NotImplementedError()
+
+    def test_py_to_bl(self,):
+        raise NotImplementedError()
+
+class _SimpleArrayBase_Int(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyArrayInt) 
+    _py_expected_type : GdType
+    _bl_expected_key : str
+    BlPropertyArrayInt
+
+    def test_bl_to_py(self,):
+        raise NotImplementedError()
+
+    def test_py_to_bl(self,):
+        raise NotImplementedError()
+    
+class _SimpleArrayBase_Float(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyArrayFloat) 
+    _py_expected_type : GdType
+    _bl_expected_key : str
 
     def test_bl_to_py(self,):
         raise NotImplementedError()
@@ -64,7 +139,10 @@ class TestGdValueArray(_Base):
     def test_py_to_bl(self,):
         raise NotImplementedError()
 
-class TestGdValueVector2(_Base):
+class _PackedArrayBase_String(_Base):
+    # attr_value = bpy.props.PointerProperty(type=BlPropertyArrayString) 
+    _py_expected_type : GdType
+    _bl_expected_key : str
 
     def test_bl_to_py(self,):
         raise NotImplementedError()
@@ -72,111 +150,10 @@ class TestGdValueVector2(_Base):
     def test_py_to_bl(self,):
         raise NotImplementedError()
 
-class TestGdValueVector3(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueVector4(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueVector2i(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueVector3i(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueVector4i(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueRect2(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueRect2i(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValuePlane(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueColor(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueAABB(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueQuaternion(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueTransform2D(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueBasis(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueTransform3D(_Base):
+class _PackedArrayBase_Vector(_Base):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyArrayVector) 
+    _py_expected_type : GdType
+    _bl_expected_key : str
 
     def test_bl_to_py(self,):
         raise NotImplementedError()
@@ -192,85 +169,103 @@ class TestGdValuePackedByteArray(_Base):
     def test_py_to_bl(self,):
         raise NotImplementedError()
 
-class TestGdValuePackedInt32Array(_Base):
+class TestGdValueVector2(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueVector2
+    _bl_expected_key = "GdValueVector2"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValueVector3(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueVector3
+    _bl_expected_key = "GdValueVector3"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValueVector4(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueVector4
+    _bl_expected_key = "GdValueVector4"
 
-class TestGdValuePackedInt64Array(_Base):
+class TestGdValueVector2i(_SimpleArrayBase_Int):
+    _py_expected_type = GdValueVector2i
+    _bl_expected_key = "GdValueVector2i"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValueVector3i(_SimpleArrayBase_Int):
+    _py_expected_type = GdValueVector3i
+    _bl_expected_key = "GdValueVector3i"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValueVector4i(_SimpleArrayBase_Int):
+    _py_expected_type = GdValueVector4i
+    _bl_expected_key = "GdValueVector4i"
 
-class TestGdValuePackedFloat32Array(_Base):
+class TestGdValueRect2(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueRect2
+    _bl_expected_key = "GdValueRect2"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValueRect2i(_SimpleArrayBase_Int):
+    _py_expected_type = GdValueRect2i
+    _bl_expected_key = "GdValueRect2i"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValuePlane(_SimpleArrayBase_Float):
+    _py_expected_type = GdValuePlane
+    _bl_expected_key = "GdValuePlane"
 
-class TestGdValuePackedFloat64Array(_Base):
+class TestGdValueColor(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueColor
+    _bl_expected_key = "GdValueColor"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValueAABB(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueAABB
+    _bl_expected_key = "GdValueAABB"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValueQuaternion(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueQuaternion
+    _bl_expected_key = "GdValueQuaternion"
 
-class TestGdValuePackedStringArray(_Base):
+class TestGdValueTransform2D(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueTransform2D
+    _bl_expected_key = "GdValueTransform2D"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValueBasis(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueBasis
+    _bl_expected_key = "GdValueBasis"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValueTransform3D(_SimpleArrayBase_Float):
+    _py_expected_type = GdValueTransform3D
+    _bl_expected_key = "GdValueTransform3D"
 
-class TestGdValuePackedVector2Array(_Base):
+class TestGdValuePackedInt32Array(_SimpleArrayBase_Int):
+    _py_expected_type = GdValuePackedInt32Array
+    _bl_expected_key = "GdValuePackedInt32Array"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValuePackedInt64Array(_SimpleArrayBase_Int):
+    _py_expected_type = GdValuePackedInt64Array
+    _bl_expected_key = "GdValuePackedInt64Array"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValuePackedFloat32Array(_SimpleArrayBase_Float):
+    _py_expected_type = GdValuePackedFloat32Array
+    _bl_expected_key = "GdValuePackedFloat32Array"
 
-class TestGdValuePackedVector3Array(_Base):
+class TestGdValuePackedFloat64Array(_SimpleArrayBase_Float):
+    _py_expected_type = GdValuePackedFloat64Array
+    _bl_expected_key = "GdValuePackedFloat64Array"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValuePackedStringArray(_PackedArrayBase_String):
+    _py_expected_type = GdValuePackedStringArray
+    _bl_expected_key = "GdValuePackedStringArray"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValuePackedVector2Array(_PackedArrayBase_Vector):
+    _py_expected_type = GdValuePackedVector2Array
+    _bl_expected_key = "GdValuePackedVector2Array"
 
-class TestGdValuePackedVector4Array(_Base):
+class TestGdValuePackedVector3Array(_PackedArrayBase_Vector):
+    _py_expected_type = GdValuePackedVector3Array
+    _bl_expected_key = "GdValuePackedVector3Array"
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
+class TestGdValuePackedVector4Array(_PackedArrayBase_Vector):
+    _py_expected_type = GdValuePackedVector4Array
+    _bl_expected_key = "GdValuePackedVector4Array"
 
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
+class TestGdValuePackedColorArray(_PackedArrayBase_Vector):
+    _py_expected_type = GdValuePackedColorArray
+    _bl_expected_key = "GdValuePackedColorArray"
 
-class TestGdValuePackedColorArray(_Base):
 
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
-
-class TestGdValueDictionary(_Base):
-
-    def test_bl_to_py(self,):
-        raise NotImplementedError()
-
-    def test_py_to_bl(self,):
-        raise NotImplementedError()
 
 # class TestProperties(BlenderPytestAttr):
 #     attr_name = "property_collection" 
