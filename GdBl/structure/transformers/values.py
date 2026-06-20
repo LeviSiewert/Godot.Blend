@@ -99,9 +99,7 @@ class BlToPy_GdValueArray(BlToPy):
         raise NotImplementedError("PyToBl GdValueArray: ", node)
     
 class _PyToBl_IntArray(PyToBl):
-    _key : str
-    def get_keys(self):
-        return (self._key,)
+    _blkey : str
     def transform(self, node:BlProperty, c, *args, **kwargs):
         raise NotImplementedError("PyToBl Generic Int Array: ", node)
 class _BlToPy_IntArray(BlToPy):
@@ -131,7 +129,7 @@ class PyToBl_GdValueVector3(_PyToBl_FloatArray):
     _keys = (GdValueVector3,)
 class BlToPy_GdValueVector3(_BlToPy_FloatArray):
     _type = GdValueVector3
-    _keys = ("GdValueVector3",)
+    _key = "GdValueVector3"
 
 class PyToBl_GdValueVector4(_PyToBl_FloatArray):
     _keys = (GdValueVector4,)
@@ -169,6 +167,7 @@ class PyToBl_GdValueRect2i(_PyToBl_IntArray):
     _blkey = "GdValueRect2i"
     _keys = (GdValueRect2i,)
 class BlToPy_GdValueRect2i(_BlToPy_IntArray):
+    _type = GdValueRect2i
     _key = "GdValueRect2i"
 
 class PyToBl_GdValuePlane(_PyToBl_FloatArray):

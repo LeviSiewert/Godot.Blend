@@ -266,6 +266,40 @@ class TestGdValuePackedColorArray(_PackedArrayBase_Vector):
     _bl_expected_key = "GdValuePackedColorArray"
 
 
+class TestPropertyCollection(BlenderPytestAttr):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
+
+    def test_basics(self, ):
+        col : BlPropertyCollection = self.get_attr()
+
+        val = col.add_data("int", "int",)
+        assert(col["int"] == val)
+        assert(col["int"].type == "int")
+
+        val = col.add_data("float", "float")
+        assert(col["float"] == val)
+        assert(col["float"].type == "float")
+
+        val = col.add_data("bool", "bool")
+        assert(col["bool"] == val)
+        assert(col["bool"].type == "bool")
+
+        val = col.add_data("None", "None")
+        assert(col["None"] == val)
+        assert(col["None"].type == "None")
+
+        val = col.add_data("GdValueStringName", "GdValueStringName")
+        assert(col["GdValueStringName"] == val)
+        assert(col["GdValueStringName"].type == "GdValueStringName")
+
+    def test_pointer(self,):
+        col : BlPropertyCollection = self.get_attr()
+        
+        ptr, obj = col.add_pointer_value("int")
+
+        assert(col.get_pointer_value(ptr) == obj)
+        assert(col[ptr] == obj)
+        
 
 # class TestProperties(BlenderPytestAttr):
 #     attr_name = "property_collection" 

@@ -14,13 +14,13 @@ class FlatPackItemInterface(ABC):
     def get_pointer_references()->tuple[str]:
         return tuple()
 
-    @abstractmethod
-    def pointer_reference_update(self, fr_pointer:str, old_val:Any|None, to_pointer:str, new_val:Any)->dict[FlatPackItemInterface,str]:
-        ''' reported pointer via reference tree in flat pack has been updated, update references (fr => to) '''        
+    def pointer_reference_update(self, fr_pointer:str, old_val:Any|None, to_pointer:str, add_val:Any)->dict[FlatPackItemInterface,str]:
+        ''' reported pointer via reference tree in flat pack has been updated, update references (fr => to) '''
+        raise NotImplementedError()   
 
-    @abstractmethod
     def pointer_reference_remove(self, pointer:str)->dict[FlatPackItemInterface,str]:
         ''' reported pointer via reference tree has been removed from the root collection, remove references to pointer & handle side effects '''
+        raise NotImplementedError()   
 
     def get_flatpackitem_children(self)->tuple[FlatPackItemInterface]:
         return tuple()
@@ -33,7 +33,7 @@ class FlatPackItemInterface(ABC):
         return self.get_flatpackitem_children_refs()
     
 
-class FlatPackPointer(bpy.types.PropertyGroup, FlatPackItemInterface):
+class FlatPackPointer(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty() #type:ignore
 
     pointer_id : bpy.props.StringProperty() #type:ignore
@@ -44,7 +44,7 @@ class FlatPackPointer(bpy.types.PropertyGroup, FlatPackItemInterface):
     def get_pointer_references(self,):
         return (self.pointer_id,)
 
-    def pointer_reference_update(self, fr_pointer:str, old_val:Any|None, to_pointer:str, new_val:Any)->dict[FlatPackItemInterface,str]:
+    def pointer_reference_update(self, fr_pointer:str, old_val:Any|None, to_pointer:str, add_val:Any)->dict[FlatPackItemInterface,str]:
         if self.pointer_id == fr_pointer:
             self.pointer_id = to_pointer
 
@@ -53,28 +53,24 @@ class FlatPackPointer(bpy.types.PropertyGroup, FlatPackItemInterface):
             self.pointer_id = ""
         return
 
-class FlatPackCollection(bpy.types.PropertyGroup, ABC):
+class FlatPackCollection(bpy.types.PropertyGroup):
     ''' Utility class for multiple sub-collections of different types in a uniform namespace & pointers
     Use case is for limited implimentation of arrays|dicts with variable type children
     data & pointed data CAN be in the same collections, due to required pointed value prefix (default="*")
-    .new() and .new_pointer() requires key that is asc with _map_pointer_collections, and _map_data_collections
+    .add() and .add_pointer() requires key that is asc with _map_pointer_collections, and _map_data_collections
     '''
     # items : bpy.props.CollectionProperty(type = FlatPackPointer) #type:ignore
     _pointer_prefix : str = "*"
 
-    @abstractmethod
-    def _map_pointer_collections(self,):
-        # return {"items":self.items,}
-        return {}
-    @abstractmethod
-    def _get_pointer_collections(self,):
-        return self._map_pointer_collections.values()
+    def _map_pointer_collections(self,)->dict[str,bpy.types.Collection|bpy.types.PropertyGroup]:
+        raise NotImplementedError("Implement in child class")
+    def _map_data_collections(self,)->dict[str,bpy.types.Collection|bpy.types.PropertyGroup]:
+        raise NotImplementedError("Implement in child class")
 
-    def _map_data_collections(self,)->dict:
-        # return {"items":self.items,}
-        return {}
-    def _get_data_collections(self,):
-        return self._map_data_collections.values()
+    def _get_pointer_collections(self,)->Iterable[bpy.types.Collection|bpy.types.PropertyGroup]:
+        return self._map_pointer_collections().values()
+    def _get_data_collections(self,)->Iterable[bpy.types.Collection|bpy.types.PropertyGroup]:
+        return self._map_data_collections().values()
 
     def _map_all_pointers(self,)->dict[str:Any]:
         res = {}
@@ -84,7 +80,7 @@ class FlatPackCollection(bpy.types.PropertyGroup, ABC):
                     res[k] = v
         return res
     def _get_all_pointers(self,)->tuple[str]:
-        return self._map_all_pointers.keys()
+        return self._map_all_pointers().keys()
 
     def _map_all_data(self,)->dict[str:Any]:
         res = {}
@@ -93,34 +89,31 @@ class FlatPackCollection(bpy.types.PropertyGroup, ABC):
                 res[k] = v
         return res
     def _get_all_data(self,)->tuple[str]:
-        return self._map_all_data.keys()
+        return self._map_all_data().keys()
 
     def generate_pointer_id(self, typeid:str|None=None,)->str:
-        r = self._pointer_prefix+"".join(random.sample(string.ascii_letters) for i in range(9))
-        all_ptr = self.get_all_pointers()
+        r = self._pointer_prefix+"".join(random.sample(string.ascii_letters,9))
+        all_ptr = self._get_all_pointers()
         while r in all_ptr:
-            r = self._pointer_prefix+"".join(random.sample(string.ascii_letters) for i in range(9))
+            r = self._pointer_prefix+"".join(random.sample(string.ascii_letters,9))
         return r
 
-    def new_pointer_value(self, typeid:str, **kwargs)->tuple[str,object]:
+    def add_pointer_value(self, typeid:str, *args, **kwargs)->tuple[str,object]:
         key = self.generate_pointer_id(typeid)
         col = self._map_pointer_collections()[typeid]
-        obj = col.new()
-        for k,v in kwargs.items():
-            setattr(obj,k,v)
+        obj = col.add(*args,**kwargs)
         obj.name = key
         return (key,obj)
     
     def get_pointer_value(self, pointer:str):
         return self._map_all_pointers()[pointer]
 
-    def new_data(self, typeid:str, key:str, **kwargs)->object:
-        assert(not (key in self._map_all_data.keys()))
-        assert(not (key in self._map_all_pointers.keys()))
+    def add_data(self, typeid:str, key:str, *args, **kwargs)->object:
+        _all_keys = (*self._map_all_data().keys(), *self._map_all_pointers().keys())
+        if key in _all_keys:
+            raise KeyError("key already exists:", key)
         col = self._map_data_collections()[typeid]
-        obj = col.new()
-        for k,v in kwargs.items():
-            setattr(obj,k,v)
+        obj = col.add(*args, **kwargs)
         obj.name = key
         return obj
     
@@ -152,11 +145,11 @@ class FlatPackCollection(bpy.types.PropertyGroup, ABC):
         assert(self.is_pointer(to))
 
         old_val = self.get_pointer_value(fr,default=None)
-        new_val = self.get_pointer_value(to)
+        add_val = self.get_pointer_value(to)
 
         for item in self.get_references().get(fr,tuple()):
             item:FlatPackItemInterface
-            item.pointer_reference_update(fr,old_val, to,new_val)
+            item.pointer_reference_update(fr,old_val, to,add_val)
             
     def remove_pointer_refs(self, key):
         assert(self.is_pointer(key))
@@ -285,7 +278,7 @@ class FlatPackCollection(bpy.types.PropertyGroup, ABC):
 #                 c.remove(key)
 #                 return
 
-#     def new(self, colid:str, key:str, **kwargs):
+#     def add(self, colid:str, key:str, **kwargs):
 #         ## key must be unique in "global" space
 #         ## Colid must be maped from {ID:Col}
 #         ## **kwargs is forwarding the data to a specific loc.
