@@ -38,11 +38,16 @@ class BlPropertyDictItem(PropertyGroup):
 class BlPropertyDict(PropertyGroup):
     items : CollectionProperty(type = BlProperty) #type:ignore
 
+
 class BlPropertyArray(PropertyGroup):
     name : StringProperty() #type:ignore
     type_a : StringProperty() #type:ignore
     type_b : StringProperty() #type:ignore
     items : CollectionProperty(type = BlProperty) #type:ignore
+
+class BlPropertyArrayVector(PropertyGroup):
+    name : StringProperty() #type:ignore
+    items : CollectionProperty(type = BlPropertyArrayFloat) #type:ignore
 
 class BlPropertyCollection(PropertyGroup):
     items : CollectionProperty(type = BlProperty) #type:ignore
@@ -50,7 +55,8 @@ class BlPropertyCollection(PropertyGroup):
     array_items : CollectionProperty(type = BlPropertyArray) #type:ignore
     array_int_items : CollectionProperty(type = BlPropertyArrayInt) #type:ignore
     array_float_items : CollectionProperty(type = BlPropertyArrayFloat) #type:ignore
-
+    array_vector_items : CollectionProperty(type = BlPropertyArrayVector) #type:ignore
+    
     ## TODO: Add interface
 
 
@@ -60,8 +66,9 @@ _all = (
     ArrayFloatItem,
     BlPropertyArrayInt,
     BlPropertyArrayFloat,
+    BlPropertyArrayVector,
+    BlPropertyArray,
     BlPropertyDictItem,
     BlPropertyDict,
-    BlPropertyArray,
     BlPropertyCollection,
 )
