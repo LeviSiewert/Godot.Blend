@@ -284,15 +284,19 @@ class PyToGd_Transform3D(_PyToGd_FixedTypeArray):
 class GdToPy_PackedByteArray(_GdToPy_FixedTypeArray):
     _type = GdValuePackedByteArray
     _keys = ("packedbytearray",)
+    def transform(self, node, tc, c, *args, **kwargs):
+        raise NotImplementedError()
+
 class PyToGd_PackedByteArray(_PyToGd_FixedTypeArray):
     _type = GdValuePackedByteArray
     _text_key = "PackedByteArray"
-
     def transform(self, node:GdValueVector2, tc:TransformerContext, c:Context, *args, **kwargs):
         if node.is_def_value():
             return f"{self._text_key}()"
         yield node.value
-        return f'{self._text_key}("{','.join(tc.children.get())}")'
+        if tc.children.get():
+            return f'{self._text_key}("{','.join(tc.children.get())}")'
+        return f'{self._text_key}("")'
 
 class GdToPy_PackedInt32Array(_GdToPy_FixedTypeArray):
     _type = GdValuePackedInt32Array

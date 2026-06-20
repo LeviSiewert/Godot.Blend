@@ -286,12 +286,12 @@ class TestGdValuePackedByteArray():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedbytearray"))
     def test_parsing(self,):
-        assert(isinstance(_parse("value", "PackedByteArray()"), GdValuePackedByteArray))
+        assert(isinstance(_parse("value", 'PackedByteArray("")'), GdValuePackedByteArray))
         assert(isinstance(_parse("value", 'PackedByteArray("abc123")'), GdValuePackedByteArray))
         assert(_parse("value", "PackedByteArray()") == GdValuePackedByteArray())
         assert(_parse("value", 'PackedByteArray("abc123")') == GdValuePackedByteArray(("abc123",)))
     def test_rendering(self,):
-        assert("PackedByteArray()") == _render(GdValuePackedByteArray())
+        assert('PackedByteArray("")') == _render(GdValuePackedByteArray())
         assert('PackedByteArray("abc123")') == _render(GdValuePackedByteArray(("abc123",)))
         
 
