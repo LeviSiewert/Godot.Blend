@@ -173,7 +173,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
     def fetch_pointer_data(self, ptr:str, default=_UNSET):
         for c in self._yield_bins():
             if obj := c.get(ptr,None):
-                return obj
+                return self._wrap_complex(obj)
         if default is _UNSET:
             raise KeyError(ptr)
         return default
