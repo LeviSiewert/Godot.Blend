@@ -159,21 +159,23 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
             return BlPropertyItemWrapper(self,data)
         return data
 
-    def get(self, key:str, default=_UNSET, return_ptr=False):
+    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_ptr:bool=False):
         if key.startswith(POINTER_PREFIX):
-            return self._wrap_complex(self.fetch_pointer_data(key, default))
+            return self.fetch_pointer_data(key, default, _wrap_ptr=_wrap_ptr)
         if res:=self.properties.get(key, None):
             if return_ptr:
                 return res
-            return self._wrap_complex(self.fetch_pointer_data(res.value))
+            return self.fetch_pointer_data(res.value, _wrap_ptr=_wrap_ptr)
         if default is _UNSET:
             raise KeyError(key)
         return default
     
-    def fetch_pointer_data(self, ptr:str, default=_UNSET):
+    def fetch_pointer_data(self, ptr:str, default=_UNSET, /, _wrap_ptr:bool=False):
         for c in self._yield_bins():
             if obj := c.get(ptr,None):
-                return self._wrap_complex(obj)
+                if _wrap_ptr:
+                    return self._wrap_complex(obj)
+                return obj
         if default is _UNSET:
             raise KeyError(ptr)
         return default
@@ -186,7 +188,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
             return tuple()
         res = []
         res.append(ptr)
-        if r := self.fetch_pointer_data(ptr, None):
+        if r := self.fetch_pointer_data(ptr, None, _wrap_ptr=False):
             if isinstance(r, BlArray):
                 for ptr in r.items.values():
                     res.extend(self.fetch_pointer_tree(item.key_ptr.value, chain))
