@@ -83,14 +83,16 @@ class TestGdValueStringName(_Base):
             assert(prop.value == "value")
 
 
-class TestGdValueArray_Simple(_Base):
-    attr_value = bpy.props.PointerProperty(type=BlPropertyArray)
+class TestGdValueArray_Simple(BlenderPytestAttr):
+    attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
     def test_bl_to_py(self,):
         raise NotImplementedError()
     def test_py_to_bl(self,):
-        raise NotImplementedError()
+        prop = self.get_attr()
+        obj = prop.new_value()
+
     
-class TestGdValueArray_Complex(_Base):
+class TestGdValueArray_Complex(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
     ## [Variant|Array|Dict] typed arrays requires property collection, which catches recursive elements
     def test_bl_to_py(self,):
@@ -99,7 +101,7 @@ class TestGdValueArray_Complex(_Base):
         raise NotImplementedError()
 
 
-class TestGdValueDictionary_Simple(_Base):
+class TestGdValueDictionary_Simple(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type=BlPropertyDict)
     def test_bl_to_py(self,):
         raise NotImplementedError()
@@ -107,7 +109,7 @@ class TestGdValueDictionary_Simple(_Base):
     def test_py_to_bl(self,):
         raise NotImplementedError()
 
-class TestGdValueDictionary_Complex(_Base):
+class TestGdValueDictionary_Complex(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type=BlPropertyCollection)
     ## [Variant|Array|Dict] typed dicts requires property collection, which catches recursive elements
     def test_bl_to_py(self,):
