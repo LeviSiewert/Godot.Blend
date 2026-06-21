@@ -1,15 +1,18 @@
 from .core import BlToPy, BlToPyRuleset
 from .core import PyToBl, PyToBlRuleset
 
-# from ....GdPy.structure.values
+from ....GdPy.structure.values import (
+    GdValueArray,
+    GdValueDictionary,
+) 
 from ....GdPy.structure.core.property_collection import PropertyCollection
 from ..core.properties import (
     BlPropertyCollection, 
     BlPrimitive, 
     BlFloatVector, 
     BlIntVector,
-    BlArray, 
-    BlDictionary, 
+    BlArray, BlArrayWrapper,
+    BlDictionary, BlDictionaryWrapper, 
     BlDictionaryItem, 
 )
 
@@ -81,58 +84,59 @@ class PyToBl_GdValueDictionary(PyToBl):
         return ptr
 
 class BlToPy_GdValueDictionary(BlToPy):
-    _keys = (BlDictionary,)
+    _keys = (BlDictionary, BlDictionaryWrapper,)
 
     def transform(self, node:BlDictionary, c, *args, **kwargs):
-        propcol = c.property_collection.get()
-        assert(propcol != None)
-        for k,v in node.
+        propcol : BlPropertyCollection = c.property_collection.get()
+        assert(not(propcol is None))
+        
+        res = PropertyCollection()
 
+        for entry in node.items.values():
+            k = propcol.get(entry.key_ptr)
+            v = propcol.get(entry.val_ptr)
+            yield (k,v)
+            m = c.children_map.get()
+            res[m[k]] = m[v]
 
+        return res
 
-# class PyToBl_Properties(PyToBl):
-#     _keys = (PropertyCollection,)
-#     def transform(self, node:PropertyCollection, c, *args, **kwargs):
-#         """ This transform should be a side effect on resulting container's parent, 
-#         as target object's properylist already exists. 
-#         This will have to be a existing_object "thrown" by the parent into the context... somehow
-#         As with all other BlCollections, children are already attached
-#         """
-#         bl_props : BlPropertyCollection = c.existing_object.get()
-#         assert(not(bl_props is None))
+class PyToBl_GdValueArray(PyToBl):
+    _keys = (GdValueArray,)
+    
+    def transform(self, node, c, *args, **kwargs):
+        propcol : BlPropertyCollection = c.property_collection.get()
+        assert(not(propcol is None))
+        
+        ptr = propcol._generate_pointer()
+        inst = propcol.bin_dictionaries.new()
+        inst.name = ptr
+        
+        yield node
+        for _ptr in c.children.get():
+            obj = inst.new()
+            obj.val_ptr = _ptr
 
-#         for k, v in node:
-#             p = bl_props.add()
-#             p.name = k
-#             t = c.existing_object.set(p)
-#             yield (v,) 
-#             ## Throwing child value to fullfill
-#             res = c.children.get(v)
-#             assert (res is p)
-#             c.existing_object.reset(t)
+        return ptr
 
-#         return bl_props
+class BlToPy_GdValueArray(BlToPy):
+    _keys = (BlArray, BlArrayWrapper,)
+    
+    def transform(self, node, c, *args, **kwargs):
+        propcol : BlPropertyCollection = c.property_collection.get()
+        assert(not(propcol is None))
 
-# class BlToPy_Properties(BlToPy):
-#     _keys = (BlPropertyCollection,)
-#     def transform(self, node:BlPropertyCollection, c, *args, **kwargs):
+        res = GdValueArray()
+        yield node.values()
+        res.extend(c.children.get())
 
-#         yield res.values()
-#         ## Yield all children, let god sort them out
-
-#         di = c.children_map.get()
-
-#         res = PropertyCollection()
-#         for k,v in node.items():
-#             res[k] = di[v]
-
-#         return res
+        return res
 
         
 
 py_to_bl_ruleset = BlToPyRuleset(
-    BlToPy_Properties(),
+    # BlToPy_Properties(),
     )
 bl_to_py_ruleset = PyToBlRuleset(
-    BlToPy_Properties(),
+    # BlToPy_Properties(),
     )
