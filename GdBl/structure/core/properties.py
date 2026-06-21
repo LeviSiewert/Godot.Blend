@@ -14,7 +14,7 @@ class BlPropertyItem(BlPointerItem):
 
 
 class BlArray(bpy.types.PropertyGroup):
-    _handles : tuple[str] = tuple()
+    _handles : tuple[str] = ("GdValueArray", "GdValuePackedStringArray","GdValuePackedByteArray", "GdValuePackedVector2Array","GdValuePackedVector3Array","GdValuePackedVector4Array","GdValuePackedColorArray")
     val_gdtype : bpy.props.StringProperty(default="Variant") #type:ignore
     items : bpy.props.CollectionProperty(type = BlPointerItem) #type:ignore
 
@@ -23,39 +23,39 @@ class BlDictionaryItem():
     val_ptr : bpy.props.PointerProperty(type = BlPointerItem) #type:ignore
 
 class BlDictionary(bpy.types.PropertyGroup):
-    _handles : tuple[str] = tuple()
+    _handles : tuple[str] = ("GdValueDictionary",)
     key_gdtype : bpy.props.StringProperty(default="Variant") #type:ignore
     val_gdtype : bpy.props.StringProperty(default="Variant") #type:ignore
     items : bpy.props.CollectionProperty(type = BlDictionaryItem) #type:ignore
 
 class BlFloatVector():
-    _handles : tuple[str] = tuple()
+    _handles : tuple[str] = ("GdValuePackedFloat32Array","GdValuePackedFloat64Array","GdValueVector2","GdValueVector3","GdValueVector4","GdValueRect2","GdValuePlane","GdValueColor","GdValueAABB","GdValueQuaternion","GdValueTransform2D","GdValueBasis","GdValueTransform3D",)
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value():
+    def set_value(self,):
         pass
-    def get_value():
+    def get_value(self,):
         pass
 
 class BlIntVector():
-    _handles : tuple[str] = tuple()
+    _handles : tuple[str] = ("GdValueVector2i","GdValueVector3i","GdValueVector4i","GdValueRect2i","GdValuePackedInt32Array","GdValuePackedInt64Array"),
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value():
+    def set_value(self,):
         pass
-    def get_value():
+    def get_value(self,):
         pass
 
 class BlPrimitive():
-    _handles : tuple[str] = tuple()
+    _handles : tuple[str] = ("GdValueStringName","int","float","bool","None",)
     gdtype : bpy.props.StringProperty() #type:ignore
     val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
     val_flt : bpy.props.FloatProperty() #type:ignore
 
-    def set_value():
+    def set_value(self,):
         pass
-    def get_value():
+    def get_value(self,):
         pass
 
 def _invert_dict_tuple(di:dict[str,tuple[str]])->dict[str,str]:
