@@ -1,3 +1,4 @@
+from __future__ import annotations 
 import bpy
 from typing import Any
 import random
@@ -34,31 +35,31 @@ class BlFloatVector(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValuePackedFloat32Array","GdValuePackedFloat64Array","GdValueVector2","GdValueVector3","GdValueVector4","GdValueRect2","GdValuePlane","GdValueColor","GdValueAABB","GdValueQuaternion","GdValueTransform2D","GdValueBasis","GdValueTransform3D",)
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value(self,):
+    def set_value(self, /, _root_col:BlPropertyCollection=None):
         pass
-    def get_value(self,):
+    def get_value(self, /, _root_col:BlPropertyCollection=None):
         pass
 
 class BlIntVector(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueVector2i","GdValueVector3i","GdValueVector4i","GdValueRect2i","GdValuePackedInt32Array","GdValuePackedInt64Array"),
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value(self,):
+    def set_value(self, /, _root_col:BlPropertyCollection=None):
         pass
-    def get_value(self,):
+    def get_value(self, /, _root_col:BlPropertyCollection=None):
         pass
 
 class BlPrimitive(bpy.types.PropertyGroup):
-    _handles : tuple[str] = ("GdValueStringName","int","float","bool","None","String")
+    _handles : tuple[str] = ("GdValueStringName","int","float","bool","None","str")
     gdtype : bpy.props.StringProperty() #type:ignore
     val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
     val_flt : bpy.props.FloatProperty() #type:ignore
     val_bool : bpy.props.BoolProperty() #type:ignore
 
-    def set_value(self, value:Any):
+    def set_value(self, value:Any,/, _root_col:BlPropertyCollection=None):
         match self.gdtype:
-            case "String":
+            case "str":
                 self.val_str = value
             case "GdValueStringName":
                 self.val_str = value
@@ -73,9 +74,9 @@ class BlPrimitive(bpy.types.PropertyGroup):
             case _:
                 raise KeyError(self.gdtype, value)
 
-    def get_value(self,):
+    def get_value(self, /, _root_col:BlPropertyCollection=None):
         match self.gdtype:
-            case "String":
+            case "str":
                 return self.val_str
             case "GdValueStringName":
                 return self.val_str
@@ -178,7 +179,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         obj = col.add()
         obj.name = p_str 
         obj.gdtype = gdtype
-        obj.set_value(*args, **kwargs)
+        obj.set_value(*args, **kwargs, _root_col=self)
 
         ptr = self.properties.add()
         ptr.name = key
