@@ -3,9 +3,12 @@ from .utils import BlenderPytestAttr
 from ..structure.core.properties import BlPropertyCollection
 from typing import Any
 
+from contextlib import contextmanager
+
 class TestPropertyCollection(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
 
+    @contextmanager
     def _basic(self, gdtype:str, propname:str, value:Any ):
         propcol : BlPropertyCollection = self.get_attr()
 
@@ -16,7 +19,10 @@ class TestPropertyCollection(BlenderPytestAttr):
                 
         assert(propcol.get(ptr.value) == obj)
 
-        assert(obj.get_value() == value)
+        if gdtype == "float":
+            assert(abs(obj.get_value() - value)<.00001)
+        else:
+            assert(obj.get_value() == value)
         
         yield obj,ptr
 
@@ -26,7 +32,7 @@ class TestPropertyCollection(BlenderPytestAttr):
             assert(len(c) == 0)
 
     def test_basics(self,):
-        with self._basic("string", "test", "Value") as (obj,ptr):
+        with self._basic("str", "test", "Value") as (obj,ptr):
             pass
         with self._basic("GdValueStringName", "test", "Value") as (obj,ptr):
             pass

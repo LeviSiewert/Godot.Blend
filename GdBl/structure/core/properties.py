@@ -9,17 +9,36 @@ POINTER_PREFIX : str = "*"
 class _UNSET():pass
 
 class BlPointerItem(bpy.types.PropertyGroup):
-    value : bpy.props.StringProperty() #type:ignore
+    prt : bpy.props.StringProperty() #type:ignore
 
 class BlPropertyItem(BlPointerItem):
     name : bpy.props.StringProperty() #type:ignore
-    value : bpy.props.StringProperty() #type:ignore
+    ptr : bpy.props.StringProperty() #type:ignore
+
+class BlPropertyItemWrapper():
+    ''' wrapper object to obscure pointers'''
+
+    def __init__(self, root:BlPropertyCollection, data:BlPropertyItem,):
+        self.root = root
+        self.data = data
+
+    @property
+    def value(self):
+        return self.root.get(self.ptr, None)
 
 
 class BlArray(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueArray", "GdValuePackedStringArray","GdValuePackedByteArray", "GdValuePackedVector2Array","GdValuePackedVector3Array","GdValuePackedVector4Array","GdValuePackedColorArray")
     val_gdtype : bpy.props.StringProperty(default="Variant") #type:ignore
     items : bpy.props.CollectionProperty(type = BlPointerItem) #type:ignore
+
+class BlArrayWrapper():
+    ''' Utility class that obscures pointers '''
+    data : BlArray
+    root : BlPropertyCollection
+    def __init__(self, root_col:BlPropertyCollection, data:BlArray):
+        self.root = root_col
+        self.data = data
 
 class BlDictionaryItem(bpy.types.PropertyGroup):
     key_ptr : bpy.props.PointerProperty(type = BlPointerItem) #type:ignore
@@ -31,11 +50,20 @@ class BlDictionary(bpy.types.PropertyGroup):
     val_gdtype : bpy.props.StringProperty(default="Variant") #type:ignore
     items : bpy.props.CollectionProperty(type = BlDictionaryItem) #type:ignore
 
+class BlDictionaryWrapper():
+    ''' Utility class that obscures pointers '''
+    data : BlDictionary
+    root : BlPropertyCollection
+    def __init__(self, root_col:BlPropertyCollection, data:BlDictionary):
+        self.root = root_col
+        self.data = data
+    
+
 class BlFloatVector(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValuePackedFloat32Array","GdValuePackedFloat64Array","GdValueVector2","GdValueVector3","GdValueVector4","GdValueRect2","GdValuePlane","GdValueColor","GdValueAABB","GdValueQuaternion","GdValueTransform2D","GdValueBasis","GdValueTransform3D",)
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value(self, /, _root_col:BlPropertyCollection=None):
+    def set_value(self, value, /, _root_col:BlPropertyCollection=None):
         pass
     def get_value(self, /, _root_col:BlPropertyCollection=None):
         pass
@@ -44,7 +72,7 @@ class BlIntVector(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueVector2i","GdValueVector3i","GdValueVector4i","GdValueRect2i","GdValuePackedInt32Array","GdValuePackedInt64Array"),
     gdtype : bpy.props.StringProperty() #type:ignore
 
-    def set_value(self, /, _root_col:BlPropertyCollection=None):
+    def set_value(self, value, /, _root_col:BlPropertyCollection=None):
         pass
     def get_value(self, /, _root_col:BlPropertyCollection=None):
         pass
@@ -122,13 +150,22 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         for k in cols:
             yield getattr(self,k)
 
+    def _wrap_complex(self, data:Any):
+        if isinstance(data, BlDictionary):
+            return BlDictionaryWrapper(self,data)
+        if isinstance(data, BlArray):
+            return BlArrayWrapper(self,data)
+        if isinstance(data, BlPropertyItem):
+            return BlPropertyItemWrapper(self,data)
+        return data
+
     def get(self, key:str, default=_UNSET, return_ptr=False):
         if key.startswith(POINTER_PREFIX):
-            return self.fetch_pointer_data(key, default)
+            return self._wrap_complex(self.fetch_pointer_data(key, default))
         if res:=self.properties.get(key, None):
             if return_ptr:
                 return res
-            return self.fetch_pointer_data(res.value)
+            return self._wrap_complex(self.fetch_pointer_data(res.value))
         if default is _UNSET:
             raise KeyError(key)
         return default
