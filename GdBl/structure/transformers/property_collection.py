@@ -93,8 +93,8 @@ class BlToPy_GdValueDictionary(BlToPy):
         res = PropertyCollection()
 
         for entry in node.items.values():
-            k = propcol.get(entry.key_ptr)
-            v = propcol.get(entry.val_ptr)
+            k = propcol.get(entry.key_ptr, _wrap_complex=False)
+            v = propcol.get(entry.val_ptr, _wrap_complex=False)
             yield (k,v)
             m = c.children_map.get()
             res[m[k]] = m[v]

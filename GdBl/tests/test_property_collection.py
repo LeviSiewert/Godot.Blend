@@ -40,4 +40,3 @@ class TestPropertyCollection(BlenderPytestAttr):
             pass
         with self._basic("float", "test", 0.01) as (obj,ptr):
             pass
-        

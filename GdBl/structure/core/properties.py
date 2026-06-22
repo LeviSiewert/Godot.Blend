@@ -40,9 +40,83 @@ class BlArrayWrapper():
         self.root = root_col
         self.data = data
 
+    def __iter__(self,):
+        return self.data.items.values()
+
+    def __eq__(self,item):
+        return self.data == item
+
+    def new(self, gdtype:str=None, *args, **kwargs)->tuple[Any,BlPointerItem]:
+        if gdtype is None:
+            gdtype = self.data.val_gdtype
+        if (self.data.val_gdtype != "Variant"):
+            if self.data.val_gdtype != gdtype:
+                raise TypeError()
+        ptr,obj = self.root.new_bin_value(gdtype, *args, **kwargs)
+        entry = self.data.items.new()
+        entry.ptr = ptr
+        return entry,obj
+
+    def remove(self, index:int):
+        entry = self.data.items[index]
+        self.root.remove_pointer_tree(entry.ptr)
+        self.data.items.remove(index)
+
+    def find(self, item:Any, default=_UNSET)->int:
+        if isinstance(item, str):
+            if item.startswith(POINTER_PREFIX):
+                return self.find_by_pointer()
+        
+        for i,k,ptr,v in enumerate(self.items_w_pointer()):
+            if v == item:
+                return i
+
+        if default is _UNSET:
+            raise KeyError()
+
+        return default
+    
+    def items_w_pointer(self,):
+        for k,e in self.data.items():
+            yield (k, e.ptr, self.root.fetch_pointer_data(e.ptr, default = None))
+
+    def items(self,):
+        for k,e in self.data.items():
+            yield (k, self.root.fetch_pointer_data(e.ptr, default = None))
+
+    def find_by_pointer(self, ptr:str, default=_UNSET):
+        for i,e in self.data.items.items():
+            if e.ptr == ptr:
+                return i
+        if default is _UNSET:
+            raise KeyError()
+        return default
+
+    def find_and_remove(self, item:Any):
+        index = self.find(item)
+        self.remove(index)
+        
+
 class BlDictionaryItem(bpy.types.PropertyGroup):
     key_ptr : bpy.props.PointerProperty(type = BlPointerItem) #type:ignore
     val_ptr : bpy.props.PointerProperty(type = BlPointerItem) #type:ignore
+
+class BlDictionaryItemWrapper():
+    ''' Utility class that obscures pointers '''
+    data : BlDictionary
+    root : BlPropertyCollection
+
+    def __init__(self, root_col:BlPropertyCollection, data:BlDictionary):
+        self.root = root_col
+        self.data = data
+
+    @property
+    def key(self,)->Any:
+        pass
+
+    @property
+    def value(self,)->Any:
+        pass
 
 class BlDictionary(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueDictionary",)
@@ -54,9 +128,30 @@ class BlDictionaryWrapper():
     ''' Utility class that obscures pointers '''
     data : BlDictionary
     root : BlPropertyCollection
+
     def __init__(self, root_col:BlPropertyCollection, data:BlDictionary):
         self.root = root_col
         self.data = data
+
+    def items(self,):
+        for e in self.data:
+            yield (
+                self.root.fetch_pointer_data(e.key_ptr, default = None),
+                self.root.fetch_pointer_data(e.val_ptr, default = None),
+                )
+    def items_w_pointer(self,):
+        for e in self.data:
+            yield (
+                e,
+                self.root.fetch_pointer_data(e.key_ptr, default = None),
+                self.root.fetch_pointer_data(e.val_ptr, default = None),
+                )
+    
+    def new(self, key_ptr:str=None, val_ptr:str=None, _wrap_complex=True)->BlDictionaryItem|BlDictionaryItemWrapper:
+        entry = self.data.items.new() 
+        if _wrap_complex:
+            return BlDictionaryItemWrapper(self.root, entry)
+        return entry
     
 
 class BlFloatVector(bpy.types.PropertyGroup):
@@ -159,21 +254,21 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
             return BlPropertyItemWrapper(self,data)
         return data
 
-    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_ptr:bool=False):
+    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_complex:bool=False):
         if key.startswith(POINTER_PREFIX):
-            return self.fetch_pointer_data(key, default, _wrap_ptr=_wrap_ptr)
+            return self.fetch_pointer_data(key, default, _wrap_complex=_wrap_complex)
         if res:=self.properties.get(key, None):
             if return_ptr:
                 return res
-            return self.fetch_pointer_data(res.value, _wrap_ptr=_wrap_ptr)
+            return self.fetch_pointer_data(res.value, _wrap_complex=_wrap_complex)
         if default is _UNSET:
             raise KeyError(key)
         return default
     
-    def fetch_pointer_data(self, ptr:str, default=_UNSET, /, _wrap_ptr:bool=False):
+    def fetch_pointer_data(self, ptr:str, default=_UNSET, /, _wrap_complex:bool=False):
         for c in self._yield_bins():
             if obj := c.get(ptr,None):
-                if _wrap_ptr:
+                if _wrap_complex:
                     return self._wrap_complex(obj)
                 return obj
         if default is _UNSET:
@@ -188,7 +283,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
             return tuple()
         res = []
         res.append(ptr)
-        if r := self.fetch_pointer_data(ptr, None, _wrap_ptr=False):
+        if r := self.fetch_pointer_data(ptr, None, _wrap_complex=False):
             if isinstance(r, BlArray):
                 for ptr in r.items.values():
                     res.extend(self.fetch_pointer_tree(item.key_ptr.value, chain))
@@ -198,9 +293,14 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
                     res.extend(self.fetch_pointer_tree(item.val_ptr.value, chain))
         return res
     
-    def remove_property(self, key:str):
+    def remove(self, key:str):
         ptr = self.properties[key]
-        affected = self.fetch_pointer_tree(ptr.value)
+        self.remove_pointer_tree(ptr.value)
+        _keys = tuple(self.properties.keys())
+        self.properties.remove(_keys.index(key))
+        
+    def remove_pointer_tree(self,ptr_str):
+        affected = self.fetch_pointer_tree(ptr_str)
         for c in self._yield_bins():
             c : bpy.types.CollectionProperty
             c_keys = tuple(c.keys())
@@ -208,10 +308,16 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
                 if ptr in c_keys:   
                     c.remove(c_keys.index(ptr))
                     affected.remove(ptr)
-        _keys = tuple(self.properties.keys())
-        self.properties.remove(_keys.index(key))
     
     def new(self, gdtype:str, key:str, *args, **kwargs)->tuple[Any,BlPropertyItem]:
+        p_str, obj = self.new_bin_value(gdtype,*args,**kwargs)
+        ptr = self.properties.add()
+        ptr.name = key
+        ptr.value = p_str
+        
+        return obj, ptr
+
+    def new_bin_value(self, gdtype:str, *args, **kwargs)->tuple[str,Any]:
         col = getattr(self,self.BIN_MAP[gdtype])
         p_str = self._generate_pointer()
 
@@ -219,12 +325,6 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         obj.name = p_str 
         obj.gdtype = gdtype
         obj.set_value(*args, **kwargs, _root_col=self)
-
-        ptr = self.properties.add()
-        ptr.name = key
-        ptr.value = p_str
-        
-        return obj, ptr
     
     def _generate_pointer(self,)->str:
         _all = []
@@ -239,7 +339,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         return self.get(key)
 
     def __delitem__(self, key):
-        self.remove_property(key)
+        self.remove(key)
 
 _all = (
     BlPointerItem,
