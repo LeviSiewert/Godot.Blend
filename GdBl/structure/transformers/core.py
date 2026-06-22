@@ -7,6 +7,15 @@ from ....GdPy.structure.core import GdType
 from ....GdPy.structure.core.transformer_v2 import TransformerRuleset, TransformerModule, TransformerContext
 from ....GdPy.structure.core.lark_transformer import BasePyStructureRuleset
 
+class BlPyTransformerContext(TransformerContext):
+    property_collection : ContextVar
+    # property_obj_attr : ContextVar[tuple[Any,str]]
+
+    def __init__(self, transformer, rulesets = None):
+        self.property_collection = ContextVar(str(id(self))+"property_collection")
+        self.property_obj_attr = ContextVar(str(id(self))+"property_obj_attr")
+        super().__init__(transformer, rulesets)
+
 class PyToBlRuleset(BasePyStructureRuleset):
     ''' Shallow inheritance for iterating over all py objects and extracting keys '''
 

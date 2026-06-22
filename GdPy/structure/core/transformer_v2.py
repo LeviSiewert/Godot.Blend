@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Iterable, Generator, Callable, Type
 from contextvars import ContextVar, Token
-from inspect import isgeneratorfunction
+from inspect import isgeneratorfunction, isclass
 
 class TERMINAL: pass
 class IGNORE: pass
@@ -114,6 +114,8 @@ class TransformerRuleset():
         self.data = {}
 
         for m in self.modules:
+            if isclass(m):
+                m = m()
             for k in m.get_keys():
                 if _key_safety and (k in self.data.keys()):
                     raise KeyError("k already registered in ruleset", k, m)
@@ -136,6 +138,9 @@ class TransformerRuleset():
     
     def _key_extractor(self,key)->tuple[str|Any|Type]:
         return (key,key.__class__)
+
+    def __iter__(self):
+        return self.data.__iter__()
 
 class VisitorException(Exception):
     pass

@@ -151,30 +151,30 @@ class PROPCOL_PyToBl_BlIntVector(PyToBl):
 
 
 PROPCOL_py_to_bl_ruleset = BlToPyRuleset((
-    PROPCOL_PyToBl_BlDictionary,
-    PROPCOL_PyToBl_BlArray,
-    PROPCOL_PyToBl_BlPrimitive,
-    PROPCOL_PyToBl_BlFloatVector,
-    PROPCOL_PyToBl_BlIntVector,
+    PROPCOL_PyToBl_BlDictionary(),
+    PROPCOL_PyToBl_BlArray(),
+    PROPCOL_PyToBl_BlPrimitive(),
+    PROPCOL_PyToBl_BlFloatVector(),
+    PROPCOL_PyToBl_BlIntVector(),
     )
 )
 
 PROPCOL_bl_to_py_ruleset = PyToBlRuleset((
-    PROPCOL_BlToPy_BlDictionary,
-    PROPCOL_BlToPy_BlArray,
-    PROPCOL_BlToPy_BlPrimitive,
-    PROPCOL_BlToPy_BlFloatVector,
-    PROPCOL_BlToPy_BlIntVector,
+    PROPCOL_BlToPy_BlDictionary(),
+    PROPCOL_BlToPy_BlArray(),
+    PROPCOL_BlToPy_BlPrimitive(),
+    PROPCOL_BlToPy_BlFloatVector(),
+    PROPCOL_BlToPy_BlIntVector(),
 ))
 
 class PyToBl_PropertyCollection(PyToBl):
-    _keys = (BlPropertyCollection,)
+    _keys = (PropertyCollection,)
 
     def transform(self, node:PropertyCollection, c, *args, **kwargs):
         """ Property Collection aready exists """
         bl_props : BlPropertyCollection = c.existing_object.get()
-        t = c.propertycollection.set(bl_props)
-        t1 = c.ruleset.set( (*c.ruleset.get(), *PROPCOL_py_to_bl_ruleset) )
+        t = c.property_collection.set(bl_props)
+        t1 = c.current_rulesets.set( (*c.current_rulesets.get(), PROPCOL_py_to_bl_ruleset) )
 
         assert(not(bl_props is None))
 
@@ -186,18 +186,18 @@ class PyToBl_PropertyCollection(PyToBl):
             entry.name = k
             entry.value = res_ptr 
         
-        c.propertycollection.reset(t)
-        c.ruleset.reset(t1)
+        c.property_collection.reset(t)
+        c.current_rulesets.reset(t1)
 
         return bl_props
 
 
 class BlToPy_PropertyCollection(BlToPy):
-    _keys = (PropertyCollection,)
+    _keys = (BlPropertyCollection,)
 
     def transform(self, node:BlPropertyCollection, c, *args, **kwargs):
-        t = c.propertycollection.set(node)
-        t1 = c.ruleset.set( (*c.ruleset.get(), *PROPCOL_py_to_bl_ruleset) )
+        t = c.property_collection.set(node)
+        t1 = c.current_rulesets.set( (*c.current_rulesets.get(), PROPCOL_bl_to_py_ruleset) )
 
         res = {}
         for k,v in node.properties.items():
@@ -205,8 +205,8 @@ class BlToPy_PropertyCollection(BlToPy):
             child = c.children.get()[0]
             res[k] = child
 
-        c.ruleset.reset(t1)
-        c.propertycollection.reset(t)
+        c.current_rulesets.reset(t1)
+        c.property_collection.reset(t)
         return PropertyCollection(res.items())
     
 

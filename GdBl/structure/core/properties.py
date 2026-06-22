@@ -341,6 +341,11 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
     def __delitem__(self, key):
         self.remove(key)
 
+    def clear(self,):
+        self.properties.clear()
+        for c in self._yield_bins():
+            c.clear()
+
 _all = (
     BlPointerItem,
     BlPropertyItem,
