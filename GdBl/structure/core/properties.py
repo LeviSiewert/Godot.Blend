@@ -174,6 +174,15 @@ class BlIntVector(bpy.types.PropertyGroup):
 
 class BlPrimitive(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueStringName","int","float","bool","None","str")
+    _type_map = {
+         "GdValueStringName":GdValueStringName,
+         "int":int,
+         "float":float,
+         "bool":bool,
+         "None":None,
+         "str":str,
+    }
+
     gdtype : bpy.props.StringProperty() #type:ignore
     val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore

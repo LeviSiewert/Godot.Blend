@@ -53,23 +53,13 @@ class PROPCOL_PyToBl_BlDictionary(PyToBl):
         assert(not (propcol is None))
 
         ptr = propcol._generate_pointer()
-        inst = propcol.bin_dictionaries.new()
-        inst.name = ptr 
+        inst : BlDictionary = propcol.bin_dictionaries.new()
+        inst.name = ptr
 
         for k,v in node.items():
-            k_ptr, k_obj = propcol.new(k.__class__.__name__)
-            t = c.existing_object.set(k_obj)
-            yield(k,)
-            c.existing_object.reset(t)
-            
-            v_ptr, v_obj = propcol.new(v.__class__.__name__)
-            t = c.existing_object.set(v_obj)
-            yield(v,)
-            c.existing_object.reset(t)
-
-            entry = inst.items.new()
-            entry.key_ptr = k_ptr.ptr
-            entry.val_ptr = v_ptr.ptr
+            yield(k,v)
+            _m = c.children_map.get()
+            inst.new(_m[k], _m[v])
             
         return ptr
 
@@ -94,7 +84,7 @@ class PROPCOL_BlToPy_BlDictionary(BlToPy):
 class PROPCOL_PyToBl_BlArray(PyToBl):
     _keys = (GdValueArray,)
     
-    def transform(self, node, c, *args, **kwargs):
+    def transform(self, node:BlArray, c, *args, **kwargs):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not(propcol is None))
         
@@ -102,7 +92,8 @@ class PROPCOL_PyToBl_BlArray(PyToBl):
         inst = propcol.bin_dictionaries.new()
         inst.name = ptr
         
-        yield node
+        yield node.items.values()
+        
         for _ptr in c.children.get():
             obj = inst.new()
             obj.val_ptr = _ptr
@@ -124,12 +115,26 @@ class PROPCOL_BlToPy_BlArray(BlToPy):
 
 class PROPCOL_BlToPy_BlPrimitive(BlToPy):
     _keys = (BlPrimitive,)
-    def transform(self, node, c, *args, **kwargs):
-        raise Exception()
+    _type_map = {
+         "GdValueStringName":GdValueStringName,
+         "int":int,
+         "float":float,
+         "bool":bool,
+         "None":None,
+         "str":str,
+    }
+    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+        if node.gdtype == "None":
+            return None
+        return self.type_map[node.gdtype](node.get_value())
+        
 class PROPCOL_PyToBl_BlPrimitive(PyToBl):
     _keys = (GdValueStringName,int,float,bool,None,str)
-    def transform(self, node, c, *args, **kwargs):
-        raise Exception()
+    def transform(self, node, c, *args, **kwargs)->str:
+        propcol : BlPropertyCollection = c.property_collection.get()
+        ptr,obj = propcol.new_bin_value(c.key.get().__class__.__name__)
+        obj.set_value(node)
+        return ptr
 
 class PROPCOL_BlToPy_BlFloatVector(BlToPy):
     _keys = (BlFloatVector,)
