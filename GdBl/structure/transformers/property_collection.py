@@ -68,8 +68,8 @@ class PROPCOL_PyToBl_BlDictionary(PyToBl):
             c.existing_object.reset(t)
 
             entry = inst.items.new()
-            entry.key_ptr = k_ptr.value
-            entry.val_ptr = v_ptr.value
+            entry.key_ptr = k_ptr.ptr
+            entry.val_ptr = v_ptr.ptr
             
         return ptr
 
