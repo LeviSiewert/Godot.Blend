@@ -302,7 +302,7 @@ class BlToPy_GdValueDictionary(BlToPy):
         raise NotImplementedError("PyToBl GdValueDictionary: ", node)
 
 
-bl_to_py_ruleset = BlToPyRuleset_Property((
+bl_to_py_ruleset = BlToPyRuleset_Property(__file__,(
     PyToBl_Terminals(),
     BlToPy_GdValueStringName(),
     BlToPy_GdValueArray(),
@@ -333,7 +333,7 @@ bl_to_py_ruleset = BlToPyRuleset_Property((
     BlToPy_GdValuePackedColorArray(),
     BlToPy_GdValueDictionary(),
 ))
-py_to_bl_ruleset = PyToBlRuleset((
+py_to_bl_ruleset = PyToBlRuleset(__file__,(
     BlToPy_Terminals(),
     PyToBl_GdValueStringName(),
     PyToBl_GdValueArray(),

@@ -44,14 +44,14 @@ class PyToGd_GdValueResourceID(PyToGd):
     def _transform(self, key, tc, gdc, node:GdValueResourceID, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
-gd_to_py_ruleset = GdToPyRuleset((
+gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_GdValueExtResource(),
     GdToPy_GdValueNodePath(),
     GdToPy_GdValueSubResource(),
     GdToPy_GdValueResourceID(),
 ))
 
-py_to_gd_ruleset = PyToGdRuleset((
+py_to_gd_ruleset = PyToGdRuleset( __file__, (
     PyToGd_GdValueExtResource(),
     PyToGd_GdValueNodePath(),
     PyToGd_GdValueSubResource(),

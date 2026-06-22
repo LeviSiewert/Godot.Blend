@@ -19,6 +19,7 @@ class BlPyTransformerContext(TransformerContext):
 class PyToBlRuleset(BasePyStructureRuleset):
     ''' Shallow inheritance for iterating over all py objects and extracting keys '''
 
+
 class PyToBl(TransformerModule):
     ''' Shallow Inheritance for traversing and calling transform on all Blender Objects '''
     _keys : tuple[Any] = tuple()
@@ -27,6 +28,10 @@ class PyToBl(TransformerModule):
 
 class BlToPyRuleset(TransformerRuleset):
     ''' Base for iterating over all Blender objects and extracting keys '''
+    def _key_extractor(self,key)->tuple:
+        if key is None:
+            return (key, "None")
+        return (key.__class__, key.__class__.__name__)
 
 class BlToPy(TransformerModule):
     ''' Base for traversing and calling transform on all Blender Objects '''

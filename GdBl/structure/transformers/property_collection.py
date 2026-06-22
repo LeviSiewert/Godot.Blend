@@ -132,7 +132,12 @@ class PROPCOL_PyToBl_BlPrimitive(PyToBl):
     _keys = (GdValueStringName,int,float,bool,None,str)
     def transform(self, node, c, *args, **kwargs)->str:
         propcol : BlPropertyCollection = c.property_collection.get()
-        ptr,obj = propcol.new_bin_value(c.key.get().__class__.__name__)
+        key= c.key.get()
+        if key is None:
+            name = "None"
+        else:
+            name = key.__name__
+        ptr,obj = propcol.new_bin_value(name)
         obj.set_value(node)
         return ptr
 
@@ -155,21 +160,21 @@ class PROPCOL_PyToBl_BlIntVector(PyToBl):
         raise Exception()
 
 
-PROPCOL_py_to_bl_ruleset = BlToPyRuleset((
-    PROPCOL_PyToBl_BlDictionary(),
-    PROPCOL_PyToBl_BlArray(),
+PROPCOL_py_to_bl_ruleset = PyToBlRuleset(__file__+" :: PROPCOL",(
     PROPCOL_PyToBl_BlPrimitive(),
-    PROPCOL_PyToBl_BlFloatVector(),
-    PROPCOL_PyToBl_BlIntVector(),
+    # PROPCOL_PyToBl_BlDictionary(),
+    # PROPCOL_PyToBl_BlArray(),
+    # PROPCOL_PyToBl_BlFloatVector(),
+    # PROPCOL_PyToBl_BlIntVector(),
     )
 )
 
-PROPCOL_bl_to_py_ruleset = PyToBlRuleset((
-    PROPCOL_BlToPy_BlDictionary(),
-    PROPCOL_BlToPy_BlArray(),
+PROPCOL_bl_to_py_ruleset = BlToPyRuleset(__file__+" :: PROPCOL",(
     PROPCOL_BlToPy_BlPrimitive(),
-    PROPCOL_BlToPy_BlFloatVector(),
-    PROPCOL_BlToPy_BlIntVector(),
+    # PROPCOL_BlToPy_BlDictionary(),
+    # PROPCOL_BlToPy_BlArray(),
+    # PROPCOL_BlToPy_BlFloatVector(),
+    # PROPCOL_BlToPy_BlIntVector(),
 ))
 
 class PyToBl_PropertyCollection(PyToBl):
@@ -179,17 +184,17 @@ class PyToBl_PropertyCollection(PyToBl):
         """ Property Collection aready exists """
         bl_props : BlPropertyCollection = c.existing_object.get()
         t = c.property_collection.set(bl_props)
-        t1 = c.current_rulesets.set( (*c.current_rulesets.get(), PROPCOL_py_to_bl_ruleset) )
+        t1 = c.current_rulesets.set( (PROPCOL_py_to_bl_ruleset,) )
 
         assert(not(bl_props is None))
 
         for k,v in node.items.items():
             yield (v,)
             res_ptr = c.children.get()[0]
-            entry = bl_props.properties.new()
+            entry = bl_props.properties.add()
             
             entry.name = k
-            entry.value = res_ptr 
+            entry.ptr = res_ptr 
         
         c.property_collection.reset(t)
         c.current_rulesets.reset(t1)
@@ -202,10 +207,10 @@ class BlToPy_PropertyCollection(BlToPy):
 
     def transform(self, node:BlPropertyCollection, c, *args, **kwargs):
         t = c.property_collection.set(node)
-        t1 = c.current_rulesets.set( (*c.current_rulesets.get(), PROPCOL_bl_to_py_ruleset) )
+        t1 = c.current_rulesets.set( (PROPCOL_bl_to_py_ruleset,) )
 
         res = {}
-        for k,v in node.properties.items():
+        for k,v in node.items():
             yield (v,)
             child = c.children.get()[0]
             res[k] = child
@@ -215,10 +220,10 @@ class BlToPy_PropertyCollection(BlToPy):
         return PropertyCollection(res.items())
     
 
-py_to_bl_ruleset = BlToPyRuleset((
+py_to_bl_ruleset = BlToPyRuleset(__file__,(
     PyToBl_PropertyCollection(),
     ))
 
-bl_to_py_ruleset = PyToBlRuleset((
+bl_to_py_ruleset = PyToBlRuleset(__file__,(
     BlToPy_PropertyCollection(),
     ))

@@ -91,22 +91,23 @@ class Transformer():
             res = r.matcher(node)
             if res:
                 return (r,*res)
-        raise KeyError("Could not determine match node within current ruleset!", node, self.rulesets)
+        raise KeyError("Could not determine match node within current ruleset!", node, c.current_rulesets.get())
 
 class TransformerRuleset():
     ''' This class contains transformer modules, and should be treated as immutable for transformation safety
     if behavior desires a same index ruleset change, replace in context.
     '''
-
+    identifier : str
     modules : tuple[TransformerModule]
     data : dict[str|Any|Type,TransformerModule]
 
-    def __init__(self, modules:Iterable[TransformerModule], _reverse=True, _key_safety=True):
+    def __init__(self, identifier:str, modules:Iterable[TransformerModule], _reverse=True, _key_safety=True):
         ''' 
         _key_safety asserts that each key in a ruleset is unique, default is true
         _reverse inverts the order of the module, when true and key_safety is off, "key-priority" is effectivly first in modules
         '''
 
+        self.identifier = identifier
         self.modules = tuple(modules)
         if _reverse:
             self.modules = reversed(self.modules)
@@ -141,6 +142,9 @@ class TransformerRuleset():
 
     def __iter__(self):
         return self.data.__iter__()
+    
+    def __repr__(self):
+        return f"<{self.__class__.__name__} :: {self.identifier}>"
 
 class VisitorException(Exception):
     pass

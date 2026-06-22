@@ -54,7 +54,7 @@ class PyToGd_CollectionCatRes(PyToGd):
     def _transform(self, key, tc, gdc, node:CollectionCatRes, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
-gd_to_py_ruleset = GdToPyRuleset((
+gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_CollectionNodeRes(),
     GdToPy_CollectionExtRes(),
     GdToPy_CollectionEditRes(),
@@ -62,7 +62,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_CollectionCatRes(),
 ))
 
-py_to_gd_ruleset = PyToGdRuleset((
+py_to_gd_ruleset = PyToGdRuleset( __file__, (
     PyToGd_CollectionCatRes(),
     PyToGd_CollectionSubRes(),
     PyToGd_CollectionEditRes(),

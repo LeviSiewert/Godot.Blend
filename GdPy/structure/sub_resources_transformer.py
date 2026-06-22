@@ -64,7 +64,7 @@ class PyToGd_ResourceContainer(PyToGd):
     def _transform(self, key, tc, gdc, node:ResourceContainer, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
-gd_to_py_ruleset = GdToPyRuleset((
+gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_SubResourceExt(),
     GdToPy_SubResourceEdit(),
     GdToPy_SubResource(),
@@ -72,7 +72,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     GdToPy_SubResourceCategory(),
     GdToPy_ResourceContainer(),
 ))
-py_to_gd_ruleset = PyToGdRuleset((
+py_to_gd_ruleset = PyToGdRuleset( __file__, (
     PyToGd_SubResourceExt(),
     PyToGd_SubResourceEdit(),
     PyToGd_SubResource(),

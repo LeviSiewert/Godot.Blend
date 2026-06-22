@@ -53,7 +53,9 @@ class GdToPy(TransformerModule, ABC):
 class BasePyStructureRuleset(TransformerRuleset):
     ''' Ruleset structure for iterating over GdPy Objects, Inherit here as future key rules will extract project level information '''
     def _key_extractor(self,key)->tuple[str|Any|Type]:
-        return (key.__class__,)
+        if key is None:
+            return (key, "None")
+        return (key.__class__, key.__class__.__name__)
     
     def _get_children_default(self, node:GdType):
         if hasattr(node, "get_struct_children"):

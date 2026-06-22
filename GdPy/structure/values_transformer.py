@@ -414,7 +414,7 @@ class PyToGd_Dictionary(PyToGd):
 
 
 
-gd_to_py_ruleset = GdToPyRuleset((
+gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_Terminals(),
     GdToPy_Simple(),
     GdToPy_StringName(),
@@ -448,7 +448,7 @@ gd_to_py_ruleset = GdToPyRuleset((
     ))
 
 
-py_to_gd_ruleset = PyToGdRuleset((
+py_to_gd_ruleset = PyToGdRuleset( __file__, (
     PyToGd_Terminals(),
     PyToGd_StringName(),
     PyToGd_Array(),

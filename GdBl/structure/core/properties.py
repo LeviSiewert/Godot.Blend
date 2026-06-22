@@ -9,7 +9,7 @@ POINTER_PREFIX : str = "*"
 class _UNSET():pass
 
 class BlPointerItem(bpy.types.PropertyGroup):
-    prt : bpy.props.StringProperty() #type:ignore
+    ptr : bpy.props.StringProperty() #type:ignore
 
 class BlPropertyItem(BlPointerItem):
     name : bpy.props.StringProperty() #type:ignore
@@ -174,14 +174,6 @@ class BlIntVector(bpy.types.PropertyGroup):
 
 class BlPrimitive(bpy.types.PropertyGroup):
     _handles : tuple[str] = ("GdValueStringName","int","float","bool","None","str")
-    _type_map = {
-         "GdValueStringName":GdValueStringName,
-         "int":int,
-         "float":float,
-         "bool":bool,
-         "None":None,
-         "str":str,
-    }
 
     gdtype : bpy.props.StringProperty() #type:ignore
     val_str : bpy.props.StringProperty() #type:ignore
@@ -194,7 +186,7 @@ class BlPrimitive(bpy.types.PropertyGroup):
             case "str":
                 self.val_str = value
             case "GdValueStringName":
-                self.val_str = value
+                self.val_str = str(value)
             case "int":
                 self.val_int = value
             case "float":
@@ -255,26 +247,30 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
             yield getattr(self,k)
 
     def _wrap_complex(self, data:Any):
+
         if isinstance(data, BlDictionary):
             return BlDictionaryWrapper(self,data)
         if isinstance(data, BlArray):
             return BlArrayWrapper(self,data)
         if isinstance(data, BlPropertyItem):
             return BlPropertyItemWrapper(self,data)
+
         return data
 
-    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_complex:bool=False):
+    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_complex:bool=True):
         if key.startswith(POINTER_PREFIX):
             return self.fetch_pointer_data(key, default, _wrap_complex=_wrap_complex)
         if res:=self.properties.get(key, None):
             if return_ptr:
+                if _wrap_complex:
+                    return self._wrap_complex(res)
                 return res
-            return self.fetch_pointer_data(res.value, _wrap_complex=_wrap_complex)
+            return self.fetch_pointer_data(res.ptr, _wrap_complex=_wrap_complex)
         if default is _UNSET:
             raise KeyError(key)
         return default
     
-    def fetch_pointer_data(self, ptr:str, default=_UNSET, /, _wrap_complex:bool=False):
+    def fetch_pointer_data(self, ptr:str, default=_UNSET, /, _wrap_complex:bool=True):
         for c in self._yield_bins():
             if obj := c.get(ptr,None):
                 if _wrap_complex:
@@ -333,7 +329,9 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         obj = col.add()
         obj.name = p_str 
         obj.gdtype = gdtype
-        obj.set_value(*args, **kwargs, _root_col=self)
+        if args or kwargs:
+            obj.set_value(*args, **kwargs, _root_col=self)
+        return (p_str, obj)
     
     def _generate_pointer(self,)->str:
         _all = []
@@ -354,6 +352,10 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         self.properties.clear()
         for c in self._yield_bins():
             c.clear()
+
+    def items(self, _wrap_complex=False):
+        for k,e in self.properties.items():
+            yield k, self.get(e.ptr, _wrap_complex)
 
 _all = (
     BlPointerItem,

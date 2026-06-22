@@ -24,12 +24,12 @@ class PyToGd_GdResourceFileImport(PyToGd):
     def _transform(self, key, tc, gdc, node:GdResourceFileImport, *children)->str:
         raise NotImplementedError("Not yet implimented!")
 
-gd_to_py_ruleset = GdToPyRuleset((
+gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_GdResourceFileScene(),
     GdToPy_GdResourceFileImport(),
 ))
 
-py_to_gd_ruleset = PyToGdRuleset((
+py_to_gd_ruleset = PyToGdRuleset( __file__, (
     PyToGd_GdResourceFileScene(),
     PyToGd_GdResourceFileImport(),
 ))
