@@ -63,7 +63,7 @@ class BlArrayWrapper(_Wrapper):
             else:
                 yield self.root.get_value(e.ptr, default=EMPTYPOINTER, wrap=wrap)
 
-    def set_value(val, /, subtype:str=None):
+    def set_value(val, /, bin_id:str=None):
         raise NotImplementedError()
 
 class BlDictionaryItem(bpy.types.PropertyGroup):
@@ -121,7 +121,7 @@ class BlDictionaryWrapper(_Wrapper):
                 yield e,k,v
             else:
                 yield k,v
-    def set_value(val, /, subtype:str=None):
+    def set_value(val, /, bin_id:str=None):
         raise NotImplementedError()
 
 class BlPropertyItem(bpy.types.PropertyGroup):
@@ -135,16 +135,16 @@ class PointerCollection(bpy.types.PropertyGroup):
     #TODO : Consider default TransformerV2 in set_value to/from regular python values.
     #TODO : Typing system, Eventually
     
-    _bins : tuple[str] = ("bin_array", "bin_dict")
+    _bins : tuple[str] = tuple()
     
     properties : bpy.props.CollectionProperty(type = BlPropertyItem) #type:ignore
-    bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
-    bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
+    # bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
+    # bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
     
-    def _bin_key_matcher(self, key:str )->bpy.types.CollectionProperty:
-        if res := getattr(self, key, None):
+    def _bin_id_matcher(self, bin_id:str)->bpy.types.CollectionProperty:
+        if res := getattr(self, bin_id, None):
             return res
-        raise KeyError("Could not determine bin for key", key)
+        raise KeyError("Could not determine bin for key", bin_id)
     
     def _bin_val_to_key_matcher(self, val:Any)->str:
         raise KeyError("Could not determine bin for value", val)
@@ -176,16 +176,16 @@ class PointerCollection(bpy.types.PropertyGroup):
             raise KeyError(ptr)
         return default
     
-    def store_value(self, val:Any, /, ptr:str=None, subtype:str=None, wrap=True, exist_ok=False)->tuple[Any,str]:
+    def store_value(self, val:Any, /, ptr:str=None, bin_id:str=None, wrap=True, exist_ok=False)->tuple[Any,str]:
         col : bpy.types.CollectionProperty
         
         if not exist_ok:
             if res:=self.get_value(ptr):
                 raise KeyError(ptr, res)
 
-        if subtype is None:
-            subtype = self._bin_val_to_key_matcher(val)
-        col = self._bin_key_matcher(subtype)
+        if bin_id is None:
+            bin_id = self._bin_val_to_key_matcher(val)
+        col = self._bin_id_matcher(bin_id)
         
         item = col.add()
 
@@ -195,17 +195,17 @@ class PointerCollection(bpy.types.PropertyGroup):
             assert(not (ptr in self._get_all_pointers()))
             item.name = ptr
 
-        item.set_value(val, subtype=subtype)
+        item.set_value(val, bin_id=bin_id)
         if wrap:
             return self._wrap(item), ptr
         return item,ptr
     
-    def set_value(self, ptr:str, val:Any, /, subtype:str=None, make_ok=True, wrap=True):
+    def set_value(self, ptr:str, val:Any, /, bin_id:str=None, make_ok=True, wrap=True):
         if (not make_ok): 
             if (self.get_value(ptr, None) is None):
                 raise KeyError(ptr)
         self.delete_value(ptr)
-        return self.store_value(val, ptr=ptr, subtype=subtype, wrap=wrap, exist_ok=True)
+        return self.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=True)
         
     def delete_value(self, ptr:str):
         _all_ptrs = self._get_sub_pointers(ptr)
@@ -236,10 +236,10 @@ class PointerCollection(bpy.types.PropertyGroup):
         return tuple()
 
 
-    def new_property(self, key:str, val:Any, /, subtype:str=None, wrap=True)->tuple[Any,BlPropertyItem]:
+    def new_property(self, key:str, val:Any, /, bin_id:str=None, wrap=True)->tuple[Any,BlPropertyItem]:
         assert(not (key in self.properties.keys()))
         
-        val, ptr = self.store_value(val, subtype=subtype)
+        val, ptr = self.store_value(val, bin_id=bin_id)
         
         prop = self.properties.new()
         prop.name = key
@@ -257,7 +257,7 @@ class PointerCollection(bpy.types.PropertyGroup):
             return self._wrap(res)
         return res
 
-    def set_property(self, key:str, val:Any, /, subtype:str=None, make_ok=True, wrap=True)->tuple[Any,BlPropertyItem]:
+    def set_property(self, key:str, val:Any, /, bin_id:str=None, make_ok=True, wrap=True)->tuple[Any,BlPropertyItem]:
         if key in self.properties[key]:
             prop = self.properties[key]
             self.delete_value(prop.ptr)
@@ -266,7 +266,7 @@ class PointerCollection(bpy.types.PropertyGroup):
         else:
             prop = self.properties.new()
             prop.name = key
-        ptr,obj = self.store_value(key,val,subtype=subtype)
+        ptr,obj = self.store_value(key,val,bin_id=bin_id)
         prop.ptr = ptr
         if wrap:
             return self._wrap(obj), self._wrap(prop)
@@ -305,11 +305,11 @@ class PointerCollection(bpy.types.PropertyGroup):
         else:
             return self.get_value(key, default=default, wrap=wrap)
 
-    def set(self, key, value, /, subtype=None, make_ok=True, wrap=True)->tuple[str,Any]:
+    def set(self, key, value, /, bin_id=None, make_ok=True, wrap=True)->tuple[str,Any]:
         if not self._is_pointer(key): 
-            return self.set_property(key, value, subtype=subtype, make_ok=make_ok, wrap=wrap )
+            return self.set_property(key, value, bin_id=bin_id, make_ok=make_ok, wrap=wrap )
         else:
-            return self.set_value(key, value, subtype=subtype, make_ok=make_ok, wrap=wrap)
+            return self.set_value(key, value, bin_id=bin_id, make_ok=make_ok, wrap=wrap)
 
     def remove(self, key):
         if not self._is_pointer(key): 
