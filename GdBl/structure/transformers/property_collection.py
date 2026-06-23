@@ -162,19 +162,19 @@ class PROPCOL_PyToBl_BlIntVector(PyToBl):
 
 PROPCOL_py_to_bl_ruleset = PyToBlRuleset(__file__+" :: PROPCOL",(
     PROPCOL_PyToBl_BlPrimitive(),
-    # PROPCOL_PyToBl_BlDictionary(),
-    # PROPCOL_PyToBl_BlArray(),
-    # PROPCOL_PyToBl_BlFloatVector(),
-    # PROPCOL_PyToBl_BlIntVector(),
+    PROPCOL_PyToBl_BlDictionary(),
+    PROPCOL_PyToBl_BlArray(),
+    PROPCOL_PyToBl_BlFloatVector(),
+    PROPCOL_PyToBl_BlIntVector(),
     )
 )
 
 PROPCOL_bl_to_py_ruleset = BlToPyRuleset(__file__+" :: PROPCOL",(
     PROPCOL_BlToPy_BlPrimitive(),
-    # PROPCOL_BlToPy_BlDictionary(),
-    # PROPCOL_BlToPy_BlArray(),
-    # PROPCOL_BlToPy_BlFloatVector(),
-    # PROPCOL_BlToPy_BlIntVector(),
+    PROPCOL_BlToPy_BlDictionary(),
+    PROPCOL_BlToPy_BlArray(),
+    PROPCOL_BlToPy_BlFloatVector(),
+    PROPCOL_BlToPy_BlIntVector(),
 ))
 
 class PyToBl_PropertyCollection(PyToBl):

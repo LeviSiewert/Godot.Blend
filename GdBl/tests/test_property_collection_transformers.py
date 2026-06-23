@@ -108,3 +108,9 @@ class TestArray():
 
 class TestDictionary():
     pass
+
+class TestFloatVector():
+    pass
+
+class TestIntVector():
+    pass
