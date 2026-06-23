@@ -15,7 +15,7 @@ class BlPrimitives(bpy.types.PropertyGroup):
         return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""), _UNSET)
     @value.setter
     def value(self, value):
-        getattr(self, "val_"+self.subtype.lower().replace("gdtype","")) = value
+        setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
 
     val_string : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
@@ -32,7 +32,7 @@ class BlVectors():
         return getattr(self, self.subtype.lower().replace("gdtype",""), _UNSET)
     @value.setter
     def value(self, value):
-        getattr(self, self.subtype.lower().replace("gdtype","")) = value
+        setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
 
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore
