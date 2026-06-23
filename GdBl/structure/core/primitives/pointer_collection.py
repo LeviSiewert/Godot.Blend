@@ -21,14 +21,14 @@ class _Wrapper:
         self.data = data
 
 
-class BlArrayItem(bpy.types.PropertyGroup):
+class BlPointerArrayItem(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
     ptr : bpy.props.StringProperty() #type:ignore
-    def _wrap(self, root:PointerCollection)->BlArrayItemWrapper:
-        return BlArrayItemWrapper(root, self)
+    def _wrap(self, root:PointerCollection)->BlPointerArrayItemWrapper:
+        return BlPointerArrayItemWrapper(root, self)
     def _list_sub_pointers()->tuple[str]:
         raise NotImplementedError()
-class BlArrayItemWrapper(_Wrapper):
+class BlPointerArrayItemWrapper(_Wrapper):
     @property
     def value(self,)->Any:
         return self.root.get_value(self.data.ptr, default=EMPTYPOINTER)
@@ -43,14 +43,14 @@ class BlArrayItemWrapper(_Wrapper):
         self.root.set_value(self.data.ptr, value)
 
 
-class BlArray(bpy.types.PropertyGroup):
+class BlPointerArray(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
-    items : bpy.props.CollectionProperty(type = BlArrayItem) #type:ignore
-    def _wrap(self, root:PointerCollection)->BlArrayWrapper:
-        return BlArrayWrapper(root, self)
+    items : bpy.props.CollectionProperty(type = BlPointerArrayItem) #type:ignore
+    def _wrap(self, root:PointerCollection)->BlPointerArrayWrapper:
+        return BlPointerArrayWrapper(root, self)
     def _list_sub_pointers()->tuple[str]:
         raise NotImplementedError()
-class BlArrayWrapper(_Wrapper):
+class BlPointerArrayWrapper(_Wrapper):
     def __iter__(self,):
         for e in self.data.items.values():
             yield self.root.get_value(e.ptr, default=EMPTYPOINTER)
@@ -66,16 +66,16 @@ class BlArrayWrapper(_Wrapper):
     def set_value(val, /, bin_id:str=None):
         raise NotImplementedError()
 
-class BlDictionaryItem(bpy.types.PropertyGroup):
+class BlPointerDictionaryItem(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
     val_ptr : bpy.props.StringProperty() #type:ignore
     key_ptr : bpy.props.StringProperty() #type:ignore
-    def _wrap(self, root:PointerCollection)->BlDictionaryItemWrapper:
-        return BlDictionaryItemWrapper(root, self)
+    def _wrap(self, root:PointerCollection)->BlPointerDictionaryItemWrapper:
+        return BlPointerDictionaryItemWrapper(root, self)
     def _list_sub_pointers()->tuple[str]:
         raise NotImplementedError()
     
-class BlDictionaryItemWrapper(_Wrapper):
+class BlPointerDictionaryItemWrapper(_Wrapper):
     @property
     def key(self,)->Any:
         return self.root.get_value(self.data.key_ptr, default=EMPTYPOINTER)
@@ -103,14 +103,14 @@ class BlDictionaryItemWrapper(_Wrapper):
             return
         self.root.set_value(self.data.val_ptr, value)
 
-class BlDictionary(bpy.types.PropertyGroup):
+class BlPointerDictionary(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
-    items : bpy.props.CollectionProperty(type = BlDictionaryItem) #type:ignore
-    def _wrap(self, root:PointerCollection)->BlDictionaryWrapper:
-        return BlDictionaryWrapper(root, self)
+    items : bpy.props.CollectionProperty(type = BlPointerDictionaryItem) #type:ignore
+    def _wrap(self, root:PointerCollection)->BlPointerDictionaryWrapper:
+        return BlPointerDictionaryWrapper(root, self)
     def _list_sub_pointers()->tuple[str]:
         raise NotImplementedError()
-class BlDictionaryWrapper(_Wrapper):
+class BlPointerDictionaryWrapper(_Wrapper):
     def items(self, yield_entry=False, wrap=True):
         for e in self.data.items.values():
             k = self.root.get_value(e.key_ptr, default=EMPTYPOINTER, wrap=True)
@@ -138,8 +138,8 @@ class PointerCollection(bpy.types.PropertyGroup):
     _bins : tuple[str] = tuple()
     
     properties : bpy.props.CollectionProperty(type = BlPropertyItem) #type:ignore
-    # bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
-    # bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
+    # bin_array : bpy.props.CollectionProperty(type = BlPointerArray) #type:ignore
+    # bin_dict : bpy.props.CollectionProperty(type = BlPointerDictionary) #type:ignore
     
     def _bin_id_matcher(self, bin_id:str)->bpy.types.CollectionProperty:
         if res := getattr(self, bin_id, None):
@@ -321,9 +321,9 @@ class PointerCollection(bpy.types.PropertyGroup):
             return self.delete_value(key)
 
 _all = (
-    BlArrayItem,
-    BlArray,
-    BlDictionaryItem,
-    BlDictionary,
+    BlPointerArrayItem,
+    BlPointerArray,
+    BlPointerDictionaryItem,
+    BlPointerDictionary,
     BlPropertyItem,
 )
