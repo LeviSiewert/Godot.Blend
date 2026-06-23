@@ -45,6 +45,7 @@ class BlPointerArrayItemWrapper(_Wrapper):
 
 class BlPointerArray(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
+    name : bpy.props.StringProperty() #type:ignore
     items : bpy.props.CollectionProperty(type = BlPointerArrayItem) #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerArrayWrapper:
         return BlPointerArrayWrapper(root, self)
@@ -131,6 +132,7 @@ class BlPointerDictionaryItemWrapper(_Wrapper):
 
 class BlPointerDictionary(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
+    name : bpy.props.StringProperty() #type:ignore
     items : bpy.props.CollectionProperty(type = BlPointerDictionaryItem) #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerDictionaryWrapper:
         return BlPointerDictionaryWrapper(root, self)
@@ -175,13 +177,16 @@ class PointerCollection(bpy.types.PropertyGroup):
     def _bin_val_matcher(self, val:Any)->str:
         raise KeyError("Could not determine bin for value", val)
 
-    def _iter_bins(self,)->Generator[bpy.types.CollectionProperty]:
+    def _iter_bins(self,)->Generator[bpy.types.bpy_prop_collection_idprop]:
         for k in self._bins:
-            yield getattr(self,k)
+            val = getattr(self,k)
+            if not (isinstance(val, bpy.types.bpy_prop_collection_idprop)):
+                raise TypeError(val, val.__class__)
+            yield val
 
     def _get_all_pointers(self,)->tuple[str]:
         res = []
-        for b in self._iter_bins:
+        for b in self._iter_bins():
             res.extend(b.keys())
         return tuple(res)
 
@@ -193,8 +198,10 @@ class PointerCollection(bpy.types.PropertyGroup):
         return r 
 
     def get_value(self, ptr:str, /, default=_UNSET, wrap=True):
-        for b in self._iter_bins:
-            if res := b.get(ptr,None):
+        assert (isinstance(ptr, str))
+
+        for b in self._iter_bins():
+            if res := b.get(ptr, None):
                 if wrap:
                     return self._wrap(res)
                 return res
@@ -207,8 +214,8 @@ class PointerCollection(bpy.types.PropertyGroup):
             raise KeyError("arguments of (val:Any) and/or (bin_id:str) must be set!")
         
         col : bpy.types.CollectionProperty
-        if not exist_ok:
-            if res:=self.get_value(ptr):
+        if (not exist_ok) and not (ptr is None):
+            if res:=self.get_value(ptr, None):
                 raise KeyError(ptr, res)
 
         if bin_id is None:
@@ -219,13 +226,16 @@ class PointerCollection(bpy.types.PropertyGroup):
         item = col.add()
 
         if ptr is None:
-            item.name = self._generate_pointer()
-        else:
-            assert(not (ptr in self._get_all_pointers()))
-            item.name = ptr
+            ptr = self._generate_pointer()
+
+        assert(not (ptr in self._get_all_pointers()))
+        item.name = ptr
 
         if not (val is _UNSET):
-            item.set_value(val, *args, **kwargs)
+            if hasattr(item, "set_value"):
+                item.set_value(val, *args, **kwargs)
+            else:
+                self._wrap(item).set_value(val, *args, **kwargs)
         if wrap:
             return self._wrap(item), ptr
         return item,ptr

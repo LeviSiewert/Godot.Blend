@@ -55,10 +55,14 @@ class BlVectors(bpy.types.PropertyGroup):
 class BlDictionary(BlPointerDictionary):
     _subtypes = (*_dict_types.keys(),)
     subtype : bpy.props.StringProperty(default="Dictionary") #type:ignore
+    name : bpy.props.StringProperty() #type:ignore
     
 class BlArray(BlPointerArray):
     _subtypes = (*_array_types.keys(),)
     subtype : bpy.props.StringProperty(default="Array") #type:ignore
+    name : bpy.props.StringProperty() #type:ignore
+
+    # items : bpy.props.CollectionProperty(type = BlPointerArrayItem) #type:ignore
 
 def _map_keys(*items)->dict[str,Type]:
     res = {}
@@ -86,9 +90,9 @@ class BlPropertyCollection(PointerCollection):
         if val is None:
             return self.bin_primitive
         if isinstance(val,list):
-            return "bin_array"
+            return self.bin_array
         if isinstance(val,dict):
-            return "bin_dict"
+            return self.bin_dict
         return self._bin_map[val.__class__.__name__]
         
 

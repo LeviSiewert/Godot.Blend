@@ -42,7 +42,7 @@ def _py_to_bl(bl_pc, gd_pc)->Generator[BlPropertyCollection]:
     bl_pc.clear()
 
 class TestBehavior(BlenderPytestAttr):
-    attr_value = bpy.props.CollectionProperty(type = BlPropertyCollection)
+    attr_value = bpy.props.PointerProperty(type = BlPropertyCollection)
     
     @contextmanager
     def _adding_removal(self, expected_bin_id:str, value:str, /, prop_name:str="A", expect_wrapped=False, subtype:str=None, yield_wrapped=False):
@@ -82,7 +82,7 @@ class TestBehavior(BlenderPytestAttr):
         assert (len(bl_pc.properties)==0)
 
     def adding_removal(self, *args, **kwargs):
-        with self._adding_remove(*args, **kwargs):
+        with self._adding_removal(*args, **kwargs):
             pass
 
     def test_adding_removal(self,):
