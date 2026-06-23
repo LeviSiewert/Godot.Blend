@@ -22,7 +22,7 @@ class BlPrimitives(bpy.types.PropertyGroup):
     val_float : bpy.props.FloatProperty() #type:ignore
     val_bool : bpy.props.BoolProperty() #type:ignore
 
-class BlVectors():
+class BlVectors(bpy.types.PropertyGroup):
     _subtypes = (*_vector_types.keys(),)
     name : bpy.props.StringProperty() #type:ignore
     subtype : bpy.props.StringProperty(default="UNSET") #type:ignore

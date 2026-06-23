@@ -182,10 +182,10 @@ class PyToBl_PropertyCollection(PyToBl):
         return propcol 
 
 
-_bl_to_py_ruleset = BlToPyRuleset(__file__, (
+bl_to_py_ruleset = BlToPyRuleset(__file__, (
     BlToPy_PropertyCollection,
     ))
 
-_py_to_bl_ruleset = PyToBlRuleset(__file__, (
+py_to_bl_ruleset = PyToBlRuleset(__file__, (
     PyToBl_PropertyCollection,
     ))

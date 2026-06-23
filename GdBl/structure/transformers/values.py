@@ -34,12 +34,12 @@ from ....GdPy.structure.values import (
     GdValueDictionary,
 )
 
-from ..core.properties import BlPrimitive
+from ..core.properties import BlPrimitives
 
 class BlToPyRuleset_Property(BlToPyRuleset):
-    ''' Key is stored on BlPrimitive in a different way than other Blender objects '''
+    ''' Key is stored on BlPrimitives in a different way than other Blender objects '''
     def _key_extractor(self, key):
-        if isinstance(key, BlPrimitive):
+        if isinstance(key, BlPrimitives):
             return (key.type,)
         return super()._key_extractor(key)
 
@@ -47,7 +47,7 @@ class BlToPyRuleset_Property(BlToPyRuleset):
 class PyToBl_Terminals(PyToBl):
     _keys = (bool,float,int,str)
     def transform(self, node, c, *args, **kwargs):
-        prop : BlPrimitive = c.existing_object.get()
+        prop : BlPrimitives = c.existing_object.get()
         x = c.key.get()
         if x is bool:
             prop.type = "BOOL"
@@ -64,7 +64,7 @@ class PyToBl_Terminals(PyToBl):
         raise KeyError()
 class BlToPy_Terminals(BlToPy):
     _keys = ("BOOL","FLOAT","INT","STR")
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         match c.key.get():
             case "BOOL":
                 return node.val_boolean
@@ -79,43 +79,43 @@ class BlToPy_Terminals(BlToPy):
 class PyToBl_GdValueStringName(PyToBl):
     _keys = (GdValueStringName,)
     def transform(self, node:GdValueStringName, c, *args, **kwargs):
-        target : BlPrimitive = c.existing_object.get()
+        target : BlPrimitives = c.existing_object.get()
         target.type = "GdValueStringName"
         target.val_str = node.value
         return target 
 class BlToPy_GdValueStringName(BlToPy):
     _keys = ("GdValueStringName",)
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         return GdValueStringName(node.val_str)
 
 class PyToBl_GdValueArray(PyToBl):
     _keys = (GdValueArray,)
     def transform(self, node:GdValueArray, c, *args, **kwargs):
-        target : BlPrimitive = c.existing_object.get()
+        target : BlPrimitives = c.existing_object.get()
         raise NotImplementedError("PyToBl GdValueArray: ", node, target)
 class BlToPy_GdValueArray(BlToPy):
     _keys = ("GdValueArray",)
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("PyToBl GdValueArray: ", node)
     
 class _PyToBl_IntArray(PyToBl):
     _blkey : str
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("PyToBl Generic Int Array: ", node)
 class _BlToPy_IntArray(BlToPy):
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("BlToPy Generic Int Array: ", node)
 
 class _PyToBl_FloatArray(PyToBl):
     _blkey : str
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("BlToPy Generic Float Array: ", node)
 class _BlToPy_FloatArray(BlToPy):
     _key : str
     _type : Type
     def get_keys(self):
         return (self._key,)
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("PyToBl Generic Float Array: ", node)
 
 class PyToBl_GdValueVector2(_PyToBl_FloatArray):
@@ -222,13 +222,13 @@ class BlToPy_GdValueTransform3D(_BlToPy_FloatArray):
 class _PyToBl_PackedArray(PyToBl):
     _keys = (GdValuePackedByteArray,)
     def transform(self, node:GdValuePackedByteArray, c, *args, **kwargs):
-        target : BlPrimitive = c.existing_object.get()
+        target : BlPrimitives = c.existing_object.get()
         raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node, target)
 class _BlToPy_PackedArray(BlToPy):
     _key : str
     def get_keys(self):
         return (self._key,)
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node)
 
 class PyToBl_GdValuePackedByteArray(_PyToBl_PackedArray):
@@ -294,11 +294,11 @@ class BlToPy_GdValuePackedColorArray(_BlToPy_PackedArray):
 class PyToBl_GdValueDictionary(PyToBl):
     _keys = (GdValueDictionary,)
     def transform(self, node:GdValueDictionary, c, *args, **kwargs):
-        target : BlPrimitive = c.existing_object.get()
+        target : BlPrimitives = c.existing_object.get()
         raise NotImplementedError("PyToBl GdValueDictionary: ", node, target)
 class BlToPy_GdValueDictionary(BlToPy):
     _keys = ("GdValueDictionary",)
-    def transform(self, node:BlPrimitive, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         raise NotImplementedError("PyToBl GdValueDictionary: ", node)
 
 
