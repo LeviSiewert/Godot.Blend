@@ -85,6 +85,10 @@ class BlPropertyCollection(PointerCollection):
     def _bin_val_matcher(self, val):
         if val is None:
             return self.bin_primitive
+        if isinstance(val,list):
+            return "bin_array"
+        if isinstance(val,dict):
+            return "bin_dict"
         return self._bin_map[val.__class__.__name__]
         
 

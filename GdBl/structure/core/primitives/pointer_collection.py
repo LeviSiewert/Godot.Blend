@@ -63,9 +63,35 @@ class BlPointerArrayWrapper(_Wrapper):
             else:
                 yield self.root.get_value(e.ptr, default=EMPTYPOINTER, wrap=wrap)
 
-    def set_value(val, /, bin_id:str=None):
+    def set_value(val, /, value_bin_id:str=None):
         raise NotImplementedError()
+    
+    def new(self, val:Any=_UNSET, /, ptr:str=None, bin_id:str=None, wrap:bool=True, exist_ok:bool=False, *args, **kwargs)->tuple[Any,BlPointerArrayItemWrapper]:
+        ptr, obj = self.root.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=exist_ok, *args, **kwargs)
+        entry = self.data.items.new()
+        entry.ptr = ptr
+        if wrap:
+            return obj,self.root._wrap(entry)
+        else:
+            return obj,entry
+            
+    def remove(self, index:int):
+        self.data.items.remove(index)
 
+    def get(self, index:int, return_entry=False, wrap=True):
+        entry = self.data.items[index]
+        if return_entry:
+            if wrap:
+                return self.root.wrap(entry)
+            return entry
+        return self.root.get_value(entry.ptr, default=EMPTYPOINTER, wrap=wrap)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __len__(self):
+        return len(self.data.items)
+    
 class BlPointerDictionaryItem(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
     val_ptr : bpy.props.StringProperty() #type:ignore
