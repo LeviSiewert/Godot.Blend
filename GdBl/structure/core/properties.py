@@ -50,7 +50,7 @@ class BlVectors():
     vector2i : bpy.props.IntVectorProperty(size=2) #type:ignore
     vector3i : bpy.props.IntVectorProperty(size=3) #type:ignore
     vector4i : bpy.props.IntVectorProperty(size=4) #type:ignore
-    rect2i : bpy.prop.IntVectorProperty(size=4) #type:ignore
+    rect2i : bpy.props.IntVectorProperty(size=4) #type:ignore
 
 class BlDictionary(BlPointerDictionary):
     _subtypes = (*_dict_types.keys(),)
