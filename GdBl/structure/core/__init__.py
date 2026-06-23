@@ -1,11 +1,11 @@
 import bpy
 from bpy.props import PointerProperty
 
-from .primitives import flatpack_collection
+from .primitives import pointer_collection
 from . import properties, sub_resource, resource, meta, file, project
 
 _all = (
-    *flatpack_collection._all,
+    *pointer_collection._all,
     *properties._all, 
     *sub_resource._all, 
     *resource._all, 
