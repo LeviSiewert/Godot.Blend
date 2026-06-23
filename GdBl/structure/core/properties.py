@@ -12,10 +12,10 @@ class BlPrimitives(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, "val_"+self.subtype.lower(), _UNSET)
+        return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""), _UNSET)
     @value.setter
     def value(self, value):
-        getattr(self, "val_"+self.subtype.lower()) = value
+        getattr(self, "val_"+self.subtype.lower().replace("gdtype","")) = value
 
     val_string : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
@@ -29,10 +29,10 @@ class BlVectors():
 
     @property
     def value(self,):
-        return getattr(self, self.subtype.lower(), _UNSET)
+        return getattr(self, self.subtype.lower().replace("gdtype",""), _UNSET)
     @value.setter
     def value(self, value):
-        getattr(self, self.subtype) = value
+        getattr(self, self.subtype.lower().replace("gdtype","")) = value
 
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore

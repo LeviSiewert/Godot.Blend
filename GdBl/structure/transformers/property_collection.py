@@ -43,6 +43,10 @@ from ..core.properties import (
     BlDictionary, 
     BlArray
 ) 
+from ..core.primitives.pointer_collection import (
+    BlPointerDictionaryWrapper,
+    BlPointerArrayWrapper,
+)
 
 class BlToPy_Primitives(BlToPy):
     _keys = (BlPrimitives,)
@@ -56,8 +60,6 @@ class PyToBl_Primitives(PyToBl):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
         raise NotImplementedError(self.__class__.__name__)
-
-
 
 class BlToPy_Vectors(BlToPy):
     _keys = (BlVectors,)
@@ -78,33 +80,62 @@ class PyToBl_Vectors(PyToBl):
         obj,ptr = propcol.store_value(node, subtype=_type_map[node.__class__])
         return ptr
 
+
 class BlToPy_Dictionary(BlToPy):
-    _keys = (BlDictionary,)
-    def transform(self, node:BlDictionary, c, *args, **kwargs):
+    _keys = (BlDictionary, BlPointerDictionaryWrapper)
+    def transform(self, node:BlDictionary|BlPointerDictionaryWrapper, c, *args, **kwargs):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
-        raise NotImplementedError(self.__class__.__name__)
+        
+        if not isinstance(node, BlPointerDictionaryWrapper):
+            node = BlPointerDictionaryWrapper(propcol, node)
+        yield dict(node.items(wrap=True))
+        return GdValueDictionary(c.children.get())
+
 class PyToBl_Dictionary(PyToBl):
     _keys = (GdValueDictionary,)
     def transform(self, node:GdValueDictionary, c, *args, **kwargs): #->str (ptr)
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
-        raise NotImplementedError(self.__class__.__name__)
+
+        obj,ptr = propcol.store_value(bin_id = "GdValueDictionary")
+
+        for k,v in node.items.items():
+            item = obj.items.add()
+            yield (k,v)
+            _m = c.children_map.get()
+            item.key_ptr = _m[k]
+            item.val_ptr = _m[v]
+
+        return ptr
+
 
 class BlToPy_Array(BlToPy):
-    _keys = (BlArray,)
-    def transform(self, node:BlArray, c, *args, **kwargs):
+    _keys = (BlArray,BlPointerArrayWrapper)
+    def transform(self, node:BlArray|BlPointerArrayWrapper, c, *args, **kwargs):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
-        raise NotImplementedError(self.__class__.__name__)
+        if not isinstance(node, BlPointerArrayWrapper):
+            node = BlPointerArrayWrapper(propcol, node)
+        yield node.values()
+        return GdValueArray(c.children.get())
+
 class PyToBl_Array(PyToBl):
     _keys = (GdValueArray, GdValuePackedByteArray, GdValuePackedInt32Array, GdValuePackedInt64Array, GdValuePackedFloat32Array,GdValuePackedFloat64Array, GdValuePackedStringArray, GdValuePackedVector2Array, GdValuePackedVector3Array, GdValuePackedVector4Array, GdValuePackedColorArray )
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
-        raise NotImplementedError(self.__class__.__name__)
 
+        obj,ptr = propcol.store_value(bin_id = _type_map[node])
+        obj.subtype = _type_map[node]
 
+        yield node.__iter__()
+
+        for c_ptr in c.children.get():
+            e = obj.items.new()
+            e.ptr = c_ptr
+
+        return ptr
 
 
 _PROPCOL_bl_to_py_ruleset = BlToPyRuleset(__file__+" :: PROPCOL", (
