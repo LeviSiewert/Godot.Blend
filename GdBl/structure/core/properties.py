@@ -41,7 +41,8 @@ class BlArrayWrapper():
         self.data = data
 
     def __iter__(self,):
-        return self.data.items.values()
+        for v in self.data.items.values():
+            yield v 
 
     def __eq__(self,item):
         return self.data == item

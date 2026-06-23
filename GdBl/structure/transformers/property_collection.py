@@ -108,7 +108,12 @@ class PROPCOL_BlToPy_BlArray(BlToPy):
         assert(not(propcol is None))
 
         res = GdValueArray()
-        yield node.values()
+        
+        if not isinstance(node, BlArrayWrapper):
+            yield BlArrayWrapper(propcol,node)
+        else:
+            yield node.values()
+
         res.extend(c.children.get())
 
         return res
