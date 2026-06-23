@@ -257,7 +257,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
 
         return data
 
-    def get(self, key:str, default=_UNSET,/, return_ptr=False, _wrap_complex:bool=True):
+    def get(self, key:str, /, default=_UNSET, return_ptr=False, _wrap_complex:bool=True):
         if key.startswith(POINTER_PREFIX):
             return self.fetch_pointer_data(key, default, _wrap_complex=_wrap_complex)
         if res:=self.properties.get(key, None):
@@ -318,7 +318,7 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         p_str, obj = self.new_bin_value(gdtype,*args,**kwargs)
         ptr = self.properties.add()
         ptr.name = key
-        ptr.value = p_str
+        ptr.ptr = p_str
         
         return obj, ptr
 
@@ -353,9 +353,9 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
         for c in self._yield_bins():
             c.clear()
 
-    def items(self, _wrap_complex=False):
+    def items(self, /, _wrap_complex=False, _default:Any=_UNSET):
         for k,e in self.properties.items():
-            yield k, self.get(e.ptr, _wrap_complex)
+            yield k, self.get(e.ptr, default=_default, _wrap_complex=_wrap_complex)
 
 _all = (
     BlPointerItem,
