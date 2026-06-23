@@ -146,7 +146,7 @@ class PointerCollection(bpy.types.PropertyGroup):
             return res
         raise KeyError("Could not determine bin for key", bin_id)
     
-    def _bin_val_to_key_matcher(self, val:Any)->str:
+    def _bin_val_matcher(self, val:Any)->str:
         raise KeyError("Could not determine bin for value", val)
 
     def _iter_bins(self,)->Generator[bpy.types.CollectionProperty]:
@@ -186,8 +186,9 @@ class PointerCollection(bpy.types.PropertyGroup):
                 raise KeyError(ptr, res)
 
         if bin_id is None:
-            bin_id = self._bin_val_to_key_matcher(val)
-        col = self._bin_id_matcher(bin_id)
+            col = self._bin_val_matcher(val)
+        else:
+            col = self._bin_id_matcher(bin_id)
         
         item = col.add()
 
