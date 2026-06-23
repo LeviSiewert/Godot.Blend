@@ -28,33 +28,50 @@ from ..core.primitives.pointer_collection import (
 
 class BlToPy_Primitives(BlToPy):
     _keys = (BlPrimitives,)
-    def transform(self, node:BlVectors, c, *args, **kwargs):
+    def transform(self, node:BlPrimitives, c, *args, **kwargs):
         yield TERMINAL
-        return _type_map[node.subtype](node.value)  
+
+        if node.subtype == "None":
+            return None
+
+        return _type_map[node.subtype](node.value)
+    
 class PyToBl_Primitives(PyToBl):
     _keys = (*_primitive_types.values(), str, int, float, bool, None)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         yield TERMINAL
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
-        raise NotImplementedError(self.__class__.__name__)
+
+        if node is None:
+            obj,ptr = propcol.store_value(bin_id = "None")
+            obj.subtype = "None"
+            return ptr
+        
+        obj,ptr = propcol.store_value(bin_id = _type_map[node.__class__])
+        obj.subtype = _type_map[node.__class__]
+        obj.value = node
+
+        return ptr
+
 
 class BlToPy_Vectors(BlToPy):
     _keys = (BlVectors,)
     def transform(self, node:BlVectors, c, *args, **kwargs):
         yield TERMINAL
-        if node.value is None:
-            return None
         return _type_map[node.subtype](node.value)  
+
 class PyToBl_Vectors(PyToBl):
     _keys = (*_vector_types.values(),)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         yield TERMINAL
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
+
         if node is None:
             obj,ptr = propcol.store_value(None)
             return ptr 
+
         obj,ptr = propcol.store_value(node, subtype=_type_map[node.__class__])
         return ptr
 
@@ -67,7 +84,9 @@ class BlToPy_Dictionary(BlToPy):
         
         if not isinstance(node, BlPointerDictionaryWrapper):
             node = BlPointerDictionaryWrapper(propcol, node)
+        
         yield dict(node.items(wrap=True))
+        
         return GdValueDictionary(c.children.get())
 
 class PyToBl_Dictionary(PyToBl):
@@ -93,9 +112,12 @@ class BlToPy_Array(BlToPy):
     def transform(self, node:BlArray|BlPointerArrayWrapper, c, *args, **kwargs):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
+        
         if not isinstance(node, BlPointerArrayWrapper):
             node = BlPointerArrayWrapper(propcol, node)
+        
         yield node.values()
+
         return _type_map[node.subtype](c.children.get())
 
 class PyToBl_Array(PyToBl):
