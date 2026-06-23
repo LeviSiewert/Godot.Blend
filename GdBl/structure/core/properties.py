@@ -1,49 +1,14 @@
 import bpy
 from .primitives.pointer_collection import PointerCollection, BlPointerArray, BlPointerDictionary, _UNSET
 from typing import Type
+from ....GdPy.structure.values import _primitive_types, _vector_types, _array_types, _dict_types, _type_map
 
-ITEMS =  (   
-    ("UNSET", "Unset", "", 0),
-    ("GDVALUESTRING", "String", "", 1),
-    ("GDVALUEBOOL", "Bool", "", 2),
-    ("GDVALUENONE", "None", "", 3),
-    ("GDVALUEINT", "Int", "", 4),
-    ("GDVALUEFLOAT", "Float", "", 5),
-    ("GDVALUESTRINGNAME", "StringName", "", 6),
-    ("GDVALUEARRAY", "Array", "", 7),
-    ("GDVALUEVECTOR2", "Vector2", "", 8),
-    ("GDVALUEVECTOR3", "Vector3", "", 9),
-    ("GDVALUEVECTOR4", "Vector4", "", 10),
-    ("GDVALUEVECTOR2I", "Vector2i", "", 11),
-    ("GDVALUEVECTOR3I", "Vector3i", "", 12),
-    ("GDVALUEVECTOR4I", "Vector4i", "", 13),
-    ("GDVALUERECT2", "Rect2", "", 14),
-    ("GDVALUERECT2I", "Rect2i", "", 15),
-    ("GDVALUEPLANE", "Plane", "", 16),
-    ("GDVALUECOLOR", "Color", "", 17),
-    ("GDVALUEAABB", "AABB", "", 18),
-    ("GDVALUEQUATERNION", "Quaternion", "", 19),
-    ("GDVALUETRANSFORM2D", "Transform2D", "", 20),
-    ("GDVALUEBASIS", "Basis", "", 21),
-    ("GDVALUETRANSFORM3D", "Transform3D", "", 22),
-    ("GDVALUEPACKEDBYTEARRAY", "PackedByteArray", "", 23),
-    ("GDVALUEPACKEDINT32ARRAY", "PackedInt32Array", "", 24),
-    ("GDVALUEPACKEDINT64ARRAY", "PackedInt64Array", "", 25),
-    ("GDVALUEPACKEDFLOAT32ARRAY", "PackedFloat32Array", "", 26),
-    ("GDVALUEPACKEDFLOAT64ARRAY", "PackedFloat64Array", "", 27),
-    ("GDVALUEPACKEDSTRINGARRAY", "PackedStringArray", "", 28),
-    ("GDVALUEPACKEDVECTOR2ARRAY", "PackedVector2Array", "", 29),
-    ("GDVALUEPACKEDVECTOR3ARRAY", "PackedVector3Array", "", 30),
-    ("GDVALUEPACKEDVECTOR4ARRAY", "PackedVector4Array", "", 31),
-    ("GDVALUEPACKEDCOLORARRAY", "PackedColorArray", "", 32),
-    ("GDVALUEDICTIONARY", "Dictionary", "", 33),
-)
 
 class BlPrimitives(bpy.types.PropertyGroup):
-    _subtypes = ("String","Int","Float","Bool")
+    _subtypes = (*_primitive_types.keys(), "string", "int", "float", "bool", "None")
     name : bpy.props.StringProperty() #type:ignore
 
-    subtype : bpy.props.EnumProperty(items=ITEMS, default="UNSET") #type:ignore
+    subtype : bpy.props.StringProperty(default="str") #type:ignore
 
     @property
     def value(self,):
@@ -58,9 +23,9 @@ class BlPrimitives(bpy.types.PropertyGroup):
     val_bool : bpy.props.BoolProperty() #type:ignore
 
 class BlVectors():
-    _subtypes = ("GdValueVector2","GdValueVector3","GdValueVector4","GdValueRect2","GdValuePlane","GdValueColor","GdValueAabb","GdValueQuaternion","GdValueBasis","GdValueTransform2d","GdValueTransform3d","GdValueVector2i","GdValueVector3i","GdValueVector4i","GdValueRect2i")
+    _subtypes = (*_vector_types.keys(),)
     name : bpy.props.StringProperty() #type:ignore
-    subtype : bpy.props.EnumProperty(items=ITEMS, default="UNSET") #type:ignore
+    subtype : bpy.props.StringProperty(default="UNSET") #type:ignore
 
     @property
     def value(self,):
@@ -88,12 +53,12 @@ class BlVectors():
     rect2i : bpy.prop.IntVectorProperty(size=4) #type:ignore
 
 class BlDictionary(BlPointerDictionary):
-    _subtypes = ("Dictionary")
-    subtype : bpy.props.EnumProperty(items=ITEMS, default="Dictionary") #type:ignore
+    _subtypes = (*_dict_types.keys(),)
+    subtype : bpy.props.StringProperty(default="Dictionary") #type:ignore
     
 class BlArray(BlPointerArray):
-    _subtypes = ("GdValueArray", "GdValuePackedByteArray","GdValuePackedInt32Array","GdValuePackedInt64Array","GdValuePackedFloat32Array","GdValuePackedFloat64Array","GdValuePackedStringArray","GdValuePackedVector2Array","GdValuePackedVector3Array","GdValuePackedVector4Array","GdValuePackedColorArray" )
-    subtype : bpy.props.EnumProperty(items=ITEMS, default="Array") #type:ignore
+    _subtypes = (*_array_types.keys(),)
+    subtype : bpy.props.StringProperty(default="Array") #type:ignore
 
 def _map_keys(*items)->dict[str,Type]:
     res = {}
