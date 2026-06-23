@@ -32,6 +32,9 @@ class GdValueStringName(GdValue):
 
     def __hash__(self):
         return super().__hash__()
+    
+    def __str__(self):
+        return self.value
 
 class GdValueArray(GdValue):
     value : list

@@ -126,7 +126,7 @@ class PROPCOL_BlToPy_BlPrimitive(BlToPy):
     def transform(self, node:BlPrimitive, c, *args, **kwargs):
         if node.gdtype == "None":
             return None
-        return self.type_map[node.gdtype](node.get_value())
+        return self._type_map[node.gdtype](node.get_value())
         
 class PROPCOL_PyToBl_BlPrimitive(PyToBl):
     _keys = (GdValueStringName,int,float,bool,None,str)
