@@ -7,32 +7,10 @@ from ....GdPy.structure.core.property_collection import PropertyCollection as Gd
 from ....GdPy.structure.values import (
     GdValueArray,
     GdValueDictionary,
-    GdValueVector2i,
-    GdValueVector3i,
-    GdValueVector4i,
-    GdValueRect2i,
-    GdValuePackedInt32Array,
-    GdValuePackedInt64Array,
-    GdValuePackedFloat32Array,
-    GdValuePackedFloat64Array,
-    GdValueVector2,
-    GdValueVector3,
-    GdValueVector4,
-    GdValueRect2,
-    GdValuePlane,
-    GdValueColor,
-    GdValueAABB,
-    GdValueQuaternion,
-    GdValueTransform2D,
-    GdValueBasis,
-    GdValueTransform3D,
-    GdValueStringName,
-    GdValuePackedByteArray,  
-    GdValuePackedStringArray, 
-    GdValuePackedVector2Array, 
-    GdValuePackedVector3Array, 
-    GdValuePackedVector4Array, 
-    GdValuePackedColorArray,
+    _primitive_types, 
+    _vector_types, 
+    _array_types, 
+    _dict_types, 
     _type_map
 ) 
 
@@ -54,7 +32,7 @@ class BlToPy_Primitives(BlToPy):
         yield TERMINAL
         return _type_map[node.subtype](node.value)  
 class PyToBl_Primitives(PyToBl):
-    _keys = (str, int, bool, None)
+    _keys = (*_primitive_types.values(), str, int, float, bool, None)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         yield TERMINAL
         propcol : BlPropertyCollection = c.property_collection.get()
@@ -69,7 +47,7 @@ class BlToPy_Vectors(BlToPy):
             return None
         return _type_map[node.subtype](node.value)  
 class PyToBl_Vectors(PyToBl):
-    _keys = (GdValueVector2,GdValueVector3,GdValueVector4,GdValueRect2,GdValuePlane,GdValueColor,GdValueAABB,GdValueQuaternion,GdValueBasis,GdValueTransform2D,GdValueTransform3D,GdValueVector2i,GdValueVector3i,GdValueVector4i,GdValueRect2i)
+    _keys = (*_vector_types.values(),)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         yield TERMINAL
         propcol : BlPropertyCollection = c.property_collection.get()
@@ -93,7 +71,7 @@ class BlToPy_Dictionary(BlToPy):
         return GdValueDictionary(c.children.get())
 
 class PyToBl_Dictionary(PyToBl):
-    _keys = (GdValueDictionary,)
+    _keys = (*_dict_types.values(),)
     def transform(self, node:GdValueDictionary, c, *args, **kwargs): #->str (ptr)
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
@@ -118,16 +96,16 @@ class BlToPy_Array(BlToPy):
         if not isinstance(node, BlPointerArrayWrapper):
             node = BlPointerArrayWrapper(propcol, node)
         yield node.values()
-        return GdValueArray(c.children.get())
+        return _type_map[node.subtype](c.children.get())
 
 class PyToBl_Array(PyToBl):
-    _keys = (GdValueArray, GdValuePackedByteArray, GdValuePackedInt32Array, GdValuePackedInt64Array, GdValuePackedFloat32Array,GdValuePackedFloat64Array, GdValuePackedStringArray, GdValuePackedVector2Array, GdValuePackedVector3Array, GdValuePackedVector4Array, GdValuePackedColorArray )
+    _keys = (*_array_types.values(),)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
 
-        obj,ptr = propcol.store_value(bin_id = _type_map[node])
-        obj.subtype = _type_map[node]
+        obj,ptr = propcol.store_value(bin_id = _type_map[node.__class__])
+        obj.subtype = _type_map[node.__class__]
 
         yield node.__iter__()
 
