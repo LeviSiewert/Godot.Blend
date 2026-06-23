@@ -5,7 +5,7 @@ from ....GdPy.structure.values import _primitive_types, _vector_types, _array_ty
 
 
 class BlPrimitives(bpy.types.PropertyGroup):
-    _subtypes = (*_primitive_types.keys(), "string", "int", "float", "bool", "None")
+    _subtypes = (*_primitive_types.keys(),)
     name : bpy.props.StringProperty() #type:ignore
 
     subtype : bpy.props.StringProperty(default="str") #type:ignore
@@ -17,10 +17,11 @@ class BlPrimitives(bpy.types.PropertyGroup):
     def value(self, value):
         setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
 
-    val_string : bpy.props.StringProperty() #type:ignore
+    val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
     val_float : bpy.props.FloatProperty() #type:ignore
     val_bool : bpy.props.BoolProperty() #type:ignore
+
 
 class BlVectors(bpy.types.PropertyGroup):
     _subtypes = (*_vector_types.keys(),)
@@ -64,11 +65,11 @@ class BlArray(BlPointerArray):
 
     # items : bpy.props.CollectionProperty(type = BlPointerArrayItem) #type:ignore
 
-def _map_keys(*items)->dict[str,Type]:
+def _map_keys(di:dict)->dict[str,Type]:
     res = {}
-    for c in items:
-        for t in c._subtypes:
-            res[t]= c
+    for s,v in di.items():
+        for t in s._subtypes:
+            res[t]= v
     return res
 
 class BlPropertyCollection(PointerCollection):
@@ -79,7 +80,7 @@ class BlPropertyCollection(PointerCollection):
     #TODO: A-B testing of number of unique vs collection types 
 
     _bins = ("bin_array","bin_dict","bin_vector","bin_primitive")
-    _bin_map = _map_keys(BlArray,BlDictionary,BlPrimitives,BlVectors)
+    _bin_map = _map_keys({BlArray:"bin_array",BlDictionary:"bin_dict",BlPrimitives:"bin_primitive",BlVectors:"bin_vectors"})
 
     bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
     bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
@@ -93,7 +94,7 @@ class BlPropertyCollection(PointerCollection):
             return self.bin_array
         if isinstance(val,dict):
             return self.bin_dict
-        return self._bin_map[val.__class__.__name__]
+        return getattr(self, self._bin_map[val.__class__.__name__])
         
 
 _all = (

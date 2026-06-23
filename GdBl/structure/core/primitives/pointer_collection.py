@@ -64,7 +64,12 @@ class BlPointerArrayWrapper(_Wrapper):
             else:
                 yield self.root.get_value(e.ptr, default=EMPTYPOINTER, wrap=wrap)
 
-    def set_value(val, /, value_bin_id:str=None):
+    def set_value(self, val, /, value_bin_id:str=None):
+        self.clear()
+        for v in val:
+            entry = self.data.items.new()
+            _, v_ptr = self.root.store_value(v, bin_id=value_bin_id)
+            entry.ptr = v_ptr
         raise NotImplementedError()
     
     def new(self, val:Any=_UNSET, /, ptr:str=None, bin_id:str=None, wrap:bool=True, exist_ok:bool=False, *args, **kwargs)->tuple[Any,BlPointerArrayItemWrapper]:
@@ -86,6 +91,11 @@ class BlPointerArrayWrapper(_Wrapper):
                 return self.root.wrap(entry)
             return entry
         return self.root.get_value(entry.ptr, default=EMPTYPOINTER, wrap=wrap)
+
+    def clear(self):
+        for e in self.data.items.values():
+            self.root.delete_value(e.ptr)
+        self.data.items.clear()
 
     def __getitem__(self, key):
         return self.get(key)
@@ -149,8 +159,19 @@ class BlPointerDictionaryWrapper(_Wrapper):
                 yield e,k,v
             else:
                 yield k,v
-    def set_value(val, /, bin_id:str=None):
-        raise NotImplementedError()
+    def set_value(self, val, /, key_bin_id:str=None, value_bin_id:str=None):
+        self.clear()
+        for k,v in val.items():
+            entry = self.data.items.new()
+            _, k_ptr = self.root.store_value(k, bin_id=value_bin_id)
+            _, v_ptr = self.root.store_value(v, bin_id=value_bin_id)
+            entry.key_ptr = k_ptr
+            entry.val_ptr = v_ptr
+    def clear(self):
+        for e in self.data.items.values():
+            self.root.delete_value(e.key_ptr)
+            self.root.delete_value(e.val_ptr)
+        self.data.items.clear()
 
 class BlPropertyItem(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty() #type:ignore
@@ -281,7 +302,7 @@ class PointerCollection(bpy.types.PropertyGroup):
         
         val, ptr = self.store_value(val, bin_id=bin_id, wrap=False, *args, **kwargs)
         
-        prop = self.properties.new()
+        prop = self.properties.add()
         prop.name = key
         prop.ptr = ptr
 
@@ -304,7 +325,7 @@ class PointerCollection(bpy.types.PropertyGroup):
         elif not make_ok:
             raise KeyError(key)
         else:
-            prop = self.properties.new()
+            prop = self.properties.add()
             prop.name = key
         ptr,obj = self.store_value(val, bin_id=bin_id, *args, **kwargs)
         prop.ptr = ptr

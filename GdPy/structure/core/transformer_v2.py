@@ -119,7 +119,7 @@ class TransformerRuleset():
                 m = m()
             for k in m.get_keys():
                 if _key_safety and (k in self.data.keys()):
-                    raise KeyError("k already registered in ruleset", k, m)
+                    raise KeyError("k already registered in ruleset", self, k, m, self.data[k])
                 self.data[k] = m
 
     def matcher(self, key:str|Any|Type)->None|tuple[TransformerModule,str|Any|Type]:

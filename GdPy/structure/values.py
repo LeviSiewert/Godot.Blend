@@ -390,9 +390,9 @@ _all : tuple[Type] = (
     GdValueDictionary,
 )
 
-_type_map = {t.__class__.__name__:t for t in _all} | {t:t.__class__.__name__ for t in _all}
+_type_map = {t.__name__:t for t in _all} | {t:t.__name__ for t in _all}
 
-_primitive_types = {t.__class__.__name__:t for t in (GdValueStringName,) }
-_vector_types = {t.__class__.__name__:t for t in (GdValueVector2,GdValueVector3,GdValueVector4,GdValueVector2i,GdValueVector3i,GdValueVector4i,GdValueRect2,GdValueRect2i,GdValuePlane,GdValueColor,GdValueAABB,GdValueQuaternion,GdValueBasis,GdValueTransform2D,GdValueTransform3D) }
-_array_types = {t.__class__.__name__:t for t in (GdValuePackedByteArray,GdValuePackedInt32Array,GdValuePackedInt64Array,GdValuePackedFloat32Array,GdValuePackedFloat64Array,GdValuePackedStringArray,GdValuePackedVector2Array,GdValuePackedVector3Array,GdValuePackedVector4Array,GdValuePackedColorArray) }
-_dict_types = {t.__class__.__name__:t for t in (GdValueDictionary,) }
+_primitive_types = {t.__name__:t for t in (GdValueStringName, str, int, float, bool) } | { "None" : None }
+_vector_types = {t.__name__:t for t in (GdValueVector2,GdValueVector3,GdValueVector4,GdValueVector2i,GdValueVector3i,GdValueVector4i,GdValueRect2,GdValueRect2i,GdValuePlane,GdValueColor,GdValueAABB,GdValueQuaternion,GdValueBasis,GdValueTransform2D,GdValueTransform3D) }
+_array_types = {t.__name__:t for t in (GdValuePackedByteArray,GdValuePackedInt32Array,GdValuePackedInt64Array,GdValuePackedFloat32Array,GdValuePackedFloat64Array,GdValuePackedStringArray,GdValuePackedVector2Array,GdValuePackedVector3Array,GdValuePackedVector4Array,GdValuePackedColorArray) }
+_dict_types = {t.__name__:t for t in (GdValueDictionary,) }

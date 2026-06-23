@@ -37,7 +37,7 @@ class BlToPy_Primitives(BlToPy):
         return _type_map[node.subtype](node.value)
     
 class PyToBl_Primitives(PyToBl):
-    _keys = (*_primitive_types.values(), str, int, float, bool, None)
+    _keys = (*_primitive_types.values(),)
     def transform(self, node, c, *args, **kwargs): #->str (ptr)
         yield TERMINAL
         propcol : BlPropertyCollection = c.property_collection.get()
