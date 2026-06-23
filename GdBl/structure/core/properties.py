@@ -53,7 +53,7 @@ class BlArrayWrapper():
             if self.data.val_gdtype != gdtype:
                 raise TypeError()
         ptr,obj = self.root.new_bin_value(gdtype, *args, **kwargs)
-        entry = self.data.items.new()
+        entry = self.data.items.add()
         entry.ptr = ptr
         return entry,obj
 
@@ -314,12 +314,15 @@ class BlPropertyCollection(bpy.types.PropertyGroup):
                     c.remove(c_keys.index(ptr))
                     affected.remove(ptr)
     
-    def new(self, gdtype:str, key:str, *args, **kwargs)->tuple[Any,BlPropertyItem]:
+    def new(self, gdtype:str, key:str, *args, _wrap_complex:bool=True, **kwargs, )->tuple[Any,BlPropertyItem]:
         p_str, obj = self.new_bin_value(gdtype,*args,**kwargs)
         ptr = self.properties.add()
         ptr.name = key
         ptr.ptr = p_str
-        
+
+        if _wrap_complex:
+            obj = self._wrap_complex(obj)
+
         return obj, ptr
 
     def new_bin_value(self, gdtype:str, *args, **kwargs)->tuple[str,Any]:

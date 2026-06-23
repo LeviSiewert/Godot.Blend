@@ -2,7 +2,7 @@ import bpy
 from typing import Generator
 
 from .utils import BlenderPytestAttr
-from ..structure.core.properties import BlPropertyCollection, BlPropertyItem, BlPropertyItemWrapper
+from ..structure.core.properties import BlPropertyCollection, BlPropertyItem, BlPropertyItemWrapper, BlArrayWrapper, BlArray
 from ...GdPy.structure.core.property_collection import PropertyCollection as GdPropertyCollection
 from ...GdPy.structure import values as V
 
@@ -103,8 +103,34 @@ class TestPrimitives(BlenderPytestAttr):
         for (gtype, name, bl_value, eq_gd) in tests:
             self.base_bl_to_py(gtype, name, bl_value, eq_gd)
     
-class TestArray():
-    pass
+class TestArray(BlenderPytestAttr):
+    attr_value = bpy.props.PointerProperty(type = BlPropertyCollection)
+
+    test_vals = [
+        ("GdValueStringName", "Value", V.GdValueStringName("Value")),
+        ("str", "Value", "Value"),
+        ("int", 1, 1),
+        ("float", 0.1, 0.1),
+        ("None", None, None),
+        ("bool", False, False),
+        ("bool", True, True),
+    ] 
+
+    def test_bl_to_py(self,):
+        bl_pc = self.get_attr()
+        bl_array, ptr =  bl_pc.new("GdValueArray", "A")
+        assert(isinstance(bl_array, BlArrayWrapper))
+        _attached = []
+
+        for (gd_type, bl_value, eq) in self.test_vals:
+            ptr, obj = bl_array.new(gd_type, bl_value)
+            _attached.append((ptr, obj, eq))
+        
+        with _bl_to_py(bl_pc) as gd_pc:
+            for (ptr,obj,eq), gdval in zip(_attached, gd_pc):
+                assert(eq == gdval)
+
+
 
 class TestDictionary():
     pass
