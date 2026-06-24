@@ -240,7 +240,7 @@ class TransformerModule():
                 _m = c.children_map.get()
                 new = {}
                 for k,v in children.items():
-                    new[k] == _m[v] 
+                    new[k] = _m[v] 
                 c.children.set(new)
 
             elif (children is TERMINAL):

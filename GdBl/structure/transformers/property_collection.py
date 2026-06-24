@@ -86,9 +86,13 @@ class BlToPy_Dictionary(BlToPy):
         if not isinstance(node, BlPointerDictionaryWrapper):
             node = BlPointerDictionaryWrapper(propcol, node)
         
-        yield dict(node.items(wrap=True))
+        res = {}
+        for k,v in node.items(wrap=True):
+            yield (k,v)
+            (_k, _v) = c.children.get()
+            res[_k] = _v
         
-        return GdValueDictionary(c.children.get())
+        return GdValueDictionary(res.items())
 
 class PyToBl_Dictionary(PyToBl):
     _keys = (*_dict_types.values(),)
@@ -96,14 +100,14 @@ class PyToBl_Dictionary(PyToBl):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
 
-        obj,ptr = propcol.store_value(bin_id = "GdValueDictionary")
+        obj,ptr = propcol.store_value(bin_id = "GdValueDictionary", wrap=False)
 
         for k,v in node.items():
             item = obj.items.add()
-            yield (k,v)
-            _m = c.children_map.get()
-            item.key_ptr = _m[k]
-            item.val_ptr = _m[v]
+            yield {"key":k, "val":v}
+            _m = c.children.get()
+            item.key_ptr = _m["key"]
+            item.val_ptr = _m["val"]
 
         return ptr
 
@@ -133,7 +137,7 @@ class PyToBl_Array(PyToBl):
         yield node.__iter__()
 
         for c_ptr in c.children.get():
-            e = obj.items.new()
+            e = obj.items.add()
             e.ptr = c_ptr
 
         return ptr

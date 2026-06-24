@@ -113,6 +113,9 @@ class GdValueArray(GdValue):
     
     def _get_struct_children(self,)->Iterable:
         return self.value
+    
+    def __hash__(self):
+        return super().__hash__()
 
 class _GdValueArrayPackedType(GdValue):
     value : list
@@ -143,6 +146,8 @@ class _GdValueArrayPackedType(GdValue):
     def __len__(self):
         return len(self.value)
 
+    def __hash__(self):
+        return super().__hash__()
 
 class _GdValueArrayFixedLength(GdValue):
     value : array|tuple = tuple()
@@ -373,6 +378,9 @@ class GdValueDictionary(GdValue):
     def items(self):
         yield from self.value.items()
 
+    def __hash__(self):
+        return super().__hash__()
+    
 _all : tuple[Type] = (
     GdValueStringName,
     GdValueArray,

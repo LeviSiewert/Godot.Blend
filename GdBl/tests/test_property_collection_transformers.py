@@ -80,5 +80,20 @@ class TestPrimitives(BlenderPytestAttr):
             assert(gdvalue == res)
 
     def test_all(self,):
-        for v in GdPy._all:
-            self.value_py_to_bl_to_py(v())
+        for t in GdPy._all:
+            self.value_py_to_bl_to_py(t())
+
+    def test_dict(self,):
+        for t in GdPy._all:
+            self.value_py_to_bl_to_py(GdPy.GdValueDictionary( [(t(),t())] ))
+        self.value_py_to_bl_to_py(GdPy.GdValueDictionary((
+            (t(),t()) for t in GdPy._all
+        )))
+
+
+
+    def test_arr(self,):
+        self.value_py_to_bl_to_py(GdPy.GdValueArray((
+            t() for t in GdPy._all
+        )))
+        
