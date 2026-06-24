@@ -47,9 +47,9 @@ class TestBehavior(BlenderPytestAttr):
     @contextmanager
     def _adding_removal(self, expected_bin_id:str, value:str, /, prop_name:str="A", expect_wrapped=False, subtype:str=None, yield_wrapped=False):
         bl_pc : BlPropertyCollection = self.get_attr()
-        obj,ptr = bl_pc.new_property(prop_name, value, wrap=False)
-
         stats = {b:len(b) for b in bl_pc._iter_bins()} | {bl_pc.properties:len(bl_pc.properties)}
+
+        obj,ptr = bl_pc.new_property(prop_name, value, wrap=False)
 
         if subtype:
             assert (obj.subtype == subtype)
