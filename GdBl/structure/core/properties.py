@@ -12,9 +12,10 @@ class BlPrimitives(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""), _UNSET)
+        return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""))
     @value.setter
     def value(self, value):
+        self.subtype = _type_map[value.__class__]
         setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
 
     val_str : bpy.props.StringProperty() #type:ignore
@@ -30,10 +31,11 @@ class BlVectors(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, self.subtype.lower().replace("gdtype",""), _UNSET)
+        return getattr(self, self.subtype.lower().replace("gdtype",""))
     @value.setter
     def value(self, value):
-        setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
+        self.subtype = _type_map[value.__class__]
+        setattr(self, self.subtype.lower().replace("gdtype",""), value)
 
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore
@@ -52,6 +54,9 @@ class BlVectors(bpy.types.PropertyGroup):
     vector3i : bpy.props.IntVectorProperty(size=3) #type:ignore
     vector4i : bpy.props.IntVectorProperty(size=4) #type:ignore
     rect2i : bpy.props.IntVectorProperty(size=4) #type:ignore
+
+    def set_value(self, val):
+        self.value = val
 
 class BlDictionary(BlPointerDictionary):
     _subtypes = (*_dict_types.keys(),)
@@ -86,6 +91,11 @@ class BlPropertyCollection(PointerCollection):
     bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
     bin_vector : bpy.props.CollectionProperty(type = BlPrimitives) #type:ignore
     bin_primitive : bpy.props.CollectionProperty(type = BlVectors) #type:ignore
+
+    def _bin_id_matcher(self, bin_id:str)->bpy.types.CollectionProperty:
+        if not ((res := getattr(self, bin_id, None)) is None):
+            return res
+        raise KeyError("Could not determine bin for key", bin_id)
 
     def _bin_val_matcher(self, val):
         if val is None:

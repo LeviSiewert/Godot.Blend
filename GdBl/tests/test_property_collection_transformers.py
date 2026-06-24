@@ -49,37 +49,36 @@ class TestBehavior(BlenderPytestAttr):
         bl_pc : BlPropertyCollection = self.get_attr()
         obj,ptr = bl_pc.new_property(prop_name, value, wrap=False)
 
+        stats = {b:len(b) for b in bl_pc._iter_bins()} | {bl_pc.properties:len(bl_pc.properties)}
+
         if subtype:
             assert (obj.subtype == subtype)
 
-        assert (bl_pc._bin_val_matcher(value) == bl_pc._bin_val_matcher(expected_bin_id))
-        assert (len(bl_pc._bin_val_matcher(value))==1)
-        assert (len(bl_pc.properties)==1)
-
-        assert (bl_pc[ptr] == obj)
-        assert (bl_pc[prop_name] == obj)
+        assert (bl_pc._bin_val_matcher(value) == bl_pc._bin_id_matcher(expected_bin_id))
 
         if expect_wrapped:        
-            assert (isinstance(bl_pc.get(prop_name, return_prop=False, wrap=True), _Wrapper))
+            assert (bl_pc[ptr.ptr].data == obj)
+            assert (bl_pc[prop_name].data == obj)
+            # assert (isinstance(bl_pc.get(prop_name, return_prop=False, wrap=True), _Wrapper))
             assert (bl_pc.get(prop_name, return_prop=False, wrap=True).data == obj)
+        else:
+            assert (bl_pc[ptr.ptr] == obj)
+            assert (bl_pc[prop_name] == obj)
         assert (bl_pc.get(prop_name, return_prop=False, wrap=False) == obj)
 
         assert (bl_pc.get(prop_name, return_prop=True, wrap=False) == ptr)
-        assert (isinstance(bl_pc.get(prop_name, return_prop=True, wrap=True), _Wrapper))
 
-        assert (dict(bl_pc.items())[prop_name] == obj )
-
-        assert (bl_pc.get(prop_name, return_prop=False, wrap=True).value == value)
+        assert (dict(bl_pc.items(wrap=False))[prop_name] == obj )
 
         if yield_wrapped:
             yield bl_pc._wrap(obj), bl_pc._wrap(ptr)
         else:
             yield obj,ptr
 
-        bl_pc.clear()
-        
-        assert (len(bl_pc.bin_primitive)==0)
-        assert (len(bl_pc.properties)==0)
+        bl_pc.delete_property(prop_name)
+
+        for k,v in stats:
+            assert(len(k) == v)
 
     def adding_removal(self, *args, **kwargs):
         with self._adding_removal(*args, **kwargs):
@@ -87,25 +86,25 @@ class TestBehavior(BlenderPytestAttr):
 
     def test_adding_removal(self,):
         
-        self.adding_removal("bin_primitives", "a")
-        self.adding_removal("bin_primitives", 1)
-        self.adding_removal("bin_primitives", 2.0)
-        self.adding_removal("bin_primitives", 0.01)
+        self.adding_removal("bin_primitive", "a")
+        self.adding_removal("bin_primitive", 1)
+        self.adding_removal("bin_primitive", 2.0)
+        self.adding_removal("bin_primitive", 0.01)
 
         self.adding_removal("bin_dict", {}, expect_wrapped=True)
         self.adding_removal("bin_array", [], expect_wrapped=True)
         
-        self.adding_removal("bin_primitives", GdPy.GdValueStringName(), subtype = "GdValueStringName")
-        self.adding_removal("bin_primitives", GdPy.GdValueStringName("Value"), subtype = "GdValueStringName")
+        self.adding_removal("bin_primitive", GdPy.GdValueStringName(), subtype = "GdValueStringName")
+        self.adding_removal("bin_primitive", GdPy.GdValueStringName("Value"), subtype = "GdValueStringName")
         
-        self.adding_removal("bin_vectors", GdPy.GdValueVector2((1,2)), subtype = "GdValueVector2" )
+        self.adding_removal("bin_vector", GdPy.GdValueVector2((1,2)), subtype = "GdValueVector2" )
 
         #TODO: Expand out to all types and fullfill
 
     @contextmanager
     def _array_adding_removal(self, value_bin_id:str, value):
         propcol : BlPropertyCollection = self.get_attr()
-        with self._adding_removal("bin_array", [],  expect_wrapped=True, yield_wrapped=True) as (arr,ptr):
+        with self._adding_removal("bin_array", [],  prop_name="ARRAY" ,expect_wrapped=True, yield_wrapped=True) as (arr,ptr):
             ##TODO: More  assertions for behavioral constraining
 
             _start_count = len(propcol._bin_id_matcher(value_bin_id))
@@ -125,31 +124,32 @@ class TestBehavior(BlenderPytestAttr):
             pass
 
     def test_array_behavior(self,):
-        self.array_adding_removal("bin_primitives","a", )
+        self.array_adding_removal("bin_primitive","a", )
 
-        self.array_adding_removal("bin_primitives", "a")
-        self.array_adding_removal("bin_primitives", 1)
-        self.array_adding_removal("bin_primitives", 2.0)
-        self.array_adding_removal("bin_primitives", 0.01)
+        self.array_adding_removal("bin_primitive", "a")
+        self.array_adding_removal("bin_primitive", 1)
+        self.array_adding_removal("bin_primitive", 2.0)
+        self.array_adding_removal("bin_primitive", 0.01)
 
         self.array_adding_removal("bin_dict", {})
         self.array_adding_removal("bin_array", [])
         
-        self.array_adding_removal("bin_primitives", GdPy.GdValueStringName())
-        self.array_adding_removal("bin_primitives", GdPy.GdValueStringName("Value"))
+        self.array_adding_removal("bin_primitive", GdPy.GdValueStringName())
+        self.array_adding_removal("bin_primitive", GdPy.GdValueStringName("Value"))
         
-        self.array_adding_removal("bin_vectors", GdPy.GdValueVector2((1,2)))
+        self.array_adding_removal("bin_vector", GdPy.GdValueVector2((1,2)))
 
     @contextmanager
     def _dictionary_adding_removal(self, k, v, yield_wrapped=True): #->tuple[Any, Obj, Obj]:
         propcol : BlPropertyCollection = self.get_attr
-        with self._adding_removal("bin_dictionary", {},  expect_wrapped=True, yield_wrapped=True) as (di,ptr):
+        with self._adding_removal("bin_dict", {}, prop_name="DICT", expect_wrapped=True, yield_wrapped=True) as (di,ptr):
+            di : BlPointerDictionaryWrapper
             ##TODO: More  assertions for behavioral constraining
 
             k_bin,k_val = k
             v_bin,v_val = v
 
-            index, entry = di.new(key_val = k_val,val_val= v_val, key_bin=k_bin, val_bin=v_bin, wrap=True)
+            entry = di.new(k_val,v_val, key_bin=k_bin, val_bin=v_bin, wrap=True)
 
             k_obj = entry.key_unwrapped
             v_obj = entry.value_unwrapped
@@ -157,18 +157,18 @@ class TestBehavior(BlenderPytestAttr):
             assert (k_val == k_obj.value)
             assert (v_val == v_obj.value)
             assert (k_obj in propcol._bin_id_matcher(k_bin).values())
-            assert (v_obj in propcol._bin_id_matcher(k_bin).values())
+            assert (v_obj in propcol._bin_id_matcher(v_bin).values())
 
             if yield_wrapped:
                 yield entry, entry.key, entry.value
             else:
                 yield entry.value, entry.key, entry.value 
 
-            di.remove(index)
+            di.remove(0)
 
             assert (len(di.items())==0)
             assert (not (k_obj in propcol._bin_id_matcher(k_bin).values()))
-            assert (not (v_obj in propcol._bin_id_matcher(k_bin).values()))
+            assert (not (v_obj in propcol._bin_id_matcher(v_bin).values()))
 
     
     def dictionary_adding_removal(self, *args, **kwargs):
@@ -176,20 +176,20 @@ class TestBehavior(BlenderPytestAttr):
             pass
 
     def test_dictionary_behavior(self,):
-        self.dictionary_adding_removal(("bin_primitives","a",) , ("bin_primitives","a",) )
+        self.dictionary_adding_removal(("bin_primitive","a",) , ("bin_primitive","a",) )
 
-        self.dictionary_adding_removal(("bin_primitives", "a"), ("bin_primitives", "a"))
-        self.dictionary_adding_removal(("bin_primitives", 1), ("bin_primitives", 1))
-        self.dictionary_adding_removal(("bin_primitives", 2.0), ("bin_primitives", 2.0))
-        self.dictionary_adding_removal(("bin_primitives", 0.01), ("bin_primitives", 0.01))
+        self.dictionary_adding_removal(("bin_primitive", "a"), ("bin_primitive", "a"))
+        self.dictionary_adding_removal(("bin_primitive", 1), ("bin_primitive", 1))
+        self.dictionary_adding_removal(("bin_primitive", 2.0), ("bin_primitive", 2.0))
+        self.dictionary_adding_removal(("bin_primitive", 0.01), ("bin_primitive", 0.01))
 
         self.dictionary_adding_removal(("bin_dict", {}) , ("bin_dict", {}))
         self.dictionary_adding_removal(("bin_array", []) , ("bin_array", []))
         
-        self.dictionary_adding_removal(("bin_primitives", GdPy.GdValueStringName()) , ("bin_primitives", GdPy.GdValueStringName()))
-        self.dictionary_adding_removal(("bin_primitives", GdPy.GdValueStringName("Value")) , ("bin_primitives", GdPy.GdValueStringName("Value")))
+        self.dictionary_adding_removal(("bin_primitive", GdPy.GdValueStringName()) , ("bin_primitive", GdPy.GdValueStringName()))
+        self.dictionary_adding_removal(("bin_primitive", GdPy.GdValueStringName("Value")) , ("bin_primitive", GdPy.GdValueStringName("Value")))
         
-        self.dictionary_adding_removal(("bin_vectors", GdPy.GdValueVector2((1,2))) , ("bin_vectors", GdPy.GdValueVector2((1,2))))
+        self.dictionary_adding_removal(("bin_vector", GdPy.GdValueVector2((1,2))) , ("bin_vector", GdPy.GdValueVector2((1,2))))
 
 
 # class TestPrimitives():

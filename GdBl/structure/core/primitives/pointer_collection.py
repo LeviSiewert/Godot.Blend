@@ -70,7 +70,6 @@ class BlPointerArrayWrapper(_Wrapper):
             entry = self.data.items.new()
             _, v_ptr = self.root.store_value(v, bin_id=value_bin_id)
             entry.ptr = v_ptr
-        raise NotImplementedError()
     
     def new(self, val:Any=_UNSET, /, ptr:str=None, bin_id:str=None, wrap:bool=True, exist_ok:bool=False, *args, **kwargs)->tuple[Any,BlPointerArrayItemWrapper]:
         ptr, obj = self.root.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=exist_ok, *args, **kwargs)
@@ -114,11 +113,13 @@ class BlPointerDictionaryItem(bpy.types.PropertyGroup):
     
 class BlPointerDictionaryItemWrapper(_Wrapper):
     @property
+    def key_unwrapped(self,):
+        return self.root.get_value(self.data.key_ptr, default=EMPTYPOINTER, wrap=False)
+    @property
     def key(self,)->Any:
         return self.root.get_value(self.data.key_ptr, default=EMPTYPOINTER)
     @key.setter
     def key(self, value):
-        self.root.set_value(self.data.key_ptr, value)
         if self.root._is_pointer(value):
             self.data.key_ptr = value
             return
@@ -127,6 +128,9 @@ class BlPointerDictionaryItemWrapper(_Wrapper):
             return
         self.root.set_value(self.data.key_ptr, value)
 
+    @property
+    def value_unwrapped(self,):
+        return self.root.get_value(self.data.val_ptr, default=EMPTYPOINTER, wrap=False)
     @property
     def value(self,)->Any:
         return self.root.get_value(self.data.val_ptr, default=EMPTYPOINTER)
@@ -139,6 +143,8 @@ class BlPointerDictionaryItemWrapper(_Wrapper):
             self.root.set_value(self.root._generate_pointer(), value)
             return
         self.root.set_value(self.data.val_ptr, value)
+
+    
 
 class BlPointerDictionary(bpy.types.PropertyGroup):
     _duplicate_on_copy = True
@@ -159,14 +165,33 @@ class BlPointerDictionaryWrapper(_Wrapper):
                 yield e,k,v
             else:
                 yield k,v
-    def set_value(self, val, /, key_bin_id:str=None, value_bin_id:str=None):
+    
+    def set_value(self, val, /, key_bin:str=None, val_bin:str=None):
         self.clear()
         for k,v in val.items():
-            entry = self.data.items.new()
-            _, k_ptr = self.root.store_value(k, bin_id=value_bin_id)
-            _, v_ptr = self.root.store_value(v, bin_id=value_bin_id)
+            entry = self.data.items.add()
+            _, k_ptr = self.root.store_value(k, bin_id=key_bin)
+            _, v_ptr = self.root.store_value(v, bin_id=val_bin)
             entry.key_ptr = k_ptr
             entry.val_ptr = v_ptr
+    
+    def new(self, key, val, /, key_bin:str=None, val_bin:str=None, wrap=True, key_kwargs:dict={}, val_kwargs:dict={}):
+        entry = self.data.items.add()
+        if not self.root._is_pointer(key):
+            _, k_ptr = self.root.store_value(key, bin_id=key_bin, **key_kwargs)
+        else:
+            k_ptr = key
+        if not self.root._is_pointer(val):
+            _, v_ptr = self.root.store_value(val, bin_id=val_bin, **val_kwargs)
+        else:
+            v_ptr = val
+
+        entry.key_ptr = k_ptr
+        entry.val_ptr = v_ptr
+        if wrap:
+            return self.root._wrap(entry)
+        return entry
+    
     def clear(self):
         for e in self.data.items.values():
             self.root.delete_value(e.key_ptr)
@@ -359,7 +384,9 @@ class PointerCollection(bpy.types.PropertyGroup):
                 raise KeyError(key)
             elif (prop is None):
                 return default
-            if return_prop:
+            if return_prop and wrap:
+                return self._wrap(prop)
+            elif return_prop:
                 return prop
             
             return self.get_value(prop.ptr, default=default, wrap=wrap)
@@ -377,6 +404,18 @@ class PointerCollection(bpy.types.PropertyGroup):
             return self.delete_property(key)
         else:
             return self.delete_value(key)
+        
+    def items(self, /, wrap=True):
+        for k,e in self.properties.items():
+            yield k, self.get_value(e.ptr, default=EMPTYPOINTER, wrap=wrap)
+
+    def __getitem__(self, key):
+        return self.get(key)
+        
+    def clear(self,):
+        self.properties.clear()
+        for b in self._iter_bins():
+            b.clear()
 
 _all = (
     BlPointerArrayItem,
