@@ -6,10 +6,10 @@ from array import array
 
 
 class GdValueStringName(GdValue):
-    value : str|None = None
+    value : str = ""
     def __init__(self, val=None):
         super().__init__()
-        if val != None:
+        if not (val is None):
             self.set_value(val)
 
     @classmethod

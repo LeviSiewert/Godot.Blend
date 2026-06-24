@@ -2,7 +2,15 @@ import bpy
 from .primitives.pointer_collection import PointerCollection, BlPointerArray, BlPointerDictionary, _UNSET
 from typing import Type
 from ....GdPy.structure.values import _primitive_types, _vector_types, _array_types, _dict_types, _type_map
+from ....GdPy.structure.values import GdValueStringName
 
+
+def _reverse_dict_tuple(di: dict[str,tuple[str]])->dict[str,str]:
+    res = {}
+    for v,t in di.items():
+        for k in t:
+            res[k] = v
+    return res
 
 class BlPrimitives(bpy.types.PropertyGroup):
     _subtypes = (*_primitive_types.keys(),)
@@ -15,11 +23,23 @@ class BlPrimitives(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""))
+        return getattr(self, self._attr_map[self.subtype])
     @value.setter
     def value(self, value):
         self.subtype = _type_map[value.__class__]
-        setattr(self, "val_"+self.subtype.lower().replace("gdtype",""), value)
+        setattr(self, self._attr_map[self.subtype] , self._cast(value))
+
+    def _cast(self, val):
+        if isinstance(val, GdValueStringName):
+            return str(val)
+        return val
+
+    _attr_map = _reverse_dict_tuple({
+        "val_str" : ("str","GdValueStringName"),
+        "val_int" : ("int",),
+        "val_float" : ("float",),
+        "val_bool" : ("bool",),  
+    })
 
     val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore
@@ -34,11 +54,11 @@ class BlVectors(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, self.subtype.lower().replace("gdtype",""))
+        return getattr(self, self.subtype.lower().replace("gdvalue",""))
     @value.setter
     def value(self, value):
         self.subtype = _type_map[value.__class__]
-        setattr(self, self.subtype.lower().replace("gdtype",""), value)
+        setattr(self, self.subtype.lower().replace("gdvalue",""), value)
 
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore
@@ -88,7 +108,7 @@ class BlPropertyCollection(PointerCollection):
     #TODO: A-B testing of number of unique vs collection types 
 
     _bins = ("bin_array","bin_dict","bin_vector","bin_primitive")
-    _bin_map = _map_keys({BlArray:"bin_array",BlDictionary:"bin_dict",BlPrimitives:"bin_primitive",BlVectors:"bin_vectors"})
+    _bin_map = _map_keys({BlArray:"bin_array",BlDictionary:"bin_dict",BlPrimitives:"bin_primitive",BlVectors:"bin_vector"})
 
     bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
     bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore

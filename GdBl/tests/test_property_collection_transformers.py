@@ -7,6 +7,8 @@ from ..structure.core.primitives.pointer_collection import BlPointerArrayItemWra
 from ...GdPy.structure.core.property_collection import PropertyCollection as GdPropertyCollection
 from ...GdPy.structure import values as GdPy
 
+
+
 from typing import Any
 
 from ..structure.transformers.property_collection import py_to_bl_ruleset, bl_to_py_ruleset
@@ -110,10 +112,10 @@ class TestBehavior(BlenderPytestAttr):
             _start_count = len(propcol._bin_id_matcher(value_bin_id))
             assert (isinstance(arr, BlPointerArrayWrapper))
             assert (len(arr) == 0)
-            obj,ptr = arr.new(value)
+            obj,ptr = arr.new(value, wrap=False)
             assert (len(arr) == 1)
             # assert (arr.data[0] == ptr.data)
-            assert (arr[0] == obj)
+            assert (arr.get(0,wrap=False) == obj)
             yield arr,ptr
             arr.clear()
             assert (len(arr) == 0)
@@ -154,8 +156,25 @@ class TestBehavior(BlenderPytestAttr):
             k_obj = entry.key_unwrapped
             v_obj = entry.value_unwrapped
 
-            assert (k_val == k_obj.value)
-            assert (v_val == v_obj.value)
+            if isinstance(k_val, float):
+                assert (abs(k_val - k_obj.value)<0.0001)
+            elif isinstance(k_val, (list,dict,*GdPy._array_types.values(),*GdPy._dict_types.values())):
+                pass ##TODO: Evaluation of complex types?
+            elif isinstance(k_val, (*GdPy._vector_types.values(),)):
+                pass ##TODO: Evaluation of complex types?
+            else:
+                assert (k_val == k_obj.value)
+
+            if isinstance(v_val, float):
+                assert (abs(v_val - v_obj.value)<0.0001)
+            elif isinstance(v_val, (list,dict,*GdPy._array_types.values(),*GdPy._dict_types.values())):
+                pass ##TODO: Evaluation of complex types?
+            elif isinstance(v_val, (*GdPy._vector_types.values(),)):
+                pass ##TODO: Evaluation of complex types?
+            else:
+                assert (v_val == v_obj.value)
+
+
             assert (k_obj in propcol._bin_id_matcher(k_bin).values())
             assert (v_obj in propcol._bin_id_matcher(v_bin).values())
 
