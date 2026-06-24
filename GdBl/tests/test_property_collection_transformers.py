@@ -77,7 +77,7 @@ class TestBehavior(BlenderPytestAttr):
 
         bl_pc.delete_property(prop_name)
 
-        for k,v in stats:
+        for k,v in stats.items():
             assert(len(k) == v)
 
     def adding_removal(self, *args, **kwargs):
@@ -141,7 +141,7 @@ class TestBehavior(BlenderPytestAttr):
 
     @contextmanager
     def _dictionary_adding_removal(self, k, v, yield_wrapped=True): #->tuple[Any, Obj, Obj]:
-        propcol : BlPropertyCollection = self.get_attr
+        propcol : BlPropertyCollection = self.get_attr()
         with self._adding_removal("bin_dict", {}, prop_name="DICT", expect_wrapped=True, yield_wrapped=True) as (di,ptr):
             di : BlPointerDictionaryWrapper
             ##TODO: More  assertions for behavioral constraining
@@ -166,7 +166,7 @@ class TestBehavior(BlenderPytestAttr):
 
             di.remove(0)
 
-            assert (len(di.items())==0)
+            assert (len(tuple(di.items()))==0)
             assert (not (k_obj in propcol._bin_id_matcher(k_bin).values()))
             assert (not (v_obj in propcol._bin_id_matcher(v_bin).values()))
 

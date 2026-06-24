@@ -10,6 +10,9 @@ class BlPrimitives(bpy.types.PropertyGroup):
 
     subtype : bpy.props.StringProperty(default="str") #type:ignore
 
+    def set_value(self, val):
+        self.value = val
+
     @property
     def value(self,):
         return getattr(self, "val_"+self.subtype.lower().replace("gdtype",""))
@@ -89,8 +92,8 @@ class BlPropertyCollection(PointerCollection):
 
     bin_array : bpy.props.CollectionProperty(type = BlArray) #type:ignore
     bin_dict : bpy.props.CollectionProperty(type = BlDictionary) #type:ignore
-    bin_vector : bpy.props.CollectionProperty(type = BlPrimitives) #type:ignore
-    bin_primitive : bpy.props.CollectionProperty(type = BlVectors) #type:ignore
+    bin_vector : bpy.props.CollectionProperty(type = BlVectors) #type:ignore
+    bin_primitive : bpy.props.CollectionProperty(type = BlPrimitives) #type:ignore
 
     def _bin_id_matcher(self, bin_id:str)->bpy.types.CollectionProperty:
         if not ((res := getattr(self, bin_id, None)) is None):

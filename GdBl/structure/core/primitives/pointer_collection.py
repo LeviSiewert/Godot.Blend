@@ -26,8 +26,8 @@ class BlPointerArrayItem(bpy.types.PropertyGroup):
     ptr : bpy.props.StringProperty() #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerArrayItemWrapper:
         return BlPointerArrayItemWrapper(root, self)
-    def _list_sub_pointers()->tuple[str]:
-        raise NotImplementedError()
+    def _list_sub_pointers(self,)->tuple[str]:
+        return (self.ptr,)
 class BlPointerArrayItemWrapper(_Wrapper):
     @property
     def value(self,)->Any:
@@ -49,8 +49,11 @@ class BlPointerArray(bpy.types.PropertyGroup):
     items : bpy.props.CollectionProperty(type = BlPointerArrayItem) #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerArrayWrapper:
         return BlPointerArrayWrapper(root, self)
-    def _list_sub_pointers()->tuple[str]:
-        raise NotImplementedError()
+    def _list_sub_pointers(self,)->tuple[str]:
+        res = []
+        for e in self.items.items():
+            res.extend(e._list_sub_pointers())
+        return tuple(res)
 class BlPointerArrayWrapper(_Wrapper):
     def __iter__(self,):
         for e in self.data.items.values():
@@ -108,9 +111,9 @@ class BlPointerDictionaryItem(bpy.types.PropertyGroup):
     key_ptr : bpy.props.StringProperty() #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerDictionaryItemWrapper:
         return BlPointerDictionaryItemWrapper(root, self)
-    def _list_sub_pointers()->tuple[str]:
-        raise NotImplementedError()
-    
+    def _list_sub_pointers(self,)->tuple[str]:
+        return (self.val_ptr, self.key_ptr)
+        
 class BlPointerDictionaryItemWrapper(_Wrapper):
     @property
     def key_unwrapped(self,):
@@ -152,8 +155,11 @@ class BlPointerDictionary(bpy.types.PropertyGroup):
     items : bpy.props.CollectionProperty(type = BlPointerDictionaryItem) #type:ignore
     def _wrap(self, root:PointerCollection)->BlPointerDictionaryWrapper:
         return BlPointerDictionaryWrapper(root, self)
-    def _list_sub_pointers()->tuple[str]:
-        raise NotImplementedError()
+    def _list_sub_pointers(self,)->tuple[str]:
+        res = []
+        for e in self.items.items():
+            res.extend(e._list_sub_pointers())
+        return res
 class BlPointerDictionaryWrapper(_Wrapper):
     def items(self, yield_entry=False, wrap=True):
         for e in self.data.items.values():
@@ -197,6 +203,12 @@ class BlPointerDictionaryWrapper(_Wrapper):
             self.root.delete_value(e.key_ptr)
             self.root.delete_value(e.val_ptr)
         self.data.items.clear()
+
+    def remove(self, index:int):
+        entry = self.data.items[index]
+        self.root.delete_value(entry.key_ptr)
+        self.root.delete_value(entry.val_ptr)
+        self.data.items.remove(index)
 
 class BlPropertyItem(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty() #type:ignore
@@ -294,32 +306,45 @@ class PointerCollection(bpy.types.PropertyGroup):
         return self.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=True, *args, **kwargs)
         
     def delete_value(self, ptr:str):
-        _all_ptrs = self._get_sub_pointers(ptr)
+        _all_ptrs = self._get_dep_pointers(ptr)
         for c in self._iter_bins():
             cks = c.keys()
             for p in _all_ptrs:
                 if not p in cks:
                     continue
-                c.remove(cks.find(p))
+                c.remove(cks.index(p))
+                return
+        raise KeyError(ptr, _all_ptrs)
 
-    def _get_sub_pointers(self, ptr:str, _explored:list=None)->list[str]:
-        if _explored is None:
-            _explored = []
+    def _get_dep_pointers(self, ptr:str)->list[str]:
+        res = [ptr]
 
-        if ptr in _explored:
-            return tuple()
-        _explored.append(ptr)
+        if obj := self.get(ptr, wrap=False, default=None):
+            if hasattr(obj, "_list_sub_pointers"):
+                for s_ptr in obj._list_sub_pointers():
+                    res.extend(self._get_dep_pointers(s_ptr))
 
-        item = self.get(ptr)
+        return res
+                
 
-        if hasattr(item,"_list_sub_pointers"):
-            res = []
-            new = item._list_sub_pointers()
-            for sptr in new:
-                new = (self._get_sub_pointers(sptr, _explored))
-                res.extend(new)
-            return res
-        return tuple()
+    # def _get_sub_pointers(self, ptr:str, _explored:list=None)->list[str]:
+    #     if _explored is None:
+    #         _explored = []
+
+    #     if ptr in _explored:
+    #         return tuple()
+    #     _explored.append(ptr)
+
+    #     item = self.get(ptr)
+
+    #     if hasattr(item,"_list_sub_pointers"):
+    #         res = []
+    #         new = item._list_sub_pointers()
+    #         for sptr in new:
+    #             new = (self._get_sub_pointers(sptr, _explored))
+    #             res.extend(new)
+    #         return res
+    #     return tuple()
 
 
     def new_property(self, key:str, val:Any=_UNSET, /, bin_id:str=None, wrap=True, *args, **kwargs)->tuple[Any,BlPropertyItem]:
@@ -362,7 +387,7 @@ class PointerCollection(bpy.types.PropertyGroup):
         prop = self.properties[key]
         self.delete_value(prop.ptr)
         pcs = self.properties.keys()
-        self.properties.remove(pcs.find(key))
+        self.properties.remove(pcs.index(key))
 
 
     def _wrap(self, item):
