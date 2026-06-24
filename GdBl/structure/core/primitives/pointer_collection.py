@@ -72,8 +72,8 @@ class BlPointerArrayWrapper(_Wrapper):
             entry.ptr = v_ptr
     
     def new(self, val:Any=_UNSET, /, ptr:str=None, bin_id:str=None, wrap:bool=True, exist_ok:bool=False, *args, **kwargs)->tuple[Any,BlPointerArrayItemWrapper]:
-        ptr, obj = self.root.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=exist_ok, *args, **kwargs)
-        entry = self.data.items.new()
+        obj, ptr = self.root.store_value(val, ptr=ptr, bin_id=bin_id, wrap=wrap, exist_ok=exist_ok, *args, **kwargs)
+        entry = self.data.items.add()
         entry.ptr = ptr
         if wrap:
             return obj,self.root._wrap(entry)

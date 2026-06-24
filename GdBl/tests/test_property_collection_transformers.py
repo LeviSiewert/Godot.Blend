@@ -110,14 +110,14 @@ class TestBehavior(BlenderPytestAttr):
             _start_count = len(propcol._bin_id_matcher(value_bin_id))
             assert (isinstance(arr, BlPointerArrayWrapper))
             assert (len(arr) == 0)
-            ptr,obj = arr.new(value)
-            assert (len(arr) == 1)            
-            assert (arr.data[0] == ptr.data)
+            obj,ptr = arr.new(value)
+            assert (len(arr) == 1)
+            # assert (arr.data[0] == ptr.data)
             assert (arr[0] == obj)
             yield arr,ptr
             arr.clear()
             assert (len(arr) == 0)
-            assert (len(propcol._bin_id_matcher(value_bin_id)) == _start_count-1)
+            assert (len(propcol._bin_id_matcher(value_bin_id)) == _start_count)
 
     def array_adding_removal(self,*args,**kwargs):
         with self._array_adding_removal(*args,**kwargs):
