@@ -44,8 +44,9 @@ class TransformerContext():
     chain : ContextVar[tuple[Any]]
     ## Chain of parents of original type
 
-    children : ContextVar[tuple[Any]|Any]
+    children : ContextVar[tuple[Any]|dict[Any,Any]|Any]
     ## Converted Children, side-variable via context. Set via _transform_children
+    ## if dict is yielded, return with identical key, mapped value
 
     children_map : ContextVar[dict[Any,Any]|Any]
     ## Converted Children mapped from prev->post, side-variable via context. Set via _transform_children
@@ -235,7 +236,8 @@ class TransformerModule():
                     
             elif isinstance(children,dict):
                 _kt = self._transform_children_yielded(c, node, children.values(), args, kwargs)  #-> SIDE EFFECT: context.?
-                _m = c.children_map()
+
+                _m = c.children_map.get()
                 new = {}
                 for k,v in children.items():
                     new[k] == _m[v] 

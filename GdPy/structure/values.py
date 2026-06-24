@@ -238,6 +238,17 @@ class GdValueBasis(_GdValueArrayFixedLength):
     types = (float,int)
     _arr_type : str = "f"
     _arr_length : int = 9
+    
+    def set_value(self, value:Iterable):
+        if len(value) == 3:
+            value = tuple(self._unpack(value))
+        super().set_value(value)
+
+    def _unpack(self, val:Iterable):
+        for e in val:
+            yield from e
+
+
 class GdValueTransform3D(_GdValueArrayFixedLength): 
     types = (float,int)
     _arr_type : str = "f"
@@ -358,6 +369,9 @@ class GdValueDictionary(GdValue):
         if type_anno:
             int_dict.set_type(type_anno)
         return int_dict
+    
+    def items(self):
+        yield from self.value.items()
 
 _all : tuple[Type] = (
     GdValueStringName,
@@ -394,5 +408,5 @@ _type_map = {t.__name__:t for t in (*_all, str, int, float, bool)} | {t:t.__name
 
 _primitive_types = {t.__name__:t for t in (GdValueStringName, str, int, float, bool) } | { "None" : None }
 _vector_types = {t.__name__:t for t in (GdValueVector2,GdValueVector3,GdValueVector4,GdValueVector2i,GdValueVector3i,GdValueVector4i,GdValueRect2,GdValueRect2i,GdValuePlane,GdValueColor,GdValueAABB,GdValueQuaternion,GdValueBasis,GdValueTransform2D,GdValueTransform3D) }
-_array_types = {t.__name__:t for t in (GdValuePackedByteArray,GdValuePackedInt32Array,GdValuePackedInt64Array,GdValuePackedFloat32Array,GdValuePackedFloat64Array,GdValuePackedStringArray,GdValuePackedVector2Array,GdValuePackedVector3Array,GdValuePackedVector4Array,GdValuePackedColorArray) }
+_array_types = {t.__name__:t for t in (GdValueArray,GdValuePackedByteArray,GdValuePackedInt32Array,GdValuePackedInt64Array,GdValuePackedFloat32Array,GdValuePackedFloat64Array,GdValuePackedStringArray,GdValuePackedVector2Array,GdValuePackedVector3Array,GdValuePackedVector4Array,GdValuePackedColorArray) }
 _dict_types = {t.__name__:t for t in (GdValueDictionary,) }

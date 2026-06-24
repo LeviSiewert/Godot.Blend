@@ -54,17 +54,38 @@ class BlVectors(bpy.types.PropertyGroup):
 
     @property
     def value(self,):
-        return getattr(self, self.subtype.lower().replace("gdvalue",""))
+        return getattr(self, self._val_map[self.subtype])
     @value.setter
     def value(self, value):
         self.subtype = _type_map[value.__class__]
-        setattr(self, self.subtype.lower().replace("gdvalue",""), value)
+        try:
+            setattr(self, self._val_map[self.subtype], value)
+        except:
+            raise Exception(self._val_map[self.subtype], value)
+
+    _val_map = {
+        "GdValueVector2" : "vector2", 
+        "GdValueVector3" : "vector3", 
+        "GdValueVector4" : "vector4", 
+        "GdValueRect2" : "rect2", 
+        "GdValuePlane" : "plane", 
+        "GdValueColor" : "color", 
+        "GdValueAABB" : "aabb", 
+        "GdValueQuaternion" : "quaternion", 
+        "GdValueBasis" : "basis", 
+        "GdValueTransform2D" : "transform2d", 
+        "GdValueTransform3D" : "transform3d", 
+        "GdValueVector2i" : "vector2i", 
+        "GdValueVector3i" : "vector3i", 
+        "GdValueVector4i" : "vector4i", 
+        "GdValueRect2i" : "rect2i", 
+        }
 
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore
     vector4 : bpy.props.FloatVectorProperty(size = 4) #type:ignore
     rect2 : bpy.props.FloatVectorProperty(size = 4) #type:ignore
-    plane : bpy.props.FloatVectorProperty(size = 6) #type:ignore
+    plane : bpy.props.FloatVectorProperty(size = 4) #type:ignore
     color : bpy.props.FloatVectorProperty(size = 4, subtype="COLOR") #type:ignore
     aabb : bpy.props.FloatVectorProperty(size = 6) #type:ignore
     quaternion : bpy.props.FloatVectorProperty(size = 4, subtype="QUATERNION") #type:ignore
@@ -118,6 +139,8 @@ class BlPropertyCollection(PointerCollection):
     def _bin_id_matcher(self, bin_id:str)->bpy.types.CollectionProperty:
         if not ((res := getattr(self, bin_id, None)) is None):
             return res
+        if not ((key := self._bin_map.get(bin_id,None)) is None):
+            return getattr(self, key)
         raise KeyError("Could not determine bin for key", bin_id)
 
     def _bin_val_matcher(self, val):

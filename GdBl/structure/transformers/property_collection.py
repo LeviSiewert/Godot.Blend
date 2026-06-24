@@ -72,7 +72,8 @@ class PyToBl_Vectors(PyToBl):
             obj,ptr = propcol.store_value(None)
             return ptr 
 
-        obj,ptr = propcol.store_value(node, subtype=_type_map[node.__class__])
+        obj,ptr = propcol.store_value(node, wrap=False)
+        obj.subtype = _type_map[node.__class__]
         return ptr
 
 
@@ -97,7 +98,7 @@ class PyToBl_Dictionary(PyToBl):
 
         obj,ptr = propcol.store_value(bin_id = "GdValueDictionary")
 
-        for k,v in node.items.items():
+        for k,v in node.items():
             item = obj.items.add()
             yield (k,v)
             _m = c.children_map.get()
@@ -118,7 +119,7 @@ class BlToPy_Array(BlToPy):
         
         yield node.values()
 
-        return _type_map[node.subtype](c.children.get())
+        return _type_map[node.data.subtype](c.children.get())
 
 class PyToBl_Array(PyToBl):
     _keys = (*_array_types.values(),)
@@ -126,7 +127,7 @@ class PyToBl_Array(PyToBl):
         propcol : BlPropertyCollection = c.property_collection.get()
         assert(not (propcol is None))
 
-        obj,ptr = propcol.store_value(bin_id = _type_map[node.__class__])
+        obj,ptr = propcol.store_value(bin_id = _type_map[node.__class__], wrap=False)
         obj.subtype = _type_map[node.__class__]
 
         yield node.__iter__()
