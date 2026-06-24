@@ -233,12 +233,21 @@ class TransformerModule():
                 if not ((children is None) or (children is TERMINAL)):
                     _kt = self._transform_children_default(c, node, children, args, kwargs) #-> SIDE EFFECT: context.?
                     
-            elif not (children is TERMINAL):
-                _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
+            elif isinstance(children,dict):
+                _kt = self._transform_children_yielded(c, node, children.values(), args, kwargs)  #-> SIDE EFFECT: context.?
+                _m = c.children_map()
+                new = {}
+                for k,v in children.items():
+                    new[k] == _m[v] 
+                c.children.set(new)
 
             elif (children is TERMINAL):
                 c.children.set(TERMINAL)
                 c.children_map.set(TERMINAL)
+            
+            else:
+                _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
+
 
         if _kt:
             ## NOTE: Have to offset context reset due to `return` happening *after* last yield completes
