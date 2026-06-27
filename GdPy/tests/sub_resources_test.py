@@ -1,10 +1,10 @@
-from ...structure.values import *
-from ...structure.sub_resources import *
-from ...structure.generic import GdObject
+from ..structure.values import *
+from ..structure.sub_resources import *
+from ..structure.generic import GdObject
 
-from ...structure.references import GdValueNodePath, GdValueExtResource
-from ...structure.core.primitives import Context
-from ...structure._standard_parser import construct_keyed_parser
+from ..structure.references import GdValueNodePath, GdValueExtResource
+from ..structure.core.primitives import Context
+from ..structure._standard_parser import construct_keyed_parser
 gdparser = construct_keyed_parser("sub_resource")
 
 c = Context()
@@ -13,8 +13,8 @@ def _parse(key:str, txt:str):
 def _render(object):
     return gdparser.render(c,object)
 
-def test_err():
-    raise NotImplementedError("TODO: Test parsing & rendering")
+# def test_err():
+#     raise NotImplementedError("TODO: Test parsing & rendering")
 
 
 from typing import Generator
@@ -22,7 +22,7 @@ from typing import Generator
 ## NOTE: test cases from godot's official tps-demo level.tscn !!
 
 class TestSubResourceExt():
-    def tests(self,)->Generator[tuple[str,SubResourceExt]]:
+    def data(self,)->Generator[tuple[str,SubResourceExt]]:
         txt = '[ext_resource type="Script" uid="uid://ccxbls23ev7u3" path="res://level/level.gd" id="1"]'
         res = SubResourceExt()
         res.type = "Script"
@@ -79,8 +79,8 @@ class TestSubResourceExt():
         res.id="12"
         yield (txt,res)
 
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(isinstance(val, SubResourceExt))
             assert(res.type == val.type)
@@ -89,33 +89,33 @@ class TestSubResourceExt():
             assert(res.id == val.id)
             assert(res == val)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
         
 class TestSubResourceEdit():
 
-    def tests(self,)->Generator[tuple[str,SubResourceEdit]]:
+    def data(self,)->Generator[tuple[str,SubResourceEdit]]:
         txt = '[editable path="FlyingForkliftModel2"]'
         res = SubResourceEdit()
         res.path = "FlyingForkliftModel2"
         yield (txt, res)
 
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(res.path == val.path)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
 
 class TestSubResource():
     '''Clarification: generic subresource'''
 
-    def tests(self,)->Generator[tuple[str,SubResource]]:
+    def data(self,)->Generator[tuple[str,SubResource]]:
         txt = ''' 
 [sub_resource type="BoxShape3D" id="1"]
 size = Vector3(8.85286, 6.2089, 11.0664)'''
@@ -163,21 +163,21 @@ tracks/0/keys = {
 
         yield (txt, res) 
 
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(isinstance(val,SubResource))
             assert(res.path == val.path)
             assert(res.properties == val.properties)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
 
 class TestSubResourceNode():
 
-    def tests(self,)->Generator[tuple[str,SubResourceNode]]:
+    def data(self,)->Generator[tuple[str,SubResourceNode]]:
         txt = '''
 [node name="Level" type="Node3D"]
 script = ExtResource("1")
@@ -214,8 +214,8 @@ transform = Transform3D(0.843905, 0, -0.536493, 0, 1, 0, 0.536493, 0, 0.843905, 
         res.properties["transform"] = GdValueTransform3D([0.843905, 0, -0.536493, 0, 1, 0, 0.536493, 0, 0.843905, 71.5907, -6.05686, 46.2736])
         yield (txt, res)
 
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(isinstance(val,SubResourceNode))
             assert(val.name == res.name)
@@ -224,14 +224,14 @@ transform = Transform3D(0.843905, 0, -0.536493, 0, 1, 0, 0.536493, 0, 0.843905, 
             assert(val.is_parent == res.is_parent)
             assert(res.properties == val.properties)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
 
 
 class TestSubResourceCategory():
-    def tests(self,)->Generator[tuple[str,SubResourceNode]]:
+    def data(self,)->Generator[tuple[str,SubResourceNode]]:
         txt = '''
 [animation]
 
@@ -329,22 +329,22 @@ ui_accept={
         }.items())
         yield (txt, res)
 
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(isinstance(val,SubResourceCategory))
             assert(val.name == res.name)
             assert(res.properties == val.properties)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
 
 
 class TestResourceContainer():
     '''Clarification: all properties not sorted under a SubResource-like '''
-    def tests(self,)->Generator[tuple[str,ResourceContainer]]:
+    def data(self,)->Generator[tuple[str,ResourceContainer]]:
         #From a project.godot
         txt = '''
 [resource]
@@ -362,14 +362,14 @@ bus/1/mute = false
         res['bus/1/mute'] = False
         yield (txt, res)
         
-    def gd_to_py(self,):
-        for txt, res in self.tests():
+    def test_gd_to_py(self,):
+        for txt, res in self.data():
             val = _parse(txt)
             assert(isinstance(val,ResourceContainer))
             assert(res.properties == val.properties)
 
-    def py_to_gd(self,):
-        for txt, res in self.tests():
+    def test_py_to_gd(self,):
+        for txt, res in self.data():
             val = _render(res)
             assert(txt == val)
 # class TestGdValueResourceID():
