@@ -27,6 +27,7 @@ value : NULL
       | INF
       | array
       | dictionary
+      | object
       | nodepath
       | dictionary_explicit
       | array_explicit
@@ -88,6 +89,8 @@ pair : value ":" value
 
 stringname : "&" STRING
 
+// Generics:
+object : "Object(" WORD ["," dictionary] ")"
 
 // Defered References:
 

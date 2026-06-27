@@ -30,19 +30,9 @@ class _SubResource(GdSubResource):
                 raise KeyError("Requires predefition of header attribute:", self,k)
             setattr(self,k,v)
         return self
-    
-    @classmethod
-    def parse_lark(cls, key, tc, gdc, header_properties:PropertyCollection, body_properties:PropertyCollection):
-        self = cls(_construct = True)
-        for k,v in header_properties.items.items():
-            assert(hasattr(self, k))
-            setattr(self, k, v)
-        self.properties = body_properties
-        return self
-
 
     def get_struct_children(self):
-        return self.properties.items.values()
+        return self.properties
     
     def __eq__(self, value):
         if isinstance(value, self.__class__):
@@ -57,10 +47,6 @@ class SubResourceExt(_SubResource):
     path : str = None
     uid : int = None
     id : int = None
-
-    @classmethod
-    def lark_keys(cls):
-        return ("ext_resource",)
 
     def __eq__(self, value):
         if isinstance(value, self.__class__):
@@ -82,10 +68,6 @@ class SubResourceEdit(_SubResource):
     uid : int = None
     id : int = None
     
-    @classmethod
-    def lark_keys(cls):
-        return ("edit_resource",)
-    
     def __eq__(self, value):
         if isinstance(value, self.__class__):
             return all ([
@@ -103,10 +85,6 @@ class SubResourceEdit(_SubResource):
 class SubResource(_SubResource): #ClassDbEnforcable):
     type : str = None
     id : int = None
-
-    @classmethod
-    def lark_keys(cls):
-        return ("sub_resource",)
     
     def __eq__(self, value):
         if isinstance(value, self.__class__):
@@ -126,16 +104,13 @@ class SubResourceNode(_SubResource): #ClassDbEnforcable):
     node_paths : GdValuePackedStringArray = None
     parent : str = None
     unique_id : int = None
+    instance : str = None
 
     is_root : bool = False
     tree : MultiKeyCollection = None
     owner : SubResourceNode = None
     _parent : SubResourceNode = None
     _children : list[SubResourceNode] = None
-
-    @classmethod
-    def lark_keys(cls):
-        return ("node_resource",)
 
     def __init__(self, _construct = False):
         self._children = []
@@ -180,30 +155,8 @@ class SubResourceNode(_SubResource): #ClassDbEnforcable):
 class SubResourceCategory(_SubResource):
     name : str = None
 
-    @classmethod
-    def lark_keys(cls):
-        return ("cat_resource",)
-    
-    @classmethod
-    def parse_lark(cls, _key, tc, gdc, name:str, body_properties:PropertyCollection):
-        self = cls(_construct = True)
-        self.name = name
-        self.properties = body_properties
-        return self
-
 class ResourceContainer(_SubResource):
-    name : str = None
-
-    @classmethod
-    def lark_keys(cls):
-        return ("prim_resource",)
-    
-    @classmethod
-    def parse_lark(cls, key, tc, gdc, body_properties:PropertyCollection):
-        self = cls(True)
-        self.properties = body_properties
-        return self
-
+    pass
 
 _all = (
     SubResourceExt,
@@ -212,4 +165,5 @@ _all = (
     SubResourceNode,
     SubResourceCategory,
     ResourceContainer,
+    GdObject
 )

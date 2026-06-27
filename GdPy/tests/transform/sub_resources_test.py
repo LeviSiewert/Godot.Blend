@@ -1,8 +1,8 @@
 from ...structure.values import *
 from ...structure.sub_resources import *
-from ...structure.references import GdValueNodePath, GdValueExtResource
-from ...structure.generics import GdValueObject
+from ...structure.generic import GdObject
 
+from ...structure.references import GdValueNodePath, GdValueExtResource
 from ...structure.core.primitives import Context
 from ...structure._standard_parser import construct_keyed_parser
 gdparser = construct_keyed_parser("sub_resource")
@@ -321,10 +321,10 @@ ui_accept={
         res.properties["ui_accept"] = GdValueDictionary({
             "deadzone": 0.5,
             "events" : GdValueArray([
-                GdValueObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
-                GdValueObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194310,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
-                GdValueObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"location":0,"echo":False,"script":None}),
-                GdValueObject('InputEventJoypadButton',**{"resource_local_to_scene":False,"resource_name":"","device":-1,"button_index":0,"pressure":0.0,"pressed":False,"script":None})
+                GdObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
+                GdObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194310,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
+                GdObject('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"location":0,"echo":False,"script":None}),
+                GdObject('InputEventJoypadButton',**{"resource_local_to_scene":False,"resource_name":"","device":-1,"button_index":0,"pressure":0.0,"pressed":False,"script":None})
             ])
         }.items())
         yield (txt, res)

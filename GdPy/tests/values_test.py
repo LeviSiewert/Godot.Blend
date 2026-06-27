@@ -430,3 +430,13 @@ class TestGdValuePackedColorArray():
     def test_rendering(self,):
         assert(_render(GdValuePackedColorArray((GdValueColor((0,1,2,3)),GdValueColor((0,1,2,3))))) == "PackedColorArray(0,1,2,3,0,1,2,3)")
         assert(_render(GdValuePackedColorArray((GdValueColor((0,1.5,2.5,3.5)),GdValueColor((0.5,1.5,2.5,3.5))))) == "PackedColorArray(0,1.5,2.5,3.5,0.5,1.5,2.5,3.5)")
+
+class TestGdValueObject():
+    def test_in_matcher(self, ):
+        assert(gdparser._parser_transformer.matcher(None,  "object" ))
+    def test_parsing():
+        assert(isinstance(_parse("Object(type)"), GdValueObject))
+        assert(_parse("value","Object(type)") == GdValueObject("type"))
+        assert(_parse("value",'Object(type, "key":"value")') == GdValueObject("type", **{"key":"value"}))
+        val = _parse("value",'Object(type, "key":"value")')
+        assert(val.properties["key"] == "value")

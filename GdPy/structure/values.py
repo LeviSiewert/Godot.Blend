@@ -380,7 +380,7 @@ class GdValueDictionary(GdValue):
 
     def __hash__(self):
         return super().__hash__()
-    
+
 _all : tuple[Type] = (
     GdValueStringName,
     GdValueArray,
