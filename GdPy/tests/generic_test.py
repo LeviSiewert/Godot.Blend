@@ -20,4 +20,5 @@ class TestGdObject():
         val = _parse("value",'Object(type, "key":"value")')
         assert(val.properties["key"] == "value")
     def test_rendering(self,):
-        raise NotImplementedError("TODOs")
+        assert("Object(type)") == _render(GdObject("type"))
+        assert('Object(type, "key":"value")' == _render(GdObject("type", **{"key":"value"})))

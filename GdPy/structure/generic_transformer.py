@@ -16,11 +16,16 @@ class GdToPy_GdObject(GdToPy):
 class PyToGd_GdObject(PyToGd):
     _keys = (GdObject,)
     def transform(self, node:GdObject, tc, c, *args, **kwargs):
-        yield node.properties.items
+        # yield list(node.properties.items.items())
         props = []
-        for k,v in tc.children.get():
-            props.append(f"{k}:{v}")
-        return f"Object({node.gdtype} {",".join(props)})"
+        for k,v in node.properties.items.items():
+            yield (k,v)
+            _k, _v = tc.children.get()
+            props.append(f"{_k}:{_v}")
+        if props:
+            return f"Object({node.gdtype}, {",".join(props)})"    
+        else:
+            return f"Object({node.gdtype})"
 
 gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_GdObject,

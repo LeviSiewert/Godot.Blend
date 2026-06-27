@@ -89,7 +89,7 @@ class PyToGd_Terminals(PyToGd):
                 return "true"
             return "false"
         if isinstance(node, str):
-            return node
+            return f'"{node}"'
         if isinstance(node, int):
             return str(node)
         if node is None:
