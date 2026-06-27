@@ -9,7 +9,6 @@ from .sub_resources import (
     SubResourceNode,
     SubResourceCategory,
     ResourceContainer,
-    GdObject,
 )
 from typing import Type
 
@@ -107,21 +106,6 @@ class PyToGd_ResourceContainer(_PyToGd):
     _res_key = "resource"
     def transform(self, node:ResourceContainer, tc, c, *args, **kwargs):
         raise NotImplementedError("Not yet implimented!")
-
-
-class GdToPy_GdObject(GdToPy):
-    _keys = ("object",)
-    def transform(self, node, tc, c, *args, **kwargs):
-        raise NotImplementedError("Not yet implimented!")
-class PyToGd_GdObject(PyToGd):
-    _keys = (GdObject,)
-    def transform(self, node:GdObject, tc, c, *args, **kwargs):
-        yield node.properties.items
-        props = []
-        for k,v in tc.children.get():
-            props.append(f"{k}:{v}")
-        props = "{" + ",".join(props) + "}"
-        return f"Object({node.gdtype} {props})"
 
 
 gd_to_py_ruleset = GdToPyRuleset( __file__, (

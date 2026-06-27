@@ -90,8 +90,7 @@ pair : value ":" value
 stringname : "&" STRING
 
 // Generics:
-object : "Object(" WORD ["," dictionary] ")"
-
+object : "Object(" WORD ["," pair + ("," pair)*] ")"
 // Defered References:
 
 nodepath : "NodePath" [type_anno] "(" [STRING] ")"

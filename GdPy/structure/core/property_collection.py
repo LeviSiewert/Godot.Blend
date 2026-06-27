@@ -62,3 +62,5 @@ class PropertyCollection[T](Collection, ClassDbEnforcable):
     def __delitem__(self, key):
         self._disintegrate(key)
         
+    def __eq__(self, value):
+        return self.items == value

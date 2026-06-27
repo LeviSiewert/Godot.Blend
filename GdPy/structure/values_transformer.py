@@ -38,7 +38,6 @@ from .values import (
     GdValuePackedVector4Array,
     GdValuePackedColorArray,
     GdValueDictionary,
-    GdObject,
 )
 
 class GdToPy_Terminals(GdToPy):
@@ -100,11 +99,13 @@ class PyToGd_Terminals(PyToGd):
 class GdToPy_Simple(GdToPy):
     ''' Simple Children Wrapper, where node's value is typically simple to impliment '''
     def get_keys(self,):
-        return ("value","type_anno","type", "property", "properties", "resource_header", "resource_body", "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12")
+        return ("pair","value","type_anno","type", "property", "properties", "resource_header", "resource_body", "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12")
     def _transform(self, key, tc, gdc, *children):
         node = tc.node.get()
         assert(isinstance(node, Tree))
         match key:
+            case "pair":
+                return tc.children.get()
             case "value":
                 return tc.children.get()[0]
             case "type_anno":

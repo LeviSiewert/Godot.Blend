@@ -165,5 +165,4 @@ _all = (
     SubResourceNode,
     SubResourceCategory,
     ResourceContainer,
-    GdObject
 )

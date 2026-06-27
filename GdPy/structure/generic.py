@@ -8,6 +8,17 @@ class GdObject(GdType):
         self.gdtype = gdtype
         self.properties = PropertyCollection(kwargs.items())
 
+    def __eq__(self, value):
+        if isinstance(value, GdObject):
+            return all((
+                value.gdtype == self.gdtype,
+                value.properties == self.properties,
+            ))
+        return super().__eq__(value)
+    
+    def __repr__(self):
+        return f"Object({self.gdtype}, {self.properties.items})"
+
 _all = (
     GdObject,
 )

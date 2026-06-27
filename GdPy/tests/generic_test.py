@@ -14,7 +14,7 @@ class TestGdObject():
     def test_in_matcher(self, ):
         assert(gdparser._parser_transformer.matcher(None,  "object" ))
     def test_parsing(self,):
-        assert(isinstance(_parse("Object(type)"), GdObject))
+        assert(isinstance(_parse("value", "Object(type)"), GdObject))
         assert(_parse("value","Object(type)") == GdObject("type"))
         assert(_parse("value",'Object(type, "key":"value")') == GdObject("type", **{"key":"value"}))
         val = _parse("value",'Object(type, "key":"value")')
