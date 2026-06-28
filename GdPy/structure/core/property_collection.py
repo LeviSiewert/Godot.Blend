@@ -64,3 +64,6 @@ class PropertyCollection[T](Collection, ClassDbEnforcable):
         
     def __eq__(self, value):
         return self.items == value
+    
+    def __hash__(self):
+        return super().__hash__()

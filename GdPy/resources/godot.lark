@@ -15,7 +15,7 @@ edit_resources : [edit_resource]*
 ext_resource : "[ext_resource" properties "]" properties
 sub_resource : "[sub_resource" properties "]" properties
 node_resource : "[node" properties "]" properties
-edit_resource : "[edit" properties "]" properties
+edit_resource : "[editable" properties "]" properties
 
 prim_resource : "[resource]" properties
 cat_resource : "[" WORD "]" properties //[COMMENT|property]*

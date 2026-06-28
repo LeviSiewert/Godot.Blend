@@ -25,6 +25,7 @@ class _GdToPy(GdToPy):
         return inst
 class _PyToGd(PyToGd):
     _res_key : str
+    _extra_space = False
 
     def get_res_key(self, node)->str:
         return self._res_key
@@ -46,13 +47,19 @@ class _PyToGd(PyToGd):
         yield {"props":node.properties}
         props = tc.children.get()["props"]
 
-        return f"[{self.get_res_key()} {" ".join(header_props)}]" + "\n" + props
+        h_id = self.get_res_key(node)
+        h_props = "" if not header_props else " "+" ".join(header_props)
+        e_space = "" if not self._extra_space else "\n"
+        body = "" if not props else "\n" + props
+
+        return f"[{h_id}{h_props}]{e_space}{body}"
+
     
 class GdToPy_SubResourceExt(_GdToPy):
     _keys = ("ext_resource",)
     _res_cls = SubResourceExt
 class PyToGd_SubResourceExt(_PyToGd):
-    _header_props = ('type', 'path', 'uid', 'id')
+    _header_props = ('type', 'uid', 'path', 'id')
     _keys = (SubResourceExt,)
     _res_key = "ext_resource"
 
@@ -88,6 +95,7 @@ class GdToPy_SubResourceCategory(GdToPy):
         inst.properties = body_properties
         return inst
 class PyToGd_SubResourceCategory(_PyToGd):
+    _extra_space = True
     _keys = (SubResourceCategory,)
     _header_props = tuple()
     def get_res_key(self, node):
@@ -97,7 +105,7 @@ class GdToPy_ResourceContainer(GdToPy):
     _keys = ("prim_resource",)
     _res_cls = ResourceContainer
     def _transform(self, _key, tc, gdc, body_properties:PropertyCollection):
-        inst = SubResourceCategory(_construct = True)
+        inst = ResourceContainer(_construct = True)
         inst.properties = body_properties
         return inst
 class PyToGd_ResourceContainer(_PyToGd):
@@ -105,7 +113,8 @@ class PyToGd_ResourceContainer(_PyToGd):
     _keys = (ResourceContainer,)
     _res_key = "resource"
     def transform(self, node:ResourceContainer, tc, c, *args, **kwargs):
-        raise NotImplementedError("Not yet implimented!")
+        yield (node.properties,)
+        return tc.children.get()[0]
 
 
 gd_to_py_ruleset = GdToPyRuleset( __file__, (

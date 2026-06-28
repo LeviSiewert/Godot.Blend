@@ -114,14 +114,6 @@ class GdToPy_Simple(GdToPy):
                 return tc.children.get()[0] ## expected: Str|None
             case "property":
                 return tc.children.get()
-            case "properties":
-                props = tc.children.get()
-                res = PropertyCollection()
-                for kv in props:
-                    if kv is None: 
-                        continue
-                    res[kv[0]] = kv[1]
-                return res
             case "resource_header":
                 return tc.children.get()[0] ## expected: PropertiesCollection
             case "resource_body":
