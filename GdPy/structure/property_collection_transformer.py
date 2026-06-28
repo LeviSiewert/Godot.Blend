@@ -1,7 +1,7 @@
 from .core.transformer_v2 import TransformerRuleset
 from .core.lark_transformer import GdToPy, PyToGd, GdToPyRuleset, PyToGdRuleset
 
-from .core.property_collection import PropertyCollection
+from .property_collection import PropertyCollection
 
 class GdToPy_PropertyCollection(GdToPy):
     _keys = ("properties",)

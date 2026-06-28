@@ -21,9 +21,6 @@ class GdParser():
             _parser = Lark(self.grammer, maybe_placeholders=True, start=start)
         tree = _parser.parse(data) 
         result = self._parser_transformer.transform_tree(None, tree, context)
-        # if isinstance(result, GdType) and cache_tree:
-        #     with cache_tree.traverse(True):
-        #         self.build_cache_tree(result)
         return result
     
     def render(self, context:Context, data:GdType)->str:

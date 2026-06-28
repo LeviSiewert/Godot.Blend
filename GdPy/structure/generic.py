@@ -1,5 +1,5 @@
 from .core import GdType
-from .core.property_collection import PropertyCollection
+from .property_collection import PropertyCollection
 
 class GdObject(GdType):
     gdtype : str

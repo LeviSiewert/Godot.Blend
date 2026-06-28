@@ -3,7 +3,7 @@ from .core import PyToBl, PyToBlRuleset
 
 from ....GdPy.structure.core.transformer_v2 import TERMINAL
 
-from ....GdPy.structure.core.property_collection import PropertyCollection as GdPropertyCollection
+from ....GdPy.structure.property_collection import PropertyCollection as GdPropertyCollection
 from ....GdPy.structure.values import (
     GdValueArray,
     GdValueDictionary,

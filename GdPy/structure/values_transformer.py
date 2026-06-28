@@ -1,6 +1,6 @@
 from .core.transformer_v2 import TransformerModule, TransformerRuleset, TransformerContext, TERMINAL, IGNORE
 from .core.lark_transformer import GdToPyRuleset, GdToPy, PyToGd, PyToGdRuleset
-from .core.property_collection import PropertyCollection
+from .property_collection import PropertyCollection
 from lark.visitors import Tree, Token #type:ignore
 from abc import ABC, abstractmethod
 from .core.primitives import Context

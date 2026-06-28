@@ -1,6 +1,6 @@
 from .core.transformer_v2 import TransformerModule, TransformerRuleset, TransformerContext, TERMINAL, IGNORE
 from .core.lark_transformer import GdToPy, PyToGd, GdToPyRuleset, PyToGdRuleset
-from .core.property_collection import PropertyCollection
+from .property_collection import PropertyCollection
 from .generic import GdObject
 from .values import GdValueDictionary
 

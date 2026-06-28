@@ -4,7 +4,7 @@ from typing import Generator
 from .utils import BlenderPytestAttr
 from ..structure.core.properties import BlPropertyCollection, BlArray, BlDictionary, BlPrimitives, BlVectors
 from ..structure.core.primitives.pointer_collection import BlPointerArrayItemWrapper, BlPointerArrayWrapper, BlPointerDictionaryItemWrapper, BlPointerDictionaryWrapper, _Wrapper
-from ...GdPy.structure.core.property_collection import PropertyCollection as GdPropertyCollection
+from ...GdPy.structure.property_collection import PropertyCollection as GdPropertyCollection
 from ...GdPy.structure import values as GdPy
 
 

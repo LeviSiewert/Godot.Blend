@@ -2,7 +2,6 @@ from .primitives import Context
 from .transformer_v2 import Transformer, TransformerModule, TransformerRuleset, TERMINAL, IGNORE, DEFAULT, TransformerContext
 from lark.visitors import Tree, Token #type:ignore
 from typing import Any, Iterable, Type, Callable
-from .property_collection import PropertyCollection
 from abc import ABC, abstractmethod
 from .core import GdType
 
