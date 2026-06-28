@@ -3,10 +3,8 @@ from bpy.types import PropertyGroup
 from bpy.props import CollectionProperty
 from .property_collection import BlPropertyCollection
 
-class _BlSubResource(PropertyGroup):
-    properties : CollectionProperty(type = BlPropertyCollection) #type:ignore
-class _BlSubResourceCollection(PropertyGroup):
-    pass
+from .core.types import _BlSubResource, _BlSubResourceCollection
+
 
 class BlSubResource(_BlSubResource):
     pass

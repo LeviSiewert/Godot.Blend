@@ -4,10 +4,10 @@ from bpy.props import StringProperty, CollectionProperty
 
 from contextvars import ContextVar
 
-class BlProjectItem(PropertyGroup):
-    name : StringProperty(name="Name") #type:ignore
-    filepath : StringProperty(name="project_dir", subtype="DIR_PATH")# help="Project directory, should have project.godot directly inside") #type:ignore
-    #Discovered Scripts here as well?
+from .core.types import _BlProject
+
+class BlProjectItem(_BlProject):
+    pass
 
 class BlProjects(PropertyGroup):
     items = CollectionProperty(type = BlProjectItem)
