@@ -37,3 +37,16 @@ class BlToPy_SubResourceNode(BlToPy):
     _keys = (bpy.types.Object,)
 class PyToBl_SubResourceNode(PyToBl):
     _keys = (GdSubResourceNode,)
+
+bl_to_py_ruleset = BlToPyRuleset((
+    BlToPy_SubResourceExt,
+    BlToPy_SubResourceCategory,
+    BlToPy_SubResource,
+    BlToPy_SubResourceNode,
+))
+py_to_bl_ruleset = PyToBlRuleset((
+    PyToBl_SubResourceExt,
+    PyToBl_SubResourceCategory,
+    PyToBl_SubResource,
+    PyToBl_SubResourceNode,
+))

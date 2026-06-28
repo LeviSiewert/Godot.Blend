@@ -1,32 +1,32 @@
 import bpy
 from .property_collection import BlPropertyCollection 
-from .sub_resources import BlSubResource, BlSubResourceCategory, BlSubResourceExt
+from .sub_resources import SubResource, SubResourceCategory, SubResourceExt
 from .core.types import _BlResource, _BlResourceSettings
 
-class BlResourceImport(_BlResource):
+class ResourceImport(_BlResource):
     ''' standalone data type '''
     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
-    cat_resources : bpy.props.CollectionProperty(type = BlSubResourceCategory) #type:ignore
+    cat_resources : bpy.props.CollectionProperty(type = SubResourceCategory) #type:ignore
 
-class BlResourceProject(_BlResource):
+class ResourceProject(_BlResource):
     ''' standalone data type '''
     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
-    cat_resources : bpy.props.CollectionProperty(type = BlSubResourceCategory) #type:ignore
+    cat_resources : bpy.props.CollectionProperty(type = SubResourceCategory) #type:ignore
 
-class BlResourceTres(_BlResource):
+class ResourceTres(_BlResource):
     ''' standalone data type '''
     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
-    ext_resources : bpy.props.CollectionProperty(type = BlSubResourceExt) #type:ignore
-    sub_resources : bpy.props.CollectionProperty(type = BlSubResource) #type:ignore
+    ext_resources : bpy.props.CollectionProperty(type = SubResourceExt) #type:ignore
+    sub_resources : bpy.props.CollectionProperty(type = SubResource) #type:ignore
 
-class BlResourceTscn(_BlResource):
+class ResourceTscn(_BlResource):
     ''' Representated via and Stored on Collection.gd '''
-    ext_resources : bpy.props.CollectionProperty(type = BlSubResourceExt) #type:ignore
-    sub_resources : bpy.props.CollectionProperty(type = BlSubResource) #type:ignore
+    ext_resources : bpy.props.CollectionProperty(type = SubResourceExt) #type:ignore
+    sub_resources : bpy.props.CollectionProperty(type = SubResource) #type:ignore
 
 _all = (
-    BlResourceTres,
-    BlResourceImport,
-    BlResourceProject,
-    BlResourceTscn,
+    ResourceImport,
+    ResourceProject,
+    ResourceTres,
+    ResourceTscn,
 )

@@ -46,8 +46,8 @@ class SubResourceNode(_BlSubResource):
     # instance : str #GENERATED, root of instance #match then generate BlSubresourceExt on export.
 
 _all = (
-    BlSubResourceExt, 
-    BlSubResourceCategory,
-    BlSubResource,
-    BlSubResourceNode,
+    SubResourceExt, 
+    SubResourceCategory,
+    SubResource,
+    SubResourceNode,
 )

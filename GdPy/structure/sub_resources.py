@@ -1,5 +1,6 @@
 from __future__ import annotations
-from .core import GdResource, GdSubResource, PropertyCollection, ClassDbEnforcable, Collection
+from .core import GdResource, GdSubResource, ClassDbEnforcable, Collection
+from .property_collection import PropertyCollection
 from typing import Self
 from contextlib import contextmanager
 from abc import abstractmethod

@@ -1,3 +1,4 @@
+from .core import pointer_collection
 from . import property_collection 
 from . import sub_resources
 from . import resources
@@ -7,6 +8,7 @@ from . import resources
 import bpy
 
 _all = (
+    *pointer_collection._all,
     *property_collection._all,
     *sub_resources._all,
     *resources._all,

@@ -7,7 +7,7 @@ class _BlSubResource(bpy.types.PropertyGroup):
     pass
 
 class _BlSubResourceCollection(bpy.types.PropertyGroup):
-    data : bpy.types.PropertyCollection
+    data : bpy.types.CollectionProperty
 
 class _BlResource(bpy.types.PropertyGroup):
     ''' Place on all objects that require a unique disc representation (Tscn, Gltf, ~Textures) 
