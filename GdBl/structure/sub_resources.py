@@ -4,12 +4,12 @@ from .core.types import _BlSubResource
 
 
 ## GENERATED ON IMPORT/EXPORT, NO BL EQUIV:
-# class BlSubResourceEdit(_BlSubResource):
+# class SubResourceEdit(_BlSubResource):
 ## Generated/stored in Library overrides
-# class BlResourceContainer(_BlSubResource):
+# class ResourceContainer(_BlSubResource):
 ## Properties are stored in the main resource object.
 
-class BlSubResourceExt(_BlSubResource): 
+class SubResourceExt(_BlSubResource): 
     ''' Standalone data type 
     external resource mapping, implicitly updated in tscn.
     '''
@@ -18,14 +18,14 @@ class BlSubResourceExt(_BlSubResource):
     uid : bpy.props.StringProperty() #type:ignore
     unique_id : bpy.props.StringProperty() #type:ignore
 
-class BlSubResourceCategory(_BlSubResource):
+class SubResourceCategory(_BlSubResource):
     ''' Standalone data type 
     Generic category in a settings resource
     '''
     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
     name : bpy.props.StringProperty() #type:ignore
 
-class BlSubResource(_BlSubResource):
+class SubResource(_BlSubResource):
     ''' Standalone data type
     Script-Typeable object, generic.
     '''
@@ -33,7 +33,7 @@ class BlSubResource(_BlSubResource):
     gd_type : bpy.props.StringProperty() #type:ignore
     unqiue_id : bpy.props.StringProperty() #type:ignore
 
-class BlSubResourceNode(_BlSubResource):
+class SubResourceNode(_BlSubResource):
     ''' Placed on bpy.types.Object.Gd
     Missing properties & similar are asc/on the parent node.
     Functions are called with context.

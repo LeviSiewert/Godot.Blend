@@ -281,5 +281,6 @@ class TransformerModule():
                 - Usefull when children attach themselves to the parent, or are otherwise distributed. 
                 # - in this case, c.children and c.children_map will *always* be None
         '''
+        raise NotImplementedError(self.get_keys())
         yield TERMINAL #None|TERMINAL|Iterable[MyChildren]
         return IGNORE
