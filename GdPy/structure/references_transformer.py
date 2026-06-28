@@ -15,7 +15,9 @@ class GdToPy_GdValueExtResource(GdToPy):
 class PyToGd_GdValueExtResource(PyToGd):
     _keys = (GdValueExtResource,)
     def _transform(self, key, tc, gdc, node:GdValueExtResource, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+        if node.types:
+            return f"ExtResource[{node.type_anno}]({node.address})"
+        return f"ExtResource({node.address})"
 
 class GdToPy_GdValueNodePath(GdToPy):
     _keys = GdValueNodePath.lark_keys()
@@ -24,7 +26,10 @@ class GdToPy_GdValueNodePath(GdToPy):
 class PyToGd_GdValueNodePath(PyToGd):
     _keys = (GdValueNodePath,)
     def _transform(self, key, tc, gdc, node:GdValueNodePath, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+        if node.types:
+            return f"NodePath[{node.type_anno}]({node.address})"
+        return f"NodePath({node.address})"
+
 
 class GdToPy_GdValueSubResource(GdToPy):
     _keys = GdValueSubResource.lark_keys()
@@ -33,7 +38,10 @@ class GdToPy_GdValueSubResource(GdToPy):
 class PyToGd_GdValueSubResource(PyToGd):
     _keys = (GdValueSubResource,)
     def _transform(self, key, tc, gdc, node:GdValueSubResource, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+        if node.types:
+            return f"SubResource[{node.type_anno}]({node.address})"
+        return f"SubResource({node.address})"
+
 
 class GdToPy_GdValueResourceID(GdToPy):
     _keys = GdValueResourceID.lark_keys()
@@ -42,7 +50,10 @@ class GdToPy_GdValueResourceID(GdToPy):
 class PyToGd_GdValueResourceID(PyToGd):
     _keys = (GdValueResourceID,)
     def _transform(self, key, tc, gdc, node:GdValueResourceID, *children)->str:
-        raise NotImplementedError("Not yet implimented!")
+        if node.types:
+            return f"RID[{node.type_anno}]({node.address})"
+        return f"RID({node.address})"
+
 
 gd_to_py_ruleset = GdToPyRuleset( __file__, (
     GdToPy_GdValueExtResource(),
