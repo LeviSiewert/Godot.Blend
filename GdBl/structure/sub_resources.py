@@ -41,7 +41,7 @@ class BlSubResourceNode(_BlSubResource):
     script : bpy.props.StringProperty() #type:ignore
     name : bpy.props.StringProperty() #type:ignore
     unique_id : bpy.props.IntProperty() #type:ignore
-    # instance : str #GENERATED, root of instance
+    # instance : str #GENERATED, root of instance #match then generate BlSubresourceExt on export.
 
 _all = (
     BlSubResourceExt, 
