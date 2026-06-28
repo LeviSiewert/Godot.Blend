@@ -330,9 +330,9 @@ class PyToGd_PackedStringArray(_PyToGd_FixedTypeArray):
         if node.is_def_value():
             return f"{self._text_key}()"
         yield node.value
-        children = []
-        for x in tc.children.get():
-            children.append(f'"{x}"')
+        children = tc.children.get()
+        # for x in tc.children.get():
+        #     children.append(f'"{x}"')
         return f'{self._text_key}({','.join(children)})'
 
 
@@ -391,13 +391,12 @@ class PyToGd_Dictionary(PyToGd):
     _keys = (GdValueDictionary,)
     
     def transform(self, node:GdValueArray, tc:TransformerContext, c:Context, *args, **kwargs):
-        yield (*node.value.values(), *node.value.items())
-
-        conv : dict = tc.children_map.get()
 
         reps = []
         for k,v in node.value.items():
-            reps.append(f"{conv[k]}:{conv[v]}") 
+            yield (k,v)
+            _k, _v = tc.children.get()
+            reps.append(f"{_k}:{_v}") 
         
         inner = '{' + ",".join(reps) + "}" 
         if (node.types == ("Variant", "Variant")):

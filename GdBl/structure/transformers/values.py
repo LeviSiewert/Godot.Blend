@@ -220,16 +220,15 @@ class BlToPy_GdValueTransform3D(_BlToPy_FloatArray):
     _key = "GdValueTransform3D"
     
 class _PyToBl_PackedArray(PyToBl):
-    _keys = (GdValuePackedByteArray,)
     def transform(self, node:GdValuePackedByteArray, c, *args, **kwargs):
         target : BlPrimitives = c.existing_object.get()
-        raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node, target)
+        raise NotImplementedError("PyToBl PACKEDARRAY: ", node, target)
 class _BlToPy_PackedArray(BlToPy):
     _key : str
     def get_keys(self):
         return (self._key,)
     def transform(self, node:BlPrimitives, c, *args, **kwargs):
-        raise NotImplementedError("PyToBl GdValuePackedByteArray: ", node)
+        raise NotImplementedError("BlToPy PACKEDARRAY: ", node)
 
 class PyToBl_GdValuePackedByteArray(_PyToBl_PackedArray):
     _blkey = "GdValuePackedByteArray"

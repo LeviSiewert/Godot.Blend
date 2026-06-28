@@ -6,6 +6,7 @@ from lark import Token #type:ignore
 class GdValueExtResource(GdValue):
     _cache_layers = ("postload_extresource",)
     _has_typing = True
+    types = None
     ref : Any
     
     address : str = None
@@ -47,9 +48,13 @@ class GdValueExtResource(GdValue):
         else:
             return val == self.address
 
+    def __hash__(self):
+        return super().__hash__()
+
 class GdValueNodePath(GdValue):
     _cache_layers = ("postload_nodepath",)
     ref : Any
+    types = None
     address : str = None
     value : GdSubResource = None
 
@@ -88,9 +93,13 @@ class GdValueNodePath(GdValue):
         else:
             return val == self.address
 
+    def __hash__(self):
+        return super().__hash__()
+
 class GdValueSubResource(GdValue):
     _cache_layers = ("postload_subresource",)
     ref : Any
+    types = None
     address : str = None
     value : GdSubResource = None
 
@@ -135,6 +144,7 @@ class GdValueSubResource(GdValue):
 class GdValueResourceID(GdValue):
     _cache_layers = ("postload_rid",)
     ref : Any
+    types = None
     address : str = None
     value : File = None
 

@@ -250,7 +250,7 @@ config/icon="res://icon.png"
         res.properties["config/name"] = "Godot Third-Person Shooter Demo"
         res.properties["config/description"] = "Godot Third Person Shooter with high quality assets and lighting"
         res.properties["run/main_scene"] = "res://main/main.tscn"
-        res.properties["config/features"] = GdValuePackedStringArray("4.7")
+        res.properties["config/features"] = GdValuePackedStringArray(("4.7",))
         res.properties["config/icon"] = "res://icon.png"
         yield (txt, res)
 

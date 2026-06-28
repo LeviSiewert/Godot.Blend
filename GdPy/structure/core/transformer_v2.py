@@ -18,7 +18,7 @@ class TransformerContext():
         self.key = ContextVar(str(id(self))+"key")
         self.chain = ContextVar(str(id(self))+"chain", default = tuple())
         self.children = ContextVar(str(id(self))+"children", default=tuple())
-        self.children_map = ContextVar(str(id(self))+"children_map")
+        # self.children_map = ContextVar(str(id(self))+"children_map")
         self.node = ContextVar(str(id(self))+"node")
         self.existing_object = ContextVar(str(id(self))+"existing_object")
 
@@ -48,7 +48,7 @@ class TransformerContext():
     ## Converted Children, side-variable via context. Set via _transform_children
     ## if dict is yielded, return with identical key, mapped value
 
-    children_map : ContextVar[dict[Any,Any]|Any]
+    # children_map : ContextVar[dict[Any,Any]|Any]
     ## Converted Children mapped from prev->post, side-variable via context. Set via _transform_children
     
 class Transformer():
@@ -170,24 +170,24 @@ class TransformerModule():
     
     def _transform_children(self,c:TransformerContext, node, iterable:Iterable, args, kwargs):
         ''' Call and populate children from _transform yielded children
-        -> SIDE EFFECTS: c.children_map, c.children
+        # -> SIDE EFFECTS: c.children_map, c.children
         -> RETURN: None OR {key:Token} to reset after parent is transformed. 
         '''
         transformer : Transformer = c.transformer.get()
 
-        children_map = {}
+        # children_map = {}
         children = []
         
         for child in iterable:
             res = transformer.transform_tree(c, child, *args, **kwargs)
             if res is IGNORE:
                 continue
-            children_map[child] = res
+            # children_map[child] = res
             children.append(res)
 
         return {
             "children" : c.children.set(children),
-            "children_map" : c.children_map.set(children_map),
+            # # # "children_map" : c.children_map.set(children_map),
         }        
             
     def transform_tree(self, c:TransformerContext, node:Any, *args, **kwargs)->IGNORE|Any:
@@ -197,7 +197,7 @@ class TransformerModule():
             "node" : c.node.set(node),
             "chain" : c.chain.set((*c.chain.get(tuple()), node)),
             "children" : c.children.set(None),
-            "children_map" : c.children_map.set(None),
+            # # "children_map" : c.children_map.set(None),
         }
         _kt : dict[str,Token]|None = None
 
@@ -237,15 +237,14 @@ class TransformerModule():
             elif isinstance(children,dict):
                 _kt = self._transform_children_yielded(c, node, children.values(), args, kwargs)  #-> SIDE EFFECT: context.?
 
-                _m = c.children_map.get()
                 new = {}
-                for k,v in children.items():
-                    new[k] = _m[v] 
+                for k,v in zip(children.keys(), c.children.get()):
+                    new[k] = v 
                 c.children.set(new)
 
             elif (children is TERMINAL):
                 c.children.set(TERMINAL)
-                c.children_map.set(TERMINAL)
+                # c.children_map.set(TERMINAL)
             
             else:
                 _kt = self._transform_children_yielded(c, node, children, args, kwargs)  #-> SIDE EFFECT: context.?
@@ -269,7 +268,7 @@ class TransformerModule():
         ''' Transform this node
         If Generator:
             - Yield children first to transform them or TERMINAL|None to not set any children
-            - transformed children are then set in c.children and c.children_map
+            # - transformed children are then set in c.children and c.children_map
                 - set by function (_transform_children_default | _transform_children_yielded | _transform_children)
             - Multiple yields are allowed, c.children will be changed for each
             - return after to return the transformed value
@@ -280,7 +279,7 @@ class TransformerModule():
             - Root first timing;
                 - set inherited flag (class._transform_depth_first = False)
                 - Usefull when children attach themselves to the parent, or are otherwise distributed. 
-                - in this case, c.children and c.children_map will *always* be None
+                # - in this case, c.children and c.children_map will *always* be None
         '''
         yield TERMINAL #None|TERMINAL|Iterable[MyChildren]
         return IGNORE
