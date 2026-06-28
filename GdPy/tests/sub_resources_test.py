@@ -364,14 +364,3 @@ bus/1/mute = false
         for txt, res in self.data():
             val = _render(res)
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
-# class TestGdValueResourceID():
-#     def test_in_matcher(self,):
-#         assert(gdparser._parser_transformer.matcher(None, "rid"))
-#     def test_parsing(self,):
-#         assert(isinstance(_parse("value", "RID()"), GdValueResourceID)) 
-#         assert(_parse("value", "RID()") == GdValueResourceID())
-#         assert(_parse("value", 'RID("")') == GdValueResourceID())
-#         assert(_parse("value", 'RID("ID")') == GdValueResourceID("ID"))
-#     def test_rendering(self,):
-#         assert("RID()" == _render(GdValueResourceID()))
-#         assert('RID("ID")' == _render(GdValueResourceID("ID")))
