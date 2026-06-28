@@ -5,7 +5,9 @@ from .core.types import _BlSubResource
 
 ## GENERATED ON IMPORT/EXPORT, NO BL EQUIV:
 # class BlSubResourceEdit(_BlSubResource):
+## Generated/stored in Library overrides
 # class BlResourceContainer(_BlSubResource):
+## Properties are stored in the main resource object.
 
 class BlSubResourceExt(_BlSubResource): 
     ''' Standalone data type 
