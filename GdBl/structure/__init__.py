@@ -1,8 +1,8 @@
 from . import property_collection 
 from . import sub_resources
 from . import resources
-from . import file
-from . import project
+# from . import file
+# from . import project
 
 import bpy
 
@@ -10,8 +10,8 @@ _all = (
     *property_collection._all,
     *sub_resources._all,
     *resources._all,
-    *file._all,
-    *project._all,
+    # *file._all,
+    # *project._all,
 )
 
 def register():

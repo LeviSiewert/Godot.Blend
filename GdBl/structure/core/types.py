@@ -14,7 +14,6 @@ class _BlResource(bpy.types.PropertyGroup):
     required standard is object.gd
     in cases where an object represents multiple files, use .gd.{filetype}
     '''
-    is_enabled : bpy.props.BoolProperty() #type:ignore
     filepath : bpy.props.StringProperty() #type:ignore
     uid : bpy.props.StringProperty() #type:ignore
 
@@ -24,9 +23,9 @@ class _BlResourceSettings(bpy.types.PropertyGroup):
     in cases where an object represents multiple files, use .gd_settings.{filetype}
     '''
 
-class _BlResourceCollection(bpy.types.PropertyGroup):
-    ''' Utilize when clumping specific types of _BlResources '''
-    data : bpy.types.PropertyCollection
+# class _BlResourceCollection(bpy.types.PropertyGroup):
+#     ''' Utilize when clumping specific types of _BlResources '''
+#     data : bpy.types.PropertyCollection
 
 class _BlProjectData(bpy.types.PropertyGroup):
     ''' Project data accessor, utilize to point to other shit'''
