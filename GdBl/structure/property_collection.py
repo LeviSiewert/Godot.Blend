@@ -1,8 +1,8 @@
 import bpy
-from .primitives.pointer_collection import PointerCollection, BlPointerArray, BlPointerDictionary, _UNSET
+from .core.pointer_collection import PointerCollection, BlPointerArray, BlPointerDictionary, _UNSET
 from typing import Type
-from ....GdPy.structure.values import _primitive_types, _vector_types, _array_types, _dict_types, _type_map
-from ....GdPy.structure.values import GdValueStringName
+from ...GdPy.structure.values import _primitive_types, _vector_types, _array_types, _dict_types, _type_map
+from ...GdPy.structure.values import GdValueStringName
 
 
 def _reverse_dict_tuple(di: dict[str,tuple[str]])->dict[str,str]:

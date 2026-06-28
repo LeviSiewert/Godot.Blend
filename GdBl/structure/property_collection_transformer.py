@@ -1,10 +1,10 @@
-from .core import BlToPy, BlToPyRuleset
-from .core import PyToBl, PyToBlRuleset
+from .core.tranformer_base import BlToPy, BlToPyRuleset
+from .core.tranformer_base import PyToBl, PyToBlRuleset
 
-from ....GdPy.structure.core.transformer_v2 import TERMINAL
+from ...GdPy.structure.core.transformer_v2 import TERMINAL
 
-from ....GdPy.structure.property_collection import PropertyCollection as GdPropertyCollection
-from ....GdPy.structure.values import (
+from ...GdPy.structure.property_collection import PropertyCollection as GdPropertyCollection
+from ...GdPy.structure.values import (
     GdValueArray,
     GdValueDictionary,
     _primitive_types, 
@@ -14,14 +14,14 @@ from ....GdPy.structure.values import (
     _type_map
 ) 
 
-from ..core.properties import (
+from .property_collection import (
     BlPropertyCollection, 
     BlVectors, 
     BlPrimitives, 
     BlDictionary, 
     BlArray
 ) 
-from ..core.primitives.pointer_collection import (
+from .core.pointer_collection import (
     BlPointerDictionaryWrapper,
     BlPointerArrayWrapper,
 )

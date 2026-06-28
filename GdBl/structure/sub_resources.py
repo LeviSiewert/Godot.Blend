@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import PropertyGroup
 from bpy.props import CollectionProperty
-from .properties import BlPropertyCollection
+from .property_collection import BlPropertyCollection
 
 class _BlSubResource(PropertyGroup):
     properties : CollectionProperty(type = BlPropertyCollection) #type:ignore

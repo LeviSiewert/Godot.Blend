@@ -1,9 +1,9 @@
 import bpy
 from typing import Generator
 
-from .utils import BlenderPytestAttr
-from ..structure.core.properties import BlPropertyCollection, BlArray, BlDictionary, BlPrimitives, BlVectors
-from ..structure.core.primitives.pointer_collection import BlPointerArrayItemWrapper, BlPointerArrayWrapper, BlPointerDictionaryItemWrapper, BlPointerDictionaryWrapper, _Wrapper
+from ._utils import BlenderPytestAttr
+from ..structure.property_collection import BlPropertyCollection, BlArray, BlDictionary, BlPrimitives, BlVectors
+from ..structure.core.pointer_collection import BlPointerArrayItemWrapper, BlPointerArrayWrapper, BlPointerDictionaryItemWrapper, BlPointerDictionaryWrapper, _Wrapper
 from ...GdPy.structure.property_collection import PropertyCollection as GdPropertyCollection
 from ...GdPy.structure import values as GdPy
 
@@ -11,10 +11,10 @@ from ...GdPy.structure import values as GdPy
 
 from typing import Any
 
-from ..structure.transformers.property_collection import py_to_bl_ruleset, bl_to_py_ruleset, _PROPCOL_bl_to_py_ruleset, _PROPCOL_py_to_bl_ruleset
+from ..structure.transformers.property_collection_transformer import py_to_bl_ruleset, bl_to_py_ruleset, _PROPCOL_bl_to_py_ruleset, _PROPCOL_py_to_bl_ruleset
 from ...GdPy.structure.core.transformer_v2 import Transformer
 
-from ..structure.transformers.core import BlPyTransformerContext
+from ..structure.transformers._utils import BlPyTransformerContext
 
 from contextlib import contextmanager
 

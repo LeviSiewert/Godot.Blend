@@ -1,7 +1,7 @@
 from typing import Type
 
-from .core import BlToPy, BlToPyRuleset
-from .core import PyToBl, PyToBlRuleset
+from ._utils import BlToPy, BlToPyRuleset
+from ._utils import PyToBl, PyToBlRuleset
 
 from ....GdPy.structure.values import (
     GdValueStringName,
@@ -34,7 +34,7 @@ from ....GdPy.structure.values import (
     GdValueDictionary,
 )
 
-from ..core.properties import BlPrimitives
+from ..core.property_collection import BlPrimitives
 
 class BlToPyRuleset_Property(BlToPyRuleset):
     ''' Key is stored on BlPrimitives in a different way than other Blender objects '''
