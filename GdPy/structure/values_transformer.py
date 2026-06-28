@@ -67,6 +67,8 @@ class GdToPy_Terminals(GdToPy):
                 return float(tc.node.get())
             case "WORD":
                 return str(tc.node.get())
+            case "NULL":
+                return None
             case _:
                 raise Exception("Could not match type of node", node.type)
 
