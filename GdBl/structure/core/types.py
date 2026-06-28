@@ -19,4 +19,4 @@ class _BlResourceCollection(bpy.types.PropertyGroup):
 
 class _BlProject():
     name : bpy.props.StringProperty(name="Name") #type:ignore
-    filepath : bpy.props.StringProperty(name="project_dir", subtype="DIR_PATH")
+    filepath : bpy.props.StringProperty(name="project_dir", subtype="DIR_PATH") #type:ignore
