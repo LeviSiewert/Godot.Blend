@@ -3,7 +3,7 @@ from .core import GdResource, GdType, GdValue, Signal, SignalContainer
 from typing import Self, Type, Any, Iterable
 from lark import Token #type: ignore 
 from array import array
-
+from collections import OrderedDict
 
 class GdValueStringName(GdValue):
     value : str = ""
@@ -315,7 +315,7 @@ class GdValuePackedColorArray(_GdValueArrayPackedTypeComplex):
 
 
 class GdValueDictionary(GdValue):
-    value : dict
+    value : OrderedDict
     types : tuple[Type] = ("Variant","Variant")
 
     def __init__(self, value:Iterable[tuple]|dict=None, types:tuple[Type]=None):
@@ -340,9 +340,9 @@ class GdValueDictionary(GdValue):
         return ("dictionary","dictionary_explicit")
     
     def set_value(self, value):
-        self.value = value
+        self.value = OrderedDict(value)
     def def_value(self):
-        self.value = {}
+        self.value = OrderedDict()
     def set_type(self, types:tuple[str,str]):
         if types is None: return
         self.types = types
