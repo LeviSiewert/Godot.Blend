@@ -1,3 +1,4 @@
+import pytest
 from ..structure.references import *
 
 from ..structure.core.primitives import Context
@@ -10,6 +11,7 @@ def _parse(key:str, txt:str):
 def _render(object):
     return gdparser.render(c,object)
 
+@pytest.mark.dependency()
 class TestGdValueResourceID():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "rid"))
@@ -22,6 +24,7 @@ class TestGdValueResourceID():
         assert("RID()" == _render(GdValueResourceID()))
         assert('RID("ID")' == _render(GdValueResourceID("ID")))
 
+@pytest.mark.dependency()
 class TestGdValueExtResource():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "extresource"))
@@ -36,6 +39,7 @@ class TestGdValueExtResource():
         assert('ExtResource("ID")' == _render(GdValueExtResource("ID")))
         
 
+@pytest.mark.dependency()
 class TestGdValueNodePath():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "nodepath"))
@@ -49,6 +53,7 @@ class TestGdValueNodePath():
         assert('NodePath()' == _render(GdValueNodePath()))
         assert('NodePath("ID")' == _render(GdValueNodePath("ID")))
 
+@pytest.mark.dependency()
 class TestGdValueSubResource():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "subresource"))

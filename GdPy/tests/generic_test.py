@@ -1,3 +1,5 @@
+import pytest
+
 from ..structure.generic import GdObject
 
 from ..structure.core.primitives import Context
@@ -10,6 +12,7 @@ def _parse(key:str, txt:str):
 def _render(object):
     return gdparser.render(c,object)
 
+@pytest.mark.dependency()
 class TestGdObject():
     def test_in_matcher(self, ):
         assert(gdparser._parser_transformer.matcher(None,  "object" ))

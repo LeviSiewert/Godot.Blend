@@ -13,7 +13,7 @@ class _GdResource(GdResource):
     def setup(self,):
         pass
 
-class GdResourceFileTres(_GdResource, ClassDbEnforcable):
+class ResourceTres(_GdResource, ClassDbEnforcable):
     ext_resources : CollectionExtRes 
     sub_resources : CollectionSubRes
 
@@ -40,7 +40,7 @@ class GdResourceFileTres(_GdResource, ClassDbEnforcable):
     def get_struct_children(self):
         return (self.ext_resources, self.sub_resources)
         
-class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
+class ResourceScene(_GdResource): #, ClassDbEnforcable):
     format : int = None
     uid : str = None
 
@@ -76,7 +76,7 @@ class GdResourceFileScene(_GdResource): #, ClassDbEnforcable):
     def get_struct_children(self):
         return (self.ext_resources,self.sub_resources,self.node_resources,self.edit_resources)
 
-class GdResourceFileImport(_GdResource):
+class ResourceImport(_GdResource):
     cat_resources : CollectionCatRes
     config_version : int = None
 
@@ -100,8 +100,12 @@ class GdResourceFileImport(_GdResource):
     def get_struct_children(self):
         return (self.cat_resources)
 
+# class ResourceProject(ResourceImport):
+#     pass
+
 _all = (
-    GdResourceFileTres,
-    GdResourceFileScene,
-    GdResourceFileImport,
+    ResourceTres,
+    ResourceScene,
+    ResourceImport,
+    # ResourceProject,
 )

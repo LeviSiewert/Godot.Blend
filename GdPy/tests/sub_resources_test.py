@@ -1,3 +1,5 @@
+import pytest
+
 from ..structure.values import *
 from ..structure.sub_resources import *
 from ..structure.generic import GdObject
@@ -21,6 +23,7 @@ from typing import Generator
 
 ## NOTE: test cases from godot's official tps-demo level.tscn !!
 
+@pytest.mark.dependency()
 class TestSubResourceExt():
     def data(self,)->Generator[tuple[str,SubResourceExt]]:
         txt = '[ext_resource type="Script" uid="uid://ccxbls23ev7u3" path="res://level/level.gd" id="1"]'
@@ -94,6 +97,7 @@ class TestSubResourceExt():
             val = _render(res)
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
         
+@pytest.mark.dependency()
 class TestSubResourceEdit():
 
     def data(self,)->Generator[tuple[str,SubResourceEdit]]:
@@ -112,6 +116,7 @@ class TestSubResourceEdit():
             val = _render(res)
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
 
+@pytest.mark.dependency()
 class TestSubResource():
     '''Clarification: generic subresource'''
 
@@ -177,6 +182,7 @@ tracks/0/keys = {
             val = _render(res)
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
 
+@pytest.mark.dependency()
 class TestSubResourceNode():
 
     def data(self,)->Generator[tuple[str,SubResourceNode]]:
@@ -230,6 +236,7 @@ transform = Transform3D(0.843905, 0, -0.536493, 0, 1, 0, 0.536493, 0, 0.843905, 
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
 
 
+@pytest.mark.dependency()
 class TestSubResourceCategory():
     def data(self,)->Generator[tuple[str,SubResourceNode]]:
         txt = '''[animation]
@@ -335,6 +342,7 @@ ui_accept={
             assert(txt.replace(" ","").strip("\n") == val.replace(" ","").strip("\n"))
 
 
+@pytest.mark.dependency()
 class TestResourceContainer():
     '''Clarification: all properties not sorted under a SubResource-like '''
     def data(self,)->Generator[tuple[str,ResourceContainer]]:

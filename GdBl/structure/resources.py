@@ -8,10 +8,10 @@ class ResourceImport(_BlResource):
     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
     cat_resources : bpy.props.CollectionProperty(type = SubResourceCategory) #type:ignore
 
-class ResourceProject(_BlResource):
-    ''' standalone data type '''
-    properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
-    cat_resources : bpy.props.CollectionProperty(type = SubResourceCategory) #type:ignore
+# class ResourceProject(_BlResource):
+#     ''' standalone data type '''
+#     properties : bpy.props.PointerProperty(type = BlPropertyCollection) #type:ignore
+#     cat_resources : bpy.props.CollectionProperty(type = SubResourceCategory) #type:ignore
 
 class ResourceTres(_BlResource):
     ''' standalone data type '''
@@ -26,7 +26,7 @@ class ResourceTscn(_BlResource):
 
 _all = (
     ResourceImport,
-    ResourceProject,
+    # ResourceProject,
     ResourceTres,
     ResourceTscn,
 )

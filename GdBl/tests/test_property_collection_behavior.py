@@ -1,4 +1,5 @@
 import bpy
+import pytest
 from typing import Generator
 
 from ._utils import BlenderPytestAttr
@@ -43,6 +44,7 @@ def _py_to_bl(bl_pc, gd_pc)->Generator[BlPropertyCollection]:
     _py_to_bl_context.existing_object.reset(t1)
     bl_pc.clear()
 
+@pytest.mark.dependency()
 class TestBehavior(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlPropertyCollection)
     

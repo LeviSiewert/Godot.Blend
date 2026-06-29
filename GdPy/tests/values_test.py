@@ -1,3 +1,4 @@
+import pytest
 # from pytest import fixture
 
 from ..structure.values import *
@@ -12,6 +13,7 @@ def _parse(key:str, txt:str):
 def _render(object):
     return gdparser.render(c,object)
 
+@pytest.mark.dependency()
 class TestGdValueStringName():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "stringname"))
@@ -22,6 +24,7 @@ class TestGdValueStringName():
         assert('&"value"' == _render(GdValueStringName('value')))
         assert('&""' == _render(GdValueStringName()))
 
+@pytest.mark.dependency()
 class TestGdValueDictionary():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None, "dictionary"))
@@ -39,6 +42,7 @@ class TestGdValueDictionary():
         assert("{}" == _render(GdValueDictionary(types=("Variant","Variant"))))
         assert("Dictionary[Type,Type]()" == _render(GdValueDictionary(types=("Type","Type"))))
 
+@pytest.mark.dependency()
 class TestGdValueArray():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "array"))
@@ -54,6 +58,7 @@ class TestGdValueArray():
         assert("Array[Type]([])" == _render(GdValueArray([],"Type")))
 
 
+@pytest.mark.dependency()
 class TestGdValueVector2():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector2"))
@@ -71,6 +76,7 @@ class TestGdValueVector2():
         assert("Vector2(0.5,1.5)" == _render(GdValueVector2((0.5,1.5))))
         
 
+@pytest.mark.dependency()
 class TestGdValueVector3():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector3"))
@@ -88,6 +94,7 @@ class TestGdValueVector3():
         assert("Vector3(0.5,1.5,2.5)" == _render(GdValueVector3((0.5,1.5,2.5))))
 
 
+@pytest.mark.dependency()
 class TestGdValueVector4():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector4"))
@@ -104,6 +111,7 @@ class TestGdValueVector4():
         assert("Vector4(0,1,2,3)" == _render(GdValueVector4((0,1,2,3))))
         assert("Vector4(0.5,1.5,2.5,3.5)" == _render(GdValueVector4((0.5,1.5,2.5,3.5))))
 
+@pytest.mark.dependency()
 class TestGdValueVector2i():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector2i"))
@@ -117,6 +125,7 @@ class TestGdValueVector2i():
         assert("Vector2i(0,1)" == _render(GdValueVector2i((0,1))))
         
 
+@pytest.mark.dependency()
 class TestGdValueVector3i():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector3i"))
@@ -130,6 +139,7 @@ class TestGdValueVector3i():
         assert("Vector3i(0,1,2)" == _render(GdValueVector3i((0,1,2))))
         
 
+@pytest.mark.dependency()
 class TestGdValueVector4i():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "vector4i"))
@@ -144,6 +154,7 @@ class TestGdValueVector4i():
         assert("Vector4i(0,1,2,3)" == _render(GdValueVector4i((0,1,2,3))))
         
 
+@pytest.mark.dependency()
 class TestGdValueRect2():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "rect2"))
@@ -159,6 +170,7 @@ class TestGdValueRect2():
         assert("Rect2(0,1,2,3)" == _render(GdValueRect2((0,1,2,3))))
         assert("Rect2(0.5,1.5,2.5,3.5)" == _render(GdValueRect2((0.5,1.5,2.5,3.5))))
 
+@pytest.mark.dependency()
 class TestGdValueRect2i():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "rect2i"))
@@ -172,6 +184,7 @@ class TestGdValueRect2i():
         assert("Rect2i(0,1,2,3)" == _render(GdValueRect2i((0,1,2,3))))
         
 
+@pytest.mark.dependency()
 class TestGdValuePlane():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "plane"))
@@ -188,6 +201,7 @@ class TestGdValuePlane():
         assert("Plane(0.5,1.5,2.5,3.5)" == _render(GdValuePlane((0.5,1.5,2.5,3.5))))
         
 
+@pytest.mark.dependency()
 class TestGdValueColor():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "color"))
@@ -205,6 +219,7 @@ class TestGdValueColor():
         assert("Color(0,1,2,3)") == _render(GdValueColor((0,1,2,3)))
         assert("Color(0.5,1.5,2.5,3.5)") == _render(GdValueColor((0.5,1.5,2.5,3.5)))
 
+@pytest.mark.dependency()
 class TestGdValueAABB():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "aabb"))
@@ -221,6 +236,7 @@ class TestGdValueAABB():
         assert("AABB(1,2,3,4,5,6)" == _render(GdValueAABB((1,2,3,4,5,6))))
         assert("AABB(1.5,2.5,3.5,4.5,5.5,6.5)" == _render(GdValueAABB((1.5,2.5,3.5,4.5,5.5,6.5))))
 
+@pytest.mark.dependency()
 class TestGdValueQuaternion():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "quaternion"))
@@ -236,6 +252,7 @@ class TestGdValueQuaternion():
         assert("Quaternion(0,1,2,3)") == _render(GdValueQuaternion((0,1,2,3)))
         assert("Quaternion(0.5,1.5,2.5,3.5)") == _render(GdValueQuaternion((0.5,1.5,2.5,3.5)))
 
+@pytest.mark.dependency()
 class TestGdValueBasis():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "basis"))
@@ -251,6 +268,7 @@ class TestGdValueBasis():
         assert("Basis(0,1,2,3,4,5,6,7,8)") == _render(GdValueBasis((0,1,2,3,4,5,6,7,8)))
         assert("Basis(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)") == _render(GdValueBasis((0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)))
 
+@pytest.mark.dependency()
 class TestGdValueTransform2D():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "transform2d"))
@@ -266,6 +284,7 @@ class TestGdValueTransform2D():
         assert("Transform2D(0,1,2,3,4,5)") == _render(GdValueTransform2D((0,1,2,3,4,5)))
         assert("Transform2D(0,1.5,2.5,3.5,4.5,5.5)") == _render(GdValueTransform2D((0,1.5,2.5,3.5,4.5,5.5)))
 
+@pytest.mark.dependency()
 class TestGdValueTransform3D():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "transform3d"))
@@ -282,6 +301,7 @@ class TestGdValueTransform3D():
         assert("Transform3D(0,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5)") == _render(GdValueTransform3D((0,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5)))
         
 
+@pytest.mark.dependency()
 class TestGdValuePackedByteArray():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedbytearray"))
@@ -295,6 +315,7 @@ class TestGdValuePackedByteArray():
         assert('PackedByteArray("abc123")') == _render(GdValuePackedByteArray(("abc123",)))
         
 
+@pytest.mark.dependency()
 class TestGdValuePackedInt32Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedint32array"))
@@ -307,6 +328,7 @@ class TestGdValuePackedInt32Array():
         assert("PackedInt32Array()") == _render(GdValuePackedInt32Array())
         assert("PackedInt32Array(0,1,2,3,4)") == _render(GdValuePackedInt32Array((0,1,2,3,4)))
 
+@pytest.mark.dependency()
 class TestGdValuePackedInt64Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedint64array"))
@@ -319,6 +341,7 @@ class TestGdValuePackedInt64Array():
         assert("PackedInt64Array()") == _render(GdValuePackedInt64Array())
         assert("PackedInt64Array(0,1,2,3,4)") == _render(GdValuePackedInt64Array((0,1,2,3,4)))
 
+@pytest.mark.dependency()
 class TestGdValuePackedFloat32Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedfloat32array"))
@@ -334,6 +357,7 @@ class TestGdValuePackedFloat32Array():
         assert("PackedFloat32Array(0,1,2,3,4)") == _render(GdValuePackedFloat32Array((0,1,2,3,4)))
         assert("PackedFloat32Array(0,1.5,2.5,3.5,4.5)") == _render(GdValuePackedFloat32Array((0,1.5,2.5,3.5,4.5)))
         
+@pytest.mark.dependency()
 class TestGdValuePackedFloat64Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedfloat64array"))
@@ -349,6 +373,7 @@ class TestGdValuePackedFloat64Array():
         assert("PackedFloat64Array(0,1.5,2.5,3.5,4.5)") == _render(GdValuePackedFloat64Array((0,1.5,2.5,3.5,4.5)))
         assert("PackedFloat64Array()") == _render(GdValuePackedFloat64Array())
 
+@pytest.mark.dependency()
 class TestGdValuePackedStringArray():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedstringarray"))
@@ -363,6 +388,7 @@ class TestGdValuePackedStringArray():
         assert('PackedStringArray("a","b")' == _render(GdValuePackedStringArray(("a","b"))))
         
 
+@pytest.mark.dependency()
 class TestGdValuePackedVector2Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedvector2array"))
@@ -382,6 +408,7 @@ class TestGdValuePackedVector2Array():
         assert("PackedVector2Array(0,1.5,2.5,3.5)" == _render(GdValuePackedVector2Array((GdValueVector2((0,1.5)),GdValueVector2((2.5,3.5))))))
         
 
+@pytest.mark.dependency()
 class TestGdValuePackedVector3Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedvector3array"))
@@ -398,6 +425,7 @@ class TestGdValuePackedVector3Array():
         assert("PackedVector3Array(0,1,2,0,1,2)" == _render(GdValuePackedVector3Array((GdValueVector3((0,1,2)),GdValueVector3((0,1,2))))))
         assert("PackedVector3Array(0,1.5,2.5,0.5,1.5,2.5)" == _render(GdValuePackedVector3Array((GdValueVector3((0,1.5,2.5)),GdValueVector3((0.5,1.5,2.5))))))
 
+@pytest.mark.dependency()
 class TestGdValuePackedVector4Array():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedvector4array"))
@@ -416,6 +444,7 @@ class TestGdValuePackedVector4Array():
 
         
 
+@pytest.mark.dependency()
 class TestGdValuePackedColorArray():
     def test_in_matcher(self,):
         assert(gdparser._parser_transformer.matcher(None,  "packedcolorarray" ))
@@ -431,6 +460,7 @@ class TestGdValuePackedColorArray():
         assert(_render(GdValuePackedColorArray((GdValueColor((0,1,2,3)),GdValueColor((0,1,2,3))))) == "PackedColorArray(0,1,2,3,0,1,2,3)")
         assert(_render(GdValuePackedColorArray((GdValueColor((0,1.5,2.5,3.5)),GdValueColor((0.5,1.5,2.5,3.5))))) == "PackedColorArray(0,1.5,2.5,3.5,0.5,1.5,2.5,3.5)")
 
+@pytest.mark.dependency()
 class TestGdValueObject():
     def test_in_matcher(self, ):
         assert(gdparser._parser_transformer.matcher(None,  "object" ))

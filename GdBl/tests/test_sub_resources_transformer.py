@@ -1,4 +1,5 @@
 import bpy
+import pytest
 from typing import Generator
 
 from ._utils import BlenderPytestAttr, BlenderPytest
@@ -34,6 +35,7 @@ from ...GdPy.tests.sub_resources_test import (
 py_to_bl_context = BlPyTransformerContext(PyToBlTransformer)
 bl_to_py_context = BlPyTransformerContext(BlToPyTransformer)
 
+@pytest.mark.dependency()
 class TestSubResourceExt(BlenderPytestAttr):
     attr_value = bpy.props.CollectionProperty(type = BlSubResourceExt)
 
@@ -71,6 +73,7 @@ class TestSubResourceExt(BlenderPytestAttr):
             assert(res == gd_value)
             
 
+@pytest.mark.dependency()
 class TestSubResourceCategory(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlSubResourceCategory)
 
@@ -105,6 +108,7 @@ class TestSubResourceCategory(BlenderPytestAttr):
             res = BlToPyTransformer.transform_tree(bl_to_py_context, bl_value)
             assert(res == gd_value)
     
+@pytest.mark.dependency()
 class TestSubResource(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlSubResource)
 
@@ -145,7 +149,8 @@ class TestSubResource(BlenderPytestAttr):
             res = BlToPyTransformer.transform_tree(bl_to_py_context, bl_value)
             assert(res == gd_value)
 
-# class TestSubResourceNode(BlenderPytest):
+# @pytest.mark.dependency()
+class TestSubResourceNode(BlenderPytest):
 #     ''' Generating and applying attributes onto a new empty, subtype testing is part of modular implemenation 
 #     INITIAL: (TreeZip) transformers will be prioritized and supercede this transformer
 #     '''

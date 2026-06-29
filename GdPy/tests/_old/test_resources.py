@@ -1,12 +1,12 @@
 
 from pathlib import Path as _Path
 
-# from ..structure.resources import GdResourceFileImport, GdSubresourseCategory, GdResourceFileScene, GdSubResourceNode
+# from ..structure.resources import GdResourceImport, GdSubresourseCategory, GdResourceScene, GdSubResourceNode
 # from ..structure.files import FileGodotProject, FileTscn, FileTres
 # from ..structure.values import *
 
 from ...structure.core import PropertyCollection, Context
-from ...structure.resources import GdResourceFileImport, GdResourceFileScene, GdResourceFileTres
+from ...structure.resources import GdResourceImport, GdResourceScene, GdResourceTres
 from ...structure.sub_resource_collections import CollectionExtRes, CollectionEditRes, CollectionNodeRes, CollectionNodeRes, CollectionCatRes
 from ...structure.sub_resources import SubResource, SubResourceCategory, SubResourceEdit, SubResourceExt, SubResourceNode 
 from ...structure.files import FileGodotProject, FileTscn
@@ -16,8 +16,8 @@ from ...structure.values import GdValuePackedStringArray
 
 _projdir = _Path(__file__).parent.resolve() / "project"
 
-def project_resource_expected()->GdResourceFileImport:
-    res = GdResourceFileImport()
+def project_resource_expected()->GdResourceImport:
+    res = GdResourceImport()
     res.config_version = 5
 
     res.cat_resources.extend([
@@ -45,16 +45,16 @@ def test_project_resource():
     file = FileGodotProject(_projdir/"project.godot")
     file.load(c)
 
-    res : GdResourceFileImport = file.data
+    res : GdResourceImport = file.data
     assert (res.config_version == exp.config_version)
     assert(res.cat_resources["application"] == exp.cat_resources["application"])
     assert(res.cat_resources["display"] == exp.cat_resources["display"])
     assert(res.cat_resources["physics"] == exp.cat_resources["physics"])
     assert(res.cat_resources["rendering"] == exp.cat_resources["rendering"])
 
-def get_exp_tscn()->GdResourceFileScene:
+def get_exp_tscn()->GdResourceScene:
     c = Context()
-    res = GdResourceFileScene()
+    res = GdResourceScene()
     res.format = 3
     res.uid = "uid://c0irlon13iq4o"
     
@@ -98,7 +98,7 @@ def test_tscn():
     exp = get_exp_tscn()
     file = FileTscn(_projdir/"assets"/"tscn.tscn")
     file.load(c)
-    res : GdResourceFileScene = file.data
+    res : GdResourceScene = file.data
     res.node_resources.build_tree(c)
 
     assert(res.format == exp.format)
