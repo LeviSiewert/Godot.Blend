@@ -42,7 +42,7 @@ class PyToBl_SubResourceExt(PyToBl):
         return res
     
 
-class BlSubResourceCategory(BlToPy):
+class BlToPy_SubResourceCategory(BlToPy):
     _keys = (BlSubResourceCategory,)
     def transform(self, node:BlSubResourceCategory, tc, bc, *args, **kwargs):
 
@@ -54,7 +54,7 @@ class BlSubResourceCategory(BlToPy):
 
         return res
 
-class PySubResourceCategory(PyToBl):
+class PyToBl_SubResourceCategory(PyToBl):
     _keys = (GdSubResourceCategory,)
     def transform(self, node:GdSubResourceCategory, tc, bc, *args, **kwargs):
         res : BlSubResourceCategory = bc.property_collection.get().add()
@@ -67,7 +67,7 @@ class PySubResourceCategory(PyToBl):
 
         return res
     
-    
+
 class BlToPy_SubResource(BlToPy):
     _keys = (BlSubResource,)
     def transform(self, node:BlSubResource, tc, bc, *args, **kwargs):
