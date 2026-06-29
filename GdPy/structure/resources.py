@@ -14,6 +14,9 @@ class _GdResource(GdResource):
         pass
 
 class ResourceTres(_GdResource, ClassDbEnforcable):
+    type : str
+    format : int
+    uid : str
     ext_resources : CollectionExtRes 
     sub_resources : CollectionSubRes
 

@@ -21,7 +21,7 @@ from ...GdPy.structure.resources import (
     ResourceScene as GdResourceScene, 
     ResourceImport as GdResourceImport, 
 )
-from ...GdPy.tests.resources_test import (
+from ...GdPy.tests.references_test import (
     TestResourceTres as GdTestResourceTres,
     TestResourceScene as GdTestResourceScene,
     TestResourceImport as GdTestResourceImport,
