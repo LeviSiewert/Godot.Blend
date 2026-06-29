@@ -235,8 +235,8 @@ class TestSubResourceCategory():
         txt = '''[animation]
 
 compatibility/default_parent_skeleton_in_mesh_instance_3d=true
-'''
-
+'''     
+        #TODO: Add this entry
         txt = '''[application]
 
 config/name="Godot Third-Person Shooter Demo"
