@@ -108,13 +108,11 @@ class GdToPy_ResourceContainer(GdToPy):
         inst = ResourceContainer(_construct = True)
         inst.properties = body_properties
         return inst
+
 class PyToGd_ResourceContainer(_PyToGd):
     _header_props = tuple()
     _keys = (ResourceContainer,)
     _res_key = "resource"
-    def transform(self, node:ResourceContainer, tc, c, *args, **kwargs):
-        yield (node.properties,)
-        return tc.children.get()[0]
 
 
 gd_to_py_ruleset = GdToPyRuleset( __file__, (
