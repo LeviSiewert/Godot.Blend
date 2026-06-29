@@ -4,7 +4,6 @@ from .core.types import _BlSubResource
 
 
 ## GENERATED ON IMPORT/EXPORT, NO BL EQUIV:
-# class SubResourceEdit(_BlSubResource):
 ## Generated/stored in Library overrides
 # class ResourceContainer(_BlSubResource):
 ## Properties are stored in the main resource object.
@@ -13,9 +12,9 @@ class SubResourceExt(_BlSubResource):
     ''' Standalone data type 
     external resource mapping, implicitly updated in tscn.
     '''
-    gdtype : bpy.props.StringProperty() #type:ignore
-    path : bpy.props.StringProperty() #type:ignore
+    gd_type : bpy.props.StringProperty() #type:ignore
     uid : bpy.props.StringProperty() #type:ignore
+    path : bpy.props.StringProperty() #type:ignore
     unique_id : bpy.props.StringProperty() #type:ignore
 
 class SubResourceCategory(_BlSubResource):
