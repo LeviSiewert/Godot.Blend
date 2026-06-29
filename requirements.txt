@@ -1,4 +1,5 @@
-watchdog
 pytest
+pytest-dependency
+watchdog
 lark
 bpy
