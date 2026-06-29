@@ -13,7 +13,15 @@ class _GdResource(GdResource):
     def setup(self,):
         pass
 
-class ResourceTres(_GdResource, ClassDbEnforcable):
+    @classmethod
+    def new(cls, **kwargs):
+        inst = cls()
+        for k,v in kwargs.items():
+            assert(hasattr(cls,k))
+            setattr(inst,k,v)
+        return inst
+
+class ResourceTres(_GdResource): #, ClassDbEnforcable):
     type : str
     format : int
     uid : str
@@ -43,7 +51,7 @@ class ResourceTres(_GdResource, ClassDbEnforcable):
     def get_struct_children(self):
         return (self.ext_resources, self.sub_resources)
         
-class ResourceScene(_GdResource): #, ClassDbEnforcable):
+class ResourceScene(_GdResource): #): #, ClassDbEnforcable):
     format : int = None
     uid : str = None
 
@@ -82,6 +90,8 @@ class ResourceScene(_GdResource): #, ClassDbEnforcable):
 class ResourceImport(_GdResource):
     cat_resources : CollectionCatRes
     config_version : int = None
+    type : str = None
+    uid : str = None
 
     @classmethod
     def lark_keys(cls):
