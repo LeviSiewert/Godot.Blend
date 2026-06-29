@@ -291,7 +291,7 @@ class PyToGd_PackedByteArray(_PyToGd_FixedTypeArray):
             return f"{self._text_key}()"
         yield node.value
         if tc.children.get():
-            return f'{self._text_key}("{','.join(tc.children.get())}")'
+            return f'{self._text_key}({''.join(tc.children.get())})'
         return f'{self._text_key}("")'
 
 class GdToPy_PackedInt32Array(_GdToPy_FixedTypeArray):
