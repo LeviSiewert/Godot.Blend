@@ -6,14 +6,14 @@ from ..structure.resources import (
     ResourceScene,
     ResourceImport,
 )
-from ..structure.values import GdValueSubResource, GdValuePackedStringArray
+from ..structure.values import GdValuePackedStringArray
 from ..structure.references import GdValueNodePath, GdValueSubResource, GdValueExtResource
 from ..structure.sub_resources import SubResource, SubResourceCategory, SubResourceNode
 from ..structure.property_collection import PropertyCollection
 
 from ..structure.core.primitives import Context
 from ..structure._standard_parser import construct_keyed_parser
-gdparser = construct_keyed_parser("resource")
+gdparser = construct_keyed_parser("file_resource")
 
 c = Context()
 def _parse(key:str, txt:str):
@@ -71,7 +71,7 @@ camera_attributes = SubResource("CameraAttributesPractical_fssom")
 
     def test_gd_to_py(self,):
         for txt, res in self.data():
-            val : ResourceTres = _parse("ext_resource",txt)
+            val : ResourceTres = _parse("file_resource",txt)
             assert (isinstance(val, ResourceTres))
             assert (res.type == val.type)
             assert (res.format == val.format)
@@ -190,7 +190,7 @@ gltf/texture_map_mode=1
 
     def test_gd_to_py(self,):
         for txt, res in self.data():
-            val : ResourceImport = _parse("ext_resource",txt)
+            val : ResourceImport = _parse("file_settings",txt)
             assert (isinstance(val, ResourceImport))
             assert (res.type == val.type)
             assert (res.uid == val.uid)
@@ -279,7 +279,7 @@ unique_name_in_owner = true
 
     def test_gd_to_py(self,):
         for txt, res in self.data():
-            val : ResourceScene = _parse("ext_resource",txt)
+            val : ResourceScene = _parse("file_tscn",txt)
             assert (isinstance(val, ResourceScene))
             assert (res.type == val.type)
             assert (res.uid == val.uid)
