@@ -16,6 +16,8 @@ from ..structure._tranformers import (
     PyToBlTransformer,
 )
 
+from ..structure.core.tranformer_base import BlPyTransformerContext
+
 from ...GdPy.structure.sub_resources import (
     SubResource as GdSubResource,
     SubResourceCategory as GdSubResourceCategory, 
@@ -29,11 +31,16 @@ from ...GdPy.tests.sub_resources_test import (
     TestSubResourceNode as GdTestSubResourceNode,
 )
 
+py_to_bl_context = BlPyTransformerContext(PyToBlTransformer)
+bl_to_py_context = BlPyTransformerContext(BlToPyTransformer)
+
 class TestSubResourceExt(BlenderPytestAttr):
     attr_value = bpy.props.CollectionProperty(type = BlSubResourceExt)
 
     def data(self)->Generator[tuple[BlSubResourceExt,GdSubResourceExt]]:
         col : bpy.types.CollectionProperty = self.get_attr()
+        py_to_bl_context.property_collection.set(col)
+        bl_to_py_context.property_collection.set(col)
 
         def conv(gd_val:GdSubResourceExt):
             bl_val : BlSubResourceExt = col.add()
@@ -49,18 +56,18 @@ class TestSubResourceExt(BlenderPytestAttr):
 
     def test_py_to_bl(self,):
         def compare(a:BlSubResource,b:BlSubResource):
-            assert(a.gdtype == a.gdtype)
+            assert(a.gd_type == a.gd_type)
             assert(a.path == a.path)
             assert(a.uid == a.uid) 
             assert(a.unique_id == a.unique_id)
 
         for bl_value, gd_value in self.data():
-            res = PyToBlTransformer.transform_tree(None, gd_value)
+            res = PyToBlTransformer.transform_tree(py_to_bl_context, gd_value)
             compare(res, bl_value)
 
     def test_bl_to_py(self,):
         for bl_value, gd_value in self.data():
-            res = BlToPyTransformer.transform_tree(None, bl_value)
+            res = BlToPyTransformer.transform_tree(bl_to_py_context, bl_value)
             assert(res == gd_value)
             
 
@@ -69,6 +76,8 @@ class TestSubResourceCategory(BlenderPytestAttr):
 
     def data(self)->Generator[tuple[BlSubResourceCategory, GdSubResourceCategory]]:
         col : bpy.types.CollectionProperty = self.get_attr()
+        py_to_bl_context.property_collection.set(col)
+        bl_to_py_context.property_collection.set(col)
 
         def conv(gd_val:GdSubResourceCategory):
             bl_val : BlSubResourceCategory = col.add()
@@ -85,22 +94,28 @@ class TestSubResourceCategory(BlenderPytestAttr):
     def test_py_to_bl(self,):
         def compare(a:GdSubResourceCategory,b:GdSubResourceCategory):
             assert(a.name == b.name)
-            assert(BlToPyTransformer.transform_tree(None,a.properties) == BlToPyTransformer.transform_tree(None,b.properties))
+            assert(BlToPyTransformer.transform_tree(bl_to_py_context,a.properties) == BlToPyTransformer.transform_tree(bl_to_py_context,b.properties))
 
         for bl_value, gd_value in self.data():
-            res = PyToBlTransformer.transform_tree(None, gd_value)
+            res = PyToBlTransformer.transform_tree(py_to_bl_context, gd_value)
             compare(res, bl_value)
 
     def test_bl_to_py(self,):
         for bl_value, gd_value in self.data():
-            res = BlToPyTransformer.transform_tree(None, bl_value)
+            res = BlToPyTransformer.transform_tree(bl_to_py_context, bl_value)
             assert(res == gd_value)
     
 class TestSubResource(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlSubResource)
 
+    
+
+
     def data(self)->Generator[tuple[BlSubResource, GdSubResource]]:
         col : bpy.types.CollectionProperty = self.get_attr()
+        py_to_bl_context.property_collection.set(col)
+        bl_to_py_context.property_collection.set(col)
+
 
         def conv(gd_val:GdSubResource):
             bl_val : BlSubResource = col.add()
@@ -122,15 +137,15 @@ class TestSubResource(BlenderPytestAttr):
             assert(a.name == b.name)
             assert(a.gd_type == b.gd_type)
             assert(a.unqiue_id == b.unqiue_id)
-            assert(BlToPyTransformer.transform_tree(None, a.properties) == BlToPyTransformer.transform_tree(b.properties))
+            assert(BlToPyTransformer.transform_tree(bl_to_py_context, a.properties) == BlToPyTransformer.transform_tree(b.properties))
 
         for bl_value, gd_value in self.data():
-            res = PyToBlTransformer.transform_tree(None, gd_value)
+            res = PyToBlTransformer.transform_tree(py_to_bl_context, gd_value)
             compare(res, bl_value)
 
     def test_bl_to_py(self,):
         for bl_value, gd_value in self.data():
-            res = BlToPyTransformer.transform_tree(None, bl_value)
+            res = BlToPyTransformer.transform_tree(bl_to_py_context, bl_value)
             assert(res == gd_value)
 
 # class TestSubResourceNode(BlenderPytest):
@@ -149,6 +164,8 @@ class TestSubResource(BlenderPytestAttr):
 
 #     def data(self)->Generator[tuple[BlSubResourceNode, GdSubResourceNode]]:
 #         col : bpy.types.CollectionProperty = self.get_attr()
+        # py_to_bl_context.property_collection.set(col)
+        # bl_to_py_context.property_collection.set(col)
 
 #         def conv(gd_val:GdSubResourceNode):
 #             bl_val : bpy.types.Object = col.add()
@@ -175,7 +192,7 @@ class TestSubResource(BlenderPytestAttr):
 #             assert(BlToPyTransformer.transform_tree(a.properties) == BlToPyTransformer.transform_tree(b.properties))
 
 #         for bl_value, gd_value in self.data():
-#             res = PyToBlTransformer.transform_tree(None, gd_value)
+#             res = PyToBlTransformer.transform_tree(py_to_bl_context, gd_value)
 #             compare(res, bl_value)
 
 #     def test_bl_to_py(self,):
