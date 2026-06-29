@@ -108,9 +108,6 @@ class TestSubResourceCategory(BlenderPytestAttr):
 class TestSubResource(BlenderPytestAttr):
     attr_value = bpy.props.PointerProperty(type = BlSubResource)
 
-    
-
-
     def data(self)->Generator[tuple[BlSubResource, GdSubResource]]:
         col : bpy.types.CollectionProperty = self.get_attr()
         py_to_bl_context.property_collection.set(col)
