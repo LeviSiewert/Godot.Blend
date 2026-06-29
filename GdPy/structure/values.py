@@ -357,6 +357,7 @@ class GdValueDictionary(GdValue):
     @classmethod
     def parse_lark(cls, key, tc, gdc, *args, **kwargs)->Any:
         if key == "dictionary":
+            # raise Exception(args, kwargs)
             return cls._parse_implicit(*args, **kwargs)
         elif key == "dictionary_explicit":
             return cls._parse_explicit(*args, **kwargs)
@@ -364,7 +365,7 @@ class GdValueDictionary(GdValue):
             raise Exception("Cannot find key", key)
 
     @classmethod
-    def _parse_implicit(cls, pairs:list[tuple]=tuple())->Any: 
+    def _parse_implicit(cls, *pairs:list[tuple])->Any:
         return cls(pairs)
     
     @classmethod
