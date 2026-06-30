@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bvshg3b45tq5b"]
+
+[ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_8vle4"]
+
+[node name="blender" unique_id=1301180837 instance=ExtResource("1_8vle4")]
+
+[node name="InheritedSceneChild" type="Node" parent="." index="0" unique_id=140602464]
