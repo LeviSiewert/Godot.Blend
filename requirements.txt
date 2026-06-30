@@ -3,3 +3,4 @@ pytest-dependency
 watchdog
 lark
 bpy
+pygltflib
