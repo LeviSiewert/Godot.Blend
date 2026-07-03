@@ -35,6 +35,17 @@ class CollectionKey[KEY:str]():
             return
         return self.collection.set(self, key)
     
+class CollectionSubscriber[T]():
+    value_updated : Signal
+    address_updated : Signal
+    address : str
+
+    def set_address(self, value):
+        pass
+
+    def get(self,)->T:
+        pass
+
 class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     ''' KEY is required to be hashable 
     all keys must exist on the originating object at integration as CollectionKey objects

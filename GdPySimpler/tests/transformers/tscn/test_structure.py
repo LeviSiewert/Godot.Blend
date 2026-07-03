@@ -157,9 +157,9 @@ class Test_ExtReferenceCollection(Test_ExtReference):
 [ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="3_7d4mc"]
 '''     
         res = ExtReferenceCollection(
-            ExtReference(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn" id="1_0xe7n"),
-            ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb" id="1_w5rjj"),
-            ExtReference(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd" id="3_7d4mc"),
+            ExtReference(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
+            ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
+            ExtReference(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
         )
         yield txt, res
 
@@ -194,10 +194,10 @@ class Test_EditFlagCollection(_StructureTest):
 [editable path="GlbEditableEditProp"]
 ''' 
         res = EditFlagCollection(
-            EditFlag("GlbInhheritedEditable").
-            EditFlag("GlbEditable").
-            EditFlag("GlbEditableAddScript").
-            EditFlag("GlbEditableEditProp").
+            EditFlag("GlbInhheritedEditable"),
+            EditFlag("GlbEditable"),
+            EditFlag("GlbEditableAddScript"),
+            EditFlag("GlbEditableEditProp"),
         )
         yield txt, res
 
