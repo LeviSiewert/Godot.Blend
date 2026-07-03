@@ -36,6 +36,7 @@ class CollectionKey[KEY:str]():
         return self.collection.set(self, key)
     
 class CollectionSubscriber[T]():
+    ''' Currently, this is only for strings '''
     value_updated : Signal
     address_updated : Signal
     address : str
@@ -45,6 +46,12 @@ class CollectionSubscriber[T]():
 
     def get(self,)->T:
         pass
+
+    def __init__(self, address_or_value:str|T,):
+        if isinstance(address_or_value,str):
+            self.set_address(address_or_value)
+        else:
+            self.set_value(address_or_value)
 
 class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     ''' KEY is required to be hashable 

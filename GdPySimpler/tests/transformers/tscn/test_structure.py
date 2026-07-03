@@ -10,6 +10,10 @@ from ....transformers.tscn import (
 )
 
 from ....core.structure import (
+    Project,
+    FileLocal,
+    FileForeign,
+    ResourceScript,
     ResourceSettings,
     ResourceTres,
     ResourceScene,
@@ -27,57 +31,45 @@ from ....core.structure import (
     GdTypeValueSet,
     Signal,
     SignalCollection,
+    ExtResourceRef,
+    SubResourceRef,
+    RID,
 )
 
-_parser_cache = {}
-def make_parser_cached(key):
-    if res:=_parser_cache.get(key,None):
-        return res
-    res = make_parser(key)
-    _parser_cache[key] = res
-    return res
+from ....core.values import (
+    NodePath,
+    StringName,
+    Object,
+    Dictionary,
+    Array,
+    Vector2i,
+    Vector3i,
+    Vector4i,
+    Rect2i,
+    Vector2,
+    Vector3,
+    Vector4,
+    Rect2,
+    Plane,
+    Color,
+    AABB,
+    Quaternion,
+    Transform2D,
+    Transform3D,
+    Basis,
+    PackedInt32Array,
+    PackedInt64Array,
+    PackedFloat32Array,
+    PackedFloat64Array,
+    PackedStringArray,
+    PackedVector2Array,
+    PackedVector3Array,
+    PackedVector4Array,
+    PackedColorArray,
+    PackedByteArray,
+)
 
-class _StructureTest[T:Type]():
-    _type : Type[T]
-    _parser_key : str
-
-    def data(self,)->Generator[str,T]:
-        raise NotImplementedError()
-        yield
-
-    def _yield_gd_to_py(self,)->Generator[tuple[Any,Any]]:
-        for txt, obj in self.data():
-            parsed = make_parser_cached(self._parser_key).parse(txt)
-            res = gd_to_py_transformer.transform_tree(self.make_gdtopy_context(), parsed)
-            yield obj, res
-
-    def _yield_py_to_gd(self,)->Generator[tuple[str,str]]:
-        for txt, obj in self.data():
-            parsed = make_parser_cached(self._parser_key).parse(txt)
-            res = py_to_gd_transformer.transform_tree(self.make_pytogd_context(), obj)
-            yield txt, res
-    
-    def test_py_to_gd(self,):
-        for a,b in self._yield_py_to_gd():
-            self.gd_compare(a,b)
-    
-    def test_gd_to_py(self,):
-        for a,b in self._yield_gd_to_py():
-            self.py_compare(a,b)
-    
-    def make_pytogd_context(self,)->PyToGdContext:
-        return PyToGdContext()
-
-    def make_gdtopy_context(self,)->GdToPyContext:
-        return GdToPyContext()
-
-    def py_compare(self, a:T, b:T):
-        assert (isinstance(b, self._type))
-        assert (a == b)
-
-    def gd_compare(self, a:str, b:str):
-        assert(a.replace("/n","").replace(" ","") == b.replace("/n","").replace(" ",""))
-
+from ._utils import _StructureTest
 
 class Test_ResourceSettings(_StructureTest):
     _parser_key = "resource_settings"
@@ -202,13 +194,73 @@ class Test_EditFlagCollection(_StructureTest):
         yield txt, res
 
 class Test_GdType(_StructureTest):
-    ...
+    _type = GdType 
+    _parser_key = 'type_anno' 
+    cases = {
+        "Dictionary" : Dictionary,
+        "Array" : Array,
+        "Vector2i" : Vector2i,
+        "Vector3i" : Vector3i,
+        "Vector4i" : Vector4i,
+        "Vector2" : Vector2,
+        "Vector3" : Vector3,
+        "Vector4" : Vector4,
+        "Rect2" : Rect2,
+        "Rect2i" : Rect2i,
+        "Plane" : Plane,
+        "Color" : Color,
+        "AABB" : AABB,
+        "Quaternion" : Quaternion,
+        "Transform2D" : Transform2D,
+        "Transform3D" : Transform3D,
+        "Basis" : Basis,
+        "PackedByteArray" : PackedByteArray,
+        "PackedInt32Array" : PackedInt32Array,
+        "PackedInt64Array" : PackedInt64Array,
+        "PackedFloat32Array" : PackedFloat32Array,
+        "PackedFloat64Array" : PackedFloat64Array,
+        "PackedStringArray" : PackedStringArray,
+        "PackedVector2Array" : PackedVector2Array,
+        "PackedVector3Array" : PackedVector3Array,
+        "PackedVector4Array" : PackedVector4Array,
+        "PackedColorArray" : PackedColorArray,
+
+        "Object" : Object,
+        "Object(Type)" : Object(type == Type),
+
+        'NodePath[ExtResource("ABC")]' : NodePath(None, typing=ExtResourceRef("ABC")),
+        'NodePath': NodePath,
+        
+        'SubResource("ABC")' : SubResourceRef("ABC"),
+        'SubResource' : SubResourceRef,
+        
+        'ExtResource("ABC")' : ExtResourceRef("ABC"),
+        'ExtResource' : ExtResourceRef,
+        
+        'RID("ABC")' : RID("ABC"),
+        'RID' : RID,
+    }
+    def data(self,):
+        for k,v in self.cases.items():
+            yield k,v
 
 class Test_GdTypeValueSet(_StructureTest):
-    ...
+    _type = GdTypeValueSet 
+    _parser_key = 'type_anno'
+    
+    def data(self):
+        Test_GdType.cases
+        keys = Test_GdType.cases.keys()
+
+        for i in range(int(Test_GdType.cases.keys()/2)):
+            txt_a, res_a = keys[i]
+            txt_b, res_b = keys[i+1]
+            yield f'[{txt_a}, {txt_b}]', GdTypeValueSet(res_a, res_b)
+
 
 class Test_Signal(_StructureTest):
     _type = Signal
+    _parser_key = "signal"
     def data(self,):
         
         txt = '''[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]'''     

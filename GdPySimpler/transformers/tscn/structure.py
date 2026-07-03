@@ -352,7 +352,7 @@ class GdToPy_TypeAnnoItem(GdToPyModule):
 
 class PyToGd_TypeAnnoItem(PyToGdModule):
     _keys = (GdType,)
-
+    
 
 # class _GdToPyRuleset(GdToPyRuleset):
 #     def _match_module(self, keys, default):

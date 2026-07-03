@@ -2,13 +2,12 @@ from __future__ import annotations
 from enum import Enum
 from typing import Type, Any
 
-# from ...GdPy.structure.core.transformer_v2 import Transformer
-# from .GdPy.structure.core.primitives import (
-#     MultiKeyCollection as Collection,
-# )
-
 from .transformer import Transformer
-from .collections import CollectionKey, Collection
+from .collections import CollectionKey, CollectionSubscriber, Collection
+# from .values import GdValue
+
+class GdValue():
+    ...
 
 class PropertyCollection(dict):
     overlay : PropertyCollection|None = None
@@ -102,6 +101,9 @@ class ResourceTres(_Resource):
         self.type = type
         self.script_class = script_class
         super().__init__(format=format, uid=uid)
+
+class ResourceScript(ResourceTres):
+    pass
 
 class ResourceScene(ResourceTres):
     properties : PropertyCollection
@@ -305,6 +307,21 @@ class Category():
 class CategoryCollection(Collection):
     unique_keys = ("name",)
     _type = Category
+
+
+class SubResourceRef(CollectionSubscriber, GdValue): 
+    key_categories = ("id",)
+    _type = SubResource
+
+class ExtResourceRef(CollectionSubscriber, GdValue): 
+    ''' Routed reference ID '''
+    key_categories = ("id",)
+    _type = _Resource
+
+class RID(CollectionSubscriber, GdValue):
+    ''' Universal ID '''
+    key_categories = ("uid",)
+    _type = _Resource
 
 
 # def transformer(self, c, node:BlAny)->Node: #NODESET???
