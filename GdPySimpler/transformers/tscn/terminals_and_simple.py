@@ -89,12 +89,12 @@ class PyToGd_Simple(PyToGdModule):
     ''' Atm this is not used due to behavior not needing it '''
 
 
-gd_to_py_ruleset = GdToPyRuleset(__file__, [
+gd_to_py_ruleset = GdToPyRuleset("STD_Terminals", [
     GdToPy_Terminals,
     GdToPy_Simple,
 ])
 
-py_to_gd_ruleset = PyToGdRuleset(__file__, [
+py_to_gd_ruleset = PyToGdRuleset("STD_Terminals", [
     PyToGd_Terminals,
     PyToGd_Simple,
 

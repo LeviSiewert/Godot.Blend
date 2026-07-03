@@ -68,10 +68,14 @@ class TStream[I:Any,O:Any](_TransformerCmd):
 class Context():
     def __new__(cls):
         self = super().__new__(cls)
-        self.transformer = ContextVar()
-        self.rulesets = ContextVar()
-        self.ruleset = ContextVar()
-        self.module = ContextVar()
+        self.transformer = ContextVar("transformer", default=None)
+        self.rulesets = ContextVar("rulesets", default=None)
+
+        self.key = ContextVar("key", default=None)
+        self.ruleset = ContextVar("ruleset", default=None)
+        self.module = ContextVar("module", default=None)
+
+        self.children = ContextVar("children", default=None)
         return self
 
     transformer : ContextVar
@@ -116,7 +120,7 @@ class TransformerRuleset():
             mod_keys = self.modules.keys()
             for k in keys:
                 if k in mod_keys:
-                    raise KeyError(f"Key {k} already exists!", self)
+                    raise KeyError(f"Key {k} already exists!", m, self, self.modules[k])
                 self.modules[k] = m
 
     def __repr__(self,):
@@ -130,14 +134,15 @@ class TransformerRuleset():
         return (node.__class__, node.__class__.__name__)
 
     def _match_module(self, keys:tuple[Any], default=_UNSET)->None|TransformerModule:
+        # raise Exception(keys, (*self.modules.keys(),))
         for k in keys:
             if res:=self.modules.get(k,None):
-                return res
+                return res, k
         if res:=self.modules.get(DEFAULT,None):
-            return res
+            return res, DEFAULT
         if default is _UNSET:
             raise KeyError(self, keys)
-        return default
+        return default, DEFAULT
     
     def get(self, key:Any, default:Any=_UNSET):
         keys = self._extract_keys(key)
@@ -146,20 +151,29 @@ class TransformerRuleset():
 
 class Transformer():
     rulesets : tuple[TransformerRuleset]
-
-    def __init__(self, *args:tuple[TransformerRuleset]):
+    def __init__(self, *args:tuple[TransformerRuleset], identifier:str ):
         self.rulesets = args
+        self.identifier = identifier
+
+    def __repr__(self)->str:
+        return f"{self.__class__.__name__}({self.identifier} :: {self.rulesets})"
         
     def transform_tree(self, c:Context, node:Any)->None:
-        rulesets = c.rulesets.get()
+        if c.rulesets.get() is None:
+            c.rulesets.set(self.rulesets)
+        return self._transform_tree(c, node)
+        
+    def _transform_tree(self, c:Context, node:Any)->None:
+        t = c.transformer.set(self)
 
         mod = None
         for r in c.rulesets.get():
-            mod = r.get(node, None)
+            mod,key = r.get(node, None)
             if mod:
                 t0 = c.module.set(mod)
                 t1 = c.ruleset.set(r)
                 t3 = c.transformer.set(self)
+                t4 = c.key.set(key)
                 break
         if (mod is None):
             raise KeyError(self, node)
@@ -170,15 +184,15 @@ class Transformer():
             def _func(c:Context, node:Any,*args,**kwargs):
                 ## TODO: Consider default get-children functions asc w/ local?
                 yield TERMINAL
-                return mod.transform_func(c,node,*args,**kwargs)
+                return mod.transform(c,node,*args,**kwargs)
             transform_func = _func
 
         res = ContextVar("escape_result")
         def caller():
-            _res = yield from transform_func
+            _res = yield from transform_func(c,node)
             res.set(_res)
 
-        t4 = c.children.set(TERMINAL)
+        t5 = c.children.set(TERMINAL)
         
         _t = None
         for child_set in caller():
@@ -223,9 +237,11 @@ class Transformer():
             ## Code runs until next yield / func completion
             ## res should now be populated
 
-        c.children.reset(t4)
+        c.children.reset(t5)
+        c.key.reset(t4)
         c.transformer.reset(t3)
         c.ruleset.reset(t1)
         c.module.reset(t0)
+        c.transformer.reset(t)
 
         return res.get() 

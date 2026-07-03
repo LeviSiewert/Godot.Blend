@@ -6,6 +6,7 @@ from ....transformers.tscn import (
     py_to_gd_transformer,
     GdToPyContext,
     PyToGdContext,
+    make_parser,
 )
 
 from ....core.structure import (
@@ -29,7 +30,7 @@ from ....core.structure import (
 )
 
 _parser_cache = {}
-def make_parser_cached(self, key):
+def make_parser_cached(key):
     if res:=_parser_cache.get(key,None):
         return res
     res = make_parser(key)
@@ -44,13 +45,13 @@ class _StructureTest[T:Type]():
         raise NotImplementedError()
         yield
 
-    def _yield_gd_to_py(self,):
+    def _yield_gd_to_py(self,)->Generator[tuple[Any,Any]]:
         for txt, obj in self.data():
             parsed = make_parser_cached(self._parser_key).parse(txt)
-            res = gd_to_py_transformer.transform_tree(self.make_gdtopy_context(),parsed)
+            res = gd_to_py_transformer.transform_tree(self.make_gdtopy_context(), parsed)
             yield obj, res
 
-    def _yield_py_to_gd(self,):
+    def _yield_py_to_gd(self,)->Generator[tuple[str,str]]:
         for txt, obj in self.data():
             parsed = make_parser_cached(self._parser_key).parse(txt)
             res = py_to_gd_transformer.transform_tree(self.make_pytogd_context(), obj)
@@ -58,11 +59,11 @@ class _StructureTest[T:Type]():
     
     def test_py_to_gd(self,):
         for a,b in self._yield_py_to_gd():
-            self.py_compare(a,b)
+            self.gd_compare(a,b)
     
     def test_gd_to_py(self,):
-        for a,b in self._yield_py_to_gd():
-            self.gd_compare(a,b)
+        for a,b in self._yield_gd_to_py():
+            self.py_compare(a,b)
     
     def make_pytogd_context(self,)->PyToGdContext:
         return PyToGdContext()
@@ -71,7 +72,7 @@ class _StructureTest[T:Type]():
         return GdToPyContext()
 
     def py_compare(self, a:T, b:T):
-        assert (isinstance(a, self._type))
+        assert (isinstance(b, self._type))
         assert (a == b)
 
     def gd_compare(self, a:str, b:str):
@@ -124,7 +125,30 @@ class Test_GdTypeValueSet(_StructureTest):
     ...
 
 class Test_Signal(_StructureTest):
-    ...
+    def data(self,):
+        
+        txt = '''[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]'''     
+        res = Signal(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
+        yield txt, res
+
+        txt = '''[connection signal="body_exited" from="." to="." method="_on_door_body_exited"]'''
+        res =Signal(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
+        yield txt, res
+    
 
 class Test_SignalCollection(_StructureTest):
-    ...
+    _type = SignalCollection
+    _parser_key = "signals"
+
+    def data(self,):
+        txt = '''
+[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]
+[connection signal="body_exited" from="." to="." method="_on_door_body_exited"]
+'''     
+        res = SignalCollection([
+            Signal(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
+            Signal(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
+        ])
+
+        yield txt, res
+

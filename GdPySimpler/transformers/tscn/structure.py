@@ -100,7 +100,7 @@ class PyToGd_ResourceTres(PyToGdModule):
 class GdToPy_ResourceScene(GdToPyModule):
     _keys = ("file_tscn",)
     def transform(self, c, node):
-        header_props, ext_references, sub_resources, node_resources, edit_flags = node.children
+        header_props, ext_references, sub_resources, node_resources, signals, edit_flags = node.children
         
         yield header_props
 
@@ -122,15 +122,18 @@ class GdToPy_ResourceScene(GdToPyModule):
         yield {
             "sub_resources":sub_resources,
             "node_resources":node_resources,
-            "ResourceScene":ResourceScene,
+            "signals":signals
+            # "ResourceScene":ResourceScene,
         }
-
+        contents = c.children.get()
         apply(res,
-            **c.children.get()
+            sub_resources = contents["sub_resources"],
+            node_resources = contents["node_resources"],
         )
 
+        ## Nodes load deps as required, construction will load all instances of ext scenes, but textures and similar will not be loaded until req
         res.construct_node_tree()
-        ## Nodes load deps as required, construction will load all instances
+        res.apply_signals(contents["signals"])
 
         c.resource.reset(t0)
     
@@ -144,7 +147,7 @@ class PyToGd_ResourceScene(PyToGdModule):
 ## SUBRESOURCES:
 
 class GdToPy_SubResource(GdToPyModule):
-    _keys = ("sub_resource")
+    _keys = ("sub_resource",)
     def transform(self, c, node):
         _header_props, _properties = node.children
         
@@ -177,7 +180,7 @@ class PyToGd_SubResource(PyToGdModule):
 
 
 class GdToPy_Node(GdToPyModule):
-    _keys = ("node_resource")
+    _keys = ("node_resource",)
     def transform(self, c, node):
         header_props, _properties = node.children
 
@@ -250,7 +253,7 @@ class PyToGd_Category(PyToGdModule):
     
 
 class GdToPy_ExtReference(GdToPyModule):
-    _keys = ("ext_references",)
+    _keys = ("ext_reference",)
 class PyToGd_ExtReference(PyToGdModule):
     _keys = (ExtReference,)
 
@@ -262,13 +265,13 @@ class PyToGd_EditFlag(PyToGdModule):
 
 
 class GdToPy_Signal(GdToPyModule):
-    _keys = ("edit_flag",)
+    _keys = ("signal",)
 class PyToGd_Signal(PyToGdModule):
     _keys = (Signal,)
 
 
 
-class PyToGd_Collections(GdToPyModule):
+class GdToPy_Collections(GdToPyModule):
     _keys = ('sub_resources','node_resources','cat_resources','ext_references','edit_flags', 'signals')
     def transform(self, c, node):
         match c.key.get():
@@ -284,8 +287,10 @@ class PyToGd_Collections(GdToPyModule):
                 return EditFlagCollection(*c.children.get())
             case 'signals':
                 return SignalCollection(*c.children.get())
+            case _:
+                raise KeyError(c.key.get())
 
-class GdToPy_Collections(PyToGdModule):
+class PyToGd_Collections(PyToGdModule):
     _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtReferenceCollection, EditFlagCollection, SignalCollection)
     def transform(self, c, node:Collection):
         yield (o for o,_ in node.data)
@@ -311,15 +316,15 @@ class PyToGd_Properties(PyToGdModule):
         return c.children.get()
 
 
-class PyToGd_TypeAnno(PyToGdModule):
+class GdToPy_TypeAnno(GdToPyModule):
     _keys = ("type_anno",)
     def transform(self, c, node):
         yield node.children
         return GdTypeValueSet(*c.children.get())
-class GdToPy_TypeAnno(GdToPyModule):
+class PyToGd_TypeAnno(PyToGdModule):
     _keys = (GdTypeValueSet,)
 
-class PyToGd_TypeAnnoItem(PyToGdModule):
+class GdToPy_TypeAnnoItem(GdToPyModule):
     _keys = ("type_anno_item",)
     def transform(self, c, node):
         yield node.children
@@ -333,15 +338,42 @@ class PyToGd_TypeAnnoItem(PyToGdModule):
         #     pass
         # return c.project.get().typing.get(obj,default=obj)
 
-class GdToPy_TypeAnnoItem(GdToPyModule):
+class PyToGd_TypeAnnoItem(PyToGdModule):
     _keys = (GdType,)
-    
 
 
-gd_to_py_ruleset = GdToPyRuleset(__file__, [
+# class _GdToPyRuleset(GdToPyRuleset):
+#     def _match_module(self, keys, default):
+#         raise Exception(keys, (*self.modules.keys(),))
 
+gd_to_py_ruleset = GdToPyRuleset("STD_Structure", [
+    GdToPy_ResourceSettings,
+    GdToPy_ResourceTres,
+    GdToPy_ResourceScene,
+    GdToPy_SubResource,
+    GdToPy_Node,
+    GdToPy_Category,
+    GdToPy_ExtReference,
+    GdToPy_EditFlag,
+    GdToPy_Signal,
+    GdToPy_Collections,
+    GdToPy_Properties,
+    GdToPy_TypeAnno,
+    GdToPy_TypeAnnoItem,
 ])
 
-py_to_gd_ruleset = PyToGdRuleset(__file__, [
-
+py_to_gd_ruleset = PyToGdRuleset("STD_Structure", [
+    PyToGd_ResourceSettings,
+    PyToGd_ResourceTres,
+    PyToGd_ResourceScene,
+    PyToGd_SubResource,
+    PyToGd_Node,
+    PyToGd_Category,
+    PyToGd_ExtReference,
+    PyToGd_EditFlag,
+    PyToGd_Signal,
+    PyToGd_Collections,
+    PyToGd_Properties,
+    PyToGd_TypeAnno,
+    PyToGd_TypeAnnoItem,
 ])

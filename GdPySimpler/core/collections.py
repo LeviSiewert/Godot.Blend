@@ -61,10 +61,13 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     unique_resolution_method : dict[str,str|Callable] 
     keyid_attr_map : dict
 
+
+
     def __init__(self, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
-        if unique_keys is None:
+
+        if not  (unique_keys is None):
             self.unique_keys = unique_keys
-        if shared_keys is None:
+        if not  (shared_keys is None):
             self.shared_keys = shared_keys
 
         if unique_resolution_method is None:
@@ -74,7 +77,7 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
         
         if keyid_attr_map is None:
             inst = {}
-            for k in (*unique_keys, *shared_keys):
+            for k in (*self.unique_keys, *self.shared_keys):
                 inst[k] = k
             self.keyid_attr_map = inst
 
@@ -248,3 +251,12 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
         
     def __setitem__(self, key:KEY, value:OBJECT):
         return self.set(key, value)
+
+    def __iter__(self,):
+        for o,d in self.data:
+            yield o
+
+    def __eq__(self, item):
+        if hasattr(item, "__iter__"):
+            return set(self.__iter__()) == set(item.__iter__())
+        return False

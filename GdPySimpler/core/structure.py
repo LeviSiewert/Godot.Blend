@@ -107,12 +107,10 @@ class ResourceScene(ResourceTres):
     properties : PropertyCollection
 
     node_res : NodeCollection
-    signals : SignalCollection
 
     def __new__(cls):
         self = super().__new__(cls)
         self.node_res = NodeCollection()
-        self.signals = SignalCollection()
         return self
 
     def __init__(self, format:int=4, uid:str=None):
@@ -120,13 +118,24 @@ class ResourceScene(ResourceTres):
         self.uid.set(uid)
 
 class Signal():
+    ##TODO: switch fr, to into nodes and attach to node.
+
     signal : str
     method : str
-    fr : Node
-    to : Node
+    fr : str #Node
+    to : str #Node
+
+    def __init__(self, signal:str, method:str, fr:str, to:str):
+        self.signal = signal
+        self.method = method
+        self.fr = fr
+        self.to = to
+
+    def __hash__(self):
+        return hash((self.signal,self.method,self.fr,self.to))
 
 class SignalCollection(Collection):
-    shared_keys = ("signal", "method", "fr", "to")
+    # shared_keys = ("signal", "method", "fr", "to")
     _type = Signal
 
 class TypePropDef():
@@ -259,11 +268,14 @@ class Node(SubResource):
     name : str #property, return overlay.name if overlay 
     parent : Node
     children : list[Node]
+    
+    signals : SignalCollection
 
     def __new__(cls):
         self = super().__new__(cls)
         self.children = []
         self.unique_id = CollectionKey(self, "unique_id", None)
+        self.signals = SignalCollection()
         return self
 
     def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:ResourceScene=None, instance_editable:bool=False,  name:str=None, parent:Node=None, unique_id:int=None):
@@ -273,6 +285,7 @@ class Node(SubResource):
 
         if not (parent is None):
             parent.add_child(self)
+
 
 
 class NodeCollection(Collection):
