@@ -266,6 +266,17 @@ class PyToGd_EditFlag(PyToGdModule):
 
 class GdToPy_Signal(GdToPyModule):
     _keys = ("signal",)
+    def transform(self, c, node):
+        yield node.children
+        properties = c.children.get()[0]
+        return Signal(
+            signal = properties["signal"],
+            method = properties["method"],
+            fr = properties["from"],
+            to = properties["to"]
+        )
+
+
 class PyToGd_Signal(PyToGdModule):
     _keys = (Signal,)
 
@@ -274,6 +285,7 @@ class PyToGd_Signal(PyToGdModule):
 class GdToPy_Collections(GdToPyModule):
     _keys = ('sub_resources','node_resources','cat_resources','ext_references','edit_flags', 'signals')
     def transform(self, c, node):
+        yield node.children
         match c.key.get():
             case 'sub_resources':
                 return SubResourceCollection(*c.children.get())
@@ -301,9 +313,9 @@ class GdToPy_Properties(GdToPyModule):
     _keys = ('properties',)
     def transform(self, c, node):
         yield node.children
-        res = PropertyCollection
-        for k,v in c.children.get().items():
-            PropertyCollection[k] = v
+        res = PropertyCollection()
+        for k,v in c.children.get():
+            res[k] = v
         return res 
 
 class PyToGd_Properties(PyToGdModule):

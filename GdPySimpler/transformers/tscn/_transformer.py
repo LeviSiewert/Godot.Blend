@@ -14,7 +14,7 @@ PyToGdRuleset = TransformerRuleset
 
 class PyToGdModule(TransformerModule):
     def transform(self, c, node):
-        raise NotImplementedError()
+        raise NotImplementedError(f"{self}.transform")
 
 GdToPyContext = Context
 
@@ -35,6 +35,5 @@ class GdToPyRuleset(TransformerRuleset):
 
 class GdToPyModule(TransformerModule):
     def transform(self, c, node):
-        raise NotImplementedError()
-
+        raise NotImplementedError(f"{self}.transform")
 

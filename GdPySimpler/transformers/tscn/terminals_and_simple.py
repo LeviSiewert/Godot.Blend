@@ -64,6 +64,7 @@ class GdToPy_Simple(GdToPyModule):
     '''
     _keys = ("pair", "value", "property", "resource_header", "resource_body",  "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12")
     def transform(self, c, node):
+        yield node.children
         assert(isinstance(node, LarkTree))
         key = c.key.get()
         match key:

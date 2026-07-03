@@ -187,10 +187,10 @@ class Transformer():
                 return mod.transform(c,node,*args,**kwargs)
             transform_func = _func
 
-        res = ContextVar("escape_result")
+        escape_result = ContextVar("escape_result")
         def caller():
             _res = yield from transform_func(c,node)
-            res.set(_res)
+            escape_result.set(_res)
 
         t5 = c.children.set(TERMINAL)
         
@@ -232,7 +232,7 @@ class Transformer():
                 _t = c.children.set(res)
 
             else:
-                raise Exception(" Yielded children cannot be interpretted! ")
+                raise Exception(f" Yielded children cannot be interpretted! ", child_set.__class__, child_set)
             
             ## Code runs until next yield / func completion
             ## res should now be populated
@@ -244,4 +244,4 @@ class Transformer():
         c.module.reset(t0)
         c.transformer.reset(t)
 
-        return res.get() 
+        return escape_result.get() 

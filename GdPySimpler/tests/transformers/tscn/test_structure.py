@@ -145,10 +145,10 @@ class Test_SignalCollection(_StructureTest):
 [connection signal="body_entered" from="." to="." method="_on_door_body_entered"]
 [connection signal="body_exited" from="." to="." method="_on_door_body_exited"]
 '''     
-        res = SignalCollection([
+        res = SignalCollection(
             Signal(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
             Signal(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
-        ])
+        )
 
         yield txt, res
 

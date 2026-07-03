@@ -3,6 +3,7 @@ from typing import Any, Generator, Callable
 from types import LambdaType, FunctionType
 from string import ascii_letters
 import random 
+from collections import Counter
 # class Signal():
 #     pass
 
@@ -63,7 +64,8 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
 
 
 
-    def __init__(self, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
+    def __init__(self, *args, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
+        self.data = []
 
         if not  (unique_keys is None):
             self.unique_keys = unique_keys
@@ -80,7 +82,8 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
             for k in (*self.unique_keys, *self.shared_keys):
                 inst[k] = k
             self.keyid_attr_map = inst
-
+        
+        self.extend(args)
         
     def generate_key(self, key_id:str, object:OBJECT)->KEY:
         if key_id in self.unique_keys:
@@ -190,6 +193,10 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
 
         self.data.append((object, key_map))
     
+    def extend(self, items):
+        for item in items:
+            self.append(item)
+        
     def _ensure_unique(self, key_id, colkey, new_obj):
         for k,o in self._iter_keyid(key_id):
             if k == colkey.local_data:
@@ -253,10 +260,16 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
         return self.set(key, value)
 
     def __iter__(self,):
-        for o,d in self.data:
+        for (o,d) in self.data:
             yield o
 
     def __eq__(self, item):
-        if hasattr(item, "__iter__"):
-            return set(self.__iter__()) == set(item.__iter__())
+        if isinstance(item, Collection):
+            return hash(item) == hash(self)
         return False
+    
+    def __hash__(self):
+        hash_sum : int = 0
+        for o in self:
+            hash_sum = hash_sum + hash(o)
+        return hash_sum

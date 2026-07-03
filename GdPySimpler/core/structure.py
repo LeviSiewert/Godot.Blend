@@ -132,7 +132,8 @@ class Signal():
         self.to = to
 
     def __hash__(self):
-        return hash((self.signal,self.method,self.fr,self.to))
+        # raise Exception(self.signal, self.method, self.fr, self.to)
+        return hash( (self.signal, self.method, self.fr, self.to) )
 
 class SignalCollection(Collection):
     # shared_keys = ("signal", "method", "fr", "to")
