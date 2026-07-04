@@ -3,9 +3,8 @@ from typing import Any, Generator, Callable
 from types import LambdaType, FunctionType
 from string import ascii_letters
 import random 
-from collections import Counter
-# class Signal():
-#     pass
+
+# from .context import StructContext
 
 class _UNSET():
     pass
@@ -37,25 +36,26 @@ class CollectionKey[KEY:str]():
     
 class CollectionSubscriber[T]():
     ''' Currently, this is only for strings '''
-    value_updated : Signal
-    address_updated : Signal
-    address : str
 
-    def set_address(self, value):
-        pass
+    # value_updated : Signal
+    # address_updated : Signal
+    # address : str
 
-    def get(self,)->T:
-        pass
+    # def set_address(self, value):
+    #     pass
 
-    def __init__(self, address_or_value:str|T,):
-        if isinstance(address_or_value,str):
-            self.set_address(address_or_value)
-        else:
-            self.set_value(address_or_value)
+    # def get(self,)->T:
+    #     pass
+
+    # def __init__(self, address_or_value:str|T,):
+    #     if isinstance(address_or_value,str):
+    #         self.set_address(address_or_value)
+    #     else:
+    #         self.set_value(address_or_value)
 
 class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     ''' KEY is required to be hashable 
-    all keys must exist on the originating object at integration as CollectionKey objects
+    all keys must exist on the originating item at integration as CollectionKey items
     
     for inheritance into a specific role, consider overriding:
     __init__
@@ -73,6 +73,7 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     '''
     
     data : list[tuple[VALUE, dict[str, CollectionKey]]]
+    context : StructContext
     
     unique_keys : tuple[str] = tuple()
     shared_keys : tuple[str] = tuple()
@@ -80,9 +81,7 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     unique_resolution_method : dict[str,str|Callable] 
     keyid_attr_map : dict
 
-
-
-    def __init__(self, *args, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
+    def __init__(self, *args, context_extends:StructContext, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
         self.data = []
 
         if not  (unique_keys is None):
@@ -101,20 +100,21 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
                 inst[k] = k
             self.keyid_attr_map = inst
         
+        self.context = StructContext(extends=context_extends)
         self.extend(args)
         
-    def generate_key(self, key_id:str, object:OBJECT)->KEY:
+    def generate_key(self, key_id:str, item:OBJECT)->KEY:
         if key_id in self.unique_keys:
             mapping = {self._iter_keyid(key_id)}
             keys = tuple(mapping.keys())
-            res = self._generate_key(self, key_id, object)
+            res = self._generate_key(self, key_id, item)
             if res in keys:
-                self._resolve_key_collision(key_id, res, mapping[res], object)
+                self._resolve_key_collision(key_id, res, mapping[res], item)
             return
         else:
-            return self._generate_key(self, key_id, object)
+            return self._generate_key(self, key_id, item)
             
-    def _generate_key(self, key_id:str, object:OBJECT)->KEY:
+    def _generate_key(self, key_id:str, item:OBJECT)->KEY:
         return key_id + "://" + "".join(random.sample(ascii_letters, 9))
     
     def _match_key(self, key:KEY)->str:
@@ -161,78 +161,82 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
             if res:=t[1].get(key_id, None):
                 yield (t[0].local_data, res)
 
-    ## With a given object:
+    ## With a given item:
 
-    def set_key(self, key_id:str, object:OBJECT, key)->None:
-        collection_key = self.get_colkey(key_id, object)
+    def set_key(self, key_id:str, item:OBJECT, key)->None:
+        collection_key = self.get_colkey(key_id, item)
         collection_key.local_data = key
-    def get_key(self, key_id:str, object:OBJECT)->KEY:
-        collection_key = self.get_colkey(key_id, object)
+    def get_key(self, key_id:str, item:OBJECT)->KEY:
+        collection_key = self.get_colkey(key_id, item)
         return collection_key.local_data
     
-    def get_colkey(self, key_id:str, object:OBJECT, )->CollectionKey:
-        kd = self.get_keydict(object)
+    def get_colkey(self, key_id:str, item:OBJECT, )->CollectionKey:
+        kd = self.get_keydict(item)
         return kd.get(key_id)
-    def set_colkey(self, key_id:str, object:OBJECT, colkey:CollectionKey)->CollectionKey:
-        kd = self.get_keydict(object)
+    def set_colkey(self, key_id:str, item:OBJECT, colkey:CollectionKey)->CollectionKey:
+        kd = self.get_keydict(item)
         kd[key_id] = colkey
 
-    def get_keydict(self, object:OBJECT):
+    def get_keydict(self, item:OBJECT):
         for i in self.data:
-            if i[0] is object:
+            if i[0] is item:
                 return i[1]
         raise KeyError()
-    def set_keydict(self, object:OBJECT, new:dict[str,CollectionKey]):
+    def set_keydict(self, item:OBJECT, new:dict[str,CollectionKey]):
         for i in self.data:
-            if i[0] is object:
+            if i[0] is item:
                 i[1].clear()
                 i[1].update(new)
                 return
         raise KeyError()
 
-    def append(self, object:OBJECT, _suspend_key_ids:tuple[str]=tuple()):
+    def append(self, item:OBJECT, _suspend_key_ids:tuple[str]=tuple(), _defer_context=False):
         ''' Suspend keys is meant for internal use only'''
         key_map = {}
 
         for k,attr in self.unique_keys:
             if k in _suspend_key_ids:
                 continue
-            colkey = getattr(object,attr)
+            colkey = getattr(item,attr)
             assert(isinstance(colkey, CollectionKey))
-            self._ensure_unique(k, colkey, object)
+            self._ensure_unique(k, colkey, item)
             key_map[k] = colkey
 
         for k,attr in self.shared_keys:
             if k in _suspend_key_ids:
                 continue
-            colkey = getattr(object,attr)
+            colkey = getattr(item,attr)
             assert(isinstance(colkey, CollectionKey))
             key_map[k] = colkey
 
-        self.data.append((object, key_map))
+        self.data.append((item, key_map))
+        if not _defer_context:
+            item.context.set_extends(self.context)
     
     def extend(self, items):
         for item in items:
-            self.append(item)
+            self.append(item, _defer_context=True)
+        for item in items:
+            item.context.set_extends(self.context)
         
     def _ensure_unique(self, key_id, colkey, new_obj):
         for k,o in self._iter_keyid(key_id):
             if k == colkey.local_data:
                 self._resolve_key_collision(key_id, k, o, new_obj)
 
-    def remove(self, object:OBJECT, missing_ok:bool = True):
-        if not (res:=self.find(object, None) is None):
+    def remove(self, item:OBJECT, missing_ok:bool = True):
+        if not (res:=self.find(item, None) is None):
             self.data.remove(res)
             return
         if not missing_ok:
-            raise KeyError(object)
+            raise KeyError(item)
         
-    def find(self, object:OBJECT, default=_UNSET)->int:
+    def find(self, item:OBJECT, default=_UNSET)->int:
         for i,o in enumerate(self.data):
-            if o is object:
+            if o is item:
                 return i
         if default is _UNSET:
-            raise KeyError(object)
+            raise KeyError(item)
         return default
 
     def get[D](self, key:KEY, key_id:str=None, /, default:D=_UNSET)->OBJECT|D|tuple[OBJECT|D]:

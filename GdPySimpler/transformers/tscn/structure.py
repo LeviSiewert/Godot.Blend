@@ -17,8 +17,8 @@ from ...core.structure import (
     EditFlagCollection,
     GdType,
     GdTypeValueSet,
-    Signal,
-    SignalCollection
+    SignalNotation,
+    SignalNotationCollection,
     )
 
 from ...core.structure import PropertyCollection
@@ -264,12 +264,12 @@ class PyToGd_EditFlag(PyToGdModule):
     _keys = (EditFlag,)
 
 
-class GdToPy_Signal(GdToPyModule):
+class GdToPy_SignalNotation(GdToPyModule):
     _keys = ("signal",)
     def transform(self, c, node):
         yield node.children
         properties = c.children.get()[0]
-        return Signal(
+        return SignalNotation(
             signal = properties["signal"],
             method = properties["method"],
             fr = properties["from"],
@@ -277,8 +277,8 @@ class GdToPy_Signal(GdToPyModule):
         )
 
 
-class PyToGd_Signal(PyToGdModule):
-    _keys = (Signal,)
+class PyToGd_SignalNotation(PyToGdModule):
+    _keys = (SignalNotation,)
 
 
 
@@ -298,12 +298,12 @@ class GdToPy_Collections(GdToPyModule):
             case 'edit_flags':
                 return EditFlagCollection(*c.children.get())
             case 'signals':
-                return SignalCollection(*c.children.get())
+                return SignalNotationCollection(*c.children.get())
             case _:
                 raise KeyError(c.key.get())
 
 class PyToGd_Collections(PyToGdModule):
-    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtReferenceCollection, EditFlagCollection, SignalCollection)
+    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtReferenceCollection, EditFlagCollection, SignalNotationCollection)
     def transform(self, c, node:Collection):
         yield (o for o,_ in node.data)
         return c.children.get()
@@ -367,7 +367,7 @@ gd_to_py_ruleset = GdToPyRuleset("STD_Structure", [
     GdToPy_Category,
     GdToPy_ExtReference,
     GdToPy_EditFlag,
-    GdToPy_Signal,
+    GdToPy_SignalNotation,
     GdToPy_Collections,
     GdToPy_Properties,
     GdToPy_TypeAnno,
@@ -383,7 +383,7 @@ py_to_gd_ruleset = PyToGdRuleset("STD_Structure", [
     PyToGd_Category,
     PyToGd_ExtReference,
     PyToGd_EditFlag,
-    PyToGd_Signal,
+    PyToGd_SignalNotation,
     PyToGd_Collections,
     PyToGd_Properties,
     PyToGd_TypeAnno,
