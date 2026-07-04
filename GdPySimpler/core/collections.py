@@ -107,6 +107,8 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
     data : list[I, dict[str,ADDR]]
     refs : list[Reference]
 
+    context : StructContext
+
     unique_keys : tuple[str] = tuple()
     shared_keys : tuple[str] = tuple() #TODO: NOT IMPLIMENTED
 
@@ -115,9 +117,11 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
     def __setup__(self,):
         self.data = []
         self.refs = []
+        self.context = StructContext()
 
-    def __init__(self):
+    def __init__(self, context=None):
         self.__setup__()
+        self.context.set_extends(context)
 
     def append_reference(self, ref:Reference):
         ref.set_collection(self)
@@ -155,6 +159,9 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
                 ## TODO: Double call possible here!!
         self.data.append((item, keys))
 
+        if hasattr(item,"context"):
+            item.set_extends(self.context)
+
     def find[D](self, item:I, /, default:D=_UNSET)->int|D:
         for i, (o, keys) in enumerate(self.data):
             if o is item:
@@ -168,8 +175,10 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         if idx is None:
             raise KeyError(item)
         obj,keys = self.data.pop(idx)
-        for k,v in keys.items():
+        for k_id,k in keys.items():
             self.update_refs(k, item)
+        if hasattr(item,"context"):
+            item.set_extends(None)
 
     def iter_get(self, addr:ADDR, key_id:str=None, ret_key:bool=False):
         if key_id is None:
