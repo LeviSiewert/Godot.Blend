@@ -4,7 +4,7 @@ from typing import Type, Any
 
 from .transformer import Transformer
 from .context import StructContext as _StructContext
-from .collections import CollectionKey, CollectionSubscriber, Collection
+from .collections import CollectionKey, CollectionReferenceUnique, Collection
 from .property_collection import PropertyCollection
 from .signals import Signal
 
@@ -12,7 +12,7 @@ from pathlib import Path as _Path
 
 class StructContext(_StructContext):
     ''' Structural object, via extends '''
-    __slots__ = ["_extends","project","file","resource","sub_resource"]
+    _slots_ = ["_extends","project","file","resource","sub_resource"]
 
     project : Project = None 
     file: _File = None 
@@ -30,13 +30,15 @@ class Project():
     resources : ResourceCollection
     files : FileCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
         self.context = StructContext(project=self)
         self.settings = ResourceSettings(context_extends=self.context)
         self.resources = ResourceCollection(context_extends=self.context)
         self.files = FileCollection(context_extends=self.context)
         return self
+    
+    def __init__(self):
+        self.__setup__()
 
 class _File[T:_Resource]():
     context : StructContext ##NOTE: Attached when added to a collection
@@ -45,9 +47,7 @@ class _File[T:_Resource]():
     data : T
     _uid : str #Cached
 
-    def __new__(cls):
-        self = super().__new__(cls)
-
+    def __setup__(self):
         self.context = StructContext(file=self)
         self.path = CollectionKey(self, "filepath", unique=True)
         self._uid = CollectionKey(self, "uid", unique=True)
@@ -55,7 +55,7 @@ class _File[T:_Resource]():
         return self
     
     def __init__(self, path:_Path, resource:_Resource=None):
-        pass
+        self.__setup__()
     
 class FileLocal(_File):
     transformer : Transformer
@@ -76,14 +76,15 @@ class _Resource():
 
     file : _File|None = None
     
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
         self.context = StructContext(resource=self)
         self.uid = CollectionKey(self, "uid")
         self.file = CollectionKey(self, "file")
         return self
     
     def __init__(self, format:int=4, uid:str=None, file:_File=None, filepath:str=None):
+        self.__setup__()
+
         self.format = format
         
         self.uid.set(uid)
@@ -102,11 +103,10 @@ class ResourceSettings(_Resource):
     properties : PropertyCollection
     cat_resources : CategoryCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
+        super().__setup__()
         self.properties = PropertyCollection()
         self.cat_resources = CategoryCollection()
-        return self
 
 class ResourceTres(_Resource):
     type : GdType|None|str
@@ -119,8 +119,7 @@ class ResourceTres(_Resource):
     ext_references : ExtReferenceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
 
         self.properties = PropertyCollection()
         self.ext_references = ExtReferenceCollection()
@@ -140,10 +139,9 @@ class ResourceScene(ResourceTres):
 
     node_res : NodeCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
+        super().__setup__()
         self.node_res = NodeCollection()
-        return self
 
     def __init__(self, format:int=4, uid:str=None):
         self.format = format
@@ -159,14 +157,13 @@ class SignalNotation():
     fr : CollectionKey #Node
     to : CollectionKey #Node
 
-    def __new__(cls):
-        self = super().__new__()
+    def __setup__(self):
         self.context = StructContext(signal=self)
         self.fr = CollectionKey(self, "nodepath", )
         self.to = CollectionKey(self, "nodepath", )
-        return self
     
     def __init__(self, signal:str, method:str, fr:str, to:str):
+        self.__setup__()
         self.signal = signal
         self.method = method
         self.fr.set_address(fr)
@@ -197,8 +194,7 @@ class GdType():
     signals : dict[str, TypeSignalDef]
     properties : dict[str, TypePropDef]
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
         self.context = StructContext()
         self.signals = {}
         self.properties = {}
@@ -208,6 +204,7 @@ class GdType():
         return self
     
     def __init__(self, location:str, class_name:str=None, file:str=None, uid:str=None):
+        self.__setup__()
         self.location = location
         assert(any([ class_name, file, uid ]))
         self.class_name.set(class_name)
@@ -240,8 +237,8 @@ class ExtReference():
     path : CollectionKey[str]
     id : CollectionKey[int]
 
-    def __new__(cls):
-        self = super().__new__()
+    def __setup__(self):
+        self = super().__setup__()
         self.context = StructContext()
         self.type = CollectionKey(self, "type", None)
         self.uid = CollectionKey(self, "uid", None)
@@ -249,6 +246,7 @@ class ExtReference():
         self.id = CollectionKey(self, "id", None)
     
     def __init__(self, type:str, uid:str, path:str, id:int,):
+        self.__setup__()
         self.type.set(type)
         self.uid.set(uid)
         self.path.set(path)
@@ -283,14 +281,14 @@ class SubResource():
     
     properties : PropertyCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
         self.context = StructContext(sub_resource=self)
         self.unique_id = CollectionKey(self, "unique_id", None)
         self.properties = PropertyCollection()
         return self
 
     def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:ResourceScene=None, instance_editable:bool=False, unique_id:Any=None):
+        self.__setup__()
         if not (unique_id is None):
             self.unique_id.set(unique_id)
 
@@ -320,14 +318,14 @@ class Node(SubResource):
     
     signals : SignalNotationCollection
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
+        super().__setup__()
         self.children = []
         self.unique_id = CollectionKey(self, "unique_id", None)
         self.signals = SignalNotationCollection()
-        return self
 
     def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:ResourceScene=None, instance_editable:bool=False,  name:str=None, parent:Node=None, unique_id:int=None):
+        self.__setup__()
         self.name = name
         
         super().__init__(owner=owner, overlay=overlay, type=type, instance=instance, instance_editable=instance_editable, unique_id=unique_id)
@@ -345,47 +343,72 @@ class Category():
     context : StructContext
     name : str
     properties : PropertyCollection
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
         self.context = StructContext()
         self.properties = PropertyCollection()
         return self
+
+    def __init__(self, name, properties:dict):
+        self.__setup__()
+        self.name = name
+        self.properties.update(properties)
 
 class CategoryCollection(Collection):
     unique_keys = ("name",)
     _type = Category
 
 
-class _ContextualCollectionReference(CollectionSubscriber, GdValue):
+class _ContextualRef(CollectionReferenceUnique, GdValue):
     context : StructContext
-    _watch : str
 
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __setup__(self):
+        super().__setup__()
         self.context = StructContext()
         self.context.value_updated.connect(self._on_context_updated)
 
-    def _on_context_updated(self, key:str, new_value:Any|None):
-        # self.set_collection(new_value.collection)
+    def _on_context_updated(self, key:str, value:Any|None):
         pass
 
-class SubResourceRef(CollectionSubscriber, GdValue): 
+class SubResourceRef(_ContextualRef): 
     key_categories = ("id",)
     _type = SubResource
-    _watch = ""
-    def _on_context_updated(self, key:str, new_value:Any|None):
-        # self.set_collection(new_value.collection)
-        pass
 
-class ExtResourceRef(CollectionSubscriber, GdValue): 
+    def _on_context_updated(self, key:str, value:Any):
+        if key != "resource":
+            return
+        if value is None:
+            self.set_collection(None)
+        else:
+            value : ResourceTres
+            self.set_collection(value.sub_resources)
+
+class ExtResourceRef(_ContextualRef): 
     ''' Routed reference ID '''
     key_categories = ("id",)
     _type = _Resource
 
-class RID(CollectionSubscriber, GdValue):
+    def _on_context_updated(self, key:str, value:Any):
+        if key != "resource":
+            return
+        if value is None:
+            self.set_collection(None)
+        else:
+            value : ResourceTres
+            self.set_collection(value.ext_resources)
+
+class RID(_ContextualRef):
     ''' Universal ID '''
     key_categories = ("uid",)
     _type = _Resource
+
+    def _on_context_updated(self, key:str, value:Any):
+        if key != "project":
+            return
+        if value is None:
+            self.set_collection(None)
+        else:
+            value:Project
+            self.set_collection(value.resources)
 
 
 # def transformer(self, c, node:BlAny)->Node: #NODESET???

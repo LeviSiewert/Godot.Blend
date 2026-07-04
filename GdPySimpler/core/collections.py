@@ -1,15 +1,19 @@
 from __future__ import annotations
+from weakref import ref, ReferenceType
 from typing import Any, Generator, Callable
-from types import LambdaType, FunctionType
 from string import ascii_letters
 import random 
 
-# from .context import StructContext
+from .context import StructContext
+from .signals import Signal
 
 class _UNSET():
     pass
 
 class CollectionKey[KEY:str]():
+    ''' Instances of this class are found via _keys on Collection itself. 
+    Thus all objects that a collection houses must match the interface of _keys defined by the collection '''
+
     key_id : str
     source_obj : Any
     local_data : KEY
@@ -33,25 +37,79 @@ class CollectionKey[KEY:str]():
             self.local_data = key
             return
         return self.collection.set(self, key)
-    
-class CollectionSubscriber[T]():
-    ''' Currently, this is only for strings '''
 
-    # value_updated : Signal
-    # address_updated : Signal
-    # address : str
+class CollectionReferenceUnique[T]():
+    ''' Deferable reference to a collection utilizing either a cached value &| address 
+    is_valid is true be fetched when all: 
+        - Collection is set
+        - value_cached.get() or (address_cached in collection)
+    value_cached can an input to resolve to a collection address later, but cached_value must exist
+    '''
 
-    # def set_address(self, value):
-    #     pass
+    value_cached : ReferenceType[Any]|None = ref(_UNSET())
+    address_cached : Any|None = None
+    key_id : str = None
 
-    # def get(self,)->T:
-    #     pass
+    collection : Collection
 
-    # def __init__(self, address_or_value:str|T,):
-    #     if isinstance(address_or_value,str):
-    #         self.set_address(address_or_value)
-    #     else:
-    #         self.set_value(address_or_value)
+    def __setup__(self,):
+        pass
+
+    def __init__(self, /, key_id:str=None, address:Any=None, value:Any=None, collection:Collection=None):
+        self.key_id = key_id
+        self.set_address(address)
+        self.set_cached_value(value)
+        self.set_collection(collection)
+
+    def set_collection(self, collection:Collection):
+        if self.collection:
+            self.collection.remove_reference(self)
+
+        self.collection = collection
+
+        if collection:
+            collection.append_reference(self)
+
+    def is_valid(self,):
+        if self.collection:
+            val = self.collection.get(self.address_cached, None)
+            return self.value_cached() == val
+        return False
+
+    def set_address(self, address:Any):
+        self.address_cached = address
+
+    def set_cached_value(self, value:Any):
+        self.value_cached = ref(value)
+
+    def _on_collection_match_add(self, addr, value):
+        self.set_address(addr)
+        self.set_cached_value(value)
+        
+    def _on_collection_match_rem(self, addr, old_value):
+        self.set_address(addr)
+        self.set_cached_value(old_value)
+
+    def _on_collection_match_update_addr(self, old_addr, new_addr):
+        self.address_cached = new_addr
+
+    def _on_collection_match_update_value(self, old_value, new_value):
+        self.value_cached = ref(new_value)
+
+
+    def get(self, ret_cached=True, default=_UNSET)->T:
+        if (self.collection is None) and ((not ret_cached) or (self.value_cached() is None)):
+            if (default is _UNSET):
+                raise KeyError(self.address_cached)
+            return default
+        elif (self.collection is None):
+            return self.value_cached()
+        
+        if self.value_cached() in self.collection:
+            return self.value_cached()
+        
+        return self.collection.get(self.address_cached, key_id=self.key_id, default=default)
+
 
 class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     ''' KEY is required to be hashable 
@@ -72,8 +130,10 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     keyid_attr_map
     '''
     
-    data : list[tuple[VALUE, dict[str, CollectionKey]]]
     context : StructContext
+    
+    data : list[tuple[VALUE, dict[str, CollectionKey]]]
+    references : list[CollectionReferenceUnique]
     
     unique_keys : tuple[str] = tuple()
     shared_keys : tuple[str] = tuple()
@@ -81,8 +141,16 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
     unique_resolution_method : dict[str,str|Callable] 
     keyid_attr_map : dict
 
-    def __init__(self, *args, context_extends:StructContext, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
+    value_appended : Signal
+    value_removed : Signal[Any]
+    value_key_set : Signal[str,Any,Any]
+
+    def __setup__(self):
+        self.value_appended = Signal(self)
         self.data = []
+
+    def __init__(self, *args, context:StructContext, unique_keys:tuple[str]=None, shared_keys:tuple[str]=None, unique_resolution_method:dict[str,str]=None, keyid_attr_map:dict[str,str]=None):
+        self.__setup__()
 
         if not  (unique_keys is None):
             self.unique_keys = unique_keys
@@ -95,12 +163,11 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
             self.unique_resolution_method = unique_resolution_method
         
         if keyid_attr_map is None:
-            inst = {}
-            for k in (*self.unique_keys, *self.shared_keys):
-                inst[k] = k
-            self.keyid_attr_map = inst
+            self.keyid_attr_map = {}
+        else:
+            self.keyid_attr_map = keyid_attr_map 
         
-        self.context = StructContext(extends=context_extends)
+        self.context = StructContext(extends=context)
         self.extend(args)
         
     def generate_key(self, key_id:str, item:OBJECT)->KEY:
@@ -194,7 +261,8 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
         ''' Suspend keys is meant for internal use only'''
         key_map = {}
 
-        for k,attr in self.unique_keys:
+        for k in self.unique_keys:
+            attr = self.keyid_attr_map.get(k,k)
             if k in _suspend_key_ids:
                 continue
             colkey = getattr(item,attr)
@@ -202,7 +270,8 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
             self._ensure_unique(k, colkey, item)
             key_map[k] = colkey
 
-        for k,attr in self.shared_keys:
+        for k in self.shared_keys:
+            attr = self.keyid_attr_map.get(k,k)
             if k in _suspend_key_ids:
                 continue
             colkey = getattr(item,attr)
@@ -295,3 +364,9 @@ class Collection[OBJECT:Any, KEY:str|Any, VALUE:str|Any]():
         for o in self:
             hash_sum = hash_sum + hash(o)
         return hash_sum
+    
+    def append_reference(self, ref:CollectionReferenceUnique):
+        self.references.append(ref)
+
+    def remove_reference(self, ref:CollectionReferenceUnique):
+        self.references.remove(ref)
