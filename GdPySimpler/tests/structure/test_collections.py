@@ -1,43 +1,50 @@
-from ...core.collections import Collection, StructContext, CollectionReferenceUnique, CollectionKey
-
+from __future__ import annotations
+from ...core.collections import Collection, Reference, Item, Key, StructContext
 
 def test():
-    class ItemExample():
-        context : StructContext
+    class ItemExample(Item):
+        # context : StructContext
+        def __colkeys__(self,)->tuple[Key]:
+            return (self.key_a, self.key_b, self.key_c)
 
-        key_a : CollectionKey[str] #UNIQuE
-        key_b : CollectionKey[str] #UNIQuE
+        key_a : Key[str, ItemExample] #UNIQuE
+        key_b : Key[str, ItemExample] #UNIQuE
 
-        key_c : CollectionKey[str] #SHARED
+        key_c : Key[str, ItemExample] #SHARED
 
         def __setup__(self):
-            self.context = StructContext()
-            self.key_a = CollectionKey(self, "key_a", None)
-            self.key_b = CollectionKey(self, "key_b", None)
-            self.key_c = CollectionKey(self, "key_c", None)
+            # self.context = StructContext()
+            self.key_a = Key(self, None, "key_a")
+            self.key_b = Key(self, None, "key_b")
+            self.key_c = Key(self, None, "key_c")
 
-        def __init__(self, a:str, b:str):
+        def __init__(self, id:str, a:str, b:str):
             self.__setup__()
+            self.identifier = id
             self.key_a.set(a)
             self.key_b.set(b)
             self.key_c.set("key_c://c")
+        
+        def __repr__(self):
+            return f"Item({self.identifier})"
 
     class CollectionExample(Collection):
         unique_keys = ("key_a","key_b")
         shared_keys = ("key_c",)
 
-    col = CollectionExample(context = StructContext())
+    # col = CollectionExample(context = StructContext())
+    col = CollectionExample()
 
-    item_a = ItemExample("key_a://a", "key_b://a")
-    item_b = ItemExample("key_a://b", "key_b://b")
-    item_c = ItemExample("key_a://c", "key_b://c")
+    item_a = ItemExample("item_a", "key_a://a", "key_b://a")
+    item_b = ItemExample("item_b", "key_a://b", "key_b://b")
+    item_c = ItemExample("item_c", "key_a://c", "key_b://c")
 
-    for item in (item_a,item_b,item_c):
+    for item in (item_a, item_b, item_c):
         col.append(item)
 
-        key_a = item.key_a.local_data
-        key_b = item.key_b.local_data
-        key_c = item.key_c.local_data
+        key_a = item.key_a.addr
+        key_b = item.key_b.addr
+        key_c = item.key_c.addr
 
         assert (col.get(key_a) is item)
         assert (col.get(key_b) is item)
@@ -46,23 +53,23 @@ def test():
         for key_id,key in {
             "key_a" : key_a,
             "key_b" : key_b,
-            "key_c" : key_c,
+            # "key_c" : key_c, #!!! Pool-References are not yet supported !
         }.items():
-            ref_0 = CollectionReferenceUnique(key_id = key_id, address=key, cached_value=item)
+            ref_0 = Reference(key_id = key_id, address=key, cached_value=item)
             assert(not ref_0.is_valid())
             col.append_reference(ref_0)
             assert(ref_0.is_valid())
             assert(ref_0.cached_value()==item)
 
-            ref_1 = CollectionReferenceUnique(key_id = key_id, address=key)
+            ref_1 = Reference(key_id = key_id, address=key)
             col.append_reference(ref_1)
             assert(ref_1.is_valid())
             assert(ref_1.cached_value()==item)
 
-            ref_2 = CollectionReferenceUnique(key_id = key_id, cached_value=item)
+            ref_2 = Reference(key_id = key_id, cached_value=item)
             col.append_reference(ref_2)
             assert(ref_2.is_valid())
             assert(ref_2.cached_value()==item)
-            assert(ref_2.cached_address==key)
+            assert(ref_2.cached_addr==key)
 
-        assert(item in col.get("c", key_id="key_c"))
+        assert(item in col.get("key_c://c", "key_c"))
