@@ -94,7 +94,8 @@ pair : value ":" value
 stringname : "&" STRING
 
 // Generics:
-object : "Object(" WORD ["," pair + ("," pair)*] ")"
+object : "Object(" WORD object_args ")"
+object_args : ["," pair+ ("," pair)* ]
 // Defered References:
 
 nodepath : "NodePath" [type_anno] "(" [STRING] ")"

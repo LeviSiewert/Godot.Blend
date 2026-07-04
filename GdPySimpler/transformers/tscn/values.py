@@ -1,4 +1,5 @@
-from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule
+from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule, GdToPyContext, PyToGdContext
+
 from typing import Type 
 
 from ...core.values import (
@@ -58,6 +59,14 @@ class PyToGd_StringName(PyToGdModule):
     def transform(self, c, node):
         return f'&"{str(node)}"'
 
+class GdToPy_ObjectArgs(GdToPyModule):
+    _keys = ("object_args",)
+    def transform(self, c, node):
+        yield node.children
+        res = {}
+        for k,v in c.children.get():
+            res[k] = v
+        return res
 class GdToPy_Object(GdToPyModule):
     _keys = ("object",)
     def transform(self, c, node):
@@ -83,7 +92,10 @@ class GdToPy_Dictionary(GdToPyModule):
     def transform(self, c, node):
         yield node.children 
         typing, children = c.children.get() 
+        if children is None:
+            return Dictionary(types=typing)
         return Dictionary(children, types=typing)
+    
 class PyToGd_Dictionary(PyToGdModule):
     _keys = (Dictionary,)
     def transform(self, c, node:Dictionary):
@@ -124,7 +136,7 @@ class PyToGd_Array(PyToGdModule):
         yield node
         values = c.children.get()
 
-        inner = '{' + ",".join(values) + '}'
+        inner = '[' + ",".join(values) + ']'
 
         if (node._typing is None) or node._typing.is_variant():
             return inner
@@ -141,8 +153,10 @@ class _GdToPy_FixedLenArray(GdToPyModule):
         return self._res_type(*c.children.get())
 class _PyToGd_FixedLenArray(PyToGdModule):
     _res_key : str
-    def transform(self, c, node):
+    def transform(self, c:PyToGdContext, node):
+        t = c.rendering.float_as_int_ok.set(True)
         yield node
+        c.rendering.float_as_int_ok.reset(t)
         return f"{self._res_key}({",".join(c.children.get())})"
 
 
@@ -260,7 +274,9 @@ class _GdToPy_PackedArray(GdToPyModule):
 class _PyToGd_PackedArray(PyToGdModule):
     _res_key : str
     def transform(self, c, node):
+        t = c.rendering.float_as_int_ok.set(True)
         yield node
+        c.rendering.float_as_int_ok.reset(t)
         return f"{self._res_key}({",".join(c.children.get())})"
 
 class GdToPy_PackedInt32Array(_GdToPy_PackedArray):
@@ -311,7 +327,10 @@ class _PyToGd_PackedArrayComplex(PyToGdModule):
         def each_item_joined():
             for i in node:
                 yield from i
+
+        t = c.rendering.float_as_int_ok.set(True)
         yield each_item_joined()
+        c.rendering.float_as_int_ok.reset(t)
         return f"{self._res_key}({",".join(c.children.get())})"
 
 class GdToPy_PackedVector2Array(_GdToPy_PackedArrayComplex):
@@ -358,6 +377,7 @@ class PyToGd_PackedByteArray(PyToGdModule):
 gd_to_py_ruleset = GdToPyRuleset("STD_Values", [
     GdToPy_NodePath,
     GdToPy_StringName,
+    GdToPy_ObjectArgs,
     GdToPy_Object,
     GdToPy_Dictionary,
     GdToPy_DictionaryImplicit,

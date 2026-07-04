@@ -20,6 +20,14 @@ class Object(GdValue):
     def __init__(self, type, **kwargs):
         self.type = type
         self.kwargs = kwargs
+    
+    def __eq__(self, value):
+        if isinstance(value, Object):
+            return all([
+                self.type == value.type,
+                self.kwargs == value.kwargs,
+            ])
+        return super().__eq__(value)
 
 class Dictionary(OrderedDict, GdValue):
     _typing : GdTypeValueSet 

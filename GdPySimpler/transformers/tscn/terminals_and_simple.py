@@ -1,4 +1,4 @@
-from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule
+from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule, PyToGdContext
 # from ...core.structure import Collection, Resource, SubResource,
 from lark import (
     Tree as LarkTree,
@@ -39,13 +39,14 @@ class GdToPy_Terminals(GdToPyModule):
 
 class PyToGd_Terminals(PyToGdModule):
     _keys = (bool,float,int,str,None)
-    def transform(self, c, node):
+    def transform(self, c:PyToGdContext, node):
         if isinstance(node, float):
             if node == _inf:
                 return "inf"
             elif node == _inf_neg:
                 return "-inf"
-            return f'{node:g}'
+            return c.rendering.render_float(node)
+            # return 
         if isinstance(node, bool):
             if node:
                 return "true"

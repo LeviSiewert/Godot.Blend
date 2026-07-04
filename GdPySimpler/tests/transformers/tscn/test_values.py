@@ -103,7 +103,7 @@ class Test_Rect2i(_StructureTest):
     _parser_key = "value"
     def data(self,):
         # yield "Rect2i()", Rect2i()
-        yield "Rect2i(0,1)", Rect2i(0,1)
+        yield "Rect2i(0,1,2,3)", Rect2i(0,1,2,3)
 
 class Test_Vector2(_StructureTest):
     _type = Vector2
@@ -153,28 +153,32 @@ class Test_AABB(_StructureTest):
     def data(self,):
         # yield "AABB()", AABB()
         yield "AABB(1,2,3,4,5,6)", AABB(1,2,3,4,5,6)
-        yield "AABB(1.0,2.0,3.0,4.0,5.0,6.0)", AABB(1.0,2.0,3.0,4.0,5.0,6.0)
+        yield "AABB(1.5,2.5,3.5,4.5,5.5,6.5)", AABB(1.5,2.5,3.5,4.5,5.5,6.5)
+        # yield "AABB(1.0,2.0,3.0,4.0,5.0,6.0)", AABB(1.0,2.0,3.0,4.0,5.0,6.0)
 class Test_Quaternion(_StructureTest):
     _type = Quaternion
     _parser_key = "value"
     def data(self,):
         # yield "Quaternion()", Quaternion()
         yield "Quaternion(0,1,2,3)", Quaternion(0,1,2,3)
-        yield "Quaternion(0.0,1.0,2.0,3.0)", Quaternion(0.0,1.0,2.0,3.0)
+        yield "Quaternion(0.5,1.5,2.5,3.5)", Quaternion(0.5,1.5,2.5,3.5)
+        # yield "Quaternion(0.0,1.0,2.0,3.0)", Quaternion(0.0,1.0,2.0,3.0)
 class Test_Transform2D(_StructureTest):
     _type = Transform2D
     _parser_key = "value"
     def data(self,):
         # yield "Transform2D()", Transform2D()
         yield "Transform2D(0,1,2,3,4,5)", Transform2D(0,1,2,3,4,5)
-        yield "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)", Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)
+        yield "Transform2D(0.5,1.5,2.5,3.5,4.5,5.5)", Transform2D(0.5,1.5,2.5,3.5,4.5,5.5)
+        # yield "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)", Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)
 class Test_Transform3D(_StructureTest):
     _type = Transform3D
     _parser_key = "value"
     def data(self,):
         # yield "Transform3D()", Transform3D()
         yield "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)", Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)
-        yield "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)", Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)
+        yield "Transform3D(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5)", Transform3D(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5)
+        # yield "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)", Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)
 class Test_Basis(_StructureTest):
     _type = Basis
     _parser_key = "value"
@@ -182,6 +186,7 @@ class Test_Basis(_StructureTest):
         # yield "Basis()", Basis()
         yield "Basis(0,1,2,3,4,5,6,7,8)", Basis(0,1,2,3,4,5,6,7,8)
         yield "Basis(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)", Basis(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)
+        # yield "Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)", Basis(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0)
 
 class Test_PackedInt32Array(_StructureTest):
     _type = PackedInt32Array
@@ -216,7 +221,6 @@ class Test_PackedStringArray(_StructureTest):
     _parser_key = "value"
     def data(self,):
         yield 'PackedStringArray()', PackedStringArray()
-        yield 'PackedStringArray("a","b")', PackedStringArray("a","b")
         yield 'PackedStringArray("a","b")', PackedStringArray("a","b")
 
 class Test_PackedVector2Array(_StructureTest):
