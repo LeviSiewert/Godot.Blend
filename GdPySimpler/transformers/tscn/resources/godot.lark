@@ -84,6 +84,7 @@ type_anno : "[" type_anno_item + ("," type_anno_item)* "]"
 type_anno_item : WORD|subresource|extresource|rid
 
 array_explicit : "Array" [type_anno] "(" [array] ")"
+// _array : "[" [value+ ("," value)*] "]"
 array : "[" [value+ ("," value)*] "]"
 
 dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"

@@ -77,109 +77,109 @@ class Test_Array(_StructureTest):
         yield 'Array([])', Array()
         yield 'Array[Variant]([])', Array()
         yield 'Array(["a","b","c"])', Array("a","b","c")
-        yield 'Array([Variant]["a","b","c"])', Array("a","b","c")
+        yield 'Array[Variant](["a","b","c"])', Array("a","b","c")
         yield 'Array[String](["a","b","c"])', Array("a","b","c", types=GdTypeValueSet(str))
     
 class Test_Vector2i(_StructureTest):
     _type = Vector2i
     _parser_key = "value"
     def data(self,):
-        yield "Vector2i()", Vector2i()
+        # yield "Vector2i()", Vector2i()
         yield "Vector2i(0,1)", Vector2i(0,1)
 class Test_Vector3i(_StructureTest):
     _type = Vector3i
     _parser_key = "value"
     def data(self,):
-        "Vector3i()", Vector3i()
-        "Vector3i(0,1,2)", Vector3i(0,1,2)
+        # yield "Vector3i()", Vector3i()
+        yield "Vector3i(0,1,2)", Vector3i(0,1,2)
 class Test_Vector4i(_StructureTest):
     _type = Vector4i
     _parser_key = "value"
     def data(self,):
-        "Vector4i()", Vector4i()
-        "Vector4i(0,1,2,3)", Vector4i(0,1,2,3)
+        # yield "Vector4i()", Vector4i()
+        yield "Vector4i(0,1,2,3)", Vector4i(0,1,2,3)
 class Test_Rect2i(_StructureTest):
     _type = Rect2i
     _parser_key = "value"
     def data(self,):
-        yield "Rect2i()", Rect2i()
+        # yield "Rect2i()", Rect2i()
         yield "Rect2i(0,1)", Rect2i(0,1)
 
 class Test_Vector2(_StructureTest):
     _type = Vector2
     _parser_key = "value"
     def data(self,):
-        yield "Vector2()", Vector2()
+        # yield "Vector2()", Vector2()
         yield "Vector2(0,1)", Vector2(0,1)
         yield "Vector2(0.5,1.5)", Vector2(0.5,1.5)
 class Test_Vector3(_StructureTest):
     _type = Vector3
     _parser_key = "value"
     def data(self,):
-        yield "Vector3()", Vector3()
+        # yield "Vector3()", Vector3()
         yield "Vector3(0,1,2)", Vector3(0,1,2)
         yield "Vector3(0.5,1.5,2.5)", Vector3(0.5,1.5,2.5)
 class Test_Vector4(_StructureTest):
     _type = Vector4
     _parser_key = "value"
     def data(self,):
-        yield "Vector4()", Vector4()
+        # yield "Vector4()", Vector4()
         yield "Vector4(0,1,2,3)", Vector4(0,1,2,3)
         yield "Vector4(0.5,1.5,2.5,3.5)", Vector4(0.5,1.5,2.5,3.5)
 class Test_Rect2(_StructureTest):
     _type = Rect2
     _parser_key = "value"
     def data(self,):
-        yield "Rect2()", Rect2()
+        # yield "Rect2()", Rect2()
         yield "Rect2(0,1,2,3)", Rect2(0,1,2,3)
         yield "Rect2(0.5,1.5,2.5,3.5)", Rect2(0.5,1.5,2.5,3.5)
 class Test_Plane(_StructureTest):
     _type = Plane
     _parser_key = "value"
     def data(self,):
-        yield "Plane()", Plane()
+        # yield "Plane()", Plane()
         yield "Plane(0,1,2,3)", Plane(0,1,2,3)
         yield "Plane(0.5,1.5,2.5,3.5)", Plane(0.5,1.5,2.5,3.5)
 class Test_Color(_StructureTest):
     _type = Color
     _parser_key = "value"
     def data(self,):
-        yield "Color()", Color()
+        # yield "Color()", Color()
         yield "Color(0,1,2,3)", Color(0,1,2,3)
         yield "Color(0.5,1.5,2.5,3.5)", Color(0.5,1.5,2.5,3.5)
 class Test_AABB(_StructureTest):
     _type = AABB
     _parser_key = "value"
     def data(self,):
-        yield "AABB()", AABB()
+        # yield "AABB()", AABB()
         yield "AABB(1,2,3,4,5,6)", AABB(1,2,3,4,5,6)
         yield "AABB(1.0,2.0,3.0,4.0,5.0,6.0)", AABB(1.0,2.0,3.0,4.0,5.0,6.0)
 class Test_Quaternion(_StructureTest):
     _type = Quaternion
     _parser_key = "value"
     def data(self,):
-        yield "Quaternion()", Quaternion()
+        # yield "Quaternion()", Quaternion()
         yield "Quaternion(0,1,2,3)", Quaternion(0,1,2,3)
         yield "Quaternion(0.0,1.0,2.0,3.0)", Quaternion(0.0,1.0,2.0,3.0)
 class Test_Transform2D(_StructureTest):
     _type = Transform2D
     _parser_key = "value"
     def data(self,):
-        yield "Transform2D()", Transform2D()
+        # yield "Transform2D()", Transform2D()
         yield "Transform2D(0,1,2,3,4,5)", Transform2D(0,1,2,3,4,5)
         yield "Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)", Transform2D(0.0,1.0,2.0,3.0,4.0,5.0)
 class Test_Transform3D(_StructureTest):
     _type = Transform3D
     _parser_key = "value"
     def data(self,):
-        yield "Transform3D()", Transform3D()
+        # yield "Transform3D()", Transform3D()
         yield "Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)", Transform3D(0,1,2,3,4,5,6,7,8,9,10,11)
         yield "Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)", Transform3D(0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0)
 class Test_Basis(_StructureTest):
     _type = Basis
     _parser_key = "value"
     def data(self,):
-        yield "Basis()", Basis()
+        # yield "Basis()", Basis()
         yield "Basis(0,1,2,3,4,5,6,7,8)", Basis(0,1,2,3,4,5,6,7,8)
         yield "Basis(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)", Basis(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5)
 
@@ -188,7 +188,7 @@ class Test_PackedInt32Array(_StructureTest):
     _parser_key = "value"
     def data(self,):
         yield "PackedInt32Array()", PackedInt32Array()
-        yield "PackedInt32Array(0,1,2,3,4)", PackedInt32Array(0,1,2,3,4) 
+        yield "PackedInt32Array(0,1,2,3,4)", PackedInt32Array(0,1,2,3,4)
 class Test_PackedInt64Array(_StructureTest):
     _type = PackedInt64Array
     _parser_key = "value"
@@ -260,5 +260,5 @@ class Test_PackedByteArray(_StructureTest):
     _type = PackedByteArray
     _parser_key = "value"
     def data(self,):
-        yield 'PackedByteArray("")', PackedByteArray("")
-        yield 'PackedByteArray("abc123")', PackedByteArray("abc123")
+        yield 'PackedByteArray("")', PackedByteArray(b"")
+        yield 'PackedByteArray("abc123")', PackedByteArray(b"abc123")

@@ -1,14 +1,14 @@
 from .collections import CollectionSubscriber
 from array import array
 from typing import Any
-from collections import OrderedDict, UserString
+from collections import OrderedDict, UserString, UserList
 from .structure import GdType, GdTypeValue, GdTypeValueSet, GdValue
 
 
 class NodePath(UserString, GdValue):
     _typing : GdType|GdTypeValue
-    def __init__(self, value, /, typing:GdType|GdTypeValue=None):
-        self._typing = typing
+    def __init__(self, value, /, type:GdType|GdTypeValue=None):
+        self._typing = type
         super().__init__(value)
 
 class StringName(UserString, GdValue):
@@ -40,13 +40,15 @@ class _FixedLenArray(GdValue):
     _len: int = 0
     _def: Any = float(0.0)
     def __init__(self, *args):
-        if args:
+        if args and (args != (None,)*self._len):
             assert(len(args) == self._len)
             self.val = array(self._type_str, args) #Let god (array) sort out the types
         else:
-            self.val = array(self._type_str, (self._def)*self._len)
+            self.val = array(self._type_str, (self._def,)*self._len)
     def __eq__(self, other):
         return self.val == other
+    def __iter__(self):
+        yield from self.val
 
 class Vector2i(_FixedLenArray):
     _type_str : str = "i"
@@ -93,12 +95,12 @@ class Basis(_FixedLenArray):
     _len = 9
 
 
-class _PackedListSimple(list, GdValue):
+class _PackedListSimple(UserList, GdValue):
     def __init__(self, *args):
         l = []
         for v in args:
-            (self._type(v))
-        super().__init__(l)
+            l.append(self._types[0](v))
+        self.data = l
 
 class PackedInt32Array(_PackedListSimple):
     _types = (int,)

@@ -1,4 +1,5 @@
 from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule
+from typing import Type 
 
 from ...core.values import (
     NodePath,
@@ -42,8 +43,8 @@ class GdToPy_NodePath(GdToPyModule):
 class PyToGd_NodePath(PyToGdModule):
     _keys = (NodePath,)
     def transform(self, c, node:NodePath):
-        if node.typing:
-            yield c.typing
+        if node._typing:
+            yield (node._typing,)
             return f'NodePath[{c.children.get()[0]}]("{node.get_address()}")'
         return f'NodePath("{node.get_address()}")'
 
@@ -71,8 +72,14 @@ class PyToGd_Object(PyToGdModule):
             return f"Object({node.type}, {",".join(f"{k}={v}"for k,v in c.children.get()[0])})"
         return f"Object({node.type})"
 
-class GdToPy_Dictionary(GdToPyModule):
+class GdToPy_DictionaryImplicit(GdToPyModule):
     _keys = ("dictionary",)
+    def transform(self, c, node):
+        yield node.children 
+        children = c.children.get() 
+        return Dictionary(children)
+class GdToPy_Dictionary(GdToPyModule):
+    _keys = ("dictionary_explicit",)
     def transform(self, c, node):
         yield node.children 
         typing, children = c.children.get() 
@@ -96,13 +103,21 @@ class PyToGd_Dictionary(PyToGdModule):
 
         return f"Dictionary{ty}({inner})"
 
-
-class GdToPy_Array(GdToPyModule):
+class GdToPy_ArrayImplicit(GdToPyModule):
     _keys = ("array",)
     def transform(self, c, node):
         yield node.children
+        return Array(*c.children.get())
+
+class GdToPy_Array(GdToPyModule):
+    _keys = ("array_explicit",)
+    def transform(self, c, node):
+        yield node.children
         typing, children = c.children.get()
-        return Array(*children, types=typing)
+        if children is None:
+            return Array(types=typing)
+        return Array(*children, types=typing) 
+
 class PyToGd_Array(PyToGdModule):
     _keys = (Array,)
     def transform(self, c, node:Array):
@@ -123,7 +138,7 @@ class _GdToPy_FixedLenArray(GdToPyModule):
     _res_type : Type
     def transform(self, c, node):
         yield node.children
-        return self._res_type(c.children.get())
+        return self._res_type(*c.children.get())
 class _PyToGd_FixedLenArray(PyToGdModule):
     _res_key : str
     def transform(self, c, node):
@@ -241,12 +256,12 @@ class _GdToPy_PackedArray(GdToPyModule):
     _res_type : Type
     def transform(self, c, node):
         yield node.children
-        return self._res_type(c.children.get())
+        return self._res_type(*c.children.get())
 class _PyToGd_PackedArray(PyToGdModule):
     _res_key : str
     def transform(self, c, node):
         yield node
-        return f"f{self._res_key}({",".join(c.children.get())})"
+        return f"{self._res_key}({",".join(c.children.get())})"
 
 class GdToPy_PackedInt32Array(_GdToPy_PackedArray):
     _keys = ("packedint32array",)
@@ -288,7 +303,7 @@ class _GdToPy_PackedArrayComplex(GdToPyModule):
     _res_type : Type
     def transform(self, c, node):
         yield node.children
-        return self._res_type(c.children.get())
+        return self._res_type(*c.children.get())
 class _PyToGd_PackedArrayComplex(PyToGdModule):
     _res_key : str
     def transform(self, c, node):
@@ -297,7 +312,7 @@ class _PyToGd_PackedArrayComplex(PyToGdModule):
             for i in node:
                 yield from i
         yield each_item_joined()
-        return f"f{self._res_key}({",".join(c.children.get())})"
+        return f"{self._res_key}({",".join(c.children.get())})"
 
 class GdToPy_PackedVector2Array(_GdToPy_PackedArrayComplex):
     _keys = ("packedvector2array",)
@@ -331,13 +346,13 @@ class PyToGd_PackedColorArray(_PyToGd_PackedArrayComplex):
 class GdToPy_PackedByteArray(GdToPyModule):
     _keys = ("packedbytearray",)
     def transform(self, c, node):
-        yield node.children()
+        yield node.children
         txt = c.children.get()[0]
-        return PackedByteArray(txt)
+        return PackedByteArray(txt.encode("utf-8"))
 class PyToGd_PackedByteArray(PyToGdModule):
     _keys = (PackedByteArray,)
     def transform(self, c, node:PackedByteArray):
-        return f'PackedByteArray("{str(node)}")'
+        return f'PackedByteArray("{node.decode("utf-8")}")'
 
 
 gd_to_py_ruleset = GdToPyRuleset("STD_Values", [
@@ -345,7 +360,9 @@ gd_to_py_ruleset = GdToPyRuleset("STD_Values", [
     GdToPy_StringName,
     GdToPy_Object,
     GdToPy_Dictionary,
+    GdToPy_DictionaryImplicit,
     GdToPy_Array,
+    GdToPy_ArrayImplicit,
     GdToPy_Vector2i,
     GdToPy_Vector3i,
     GdToPy_Vector4i,

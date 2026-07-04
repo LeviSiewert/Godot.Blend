@@ -50,9 +50,9 @@ class _StructureTest[T:Type]():
     def make_gdtopy_context(self,)->GdToPyContext:
         return GdToPyContext()
 
-    def py_compare(self, a:T, b:T):
-        assert (isinstance(b, self._type))
-        assert (a == b)
+    def py_compare(self, ground:T, new:T):
+        assert (isinstance(new, self._type))
+        assert (ground == new)
 
-    def gd_compare(self, a:str, b:str):
-        assert(a.replace("/n","").replace(" ","") == b.replace("/n","").replace(" ",""))
+    def gd_compare(self, ground:str, new:str):
+        assert(ground.replace("/n","").replace(" ","") == new.replace("/n","").replace(" ",""))
