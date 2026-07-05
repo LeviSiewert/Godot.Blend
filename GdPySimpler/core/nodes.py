@@ -96,7 +96,9 @@ class Node():
             assert(parent is None)
             ## Reminder to self: python namespaces can suck. Multiple lamdas and multiple functions w/ the same name can be swap references in specific scenarios
             def set_parent_callback(scene:ResourceScene):
-                scene.nodes.append_reference(...)
+                scene.nodes.promise("nodepath", _defered_parent, lambda val: val.add_child(self), )
+                ## Promise fail case? scene.root.add_child(self), defered/keep offset parent??
+                
             self.context.callback(key="resource", once=True, callback=set_parent_callback)
 
         if _defered_apply_owner:
