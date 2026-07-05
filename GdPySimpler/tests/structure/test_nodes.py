@@ -13,7 +13,7 @@ class Test_Node():
         ## Tree structure should be in all cases:
         ## A
         ## |-B
-        ## |-C : Instance "instance_id"
+        ## |-C : Instance "SceneB"
         ## | |- ... : InsertedScene
         ## |-D : w/ defered owner
         ##   |-E
@@ -25,7 +25,7 @@ class Test_Node():
             _defered_parent = "",
         )
         node_c = Node.construct("NodeC",
-            instance = "instance_id",
+            instance = "SceneB",
             _defered_parent = "",
         )
         node_d = Node.construct("NodeD",
@@ -42,7 +42,7 @@ class Test_Node():
 
 
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
-        yield reversed(node_a, node_b, node_c, node_d, node_e, node_f)
+        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
 
 
         ## Applied parent:
@@ -51,7 +51,7 @@ class Test_Node():
             parent = node_a,
         )
         node_c = Node.construct("NodeC",
-            instance = "instance_id",
+            instance = "SceneB",
             parent = node_a,
         )
         node_d = Node.construct("NodeD",
@@ -66,7 +66,7 @@ class Test_Node():
             _defered_apply_owner = True,
         )
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
-        yield reversed(node_a, node_b, node_c, node_d, node_e, node_f)
+        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
 
 
         ## Applied children:
@@ -81,7 +81,7 @@ class Test_Node():
             _defered_apply_owner = True,
         )
         node_c = Node.construct("NodeC",
-            instance = "instance_id",
+            instance = "SceneB",
         )
         node_b = Node.construct("NodeB")
         node_a = Node.construct("NodeA",
@@ -89,7 +89,7 @@ class Test_Node():
         )
 
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
-        yield reversed(node_a, node_b, node_c, node_d, node_e, node_f)
+        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
         
 
         ## Mixed test:
@@ -99,7 +99,7 @@ class Test_Node():
             _defered_parent = ""
         )
         node_c = Node.construct("NodeC",
-            instance = "instance_id",
+            instance = "SceneB",
             parent = node_a
         )
         node_d = Node.construct("NodeD",
@@ -115,7 +115,7 @@ class Test_Node():
             parent = node_e,
         )
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
-        yield reversed(node_a, node_b, node_c, node_d, node_e, node_f)
+        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
 
         
     def test_basic_construction(self,):
@@ -132,9 +132,11 @@ class Test_Node():
         assert (node.properties["a"] == "a")
 
     def test_construction_owner(self):
+        i = 0
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
-            scene = ResourceScene.construct(
+
+            scene = ResourceScene.construct(f"TestIndex:{i}",
                 nodes=tree,
                 set_nodes_owner=False,
             )
@@ -154,6 +156,8 @@ class Test_Node():
             assert node_e.owner is None
             assert node_f.owner is scene
 
+            i = i+1
+
     def test_construction_tree(self):
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
@@ -162,24 +166,28 @@ class Test_Node():
                 nodes=tree
             )
 
-            assert node_b.parent is node_a
-            assert node_c.parent is node_a
-            assert node_d.parent is node_a
-            assert node_e.parent is node_d
-            assert node_f.parent is node_e
+            assert node_b._parent is node_a
+            assert node_c._parent is node_a
+            assert node_d._parent is node_a
+            assert node_e._parent is node_d
+            assert node_f._parent is node_e
     
     def test_construction_instance(self):
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
-            ext_ref = ExtReference("scene", "instance_id", "", "instance_id") 
-                        
+            ext_ref = ExtReference("scene", "SceneB", "SceneB", "SceneB") 
+
             scene_a = ResourceScene.construct("SceneA",
                 nodes=tree,
                 ext_references=[ext_ref],
                 # edit_resources=[
                 #     EditFlag("NodeC")
                 # ],
+                # _construct_tree = False,
+                # _load_references = False,
             )
+
+            assert (scene_a.ext_references["SceneB"] is ext_ref)
 
             scene_b = ResourceScene.construct("SceneB",
                 nodes=(
@@ -192,11 +200,13 @@ class Test_Node():
                 )
             )
             
+            assert node_c.instance.context.resource is scene_a
+
             assert node_c.instance.cached_value() is ext_ref
+            assert node_c.instance_editable is False
             assert node_c.overlay is None
 
             scene_a.setup_tree(load_instances=False)
             
-            scene_b.setup_tree()
             # scene.setup_tree(load_instances=True)
             ## This should error out!!

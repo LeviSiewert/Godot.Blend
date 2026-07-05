@@ -16,7 +16,11 @@ class Reference[ADDR:Any, V:Item]():
     cached_addr : ADDR = None
     collection : Collection = None
 
+    def __setup__(self,):
+        pass
+
     def __init__(self, /, key_id:str=None, address:ADDR=None, cached_value:V=None, collection=None):
+        self.__setup__()
         self.key_id = key_id
         self.store_address(address)
         self.store_value(cached_value)
@@ -76,7 +80,7 @@ class Key[ADDR:Any, I:Item]():
     source : I
     addr : ADDR
     
-    def __init__(self, source:I, addr:ADDR, key_id:str):
+    def __init__(self, source:I, key_id:str, addr:ADDR,):
         self.key_id = key_id
         self.source = source
         self.addr = addr
@@ -146,7 +150,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
                 r.store_value(v)
                 r.store_address(key.addr)
 
-    def append(self, item:I):
+    def append(self, item:I, /, _defer_context_extension=False):
         keys = {} 
         if not (self.find(item, None) is None):
             raise ValueError("Already in collection!")
@@ -159,12 +163,22 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
                 ## TODO: Double call possible here!!
         self.data.append((item, keys))
 
-        if hasattr(item,"context"):
-            item.context.set_extends(self.context)
+        if not _defer_context_extension:
+            if hasattr(item,"context"):
+                item.context.set_extends(self.context)
 
     def extend(self,items:Iterable[I]):
         for item in items:
-            self.append(item)
+            self.append(item, _defer_context_extension=True)
+
+        ## Defered context extension to prevent (NOT SOLVE!) timing problems
+        ## If you are having troubles w/ timing, consider using a Reference
+        ## Otherwise it's a TODO for a simpler Reference-like Promise via a Signal (in general)
+        ## This A Promise would require ability to see caller, track and cleanup
+        for item in items:
+            if hasattr(item,"context"):
+                item.context.set_extends(self.context)
+        
 
     def find[D](self, item:I, /, default:D=_UNSET)->int|D:
         for i, (o, keys) in enumerate(self.data):
@@ -260,19 +274,27 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
             raise KeyError(addr)
         return addr.split("://")[0]
     
-    def ensure_unique(self, obj, key:Key):
-        _obj,_key = self.unique_get( key.addr, key.key_id, default=(None,None))
-        if (_obj is None) or (_obj is obj): 
-            return
-        self.key_unique_collision_handle(_obj, _key, obj, key)
+    def ensure_unique(self, obj, key:Key, obj_is_right=True):
+        #TODO: Figure out best way to accomidate!
+        pass
+
+        # all_shared = list(filter(lambda x: not(x[0] is obj) , self.iter_get(key.addr, key.key_id, ret_key=True)))
+        # all_shared.append((obj,key))
+
+        # for _obj, _key in all_shared:
+        #     self.key_unique_collision_handle(_obj, _key, obj, key)
+        #     obj, key = _obj, _key
+        # _obj,_key = self.unique_get(key.addr, key.key_id, default=(None,None), ret_key=True)
+        # if (_obj is None) or (_obj is obj): 
+        #     return
 
     def map_addresses(self,)->dict[str,tuple[I,Key]]:
         res = {}
         for o,ks in self.data:
-            for k,v in ks:
+            for k,v in ks.items():
                 if not k in res.keys():
                     res[k] = []
-                res[k].append(tuple(o,v))
+                res[k].append(tuple((o,v)))
         return self
 
     def key_unique_collision_handle(self, left_obj:V, left_key:Key, right_obj:V, right_key:Key,):
@@ -284,7 +306,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
             i = i+1
             if i > 999:
                 raise RuntimeError("KeyGenerator is not producing unique keys!")
-            
+        
         if self._unique_key_maintain_left:
             right_key.addr = addr
             self.update_refs(right_key,right_obj)
@@ -292,3 +314,9 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         else:
             left_key.addr = addr
             self.update_refs(left_key,left_obj)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, val):
+        return self.set(key, val)

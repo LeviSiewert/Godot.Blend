@@ -23,12 +23,12 @@ class ResourceScene(_Resource):
     nodes : NodeCollection
 
     @classmethod
-    def construct(cls, uid:str=None, /, nodes:list=None, ext_resources:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, **kwargs,):
+    def construct(cls, uid:str=None, /, nodes:list=None, ext_references:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, **kwargs,):
         self = cls(uid=uid)
         if nodes:
             self.nodes.extend(nodes)
-        if ext_resources:
-            self.ext_resources.extend(ext_resources)
+        if ext_references:
+            self.ext_references.extend(ext_references)
         if sub_resources:
             self.sub_resources.extend(sub_resources)
         if edit_flags:
@@ -41,7 +41,7 @@ class ResourceScene(_Resource):
         return self
 
     def __setup__(self):
-        self.uid = Key(self,None,"uid")
+        self.uid = Key(self,"uid", None)
         
         self.context = StructContext(_identifier=self,resource=self)
 
@@ -56,6 +56,9 @@ class ResourceScene(_Resource):
         self.format = format
         self.uid.set(uid)
 
+    def __repr__(self,):
+        return f"ResourceScene({self.uid.get()} :: {self.file})"
+
 class Node():
     name : str
     context : StructContext = None
@@ -63,11 +66,12 @@ class Node():
     unique_id : Key[str]
     properties : PropertyCollection
     
-    parent : Node = None
-    children: list[Node]
+    # Should be accessed through get/set:
+    _parent : Node = None 
+    _children: list[Node]
+    _type : GdType|None = None
 
     owner : _Resource|None = None
-    type : GdType|None = None
     
     instance : ExtResourceRef = None
     instance_editable : bool = False
@@ -76,7 +80,7 @@ class Node():
     overlay_is_thin : bool = False
 
     @classmethod
-    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, **kwargs):
+    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, children:list=None, **kwargs):
         ''' Construction within an specific context, before being extended/appended into a Scene
         _defered_parent && _defered_children are absolute paths, and context callbacks are used to assign them.
         ## TODO : Assign them as promises/similar to References instead 
@@ -90,15 +94,18 @@ class Node():
             self.properties.update(properties)
         
         if parent:
-            parent.set_child(self)
+            parent.add_child(self)
+
+        if children:
+            self._children.extend(children)
+
+        ## Reminder to self: python namespaces can suck. 
+        ## Multiple lamdas and multiple functions w/ the same name can be merge overwrite in specific scenarios
 
         if _defered_parent:
             assert(parent is None)
-            ## Reminder to self: python namespaces can suck. Multiple lamdas and multiple functions w/ the same name can be swap references in specific scenarios
             def set_parent_callback(scene:ResourceScene):
-                scene.nodes.promise("nodepath", _defered_parent, lambda val: val.add_child(self), )
-                ## Promise fail case? scene.root.add_child(self), defered/keep offset parent??
-                
+                scene.nodes._promised_parents.append((self,_defered_parent))
             self.context.callback(key="resource", once=True, callback=set_parent_callback)
 
         if _defered_apply_owner:
@@ -106,16 +113,17 @@ class Node():
                 if scene:
                     self.owner = scene
                     return Signal.REMOVE
+            ##TODO: Verify this is only being called once.
             self.context.callback(key="resource", once=False, local_only=True, callback=set_owner_callback)
             
         if isinstance(instance,str):
-            self.instance = ExtResourceRef(address=instance)
+            self.instance = ExtResourceRef(key_id="uid", address=instance)
         elif isinstance(instance,ExtResourceRef):
             self.instance = instance
         elif isinstance(instance,ResourceScene):
-            self.instance = ExtResourceRef(cached_value=instance)
+            self.instance = ExtResourceRef(key_id="uid", cached_value=instance)
         elif not (instance is None):
-            raise Exception()
+            raise Exception(instance)
 
         for k,v in kwargs.items():
             if hasattr(self,k):
@@ -126,7 +134,7 @@ class Node():
         return self
 
     def __setup__(self):
-        self.children = []
+        self._children = []
         
         self.unique_id = Key(self, "unique_id", None)
 
@@ -150,7 +158,33 @@ class Node():
 
     def __repr__(self):
         return f"Node({self.name})"
+    
+    def get_parent(self,):
+        return self._parent 
+
+    def set_parent(self, new_parent, **kwargs):
+        raise NotImplementedError() 
+
+    def add_child(self, item:Node):
+        assert(item._parent == None)
+        self._children.append(self)
+        item._parent = self
+
+    def remove_child(self, item:Node):
+        assert(item._parent is self)
+        assert(item in self._children)
+        item._parent = None
+        self._children.remove(item)
+
+    def get_children(self,)->tuple[Node]:
+        return tuple(self._children)
 
 class NodeCollection(Collection):
     unique_keys = ("unique_id",)
     _type = Node
+    _promised_parents : list[str,Node]
+
+    
+    def __setup__(self,):
+        self._promised_parents = [] 
+        return super().__setup__()

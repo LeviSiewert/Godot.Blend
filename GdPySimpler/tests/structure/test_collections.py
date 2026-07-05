@@ -14,9 +14,9 @@ def test():
 
         def __setup__(self):
             # self.context = StructContext()
-            self.key_a = Key(self, None, "key_a")
-            self.key_b = Key(self, None, "key_b")
-            self.key_c = Key(self, None, "key_c")
+            self.key_a = Key(self, "key_a", None)
+            self.key_b = Key(self, "key_b", None)
+            self.key_c = Key(self, "key_c", None)
 
         def __init__(self, id:str, a:str, b:str):
             self.__setup__()

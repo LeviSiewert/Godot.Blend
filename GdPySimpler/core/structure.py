@@ -236,9 +236,25 @@ class ExtReference():
         self.path.set(path)
         self.id.set(id)
 
+    def __colkeys__(self,):
+        return (
+            self.uid,
+            self.path,
+            self.id,
+            # self.type
+            )
+
 class ExtReferenceCollection(Collection):
     unique_keys = ("uid","path","id")
-    shared_keys = ("type",)
+    # shared_keys = ("type",)
+
+    def key_matcher(self, addr:str):
+        if addr.startswith("res://"):
+            return "path"
+        if addr.startswith("uid://"):
+            return "uid"
+        return "id"
+
 
 
 class EditFlag():
@@ -312,52 +328,56 @@ class CategoryCollection(Collection):
     _type = Category
 
 
-class _ContextualRef(Reference, GdValue):
-    context : StructContext
+# class _ContextualRef(Reference, GdValue):
+    # context : StructContext
+    # def _on_context_updated(self, attr:str, value:Any|None):
+    #     pass
+
+class SubResourceRef(Reference, GdValue): 
+    key_categories = ("id",)
+    _type = SubResource
 
     def __setup__(self):
         super().__setup__()
         self.context = StructContext()
-        self.context.value_updated.connect(self._on_context_updated)
+        self.context.callback("resource",self._on_context_updated)
 
-    def _on_context_updated(self, key:str, value:Any|None):
-        pass
-
-class SubResourceRef(_ContextualRef): 
-    key_categories = ("id",)
-    _type = SubResource
-
-    def _on_context_updated(self, key:str, value:Any):
-        if key != "resource":
-            return
+    def _on_context_updated(self, value:Any):
         if value is None:
             self.set_collection(None)
         else:
             value : ResourceTres
             self.set_collection(value.sub_resources)
 
-class ExtResourceRef(_ContextualRef): 
+
+class ExtResourceRef(Reference, GdValue): 
     ''' Routed reference ID '''
     key_categories = ("id",)
     _type = _Resource
 
-    def _on_context_updated(self, key:str, value:Any):
-        if key != "resource":
-            return
+    def __setup__(self):
+        super().__setup__()
+        self.context = StructContext()
+        self.context.callback("resource",self._on_context_updated)
+        
+    def _on_context_updated(self, value:Any):
         if value is None:
             self.set_collection(None)
         else:
             value : ResourceTres
             self.set_collection(value.ext_resources)
 
-class RID(_ContextualRef):
+class RID(Reference, GdValue):
     ''' Universal ID '''
     key_categories = ("uid",)
     _type = _Resource
 
-    def _on_context_updated(self, key:str, value:Any):
-        if key != "project":
-            return
+    def __setup__(self):
+        super().__setup__()
+        self.context = StructContext()
+        self.context.callback("project",self._on_context_updated)
+        
+    def _on_context_updated(self, value:Any):
         if value is None:
             self.set_collection(None)
         else:
