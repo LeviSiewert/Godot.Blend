@@ -138,7 +138,16 @@ class Test_Node():
                 nodes=tree,
                 set_nodes_owner=False,
             )
+
+            # raise Exception(node_d.context._extends._extends.resource)
+
+            assert node_d.context._extends._extends.resource is scene
+            assert node_d.context._extends._extends is scene.context
+            assert node_d.context._extends.resource is scene
             
+            assert node_d.context._extends is scene.nodes.context
+            assert node_d.context.resource == scene
+
             assert node_b.owner is None 
             assert node_c.owner is None 
             assert node_d.owner is scene 

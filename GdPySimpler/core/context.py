@@ -23,9 +23,11 @@ class StructContext(object):
             setattr(self,k,v)
 
     def __getattr__(self, attr):
-        if attr in self._slots_:
+        if not (self._extends is None):
             return getattr(self._extends, attr, None)
-        raise None
+        elif attr in self._slots_:
+            return None
+        raise AttributeError(obj=self,name=attr)
     
     def __setattr__(self, attr, value):
         if attr in self._slots_:

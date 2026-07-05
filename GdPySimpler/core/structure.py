@@ -12,12 +12,12 @@ from pathlib import Path as _Path
 
 class StructContext(_StructContext):
     ''' Structural object, via extends '''
-    _slots_ = ["_extends","project","file","resource","sub_resource"]
+    _slots_ = ("project", "file", "resource", "sub_resource")
 
-    project : Project = None 
-    file: _File = None 
-    resource: _Resource = None 
-    sub_resource: SubResource = None
+    project : Project | None
+    file: _File | None
+    resource: _Resource | None
+    sub_resource: SubResource | None
 
 class GdValue():
     ...

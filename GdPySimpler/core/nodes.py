@@ -5,6 +5,7 @@ from .structure import _Resource, SubResource, SubResourceCollection, SignalNota
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
 from .values import NodePath 
+from .signals import Signal
 
 class ResourceScene(_Resource):
     uid : Key[str]
@@ -41,7 +42,9 @@ class ResourceScene(_Resource):
 
     def __setup__(self):
         self.uid = Key(self,None,"uid")
-        self.context = StructContext(resource=self)
+        
+        self.context = StructContext(_identifier=self,resource=self)
+
         self.properties = PropertyCollection(context=self.context)
         self.ext_references = ExtReferenceCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
@@ -55,7 +58,7 @@ class ResourceScene(_Resource):
 
 class Node():
     name : str
-    context : StructContext
+    context : StructContext = None
     
     unique_id : Key[str]
     properties : PropertyCollection
@@ -73,7 +76,7 @@ class Node():
     overlay_is_thin : bool = False
 
     @classmethod
-    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, **kwargs):
+    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, **kwargs):
         ''' Construction within an specific context, before being extended/appended into a Scene
         _defered_parent && _defered_children are absolute paths, and context callbacks are used to assign them.
         ## TODO : Assign them as promises/similar to References instead 
@@ -91,10 +94,18 @@ class Node():
 
         if _defered_parent:
             assert(parent is None)
-            def callback(resource:ResourceScene):
-                resource.nodes.get(_defered_parent)
-            self.context.callback(key="resource", once=True, callback=callback)
+            ## Reminder to self: python namespaces can suck. Multiple lamdas and multiple functions w/ the same name can be swap references in specific scenarios
+            def set_parent_callback(scene:ResourceScene):
+                scene.nodes.get(_defered_parent)
+            self.context.callback(key="resource", once=True, callback=set_parent_callback)
 
+        if _defered_apply_owner:
+            def set_owner_callback(scene:ResourceScene):
+                raise Exception("CALLBACK WORK DAMNIT")
+                if scene:
+                    self.owner = scene
+                    return Signal.REMOVE
+            self.context.callback(key="resource", callback=set_owner_callback)
             
         if isinstance(instance,str):
             self.instance = ExtResourceRef(address=instance)
@@ -108,6 +119,8 @@ class Node():
         for k,v in kwargs.items():
             if hasattr(self,k):
                 setattr(self,k,v)
+            else:
+                raise KeyError(self,k,v)
         
         return self
 
@@ -116,7 +129,7 @@ class Node():
         
         self.unique_id = Key(self, "unique_id", None)
 
-        self.context = StructContext(sub_resource=self)
+        self.context = StructContext(_identifier=self, sub_resource=self)
         self.properties = PropertyCollection(context=self.context)
 
     def __init__(self, name:str=None, type:GdType=None):
