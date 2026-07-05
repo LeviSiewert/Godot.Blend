@@ -44,6 +44,10 @@ shadow_mesh = SubResource("ArrayMesh_3l6rm")
 
 [node name="Complex" type="Node" unique_id=2079728927]
 
+[node name="TestRemoveMe_Node#OrphanedNode" type="Node" parent="." unique_id=542318161]
+
+[node name="TestRemoveMe" parent="." unique_id=1379624994]
+
 [node name="LocalNode" type="Node" parent="." unique_id=531093875]
 
 [node name="GlbInhherited" parent="." unique_id=1301180837 instance=ExtResource("1_0xe7n")]
@@ -63,13 +67,13 @@ mesh = SubResource("ArrayMesh_qt25o")
 
 [node name="GlbEditableAddScript" parent="." unique_id=621548348 instance=ExtResource("1_w5rjj")]
 
-[node name="Cube" parent="GlbEditableAddScript" index="0" unique_id=895413058 node_paths=PackedStringArray("noderef")]
+[node name="Cube" parent="GlbEditableAddScript" index="0" unique_id=1458920039 node_paths=PackedStringArray("noderef")]
 script = ExtResource("3_7d4mc")
 noderef = NodePath("..")
 
 [node name="GlbEditableEditProp" parent="." unique_id=726661338 instance=ExtResource("1_w5rjj")]
 
-[node name="Cube" parent="GlbEditableEditProp" index="0" unique_id=895413058]
+[node name="Cube" parent="GlbEditableEditProp" index="0" unique_id=1458920039]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
 
 [editable path="GlbInhheritedEditable"]

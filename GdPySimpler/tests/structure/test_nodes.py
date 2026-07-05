@@ -163,15 +163,19 @@ class Test_Node():
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
 
+            # try:
             scene = ResourceScene.construct(f"Test {i}",
-                nodes=tree
+                nodes=tree,
+                _strict=True,
             )
-            
+
             assert node_b._parent is node_a
             assert node_c._parent is node_a
             assert node_d._parent is node_a
             assert node_e._parent is node_d
             assert node_f._parent is node_e
+            # except:
+            #     raise Exception(i)
             
             i = i+1
         

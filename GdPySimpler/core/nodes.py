@@ -1,11 +1,97 @@
 from __future__ import annotations
 
-from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtReferenceCollection, EditFlagCollection, StructContext, GdType, ExtResourceRef, ExtResourceRef
+from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtReferenceCollection, EditFlagCollection, StructContext, GdType, ExtResourceRef, ExtResourceRef, _File
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
 from .values import NodePath 
 from .signals import Signal
+
+from . import transformer as _T
+
+
+## Tree constructor is a Transformer w/ particular settings:
+
+class _Context(_T.Context):
+    path : _T.ContextVar[str]
+    root : Node
+    load_instances : bool
+    namespace_parent_asc : dict[str, list[Node]]
+    namespace : dict[str, Node]
+    def __init__(self, root, load_instances, namespace_parent_asc, namespace):
+        self.path = _T.ContextVar("nodepath", default=".")
+        self.root = root
+        self.load_instances = load_instances
+        self.namespace_parent_asc = namespace_parent_asc
+        self.namespace = namespace
+        super().__init__()
+
+class _TransformerModule(_T.TransformerModule):
+    _keys = (_T.DEFAULT,)
+
+    def transform(self, c:_Context, node:tuple[Node,Node]):
+        local, overlay = node
+
+        if local is None:
+            local = Node.construct_thin(overlay)
+        
+        elif (local.instance) and (c.load_instances.get()):
+            assert (local.instance.get())
+            ## ASSUMPTION: an thin node cannot be an instance
+
+            instance : ResourceScene = local.instance.get()
+            instance.ensure_loaded()
+            instance.ensure_constructed(load_instances=True)
+
+            local.overlay = instance.root
+            overlay = instance.root
+
+        if not (c.root is local):
+            path = c.path.get() + "/" + local.name
+        else:
+            path = "."
+        c.namespace[path] = local
+
+        defered_children = c.namespace_parent_asc.get(path, tuple())
+        if path in c.namespace_parent_asc.keys():
+            del c.namespace_parent_asc[path]
+
+        local_children = (*defered_children, *local._children)
+        
+        t = c.path.set(path)
+
+        if overlay:
+            yield self.match_and_order(local_children, overlay._children)
+        else:
+            yield self.match_and_order(local_children, tuple())
+
+        c.path.reset(t)
+
+        for c in c.children.get():
+            local.add_child(c)
+
+        return local
+
+    @staticmethod
+    def match_and_order(local_children, overlay_children):
+        ##TODO: Ordering!!
+        ##TODO: Current ordering is incorrect as well!!
+
+        overlay = {}
+        local = {}
+
+        for n in overlay_children:
+            overlay[n.name] = [None,n]
+
+        for n in local_children:
+            if o:=overlay.get(n.name,None):
+                local[n.name] = [n,o]
+                del overlay[n.name]
+        
+        yield from local.values()
+        yield from overlay.values()
+
+_Transformer = _T.Transformer(_T.TransformerRuleset("DEFAULT",[_TransformerModule]), identifier="TREE_CONSTRUCTION")
 
 class ResourceScene(_Resource):
     uid : Key[str]
@@ -22,10 +108,10 @@ class ResourceScene(_Resource):
     edit_flags : EditFlagCollection
     nodes : NodeCollection
     
-    root : Node
+    root : Node = None
 
     @classmethod
-    def construct(cls, uid:str=None, /, nodes:list=None, ext_references:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, **kwargs,):
+    def construct(cls, uid:str=None, /, nodes:list=None, ext_references:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, _construct_tree:bool=True, _load_instances:bool=True, _strict:bool=False, **kwargs,):
         self = cls(uid=uid)
         if nodes:
             self.nodes.extend(nodes)
@@ -40,6 +126,10 @@ class ResourceScene(_Resource):
         for k,v in kwargs.items():
             if hasattr(self,k):
                 setattr(self,k,v)
+
+        if _construct_tree:
+            self.construct_tree(load_instances=_load_instances, _strict=_strict)
+
         return self
 
     def __setup__(self):
@@ -61,76 +151,72 @@ class ResourceScene(_Resource):
     def __repr__(self,):
         return f"ResourceScene({self.uid.get()} :: {self.file})"
     
-    def construct_tree(self, load_instances:bool=True):
-        ## Complete construction of the tree by:
-        ## - Loading required trees TODO
-        ## - Iterating over all nodes, 
-        #       - applying to namespace w/a (Defered namespace!)
-        #       - 
-        ## - Iterating over all nodes, applying to parent w/a
-
-        namespace_children : dict[str,list[Node]] = {}
-        unresolved_namespace : list[(Node,Node)] #Nodes set as parent w/out path (must resolve for namespace to work!)
-        no_namespace : list[Node] #Only one should exist, root.
+    def construct_tree(self, load_instances:bool=True, _strict:bool=False,):
         root = self.root
-        ## Root can be: ("" / None)
-        ## Root must have owner set, BUT order of operations may prevent that from being visible here
 
-        def fetch_from_defered(node:Node, default=None):
-            for o,p in self._defered_namespace:
-                if o is node:
-                    return p
-            return default
+        namespace_parent_asc : dict[str, list[Node]] = {}
+        namespace : dict[str, Node] = {}
+        unassigned : list[Node] = []
 
-        def fetch_from_unresolved(parent_node:Node, default=None):
-            for p,c in self.unresolved_namespace:
-                if p is parent_node:
-                    yield c
+        for n in self.nodes:
+            n : Node
 
-        for node in self.nodes:
-            node : Node
-            if def_path := fetch_from_defered(Node):
-                ##TODO: Determine if there is a symbol for root.
-                if not  def_path in namespace_children.keys():
-                     namespace_children = []
-                namespace_children[def_path].append(node)
-            elif parent:=node.get_parent():
-                ## Direct parent, must resolve namespace
-                unresolved_namespace.append((parent, node))
+            if n._parent:
+                # Known parent, ignore. 
+                # Later incorperated & ordered in transformer
+                pass 
+
+            elif not (p:=getattr(n, "_defered_parent", None)) is None:
+                ## Make path styles explicit.
+                if p == "":
+                    p = "."
+                elif not p.startswith("./"):
+                    p = "./" + p
+
+                if not p in namespace_parent_asc.keys():
+                    namespace_parent_asc[p] = []
+                namespace_parent_asc[p].append(n)
+
             else:
-                # Root does not have a parent declared
-                no_namespace.append(node)
+                unassigned.append(n)
 
-        if (len(no_namespace) > 1) and (self.root is None):
-            raise Exception("Multiple nodes do not have any parent (defered or direct) declared!", unresolved_namespace)
-        elif (self.root is None):
-            self.root = no_namespace[0]
-        del no_namespace
 
-        ## Now construct w/ knowledge of unresolved namespaces via recursive traversal constructing namespace?
+        if (len(unassigned) == 1):
+            if root:
+                assert unassigned[0] == root
+            else:
+                root = unassigned[0]
+        elif len(unassigned):
+            #Multiple nodes do not have an assigned parent!, Only one node (root) should populate unassigned
+            raise Exception("(len(unassigned)>1) :: ", unassigned)
 
-        ## UNKNOWNS:
-        ## Correct resolution ofall, pop known, 
-        ## Construction of instanced scenes, zipping of those structures
+        del unassigned
 
-        path = "" #Root
-        node = root
-        def recur(path:str, node:Node, is_root=False):
-            for c in namespace_children.get(path,tuple()):
-                node.add_child(c)
-                
-            for c in list(fetch_from_unresolved(node)):
-                if not path in namespace_children.keys():
-                     namespace_children[path] = []
-                namespace_children[path].append(c)
-            
-            for c in namespace_children.get(path,tuple()):
-                if is_root:
-                    recur(path+"/"+node.name, node)
-                else:
-                    recur(node.name, node)
-            
-            
+        namespace["."] = root
+        
+        c = _Context(root, load_instances, namespace_parent_asc, namespace)
+        _Transformer.transform_tree(c, (root,None))
+
+        #Missing parents:
+
+        if _strict and namespace_parent_asc:
+            raise Exception(namespace_parent_asc)
+        
+        for p_path, ns in namespace_parent_asc.items():
+            for n in ns:
+                n.name = (p_path.replace("/","#") + "#" + n.name).strip(".")
+                root.add_child(n)
+
+        # Behavior note for GdPy:
+        ## Orphaned children 
+            # will not be removed (missing refs or not)
+            # Virtual Paths should be respected in traversal of Nodepaths (via central handling)
+            # Virtual paths are nodes under root with "#" replacing "/"
+        ## Empty NodePath references should be accomidated w/ missing or non-loaded instances.
+        ## Instances loaded later will need to construct/attach virtual paths.
+
+        return root
+
 
 class Node():
     name : str
@@ -141,6 +227,8 @@ class Node():
     
     # Should be accessed through get/set:
     _parent : Node = None 
+    _defered_parent : str # TEMP! TODO: determine better method
+
     _children: list[Node]
     _type : GdType|None = None
 
@@ -153,33 +241,30 @@ class Node():
     overlay_is_thin : bool = False
 
     @classmethod
+    def construct_thin(cls, overlay:Node):
+        self = cls(overlay.name, overlay.type)
+        self.set_overlay(overlay, thin = True)
+        return self
+
+    @classmethod
     def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, children:list=None, **kwargs):
-        ''' Construction within an specific context, before being extended/appended into a Scene
-        _defered_parent && _defered_children are absolute paths, and context callbacks are used to assign them.
-        ## TODO : Assign them as promises/similar to References instead 
-            - could prevents ordering issues, 
-            - promises w/out fullfillemt can be reacted to/raise errors 
-            - Abs path must still be constructed
+        ''' Construction within an specific context, before being extended/appended into a Scene 
+        _defered_apply_owner: set owner to constructed scene. Default False
         '''
         self = cls(name=name, type=type)
         
         if properties:
             self.properties.update(properties)
-        
-        if parent:
-            parent.add_child(self)
 
         if children:
-            self._children.extend(children)
+            for c in children:
+                self.add_child(c)
 
-        ## Reminder to self: python namespaces can suck. 
-        ## Multiple lamdas and multiple functions w/ the same name can be merge overwrite in specific scenarios
-
-        if _defered_parent:
-            assert(parent is None)
-            def set_parent_callback(scene:ResourceScene):
-                scene.nodes._promised_parents.append((self,_defered_parent))
-            self.context.callback(key="resource", once=True, callback=set_parent_callback)
+        if parent:
+            #TODO: Swap to defered reference?
+            parent.add_child(self)
+        elif not (_defered_parent is None):
+            self._defered_parent = _defered_parent 
 
         if _defered_apply_owner:
             def set_owner_callback(scene:ResourceScene):
@@ -257,7 +342,6 @@ class NodeCollection(Collection):
     _type = Node
     _promised_parents : list[str,Node]
 
-    
     def __setup__(self,):
         self._promised_parents = [] 
         return super().__setup__()

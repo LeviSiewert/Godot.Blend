@@ -2,7 +2,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 from typing import Any, Iterable, Generator, Callable
 from inspect import isclass, isgeneratorfunction, isgenerator
-from copy import deepcopy
+# from copy import deepcopy
 
 class _UNSET():
     pass
@@ -66,8 +66,11 @@ class TStream[I:Any,O:Any](_TransformerCmd):
 
 
 class Context():
-    def __new__(cls):
-        self = super().__new__(cls)
+    def __init__(self):
+        self.__setup__()
+
+    def __setup__(self):
+        # self = super().__new__(cls)
         self.transformer = ContextVar("transformer", default=None)
         self.rulesets = ContextVar("rulesets", default=None)
 
@@ -86,13 +89,13 @@ class Context():
 
     children : ContextVar[Iterable[Any]]
 
-    def __deepcopy__(self,):
-        ##TODO: Double check IO
-        res = self.__class__()
-        for k,v in self.__dict__():
-            if isinstance(v, ContextVar):
-                getattr(res,k).set(v.get())
-        return res
+    # def __deepcopy__(self,):
+    #     ##TODO: Double check IO
+    #     res = self.__class__()
+    #     for k,v in self.__dict__():
+    #         if isinstance(v, ContextVar):
+    #             getattr(res,k).set(v.get())
+    #     return res
 
 class TransformerModule[IN:Any, CHILDREN:Any|TERMINAL, OUT:Any|IGNORE]():
     def __repr__(self,):

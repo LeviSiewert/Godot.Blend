@@ -320,3 +320,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
 
     def __setitem__(self, key, val):
         return self.set(key, val)
+    
+    def __iter__(self):
+        for o,d in self.data:
+            yield o
