@@ -1,7 +1,7 @@
 from __future__ import annotations
 from weakref import ref, ReferenceType as _RefType
 from string import ascii_letters
-from typing import Any
+from typing import Any, Iterable
 import random
 
 from .context import StructContext
@@ -146,7 +146,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
                 r.store_value(v)
                 r.store_address(key.addr)
 
-    def append(self,item:I):
+    def append(self, item:I):
         keys = {} 
         if not (self.find(item, None) is None):
             raise ValueError("Already in collection!")
@@ -160,7 +160,11 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         self.data.append((item, keys))
 
         if hasattr(item,"context"):
-            item.set_extends(self.context)
+            item.context.set_extends(self.context)
+
+    def extend(self,items:Iterable[I]):
+        for item in items:
+            self.append(item)
 
     def find[D](self, item:I, /, default:D=_UNSET)->int|D:
         for i, (o, keys) in enumerate(self.data):
@@ -178,7 +182,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         for k_id,k in keys.items():
             self.update_refs(k, item)
         if hasattr(item,"context"):
-            item.set_extends(None)
+            item.context.set_extends(None)
 
     def iter_get(self, addr:ADDR, key_id:str=None, ret_key:bool=False):
         if key_id is None:

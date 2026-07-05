@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtReferenceCollection, EditFlagCollection, StructContext, GdType, ExtResourceRef
+from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtReferenceCollection, EditFlagCollection, StructContext, GdType, ExtResourceRef, ExtResourceRef
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
 from .values import NodePath 
 
 class ResourceScene(_Resource):
+    uid : Key[str]
+
     type : GdType|None|str
     format : int
 
@@ -17,43 +19,61 @@ class ResourceScene(_Resource):
     ext_references : ExtReferenceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
     edit_flags : EditFlagCollection
-    node_res : NodeCollection
+    nodes : NodeCollection
+
+    @classmethod
+    def construct(cls, uid:str=None, /, nodes:list=None, ext_resources:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, **kwargs,):
+        self = cls(uid=uid)
+        if nodes:
+            self.nodes.extend(nodes)
+        if ext_resources:
+            self.ext_resources.extend(ext_resources)
+        if sub_resources:
+            self.sub_resources.extend(sub_resources)
+        if edit_flags:
+            self.edit_flags.extend(edit_flags)
+        if properties:
+            self.properties.update(properties)
+        for k,v in kwargs.items():
+            if hasattr(self,k):
+                setattr(self,k,v)
+        return self
 
     def __setup__(self):
+        self.uid = Key(self,None,"uid")
         self.context = StructContext(resource=self)
-        self.properties = PropertyCollection(self.context)
-        self.ext_references = ExtReferenceCollection(self.context)
-        self.sub_resources = SubResourceCollection(self.context)
-        self.edit_flags = EditFlagCollection(self.context)
-        self.node_res = NodeCollection(self.context)
+        self.properties = PropertyCollection(context=self.context)
+        self.ext_references = ExtReferenceCollection(context=self.context)
+        self.sub_resources = SubResourceCollection(context=self.context)
+        self.edit_flags = EditFlagCollection(context=self.context)
+        self.nodes = NodeCollection(context=self.context)
 
-    def __init__(self, format:int=4, uid:str=None):
+    def __init__(self, uid:str=None, format:int=4):
         self.__setup__()
         self.format = format
         self.uid.set(uid)
 
 class Node():
+    name : str
     context : StructContext
-    owner : _Resource|None = None
+    
     unique_id : Key[str]
+    properties : PropertyCollection
+    
+    parent : Node = None
+    children: list[Node]
+
+    owner : _Resource|None = None
     type : GdType|None = None
     
-    instance : ExtResourceRef
+    instance : ExtResourceRef = None
     instance_editable : bool = False
 
     overlay : Node|None = None
     overlay_is_thin : bool = False
-    
-    properties : PropertyCollection
-
-    parent : Node
-    _defered_parent : str = None
-
-    children: list[Node]
-    _defered_children : list[str] = None
 
     @classmethod
-    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_parent:str=None, parent:Node=None, **kwargs):
+    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, **kwargs):
         ''' Construction within an specific context, before being extended/appended into a Scene
         _defered_parent && _defered_children are absolute paths, and context callbacks are used to assign them.
         ## TODO : Assign them as promises/similar to References instead 
@@ -66,10 +86,6 @@ class Node():
         if properties:
             self.properties.update(properties)
         
-        for k,v in kwargs.items():
-            if hasattr(self,k):
-                setattr(self,k,v)
-        
         if parent:
             parent.set_child(self)
 
@@ -79,12 +95,20 @@ class Node():
                 resource.nodes.get(_defered_parent)
             self.context.callback(key="resource", once=True, callback=callback)
 
-        # if _defered_children:
-        #     def callback(resource:ResourceScene):
-        #         for k in _defered_children:
-        #             resource.nodes.get(k).set_parent(self)
-        #     self.context.callback(key="resource", once=True, callback=callback)
+            
+        if isinstance(instance,str):
+            self.instance = ExtResourceRef(address=instance)
+        elif isinstance(instance,ExtResourceRef):
+            self.instance = instance
+        elif isinstance(instance,ResourceScene):
+            self.instance = ExtResourceRef(cached_value=instance)
+        elif not (instance is None):
+            raise Exception()
 
+        for k,v in kwargs.items():
+            if hasattr(self,k):
+                setattr(self,k,v)
+        
         return self
 
     def __setup__(self):
@@ -95,19 +119,23 @@ class Node():
         self.context = StructContext(sub_resource=self)
         self.properties = PropertyCollection(context=self.context)
 
-    def __init__(self, name:str="Node", type:GdType=None):
+    def __init__(self, name:str=None, type:GdType=None):
         ## TODO: Behavior around name generation
-        
-        pass
-            
-
         self.__setup__()
-    # def __init__(self, /, owner:ResourceScene|None=None, overlay:SubResource=None, type:Type=None, instance:ResourceScene=None, instance_editable:bool=False,  name:str=None, parent:Node=None, unique_id:int=None):
-    #     self.__setup__()
-    #     self.name = name        
-    #     super().__init__(owner=owner, overlay=overlay, type=type, instance=instance, instance_editable=instance_editable, unique_id=unique_id)
-    #     if not (parent is None):
-    #         parent.add_child(self)
+
+        if (name is None) and (type is None):
+            raise Exception()
+        elif (name is None):
+            name = type.class_name
+        
+        self.name = name
+        self.type = type
+    
+    def __colkeys__(self,):
+        return (self.unique_id,)
+
+    def __repr__(self):
+        return f"Node({self.name})"
 
 class NodeCollection(Collection):
     unique_keys = ("unique_id",)

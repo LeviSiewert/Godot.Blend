@@ -4,14 +4,17 @@ from inspect import get_annotations
 
 class SignalSubscriber():
     func : Callable
-    pre_args : list
+    owner : Any = None
 
-    def __init__(self,func, *pre_args):
+    def __init__(self, func, owner=None):
         self.func = func
-        self.pre_args = pre_args
+        self.owner = owner
         
     def __call__(self,*args,**kwargs):
-        return self.func(*self.pre_args, *args, **kwargs)
+        if self.owner:
+            return self.func(self.owner, *args, **kwargs)
+        
+        return self.func(*args, **kwargs)
 
 class Signal():
     class REMOVE: pass
@@ -27,18 +30,15 @@ class Signal():
         for x in self.subscribers:
             res = x(*args, **kwds)
             if res is self.REMOVE:
-                to_rem.append(res)
+                to_rem.append(x)
         for x in to_rem:
-            self.subscribers.remove(res)
-    
-    def forward(self, *args, **kwargs):
-        self(self.owner, *args, **kwargs)
+            self.subscribers.remove(x)
 
     def connect(self, func, include_owner=False):
         if include_owner:
-            self.subscribers.append(SignalSubscriber(func))
-        else:
             self.subscribers.append(SignalSubscriber(func, self.owner))
+        else:
+            self.subscribers.append(SignalSubscriber(func, None))
 
     def disconnect(self, func):
         to_rem = []

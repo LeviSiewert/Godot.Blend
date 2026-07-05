@@ -118,7 +118,6 @@ class ResourceTres(_Resource):
     sub_resources : SubResourceCollection
 
     def __setup__(self):
-
         self.properties = PropertyCollection()
         self.ext_references = ExtReferenceCollection()
         self.sub_resources = SubResourceCollection()
@@ -224,7 +223,6 @@ class ExtReference():
     id : Key[int]
 
     def __setup__(self):
-        self = super().__setup__()
         self.context = StructContext()
         self.type = Key(self, "type", None)
         self.uid = Key(self, "uid", None)
@@ -248,8 +246,8 @@ class EditFlag():
     def __init__(self, path):
         self.path = path
 
-class EditFlagCollection():
-    unique_keys = ("path")
+class EditFlagCollection(Collection):
+    unique_keys = ("path",)
     _type = EditFlag
 
 

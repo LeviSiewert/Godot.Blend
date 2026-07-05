@@ -7,6 +7,7 @@ class StructContext(object):
     _slots_ : tuple[str] = tuple()
 
     signal_value_updated : Signal[str,Any]
+    signal_parent_value_updated : Signal[str,Any]
 
     def __init_subclass__(cls):
         cls.__slots__ = tuple( set(cls._slots_) | set(("_extends","signal_value_updated",))) 
@@ -23,10 +24,8 @@ class StructContext(object):
 
     def __getattr__(self, attr):
         if attr in self._slots_:
-            if res:=getattr(self, attr):
-                return res
-            return getattr(self._extends, attr)
-        raise AttributeError(name=attr, obj=self)
+            return getattr(self._extends, attr, None)
+        raise None
     
     def __setattr__(self, attr, value):
         if attr in self._slots_:
@@ -40,15 +39,17 @@ class StructContext(object):
             self._extends.signal_value_updated.disconnect(self.signal_value_updated)
         self._extends = extends
         if extends:
-            extends.signal_value_updated.forward(self.signal_value_updated)
+            extends.signal_value_updated.connect(self.signal_value_updated)
 
-    def callback(self, key:str, callback:Callable, once:bool=False):
-        def func(self, attr, val):
+    def callback(self, key:str, callback:Callable, once:bool=False, local_only=False):
+        def func(origin, attr, val):
+            if (not (origin is self)) and local_only:
+                return
             if attr != key:
                 return
-            res = self.callback(val)
+            res = callback(val)
             if once:
                 return Signal.REMOVE
             return res
-                
-        self.signal_value_updated.connect(func)
+        
+        self.signal_value_updated.connect(func, include_owner=True)

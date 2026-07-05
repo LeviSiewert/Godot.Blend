@@ -4,6 +4,8 @@ from ...core.nodes import (
     Node,
 )
 
+
+        
 class Test_Node():
     def get_nodes(self):
         names = ("NodeA","NodeB","NodeC","NodeD","NodeE")
@@ -18,7 +20,7 @@ class Test_Node():
         ##     |-F : w/ defered owner
 
         ## Defered Parent:
-        node_a = Node.construct("NodeA"),
+        node_a = Node.construct("NodeA")
         node_b = Node.construct("NodeB",
             _defered_parent = "",
         )
@@ -44,7 +46,7 @@ class Test_Node():
 
 
         ## Applied parent:
-        node_a = Node.construct("NodeA"),
+        node_a = Node.construct("NodeA")
         node_b = Node.construct("NodeB",
             parent = node_a,
         )
@@ -133,7 +135,7 @@ class Test_Node():
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
             scene = ResourceScene.construct(
-                node_resources=tree,
+                nodes=tree,
                 set_nodes_owner=False,
             )
             
@@ -148,7 +150,7 @@ class Test_Node():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
 
             scene = ResourceScene.construct(
-                node_resources=tree
+                nodes=tree
             )
 
             assert node_b.parent is node_a
@@ -161,19 +163,31 @@ class Test_Node():
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
             ext_ref = ExtReference("scene", "instance_id", "", "instance_id") 
-            scene = ResourceScene.construct(
-                node_resources=tree,
+                        
+            scene_a = ResourceScene.construct("SceneA",
+                nodes=tree,
                 ext_references=[ext_ref],
                 # edit_resources=[
                 #     EditFlag("NodeC")
                 # ],
             )
 
-            scene.setup_tree(load_instances=True)
+            scene_b = ResourceScene.construct("SceneB",
+                nodes=(
+                    Node.construct("Root", 
+                        properties = {
+                            "a":"A",
+                            "z":"Z",
+                        }
+                    ),
+                )
+            )
+            
+            assert node_c.instance.cached_value() is ext_ref
+            assert node_c.overlay is None
+
+            scene_a.setup_tree(load_instances=False)
+            
+            scene_b.setup_tree()
+            # scene.setup_tree(load_instances=True)
             ## This should error out!!
-                                            
-
-
-        
-    def test_parent_construction_nonseq(self):
-        pass

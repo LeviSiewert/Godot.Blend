@@ -9,7 +9,7 @@ class PropertyCollection(UserDict):
     overlay : PropertyCollection|None = None
     pinned : list[str]
 
-    def __init__(self, iterable=tuple(), context:StructContext=None,):
+    def __init__(self, iterable=tuple(), /, context:StructContext=None,):
         super().__init__(iterable)
         self.context = StructContext(extends=context)
 
