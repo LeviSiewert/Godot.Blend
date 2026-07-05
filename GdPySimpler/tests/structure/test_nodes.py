@@ -19,6 +19,31 @@ class Test_Node():
         ##   |-E
         ##     |-F : w/ defered owner
 
+        ## Applied parent:
+        node_a = Node.construct("NodeA")
+        node_b = Node.construct("NodeB",
+            parent = node_a,
+        )
+        node_c = Node.construct("NodeC",
+            instance = "SceneB",
+            parent = node_a,
+        )
+        node_d = Node.construct("NodeD",
+            parent = node_a,
+            _defered_apply_owner = True,
+        )
+        node_e = Node.construct("NodeE",
+            parent = node_d,
+        )
+        node_f = Node.construct("NodeF",
+            parent = node_e,
+            _defered_apply_owner = True,
+        )
+        yield (node_a, node_b, node_c, node_d, node_e, node_f)
+        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
+
+
+
         ## Defered Parent:
         node_a = Node.construct("NodeA")
         node_b = Node.construct("NodeB",
@@ -40,31 +65,6 @@ class Test_Node():
             _defered_parent = "NodeD/NodeE",
         )
 
-
-        yield (node_a, node_b, node_c, node_d, node_e, node_f)
-        # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
-
-
-        ## Applied parent:
-        node_a = Node.construct("NodeA")
-        node_b = Node.construct("NodeB",
-            parent = node_a,
-        )
-        node_c = Node.construct("NodeC",
-            instance = "SceneB",
-            parent = node_a,
-        )
-        node_d = Node.construct("NodeD",
-            parent = node_a,
-            _defered_apply_owner = True,
-        )
-        node_e = Node.construct("NodeE",
-            parent = node_d,
-        )
-        node_f = Node.construct("NodeF",
-            parent = node_e,
-            _defered_apply_owner = True,
-        )
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
         # yield reversed((node_a, node_b, node_c, node_d, node_e, node_f))
 
@@ -159,19 +159,22 @@ class Test_Node():
             i = i+1
 
     def test_construction_tree(self):
+        i = 0
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
 
-            scene = ResourceScene.construct(
+            scene = ResourceScene.construct(f"Test {i}",
                 nodes=tree
             )
-
+            
             assert node_b._parent is node_a
             assert node_c._parent is node_a
             assert node_d._parent is node_a
             assert node_e._parent is node_d
             assert node_f._parent is node_e
-    
+            
+            i = i+1
+        
     def test_construction_instance(self):
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
@@ -199,7 +202,7 @@ class Test_Node():
                     ),
                 )
             )
-            
+
             assert node_c.instance.context.resource is scene_a
 
             assert node_c.instance.cached_value() is ext_ref

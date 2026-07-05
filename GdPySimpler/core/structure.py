@@ -287,7 +287,7 @@ class SubResource():
         self.properties = PropertyCollection()
         return self
 
-    def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:ResourceScene=None, instance_editable:bool=False, unique_id:Any=None):
+    def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:_Resource=None, instance_editable:bool=False, unique_id:Any=None):
         self.__setup__()
         if not (unique_id is None):
             self.unique_id.set(unique_id)

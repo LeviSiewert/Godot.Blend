@@ -21,6 +21,8 @@ class ResourceScene(_Resource):
     sub_resources : SubResourceCollection
     edit_flags : EditFlagCollection
     nodes : NodeCollection
+    
+    root : Node
 
     @classmethod
     def construct(cls, uid:str=None, /, nodes:list=None, ext_references:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, **kwargs,):
@@ -58,6 +60,77 @@ class ResourceScene(_Resource):
 
     def __repr__(self,):
         return f"ResourceScene({self.uid.get()} :: {self.file})"
+    
+    def construct_tree(self, load_instances:bool=True):
+        ## Complete construction of the tree by:
+        ## - Loading required trees TODO
+        ## - Iterating over all nodes, 
+        #       - applying to namespace w/a (Defered namespace!)
+        #       - 
+        ## - Iterating over all nodes, applying to parent w/a
+
+        namespace_children : dict[str,list[Node]] = {}
+        unresolved_namespace : list[(Node,Node)] #Nodes set as parent w/out path (must resolve for namespace to work!)
+        no_namespace : list[Node] #Only one should exist, root.
+        root = self.root
+        ## Root can be: ("" / None)
+        ## Root must have owner set, BUT order of operations may prevent that from being visible here
+
+        def fetch_from_defered(node:Node, default=None):
+            for o,p in self._defered_namespace:
+                if o is node:
+                    return p
+            return default
+
+        def fetch_from_unresolved(parent_node:Node, default=None):
+            for p,c in self.unresolved_namespace:
+                if p is parent_node:
+                    yield c
+
+        for node in self.nodes:
+            node : Node
+            if def_path := fetch_from_defered(Node):
+                ##TODO: Determine if there is a symbol for root.
+                if not  def_path in namespace_children.keys():
+                     namespace_children = []
+                namespace_children[def_path].append(node)
+            elif parent:=node.get_parent():
+                ## Direct parent, must resolve namespace
+                unresolved_namespace.append((parent, node))
+            else:
+                # Root does not have a parent declared
+                no_namespace.append(node)
+
+        if (len(no_namespace) > 1) and (self.root is None):
+            raise Exception("Multiple nodes do not have any parent (defered or direct) declared!", unresolved_namespace)
+        elif (self.root is None):
+            self.root = no_namespace[0]
+        del no_namespace
+
+        ## Now construct w/ knowledge of unresolved namespaces via recursive traversal constructing namespace?
+
+        ## UNKNOWNS:
+        ## Correct resolution ofall, pop known, 
+        ## Construction of instanced scenes, zipping of those structures
+
+        path = "" #Root
+        node = root
+        def recur(path:str, node:Node, is_root=False):
+            for c in namespace_children.get(path,tuple()):
+                node.add_child(c)
+                
+            for c in list(fetch_from_unresolved(node)):
+                if not path in namespace_children.keys():
+                     namespace_children[path] = []
+                namespace_children[path].append(c)
+            
+            for c in namespace_children.get(path,tuple()):
+                if is_root:
+                    recur(path+"/"+node.name, node)
+                else:
+                    recur(node.name, node)
+            
+            
 
 class Node():
     name : str
