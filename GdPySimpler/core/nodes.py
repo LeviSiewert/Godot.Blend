@@ -96,16 +96,15 @@ class Node():
             assert(parent is None)
             ## Reminder to self: python namespaces can suck. Multiple lamdas and multiple functions w/ the same name can be swap references in specific scenarios
             def set_parent_callback(scene:ResourceScene):
-                scene.nodes.get(_defered_parent)
+                scene.nodes.append_reference(...)
             self.context.callback(key="resource", once=True, callback=set_parent_callback)
 
         if _defered_apply_owner:
             def set_owner_callback(scene:ResourceScene):
-                raise Exception("CALLBACK WORK DAMNIT")
                 if scene:
                     self.owner = scene
                     return Signal.REMOVE
-            self.context.callback(key="resource", callback=set_owner_callback)
+            self.context.callback(key="resource", once=False, local_only=True, callback=set_owner_callback)
             
         if isinstance(instance,str):
             self.instance = ExtResourceRef(address=instance)

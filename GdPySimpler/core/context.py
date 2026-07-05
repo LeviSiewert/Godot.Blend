@@ -36,14 +36,46 @@ class StructContext(object):
             return res
         return super().__setattr__(attr, value)
 
+    def _get_filled_slots(self)->dict:
+        res = {}
+        for k in self._slots_:
+            if hasattr(self,k):
+                res[k] = getattr(self,k)
+        return res
+
+    def _iter_extends(self,):
+        if self._extends:
+            yield from self._extends._iter_extends()
+            yield self._extends
+
     def set_extends(self, extends:StructContext|None):
         if self._extends:
             self._extends.signal_value_updated.disconnect(self.signal_value_updated)
+        ##TODO: DIF THIS SHIT TO EXTEND!!
+        old = {} 
+        for e in self._iter_extends():
+            old.update(e._get_filled_slots())
+
         self._extends = extends
+        new = {}
+        for e in self._iter_extends():
+            new.update(e._get_filled_slots())
+
+        _old_keys = old.keys()
+        _new_keys = new.keys()
+
+        rem = filter(lambda k: not k in _new_keys, _old_keys)
+        add = filter(lambda k: not k in _old_keys, _new_keys)
+        change = filter(lambda k: (k in _old_keys) and not (getattr(new,k) is getattr(old,k)), _new_keys)
+
+        for k in (*rem, *add, *change):
+            self.signal_value_updated(k, getattr(self,k))
+
         if extends:
             extends.signal_value_updated.connect(self.signal_value_updated)
 
     def callback(self, key:str, callback:Callable, once:bool=False, local_only=False):
+        # raise Exception(key)
         def func(origin, attr, val):
             if (not (origin is self)) and local_only:
                 return
