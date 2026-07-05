@@ -1,4 +1,3 @@
-from .collections import CollectionSubscriber
 from array import array
 from typing import Any
 from collections import OrderedDict, UserString, UserList
@@ -7,8 +6,8 @@ from .structure import GdType, GdTypeValue, GdTypeValueSet, GdValue
 
 class NodePath(UserString, GdValue):
     _typing : GdType|GdTypeValue
-    def __init__(self, value, /, type:GdType|GdTypeValue=None):
-        self._typing = type
+    def __init__(self, value, /, typing:GdType|GdTypeValue=None):
+        self._typing = typing
         super().__init__(value)
 
 class StringName(UserString, GdValue):

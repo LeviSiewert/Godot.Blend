@@ -29,8 +29,8 @@ from ....core.structure import (
     EditFlagCollection,
     GdType,
     GdTypeValueSet,
-    Signal,
-    SignalCollection,
+    SignalNotation,
+    SignalNotationCollection,
     ExtResourceRef,
     SubResourceRef,
     RID,
@@ -258,22 +258,22 @@ class Test_GdTypeValueSet(_StructureTest):
             yield f'[{txt_a}, {txt_b}]', GdTypeValueSet(res_a, res_b)
 
 
-class Test_Signal(_StructureTest):
-    _type = Signal
+class Test_SignalNotation(_StructureTest):
+    _type = SignalNotation
     _parser_key = "signal"
     def data(self,):
         
         txt = '''[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]'''     
-        res = Signal(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
+        res = SignalNotation(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
         yield txt, res
 
         txt = '''[connection signal="body_exited" from="." to="." method="_on_door_body_exited"]'''
-        res =Signal(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
+        res =SignalNotation(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
         yield txt, res
     
 
-class Test_SignalCollection(_StructureTest):
-    _type = SignalCollection
+class Test_SignalNotationCollection(_StructureTest):
+    _type = SignalNotationCollection
     _parser_key = "signals"
 
     def data(self,):
@@ -281,9 +281,9 @@ class Test_SignalCollection(_StructureTest):
 [connection signal="body_entered" from="." to="." method="_on_door_body_entered"]
 [connection signal="body_exited" from="." to="." method="_on_door_body_exited"]
 '''     
-        res = SignalCollection(
-            Signal(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
-            Signal(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
+        res = SignalNotationCollection(
+            SignalNotation(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
+            SignalNotation(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
         )
 
         yield txt, res

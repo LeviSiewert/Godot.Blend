@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Callable
 from .signals import Signal
 
 class StructContext(object):
@@ -7,7 +7,7 @@ class StructContext(object):
     _slots_ : tuple[str] = tuple()
 
     signal_value_updated : Signal[str,Any]
-    
+
     def __init_subclass__(cls):
         cls.__slots__ = tuple( set(cls._slots_) | set(("_extends","signal_value_updated",))) 
 
@@ -42,3 +42,13 @@ class StructContext(object):
         if extends:
             extends.signal_value_updated.forward(self.signal_value_updated)
 
+    def callback(self, key:str, callback:Callable, once:bool=False):
+        def func(self, attr, val):
+            if attr != key:
+                return
+            res = self.callback(val)
+            if once:
+                return Signal.REMOVE
+            return res
+                
+        self.signal_value_updated.connect(func)

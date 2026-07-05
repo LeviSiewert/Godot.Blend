@@ -2,14 +2,16 @@ from __future__ import annotations
 from .context import StructContext
 from typing import Any
 
-class PropertyCollection(dict):
+from collections import UserDict
+
+class PropertyCollection(UserDict):
     context : StructContext
     overlay : PropertyCollection|None = None
     pinned : list[str]
 
-    def __new__(cls, *args, **kwargs):
-        self = super().__new__(*args, **kwargs)
-        self.context = StructContext()
+    def __init__(self, iterable=tuple(), context:StructContext=None,):
+        super().__init__(iterable)
+        self.context = StructContext(extends=context)
 
     def __missing_key__(self, key)->Any:
         if not self.overlay is None:
