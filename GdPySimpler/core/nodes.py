@@ -42,19 +42,32 @@ class SignalNotation():
 
     def __setup__(self):
         self.context = StructContext(signal=self)
-        self.fr = Key(self, "nodepath", )
-        self.to = Key(self, "nodepath", )
+        self.fr = Key(self, "nodepath", None)
+        self.to = Key(self, "nodepath", None)
     
     def __init__(self, signal:str, method:str, fr:str, to:str):
         self.__setup__()
         self.signal = signal
         self.method = method
-        self.fr.set_address(fr)
-        self.to.set_address(to)
+        self.fr.set(fr)
+        self.to.set(to)
 
     def __hash__(self):
-        # raise Exception(self.signal, self.method, self.fr, self.to)
-        return hash( (self.signal, self.method, self.fr, self.to) )
+        return hash( (self.signal, self.method, self.fr.addr, self.to.addr) )
+    
+    def __repr__(self,):
+        return f"{self.__class__.__name__}(signal='{self.signal}' method='{self.method}' fr='{self.fr.addr}' to='{self.to.addr}')"
+    
+    def __eq__(self,value):
+        if isinstance(value, SignalNotation):
+            return all((
+                value.signal == self.signal,
+                value.method == self.method,
+                value.fr.addr == self.fr.addr,
+                value.to.addr == self.to.addr,
+               ) )
+        return super().__eq__(value)
+        pass
 
 class SignalNotationCollection(Collection):
     # shared_keys = ("signal", "method", "fr", "to")

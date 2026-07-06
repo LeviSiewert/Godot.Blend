@@ -48,11 +48,11 @@ class Test_SignalNotation(_StructureTest):
     def data(self,):
         
         txt = '''[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]'''     
-        res = SignalNotation(signal="body_entered", fr=".", to=".", method="_on_door_body_entered"),
+        res = SignalNotation(signal="body_entered", fr=".", to=".", method="_on_door_body_entered")
         yield txt, res
 
         txt = '''[connection signal="body_exited" from="." to="." method="_on_door_body_exited"]'''
-        res = SignalNotation(signal="body_exited", fr=".", to=".", method="_on_door_body_exited"),
+        res = SignalNotation(signal="body_exited", fr=".", to=".", method="_on_door_body_exited")
         yield txt, res
 
 class Test_Node(_StructureTest):

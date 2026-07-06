@@ -355,7 +355,6 @@ class PyToGd_SubResourceRef(PyToGdModule):
         yield (node.cached_addr,)
         path = c.children.get()[0]
         assert not (path is None)
-        # raise NotImplementedError()
         return f'ExtResource({path})'
 
 
@@ -370,10 +369,17 @@ class GdToPy_SignalNotation(GdToPyModule):
             fr = properties["from"],
             to = properties["to"]
         )
-
-
 class PyToGd_SignalNotation(PyToGdModule):
     _keys = (SignalNotation,)
+    def transform(self, c, node):
+        yield {
+            "signal" : node.signal,
+            "fr" : node.fr.addr,
+            "to" : node.to.addr,
+            "method" : node.method,
+        }
+        d = c.children.get()
+        return f"[connection signal={d["signal"]} from={d["fr"]} to={d["to"]} method={d["method"]}]"
 
 
 

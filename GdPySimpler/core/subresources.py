@@ -73,10 +73,6 @@ class SubResourceRef(Reference, GdValue):
             value : ResourceTres
             self.set_collection(value.sub_resources)
 
-    def __eq__(self,):
-        pass        
-
-
 class ResourceTres(_Resource):
     type : GdType|None|str = None
     format : int = None
