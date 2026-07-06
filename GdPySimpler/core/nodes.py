@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtResourceCollection, EditFlagCollection, StructContext, GdType, ExtResource, ExtResource, _File
+from .structure import _Resource, StructContext, ExtResource, ExtResource, ExtResourceCollection, GdType
+from .subresources import SubResource, SubResourceCollection, SubResourceRef
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
@@ -9,6 +10,45 @@ from .signals import Signal
 
 from . import transformer as _T
 
+
+class EditFlag():
+    path : str
+    def __init__(self, path):
+        self.path = path
+
+class EditFlagCollection(Collection):
+    unique_keys = ("path",)
+    _type = EditFlag
+
+class SignalNotation():
+    ##TODO: switch fr, to into nodes and attach to node during construction
+
+    context : StructContext ##NOTE: Attached when added to a collection
+
+    signal : str
+    method : str
+    fr : Key #Node
+    to : Key #Node
+
+    def __setup__(self):
+        self.context = StructContext(signal=self)
+        self.fr = Key(self, "nodepath", )
+        self.to = Key(self, "nodepath", )
+    
+    def __init__(self, signal:str, method:str, fr:str, to:str):
+        self.__setup__()
+        self.signal = signal
+        self.method = method
+        self.fr.set_address(fr)
+        self.to.set_address(to)
+
+    def __hash__(self):
+        # raise Exception(self.signal, self.method, self.fr, self.to)
+        return hash( (self.signal, self.method, self.fr, self.to) )
+
+class SignalNotationCollection(Collection):
+    # shared_keys = ("signal", "method", "fr", "to")
+    _type = Signal
 
 class ResourceScene(_Resource):
     uid : Key[str]
