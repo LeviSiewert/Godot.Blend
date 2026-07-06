@@ -26,12 +26,12 @@ class Test_EditFlag(_StructureTest):
         yield txt, res
 
 class Test_ExtResource(_StructureTest):
-    _parser_key = "ext_reference"
-    _type = ExtResourceRef
+    _parser_key = "ext_resource"
+    _type = ExtResource
     
     def data(self):
         txt = '''[ext_resource type="PackedScene" uid="uid://bvshg3b45tq5b" path="res://assets/blender.glb.tscn" id="1_0xe7n"] '''
-        res = ExtResource(type="PackedScene", uid=self._project.resources.get("uid://bvshg3b45tq5b"), path=self._project.files.get("res://assets/blender.glb.tscn"), id="1_0xe7n")
+        res = ExtResource(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n")
         yield txt, res
 
         txt = '''[ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_w5rjj"] '''

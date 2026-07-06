@@ -73,6 +73,9 @@ class SubResourceRef(Reference, GdValue):
             value : ResourceTres
             self.set_collection(value.sub_resources)
 
+    def __eq__(self,):
+        pass        
+
 
 class ResourceTres(_Resource):
     type : GdType|None|str = None
@@ -107,12 +110,12 @@ class ResourceTres(_Resource):
         return (self.uid,)
         
     @classmethod
-    def construct(cls, properties:dict=None, ext_references:list=None, sub_resources:list=None, **kwargs):
+    def construct(cls, properties:dict=None, ext_resources:list=None, sub_resources:list=None, **kwargs):
         self = cls()
         if properties:
             self.properties.update(properties)
-        if ext_references:
-            self.ext_references.extend(ext_references)
+        if ext_resources:
+            self.ext_resources.extend(ext_resources)
         if sub_resources:
             self.sub_resources.extend(sub_resources)
         for k,v in kwargs.items():

@@ -6,14 +6,14 @@ file_settings :  properties cat_resources [prim_resource]
 file_resource : "[gd_resource" properties "]" ext_resources sub_resources [prim_resource]
 file_tscn : "[gd_scene" properties "]" ext_resources sub_resources node_resources signals edit_flags 
 
-ext_resources : [ext_reference]*
+ext_resources : [ext_resource]*
 sub_resources : [sub_resource]*
 node_resources : [node_resource]*
 cat_resources : [cat_resource]*
 signals : [signal]*
 edit_flags : [edit_flag]*
 
-ext_reference : "[ext_resource" properties "]" properties
+ext_resource : "[ext_resource" properties "]" properties
 sub_resource : "[sub_resource" properties "]" properties
 node_resource : "[node" properties "]" properties
 cat_resource : "[" WORD "]" properties //[COMMENT|property]*
@@ -35,8 +35,8 @@ value : NULL
       | dictionary_explicit
       | array_explicit
       | rid
-      | subresource
-      | extresource
+      | subresourceref
+      | extresourceref
       | vector2
       | vector3
       | vector4
@@ -81,7 +81,7 @@ NULL : "null"
 BOOL : "true" | "false"
 
 type_anno : "[" type_anno_item + ("," type_anno_item)* "]"
-type_anno_item : WORD|subresource|extresource|rid
+type_anno_item : WORD|subresourceref|extresourceref|rid
 
 array_explicit : "Array" [type_anno] "(" [array] ")"
 // _array : "[" [value+ ("," value)*] "]"
@@ -99,8 +99,8 @@ object_args : ["," pair+ ("," pair)* ]
 // Defered References:
 
 nodepath : "NodePath" [type_anno] "(" [STRING] ")"
-subresource : "SubResource" [type_anno] "(" [STRING] ")"
-extresource : "ExtResource" [type_anno] "(" [STRING] ")"
+subresourceref : "SubResource" [type_anno] "(" [STRING] ")"
+extresourceref : "ExtResource" [type_anno] "(" [STRING] ")"
 rid : "RID" [type_anno] "(" [STRING] ")"
 
 // Vector types:

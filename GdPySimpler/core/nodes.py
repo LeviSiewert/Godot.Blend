@@ -12,9 +12,19 @@ from . import transformer as _T
 
 
 class EditFlag():
-    path : str
-    def __init__(self, path):
+    path : str = None
+
+    def __init__(self, path:str):
+        assert isinstance(path,str)
         self.path = path
+
+    def __eq__(self, value):
+        if isinstance(value, EditFlag):
+            return value.path == self.path
+        return self.path == value
+
+    def __repr__(self):
+        return f"EditFlag({self.path})"
 
 class EditFlagCollection(Collection):
     unique_keys = ("path",)

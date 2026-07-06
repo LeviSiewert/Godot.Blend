@@ -108,7 +108,7 @@ class Test_CategoryCollection(_StructureTest):
     _type = CategoryCollection
 
 class Test_ExtResourceRef(_StructureTest):
-    _parser_key = "ext_reference"
+    _parser_key = "ext_resource"
     _type = ExtResourceRef
 
     def setup_class(self,):

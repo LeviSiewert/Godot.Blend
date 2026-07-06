@@ -72,7 +72,20 @@ class Reference[ADDR:Any, V:Item]():
     
     def get(self,)->V:
         pass
+
+    def __eq__(self, value):
+        if isinstance(value, Reference):
+            return any((
+                value.cached_addr == self.cached_addr,
+                value.cached_value == self.cached_value,
+                ))
+            pass
+        return super().__eq__(value)
     
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.cached_addr} :: {self.cached_value})"
+            
+
 class Key[ADDR:Any, I:Item]():
     collection : Collection|None = None
     key_id : str|None = None
@@ -100,8 +113,18 @@ class Key[ADDR:Any, I:Item]():
         elif (self.addr is None):
             self.set(self.collection.addr_generate(self.key_id))
 
+    def __eq__(self, value):
+        if isinstance(value, Key):
+            return all((
+                self.addr == value.addr,
+                self.key_id == value.key_id,
+                ))
+        if isinstance(value, str):
+            return self.add == value
+        return super().__eq__(value)
+
     def __repr__(self)->str:
-        return f"CKey({self.key_id} :: {self.addr})"
+        return f"{self.__class__.__name__}({self.key_id} :: {self.addr})"
 
 class Item():
     def __colkeys__(self,)->tuple[Key]:

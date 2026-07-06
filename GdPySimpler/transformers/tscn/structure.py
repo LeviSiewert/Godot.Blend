@@ -1,24 +1,32 @@
 from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule
 
-from ...core.structure import (
-    Collection,
-    ResourceSettings, 
-    ResourceTres, 
+from ...core.nodes import (
     ResourceScene, 
-    SubResource,
-    SubResourceCollection, 
     Node,
     NodeCollection, 
-    Category,
-    CategoryCollection,
-    ExtResourceRef,
-    ExtResourceCollection,
     EditFlag,
     EditFlagCollection,
-    GdType,
-    GdTypeValueSet,
     SignalNotation,
     SignalNotationCollection,
+)
+from ...core.subresources import (
+    ResourceTres, 
+    SubResource,
+    SubResourceRef,  
+    SubResourceCollection,
+)
+
+from ...core.structure import (
+    ResourceSettings, 
+    Collection,
+    Category,
+    CategoryCollection,
+    ExtResource,
+    ExtResourceRef,
+    ExtResourceCollection,
+    GdType,
+    GdTypeValueSet,
+    RID,
     )
 
 from ...core.structure import PropertyCollection
@@ -250,18 +258,105 @@ class GdToPy_Category(GdToPyModule):
 class PyToGd_Category(PyToGdModule):
     _keys = (Category,)
 
-    
-
-class GdToPy_ExtResourceRef(GdToPyModule):
-    _keys = ("ext_reference",)
-class PyToGd_ExtResourceRef(PyToGdModule):
-    _keys = (ExtResourceRef,)
-
 
 class GdToPy_EditFlag(GdToPyModule):
     _keys = ("edit_flag",)
+    def transform(self, c, node):
+        yield node.children
+        properties = c.children.get()[0]
+        return EditFlag(**properties)
+
 class PyToGd_EditFlag(PyToGdModule):
     _keys = (EditFlag,)
+    def transform(self, c, node:EditFlag):
+        yield (node.path,)
+        path = c.children.get()[0]
+        return f'[editable path={path}]'
+
+
+class GdToPy_ExtResource(GdToPyModule):
+    _keys = ("ext_resource",)
+    def transform(self, c, node):
+        yield node.children
+        properties = c.children.get()[0]
+        return ExtResource(**properties)
+
+class PyToGd_ExtResource(PyToGdModule):
+    _keys = (ExtResource,)
+    def transform(self, c, node:ExtResource):
+        ## TODO: ID VERIFICATION / FETCH!
+
+        yield {
+                "type" : node.type.addr,
+                "path" : node.path.addr,
+                "uid" : node.uid.addr,
+                "id" : node.id.addr,
+            }
+        d = c.children.get()
+        assert not(d['type'] is None)
+        assert not(d['path'] is None)
+        assert not(d['uid'] is None)
+        assert not(d['id'] is None)
+        return f'[ext_resource type={d["type"]} uid={d["uid"]} path={d["path"]} id={d["id"]}]'
+
+
+
+class GdToPy_ExtResourceRef(GdToPyModule):
+    _keys = ("extresourceref",)
+    def transform(self, c, node):
+        yield node.children
+        idname = c.children.get()[0]
+        return ExtResourceRef(**idname)
+
+class PyToGd_ExtResourceRef(PyToGdModule):
+    _keys = (ExtResourceRef,)
+    def transform(self, c, node:ExtResourceRef):
+        ## TODO: ID VERIFICATION / FETCH!
+        
+        yield (node.id.addr,)
+        path = c.children.get()[0]
+        assert not (path is None)
+        # raise NotImplementedError()
+        return f'ExtResource({path})'
+
+
+
+class GdToPy_RID(GdToPyModule):
+    _keys = ("rid",)
+    def transform(self, c, node):
+        yield node.children
+        idname = c.children.get()[0]
+        return RID(**idname)
+
+class PyToGd_RID(PyToGdModule):
+    _keys = (RID,)
+    def transform(self, c, node:RID):
+        ## TODO: ID VERIFICATION / FETCH!
+        
+        yield (node.cached_addr,)
+        path = c.children.get()[0]
+        assert not (path is None)
+        # raise NotImplementedError()
+        return f'RID({path})'
+
+
+class GdToPy_SubResourceRef(GdToPyModule):
+    _keys = ("subresourceref",)
+    def transform(self, c, node):
+        yield node.children
+        idname = c.children.get()[0]
+        return SubResourceRef(**idname)
+
+class PyToGd_SubResourceRef(PyToGdModule):
+    _keys = (SubResourceRef,)
+    def transform(self, c, node:SubResourceRef):
+        ## TODO: ID VERIFICATION / FETCH!
+        
+        yield (node.cached_addr,)
+        path = c.children.get()[0]
+        assert not (path is None)
+        # raise NotImplementedError()
+        return f'ExtResource({path})'
 
 
 class GdToPy_SignalNotation(GdToPyModule):
@@ -314,8 +409,9 @@ class GdToPy_Properties(GdToPyModule):
     def transform(self, c, node):
         yield node.children
         res = PropertyCollection()
-        for k,v in c.children.get():
-            res[k] = v
+        if not (node.children == [None]):
+            for k,v in c.children.get():
+                res[k] = v
         return res 
 
 class PyToGd_Properties(PyToGdModule):
@@ -363,8 +459,11 @@ gd_to_py_ruleset = GdToPyRuleset("STD_Structure", [
     GdToPy_ResourceTres,
     GdToPy_ResourceScene,
     GdToPy_SubResource,
+    GdToPy_SubResourceRef,
+    GdToPy_RID,
     GdToPy_Node,
     GdToPy_Category,
+    GdToPy_ExtResource,
     GdToPy_ExtResourceRef,
     GdToPy_EditFlag,
     GdToPy_SignalNotation,
@@ -379,8 +478,11 @@ py_to_gd_ruleset = PyToGdRuleset("STD_Structure", [
     PyToGd_ResourceTres,
     PyToGd_ResourceScene,
     PyToGd_SubResource,
+    PyToGd_SubResourceRef,
+    PyToGd_RID,
     PyToGd_Node,
     PyToGd_Category,
+    PyToGd_ExtResource,
     PyToGd_ExtResourceRef,
     PyToGd_EditFlag,
     PyToGd_SignalNotation,

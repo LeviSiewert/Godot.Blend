@@ -192,6 +192,18 @@ class ExtResource():
             self.id,
             # self.type
             )
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.type},{self.id},{self.path},{self.id})"
+
+    def __eq__(self, value):
+        if isinstance(value, ExtResource):
+            return all((
+                self.type == value.type,
+                self.uid == value.uid,
+                self.path == value.path,
+                self.id == value.id
+            ))
+        return super().__eq__(value)
 
 class ExtResourceCollection(Collection):
     unique_keys = ("uid","path","id")
