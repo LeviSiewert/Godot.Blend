@@ -95,8 +95,6 @@ class ResourceScene(_Resource):
         namespace["."] = root
 
 
-        # resolve_direct_parent_namespaces(directly_assigned, namespace)
-
         _namespace = {v:k for (k,v) in namespace.items()}
 
         def _recur(node:Node)->str:
@@ -126,10 +124,12 @@ class ResourceScene(_Resource):
         ## In this, all directly assigned chains must have a parent asc w/ the namespace (Root is always in namespace)
 
         if load_instances:
+            #TODO:
             for n in self.nodes:
+                n : Node
                 if not n.instance:
                     continue
-                overlay_namespace.update( n.instance.nodepath_space(localize=namespace[n]) )
+                overlay_namespace.update( n.instance.get().nodepath_space(localize=namespace[n]) )
         
         res_namespace : dict[str, list[Node|None, Node|None]] = {}
 
