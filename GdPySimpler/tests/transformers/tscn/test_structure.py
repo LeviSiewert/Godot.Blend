@@ -23,15 +23,15 @@ from ....core.structure import (
     NodeCollection,
     Category,
     CategoryCollection,
-    ExtReference,
-    ExtReferenceCollection,
+    ExtResourceRef,
+    ExtResourceRefCollection,
     EditFlag,
     EditFlagCollection,
     GdType,
     GdTypeValueSet,
     SignalNotation,
     SignalNotationCollection,
-    ExtResourceRef,
+    ExtResource,
     SubResourceRef,
     RID,
 )
@@ -107,9 +107,9 @@ class Test_CategoryCollection(_StructureTest):
     _parser_key = "cat_resources"
     _type = CategoryCollection
 
-class Test_ExtReference(_StructureTest):
+class Test_ExtResourceRef(_StructureTest):
     _parser_key = "ext_reference"
-    _type = ExtReference
+    _type = ExtResourceRef
 
     def setup_class(self,):
         raise NotImplementedError()
@@ -125,20 +125,20 @@ class Test_ExtReference(_StructureTest):
         
     def data(self):
         txt = '''[ext_resource type="PackedScene" uid="uid://bvshg3b45tq5b" path="res://assets/blender.glb.tscn" id="1_0xe7n"] '''
-        res = ExtReference(type="PackedScene", uid=self._project.resources.get("uid://bvshg3b45tq5b"), path=self._project.files.get("res://assets/blender.glb.tscn"), id="1_0xe7n")
+        res = ExtResourceRef(type="PackedScene", uid=self._project.resources.get("uid://bvshg3b45tq5b"), path=self._project.files.get("res://assets/blender.glb.tscn"), id="1_0xe7n")
         yield txt,res
 
         txt = '''[ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_w5rjj"] '''
-        res = ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj")
+        res = ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj")
         yield txt,res
         
         txt = '''[ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="3_7d4mc"] '''
-        res = ExtReference(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc")
+        res = ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc")
         yield txt,res
     
 
-class Test_ExtReferenceCollection(Test_ExtReference):
-    _type = ExtReferenceCollection
+class Test_ExtResourceRefCollection(Test_ExtResourceRef):
+    _type = ExtResourceRefCollection
     _parser_key = "ext_references"
 
 
@@ -148,10 +148,10 @@ class Test_ExtReferenceCollection(Test_ExtReference):
 [ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_w5rjj"]
 [ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="3_7d4mc"]
 '''     
-        res = ExtReferenceCollection(
-            ExtReference(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
-            ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
-            ExtReference(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
+        res = ExtResourceRefCollection(
+            ExtResourceRef(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
+            ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
+            ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
         )
         yield txt, res
 
@@ -228,14 +228,14 @@ class Test_GdType(_StructureTest):
         "Object" : Object,
         "Object(Type)" : Object(type == Type),
 
-        'NodePath[ExtResource("ABC")]' : NodePath(None, typing=ExtResourceRef("ABC")),
+        'NodePath[ExtResource("ABC")]' : NodePath(None, typing=ExtResource("ABC")),
         'NodePath': NodePath,
         
         'SubResource("ABC")' : SubResourceRef("ABC"),
         'SubResource' : SubResourceRef,
         
-        'ExtResource("ABC")' : ExtResourceRef("ABC"),
-        'ExtResource' : ExtResourceRef,
+        'ExtResource("ABC")' : ExtResource("ABC"),
+        'ExtResource' : ExtResource,
         
         'RID("ABC")' : RID("ABC"),
         'RID' : RID,

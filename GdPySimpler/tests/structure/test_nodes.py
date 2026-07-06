@@ -1,4 +1,4 @@
-from ...core.structure import SignalNotation, EditFlag, ExtReference
+from ...core.structure import SignalNotation, EditFlag, ExtResourceRef
 from ...core.nodes import (
     ResourceScene,
     Node,
@@ -185,7 +185,7 @@ class Test_Node():
     def test_construction_instance(self):
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
-            ext_ref = ExtReference("scene", "SceneB", "SceneB", "SceneB") 
+            ext_ref = ExtResourceRef("scene", "SceneB", "SceneB", "SceneB") 
 
             scene_a = ResourceScene.construct("SceneA",
                 nodes=tree,

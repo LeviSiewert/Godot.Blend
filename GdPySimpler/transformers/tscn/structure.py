@@ -11,8 +11,8 @@ from ...core.structure import (
     NodeCollection, 
     Category,
     CategoryCollection,
-    ExtReference,
-    ExtReferenceCollection,
+    ExtResourceRef,
+    ExtResourceRefCollection,
     EditFlag,
     EditFlagCollection,
     GdType,
@@ -252,10 +252,10 @@ class PyToGd_Category(PyToGdModule):
 
     
 
-class GdToPy_ExtReference(GdToPyModule):
+class GdToPy_ExtResourceRef(GdToPyModule):
     _keys = ("ext_reference",)
-class PyToGd_ExtReference(PyToGdModule):
-    _keys = (ExtReference,)
+class PyToGd_ExtResourceRef(PyToGdModule):
+    _keys = (ExtResourceRef,)
 
 
 class GdToPy_EditFlag(GdToPyModule):
@@ -294,7 +294,7 @@ class GdToPy_Collections(GdToPyModule):
             case 'cat_resources':
                 return CategoryCollection(*c.children.get())
             case 'ext_references':
-                return ExtReferenceCollection(*c.children.get())
+                return ExtResourceRefCollection(*c.children.get())
             case 'edit_flags':
                 return EditFlagCollection(*c.children.get())
             case 'signals':
@@ -303,7 +303,7 @@ class GdToPy_Collections(GdToPyModule):
                 raise KeyError(c.key.get())
 
 class PyToGd_Collections(PyToGdModule):
-    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtReferenceCollection, EditFlagCollection, SignalNotationCollection)
+    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtResourceRefCollection, EditFlagCollection, SignalNotationCollection)
     def transform(self, c, node:Collection):
         yield (o for o,_ in node.data)
         return c.children.get()
@@ -365,7 +365,7 @@ gd_to_py_ruleset = GdToPyRuleset("STD_Structure", [
     GdToPy_SubResource,
     GdToPy_Node,
     GdToPy_Category,
-    GdToPy_ExtReference,
+    GdToPy_ExtResourceRef,
     GdToPy_EditFlag,
     GdToPy_SignalNotation,
     GdToPy_Collections,
@@ -381,7 +381,7 @@ py_to_gd_ruleset = PyToGdRuleset("STD_Structure", [
     PyToGd_SubResource,
     PyToGd_Node,
     PyToGd_Category,
-    PyToGd_ExtReference,
+    PyToGd_ExtResourceRef,
     PyToGd_EditFlag,
     PyToGd_SignalNotation,
     PyToGd_Collections,

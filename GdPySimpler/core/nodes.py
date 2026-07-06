@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtReferenceCollection, EditFlagCollection, StructContext, GdType, ExtResourceRef, ExtResourceRef, _File
+from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtResourceRefCollection, EditFlagCollection, StructContext, GdType, ExtResource, ExtResource, _File
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
@@ -20,7 +20,7 @@ class ResourceScene(_Resource):
     script_class : str #TEMP! resolve to from typing eventually w/a
 
     properties : PropertyCollection
-    ext_references : ExtReferenceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_references : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
     edit_flags : EditFlagCollection
     nodes : NodeCollection
@@ -55,7 +55,7 @@ class ResourceScene(_Resource):
         self.context = StructContext(_identifier=self,resource=self)
 
         self.properties = PropertyCollection(context=self.context)
-        self.ext_references = ExtReferenceCollection(context=self.context)
+        self.ext_references = ExtResourceRefCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
         self.edit_flags = EditFlagCollection(context=self.context)
         self.nodes = NodeCollection(context=self.context)
@@ -196,7 +196,7 @@ class Node():
 
     owner : _Resource|None = None
     
-    instance : ExtResourceRef = None
+    instance : ExtResource = None
     instance_editable : bool = False
 
     overlay : Node|None = None
@@ -209,7 +209,7 @@ class Node():
         return self
 
     @classmethod
-    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResourceRef|None=None, children:list=None, **kwargs):
+    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResource|None=None, children:list=None, **kwargs):
         ''' Construction within an specific context, before being extended/appended into a Scene 
         _defered_apply_owner: set owner to constructed scene. Default False
         '''
@@ -237,11 +237,11 @@ class Node():
             self.context.callback(key="resource", once=False, local_only=True, callback=set_owner_callback)
             
         if isinstance(instance,str):
-            self.instance = ExtResourceRef(key_id="uid", address=instance)
-        elif isinstance(instance,ExtResourceRef):
+            self.instance = ExtResource(key_id="uid", address=instance)
+        elif isinstance(instance,ExtResource):
             self.instance = instance
         elif isinstance(instance,ResourceScene):
-            self.instance = ExtResourceRef(key_id="uid", cached_value=instance)
+            self.instance = ExtResource(key_id="uid", cached_value=instance)
         elif not (instance is None):
             raise Exception(instance)
 

@@ -55,10 +55,10 @@ def std_project():
     file_b = FileLocal(path="res://assets/blender.glb.tscn", data=data_a )
     data_b = ResourceScene.construct(uid="uid://bvshg3b45tq5b", format=3,
         ext_references = [
-            ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_8vle4"),
+            ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_8vle4"),
             ],
         nodes_resources = [
-            Node(name="blender", unique_id=1301180837, instance=ExtResourceRef("1_8vle4")),
+            Node(name="blender", unique_id=1301180837, instance=ExtResource("1_8vle4")),
             Node(name="InheritedSceneChild", type="Node", parent=".", index="0", unique_id=140602464),
         ]
     )
@@ -68,9 +68,9 @@ def std_project():
 
     data_d = ResourceScene.construct(uid = "uid://ccmipxvllo1c0", format=4, 
         ext_references = [
-            ExtReference(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
-            ExtReference(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
-            ExtReference(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
+            ExtResourceRef(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
+            ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
+            ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
         ],
         sub_resources = [
             SubResource(type="StandardMaterial3D", id="StandardMaterial3D_6cmw1", properties = {
@@ -115,21 +115,21 @@ def std_project():
         node_resources = [
             Node(name="Complex", type="Node", unique_id=2079728927),
             Node(name="LocalNode", type="Node", parent=".", unique_id=531093875),
-            Node(name="GlbInhherited", parent=".", unique_id=1301180837, instance=ExtResourceRef("1_0xe7n")),
-            Node(name="GlbInhheritedEditable", parent=".", unique_id=370933497, instance=ExtResourceRef("1_0xe7n")),
+            Node(name="GlbInhherited", parent=".", unique_id=1301180837, instance=ExtResource("1_0xe7n")),
+            Node(name="GlbInhheritedEditable", parent=".", unique_id=370933497, instance=ExtResource("1_0xe7n")),
             Node(name="GlbInhheritedEditableNewChild", type="Node", parent="GlbInhheritedEditable", unique_id=995826170),
             Node(name="GlbInheritedCubeDuplicated", type="MeshInstance3D", parent="GlbInhheritedEditable", unique_id=679109662, properties = {
                 "mesh" : SubResource("ArrayMesh_qt25o"),
             }),
-            Node(name="Glb", parent=".", unique_id=735050992, instance=ExtResourceRef("1_w5rjj")),
-            Node(name="GlbEditable", parent=".", unique_id=1248585079, instance=ExtResourceRef("1_w5rjj")),
+            Node(name="Glb", parent=".", unique_id=735050992, instance=ExtResource("1_w5rjj")),
+            Node(name="GlbEditable", parent=".", unique_id=1248585079, instance=ExtResource("1_w5rjj")),
             Node(name="GlbEditableNewChild", type="Node", parent="GlbEditable", unique_id=1176021808),
-            Node(name="GlbEditableAddScript", parent=".", unique_id=621548348, instance=ExtResourceRef("1_w5rjj")),
+            Node(name="GlbEditableAddScript", parent=".", unique_id=621548348, instance=ExtResource("1_w5rjj")),
             Node(name="Cube", parent="GlbEditableAddScript", index="0", unique_id=895413058, node_paths=PackedStringArray("noderef"), properties = {
-                "script" : ExtResourceRef("3_7d4mc"),
+                "script" : ExtResource("3_7d4mc"),
                 "noderef" : NodePath(".."),
             }),
-            Node(name="GlbEditableEditProp", parent=".", unique_id=726661338, instance=ExtResourceRef("1_w5rjj")),
+            Node(name="GlbEditableEditProp", parent=".", unique_id=726661338, instance=ExtResource("1_w5rjj")),
             Node(name="Cube", parent="GlbEditableEditProp", index="0", unique_id=895413058, properties = {
                 "transform" : Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0),
             }),

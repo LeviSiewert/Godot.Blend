@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Type, Any
 
-from .structure import _Resource, StructContext, GdType, GdValue, ExtReferenceCollection
+from .structure import _Resource, StructContext, GdType, GdValue, ExtResourceRefCollection
 from .collections import Key, Reference, Collection
 from .property_collection import PropertyCollection
 
@@ -73,12 +73,12 @@ class ResourceTres(_Resource):
     
     properties : PropertyCollection
 
-    ext_references : ExtReferenceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_references : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
 
     def __setup__(self):
         self.properties = PropertyCollection()
-        self.ext_references = ExtReferenceCollection()
+        self.ext_references = ExtResourceRefCollection()
         self.sub_resources = SubResourceCollection()
         return self
     
