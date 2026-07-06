@@ -60,11 +60,11 @@ class GdToPy_ResourceTres(GdToPyModule):
     _keys = ("file_resource",)
     def transform(self, c, node):
         
-        header_props, ext_references, sub_resources, prim_resource = node.children
+        header_props, ext_resources, sub_resources, prim_resource = node.children
         
 
         yield {
-            "ext_references" : ext_references,
+            "ext_resources" : ext_resources,
             "header_props" : header_props,
         }
         
@@ -72,7 +72,7 @@ class GdToPy_ResourceTres(GdToPyModule):
             **c.children.get()["header_props"],
         )
         apply(res,
-            ext_references = c.children.get()["ext_references"],
+            ext_resources = c.children.get()["ext_resources"],
         )
 
         t0 = c.resource.set(res)
@@ -100,7 +100,7 @@ class PyToGd_ResourceTres(PyToGdModule):
 class GdToPy_ResourceScene(GdToPyModule):
     _keys = ("file_tscn",)
     def transform(self, c, node):
-        header_props, ext_references, sub_resources, node_resources, signals, edit_flags = node.children
+        header_props, ext_resources, sub_resources, node_resources, signals, edit_flags = node.children
         
         yield header_props
 
@@ -109,14 +109,14 @@ class GdToPy_ResourceScene(GdToPyModule):
 
         yield {
             # "properties":properties,
-            "ext_references" : ext_references,
+            "ext_resources" : ext_resources,
             "edit_flags" : edit_flags,
         }
         
 
         apply(res,
             edit_flags = c.children.get()["edit_flags"],
-            ext_references = c.children.get()["ext_references"],
+            ext_resources = c.children.get()["ext_resources"],
         )
 
         yield {
@@ -193,7 +193,7 @@ class GdToPy_Node(GdToPyModule):
         instance = None
         instance_editable = False
         if inst_id := header.get("instance",None):
-            instance = c.resource.get().ext_references.get(inst_id).file
+            instance = c.resource.get().ext_resources.get(inst_id).file
             instance_editable = not (c.resource.get().edit_flags.get(path, None) is None)
 
         _type = None
@@ -283,7 +283,7 @@ class PyToGd_SignalNotation(PyToGdModule):
 
 
 class GdToPy_Collections(GdToPyModule):
-    _keys = ('sub_resources','node_resources','cat_resources','ext_references','edit_flags', 'signals')
+    _keys = ('sub_resources','node_resources','cat_resources','ext_resources','edit_flags', 'signals')
     def transform(self, c, node):
         yield node.children
         match c.key.get():
@@ -293,7 +293,7 @@ class GdToPy_Collections(GdToPyModule):
                 return NodeCollection(*c.children.get())
             case 'cat_resources':
                 return CategoryCollection(*c.children.get())
-            case 'ext_references':
+            case 'ext_resources':
                 return ExtResourceRefCollection(*c.children.get())
             case 'edit_flags':
                 return EditFlagCollection(*c.children.get())

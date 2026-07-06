@@ -73,12 +73,12 @@ class ResourceTres(_Resource):
     
     properties : PropertyCollection
 
-    ext_references : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_resources : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
 
     def __setup__(self):
         self.properties = PropertyCollection()
-        self.ext_references = ExtResourceRefCollection()
+        self.ext_resources = ExtResourceRefCollection()
         self.sub_resources = SubResourceCollection()
         return self
     

@@ -54,7 +54,7 @@ def std_project():
 
     file_b = FileLocal(path="res://assets/blender.glb.tscn", data=data_a )
     data_b = ResourceScene.construct(uid="uid://bvshg3b45tq5b", format=3,
-        ext_references = [
+        ext_resources = [
             ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_8vle4"),
             ],
         nodes_resources = [
@@ -67,7 +67,7 @@ def std_project():
     file_c = FileLocal(path="res://assets/script.gd", data=data_c)
 
     data_d = ResourceScene.construct(uid = "uid://ccmipxvllo1c0", format=4, 
-        ext_references = [
+        ext_resources = [
             ExtResourceRef(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
             ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
             ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),

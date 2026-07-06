@@ -4,7 +4,7 @@ from ...core.values import StringName, Array
 
 class Test_Subresources():
     
-    def test_basic_construction():
+    def test_basic_construction(self,):
         return ResourceTres.construct(
             type = "World3D",
             format = 3,
@@ -46,7 +46,7 @@ class Test_Subresources():
             },
         )
 
-    def test_extres_construction():
+    def test_extres_construction(self,):
         return ResourceTres.construct(
             type = "Resource",
             script_class = "ClassDataDB",

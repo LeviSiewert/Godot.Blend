@@ -3,10 +3,10 @@ start : file_resource
       | file_settings
 
 file_settings :  properties cat_resources [prim_resource] 
-file_resource : "[gd_resource" properties "]" ext_references sub_resources [prim_resource]
-file_tscn : "[gd_scene" properties "]" ext_references sub_resources node_resources signals edit_flags 
+file_resource : "[gd_resource" properties "]" ext_resources sub_resources [prim_resource]
+file_tscn : "[gd_scene" properties "]" ext_resources sub_resources node_resources signals edit_flags 
 
-ext_references : [ext_reference]*
+ext_resources : [ext_reference]*
 sub_resources : [sub_resource]*
 node_resources : [node_resource]*
 cat_resources : [cat_resource]*

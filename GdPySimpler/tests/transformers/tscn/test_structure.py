@@ -139,7 +139,7 @@ class Test_ExtResourceRef(_StructureTest):
 
 class Test_ExtResourceRefCollection(Test_ExtResourceRef):
     _type = ExtResourceRefCollection
-    _parser_key = "ext_references"
+    _parser_key = "ext_resources"
 
 
     def data():

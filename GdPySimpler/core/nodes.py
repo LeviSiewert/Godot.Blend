@@ -20,7 +20,7 @@ class ResourceScene(_Resource):
     script_class : str #TEMP! resolve to from typing eventually w/a
 
     properties : PropertyCollection
-    ext_references : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_resources : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
     edit_flags : EditFlagCollection
     nodes : NodeCollection
@@ -28,12 +28,12 @@ class ResourceScene(_Resource):
     root : Node = None
 
     @classmethod
-    def construct(cls, uid:str=None, /, nodes:list=None, ext_references:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, _construct_tree:bool=True, _load_instances:bool=True, _strict:bool=False, **kwargs,):
+    def construct(cls, uid:str=None, /, nodes:list=None, ext_resources:list=None, sub_resources:list=None, edit_flags:list=None, properties:dict=None, _construct_tree:bool=True, _load_instances:bool=True, _strict:bool=False, **kwargs,):
         self = cls(uid=uid)
         if nodes:
             self.nodes.extend(nodes)
-        if ext_references:
-            self.ext_references.extend(ext_references)
+        if ext_resources:
+            self.ext_resources.extend(ext_resources)
         if sub_resources:
             self.sub_resources.extend(sub_resources)
         if edit_flags:
@@ -55,7 +55,7 @@ class ResourceScene(_Resource):
         self.context = StructContext(_identifier=self,resource=self)
 
         self.properties = PropertyCollection(context=self.context)
-        self.ext_references = ExtResourceRefCollection(context=self.context)
+        self.ext_resources = ExtResourceRefCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
         self.edit_flags = EditFlagCollection(context=self.context)
         self.nodes = NodeCollection(context=self.context)

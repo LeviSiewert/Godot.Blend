@@ -189,7 +189,7 @@ class Test_Node():
 
             scene_a = ResourceScene.construct("SceneA",
                 nodes=tree,
-                ext_references=[ext_ref],
+                ext_resources=[ext_ref],
                 # edit_resources=[
                 #     EditFlag("NodeC")
                 # ],
@@ -197,7 +197,7 @@ class Test_Node():
                 # _load_references = False,
             )
 
-            assert (scene_a.ext_references["SceneB"] is ext_ref)
+            assert (scene_a.ext_resources["SceneB"] is ext_ref)
 
             scene_b = ResourceScene.construct("SceneB",
                 nodes=(
