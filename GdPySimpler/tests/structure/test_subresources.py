@@ -1,11 +1,11 @@
-from ...core.structure import ExtResource
+from ...core.structure import ExtResource, ExtResourceRef
 from ...core.subresources import *
 from ...core.values import StringName, Array
 
 class Test_Subresources():
     
     def test_basic_construction(self,):
-        return ResourceTres.construct(
+        res = ResourceTres.construct(
             type = "World3D",
             format = 3,
             uid = "uid://b52f332102m2l",
@@ -46,18 +46,21 @@ class Test_Subresources():
             },
         )
 
+        subres_a = res.sub_resources["CameraAttributesPractical_fssom"]
+        assert subres_a.context.resource is res
+
     def test_extres_construction(self,):
-        return ResourceTres.construct(
+        res = ResourceTres.construct(
             type = "Resource",
             script_class = "ClassDataDB",
             format = 3,
             uid = "uid://bgjki6uwnqh4q",
             sub_resources = {
-                SubResource(
+                SubResource.construct(
                     type = "Resource",
                     id = "Resource_30man",
                     properties = {
-                        "script" : ExtResource("1_dek6i"),
+                        "script" : ExtResourceRef("1_dek6i"),
                         "name" : StringName("AbstractPolygon2DEditor"),
                         "c_extends" : StringName("HBoxContainer"),
                     }
@@ -71,7 +74,11 @@ class Test_Subresources():
 
             },
             properties = {
-                "script" : ExtResource("4_rwa21"),
-                "classes" : Array(SubResourceRef("Resource_30man"), types=ExtResource("1_dek6i")),
+                "script" : ExtResourceRef("4_rwa21"),
+                "classes" : Array(SubResourceRef("Resource_30man"), types=ExtResourceRef("1_dek6i")),
             }
         )
+
+        ext_res_a = res.ext_resources["uid://dm8s8hmdwmdmn"]
+        assert ext_res_a.context.resources is res
+        

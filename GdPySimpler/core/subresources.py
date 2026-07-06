@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Type, Any
 
-from .structure import _Resource, StructContext, GdType, GdValue, ExtResourceRefCollection
+from .structure import _Resource, StructContext, GdType, GdValue, ExtResourceCollection
 from .collections import Key, Reference, Collection
 from .property_collection import PropertyCollection
 
@@ -9,7 +9,8 @@ from .property_collection import PropertyCollection
 class SubResource():
     context : StructContext
     owner : _Resource|None = None
-    unique_id : Key[str]
+    id : Key[str]
+    format : int = 3
     type : GdType|None = None
     
     instance : _Resource
@@ -22,30 +23,38 @@ class SubResource():
 
     def __setup__(self):
         self.context = StructContext(sub_resource=self)
-        self.unique_id = Key(self, "unique_id", None)
+        self.id = Key(self, "id", None)
         self.properties = PropertyCollection()
         return self
 
-    def __init__(self, /, owner:_Resource|None=None, overlay:SubResource=None, type:Type=None, instance:_Resource=None, instance_editable:bool=False, unique_id:Any=None):
+    def __init__(self, /, type:str=None, format:int=None, id:str=None):
         self.__setup__()
-        if not (unique_id is None):
-            self.unique_id.set(unique_id)
+        if not (id is None):
+            self.id.set(id)
+        if format:
+            self.format = format
+        self.type = type
+    
+    def __colkeys__(self,)->tuple[Key]:
+        return (self.id,)
 
-        self.set_owner(owner)
-        self.set_type(type)
-        
-        if instance:
-            assert(overlay is None)
-            self.set_overlay(instance.data.root)
-            self.instance = instance
-            self.instance_editable = instance_editable
-        elif overlay:
-            self.set_overlay(overlay)
-
+    @classmethod
+    def construct(cls, id:str=None, properties:dict=None, **kwargs):
+        self = cls(id=id)
+        if properties:
+            self.properties.update(properties)
+        for k,v in kwargs.items():
+            if not (hasattr(self,k)):
+                raise AttributeError(self, k, obj=self, name=k)
+            setattr(self,k,v)
+        return self
 
 class SubResourceCollection(Collection):
-    unique_keys = ("unique_id",)
+    unique_keys = ("id",)
     _type = SubResource
+
+    def key_matcher(self, addr):
+        return "id"
 
 
 class SubResourceRef(Reference, GdValue): 
@@ -66,23 +75,48 @@ class SubResourceRef(Reference, GdValue):
 
 
 class ResourceTres(_Resource):
-    type : GdType|None|str
-    format : int
-    script : str #TEMP! resolve to from typing eventually w/a
-    script_class : str #TEMP! resolve to from typing eventually w/a
+    type : GdType|None|str = None
+    format : int = None
+    script : str = None #TEMP! resolve to from typing eventually w/a
+    script_class : str = None #TEMP! resolve to from typing eventually w/a
     
     properties : PropertyCollection
-
-    ext_resources : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_resources : ExtResourceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
 
     def __setup__(self):
-        self.properties = PropertyCollection()
-        self.ext_resources = ExtResourceRefCollection()
-        self.sub_resources = SubResourceCollection()
+        self.context = StructContext(resource=self)
+        self.uid = Key(self, "uid", None)
+        self.properties = PropertyCollection(context=self.context)
+        self.ext_resources = ExtResourceCollection(context=self.context)
+        self.sub_resources = SubResourceCollection(context=self.context)
         return self
     
-    def __init__(self, type, format, uid, script_class:str=None):
-        self.type = type
-        self.script_class = script_class
-        super().__init__(format=format, uid=uid)
+    def __init__(self, /, type:str=None, format:int=None, uid:str=None, script_class:str=None):
+        self.__setup__()
+        if type:
+            self.type = type
+        if format:
+            self.format = format
+        if script_class:
+            self.script_class = script_class
+        if uid:
+            self.uid.set(uid)
+
+    def __colkeys__(self,)->tuple[Key]:
+        return (self.uid,)
+        
+    @classmethod
+    def construct(cls, properties:dict=None, ext_references:list=None, sub_resources:list=None, **kwargs):
+        self = cls()
+        if properties:
+            self.properties.update(properties)
+        if ext_references:
+            self.ext_references.extend(ext_references)
+        if sub_resources:
+            self.sub_resources.extend(sub_resources)
+        for k,v in kwargs.items():
+            if not (hasattr(self,k)):
+                raise AttributeError(k, obj=self, name=k)
+            setattr(self,k,v)
+        return self

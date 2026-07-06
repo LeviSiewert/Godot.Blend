@@ -24,7 +24,7 @@ from ....core.structure import (
     Category,
     CategoryCollection,
     ExtResourceRef,
-    ExtResourceRefCollection,
+    ExtResourceCollection,
     EditFlag,
     EditFlagCollection,
     GdType,
@@ -125,20 +125,20 @@ class Test_ExtResourceRef(_StructureTest):
         
     def data(self):
         txt = '''[ext_resource type="PackedScene" uid="uid://bvshg3b45tq5b" path="res://assets/blender.glb.tscn" id="1_0xe7n"] '''
-        res = ExtResourceRef(type="PackedScene", uid=self._project.resources.get("uid://bvshg3b45tq5b"), path=self._project.files.get("res://assets/blender.glb.tscn"), id="1_0xe7n")
+        res = ExtResource(type="PackedScene", uid=self._project.resources.get("uid://bvshg3b45tq5b"), path=self._project.files.get("res://assets/blender.glb.tscn"), id="1_0xe7n")
         yield txt,res
 
         txt = '''[ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_w5rjj"] '''
-        res = ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj")
+        res = ExtResource(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj")
         yield txt,res
         
         txt = '''[ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="3_7d4mc"] '''
-        res = ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc")
+        res = ExtResource(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc")
         yield txt,res
     
 
-class Test_ExtResourceRefCollection(Test_ExtResourceRef):
-    _type = ExtResourceRefCollection
+class Test_ExtResourceCollection(Test_ExtResourceRef):
+    _type = ExtResourceCollection
     _parser_key = "ext_resources"
 
 
@@ -148,10 +148,10 @@ class Test_ExtResourceRefCollection(Test_ExtResourceRef):
 [ext_resource type="PackedScene" uid="uid://cocfi2vsn5qt2" path="res://assets/blender.glb" id="1_w5rjj"]
 [ext_resource type="Script" uid="uid://cr1tpol7u62kd" path="res://assets/script.gd" id="3_7d4mc"]
 '''     
-        res = ExtResourceRefCollection(
-            ExtResourceRef(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
-            ExtResourceRef(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
-            ExtResourceRef(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
+        res = ExtResourceCollection(
+            ExtResource(type="PackedScene", uid="uid://bvshg3b45tq5b", path="res://assets/blender.glb.tscn", id="1_0xe7n"),
+            ExtResource(type="PackedScene", uid="uid://cocfi2vsn5qt2", path="res://assets/blender.glb", id="1_w5rjj"),
+            ExtResource(type="Script", uid="uid://cr1tpol7u62kd", path="res://assets/script.gd", id="3_7d4mc"),
         )
         yield txt, res
 
@@ -228,13 +228,13 @@ class Test_GdType(_StructureTest):
         "Object" : Object,
         "Object(Type)" : Object(type == Type),
 
-        'NodePath[ExtResource("ABC")]' : NodePath(None, typing=ExtResource("ABC")),
+        'NodePath[ExtResourceRef("ABC")]' : NodePath(None, typing=ExtResourceRef("ABC")),
         'NodePath': NodePath,
         
         'SubResource("ABC")' : SubResourceRef("ABC"),
         'SubResource' : SubResourceRef,
         
-        'ExtResource("ABC")' : ExtResource("ABC"),
+        'ExtResourceRef("ABC")' : ExtResourceRef("ABC"),
         'ExtResource' : ExtResource,
         
         'RID("ABC")' : RID("ABC"),

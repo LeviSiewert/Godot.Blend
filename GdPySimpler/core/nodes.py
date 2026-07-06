@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtResourceRefCollection, EditFlagCollection, StructContext, GdType, ExtResource, ExtResource, _File
+from .structure import _Resource, SubResource, SubResourceCollection, SignalNotationCollection, ExtResourceCollection, EditFlagCollection, StructContext, GdType, ExtResource, ExtResource, _File
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key
@@ -20,7 +20,7 @@ class ResourceScene(_Resource):
     script_class : str #TEMP! resolve to from typing eventually w/a
 
     properties : PropertyCollection
-    ext_resources : ExtResourceRefCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
+    ext_resources : ExtResourceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
     sub_resources : SubResourceCollection
     edit_flags : EditFlagCollection
     nodes : NodeCollection
@@ -55,7 +55,7 @@ class ResourceScene(_Resource):
         self.context = StructContext(_identifier=self,resource=self)
 
         self.properties = PropertyCollection(context=self.context)
-        self.ext_resources = ExtResourceRefCollection(context=self.context)
+        self.ext_resources = ExtResourceCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
         self.edit_flags = EditFlagCollection(context=self.context)
         self.nodes = NodeCollection(context=self.context)

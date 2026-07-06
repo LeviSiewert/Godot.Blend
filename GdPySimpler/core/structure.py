@@ -193,7 +193,7 @@ class Typing():
     contents : tuple[Typing|GdType|GdTypeValue]|None = None
 
 
-class ExtResourceRef():
+class ExtResource():
     context : StructContext
 
     type : Key[str]
@@ -223,7 +223,7 @@ class ExtResourceRef():
             # self.type
             )
 
-class ExtResourceRefCollection(Collection):
+class ExtResourceCollection(Collection):
     unique_keys = ("uid","path","id")
     # shared_keys = ("type",)
 
@@ -264,10 +264,13 @@ class CategoryCollection(Collection):
     _type = Category
 
 
-class ExtResource(Reference, GdValue): 
+class ExtResourceRef(Reference, GdValue): 
     ''' Routed reference ID '''
     key_categories = ("id",)
     _type = _Resource
+
+    def __init__(self, address):
+        super().__init__(address=address,)
 
     def __setup__(self):
         super().__setup__()

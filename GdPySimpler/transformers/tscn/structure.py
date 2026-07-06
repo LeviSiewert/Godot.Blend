@@ -12,7 +12,7 @@ from ...core.structure import (
     Category,
     CategoryCollection,
     ExtResourceRef,
-    ExtResourceRefCollection,
+    ExtResourceCollection,
     EditFlag,
     EditFlagCollection,
     GdType,
@@ -294,7 +294,7 @@ class GdToPy_Collections(GdToPyModule):
             case 'cat_resources':
                 return CategoryCollection(*c.children.get())
             case 'ext_resources':
-                return ExtResourceRefCollection(*c.children.get())
+                return ExtResourceCollection(*c.children.get())
             case 'edit_flags':
                 return EditFlagCollection(*c.children.get())
             case 'signals':
@@ -303,7 +303,7 @@ class GdToPy_Collections(GdToPyModule):
                 raise KeyError(c.key.get())
 
 class PyToGd_Collections(PyToGdModule):
-    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtResourceRefCollection, EditFlagCollection, SignalNotationCollection)
+    _keys = (SubResourceCollection, NodeCollection, CategoryCollection, ExtResourceCollection, EditFlagCollection, SignalNotationCollection)
     def transform(self, c, node:Collection):
         yield (o for o,_ in node.data)
         return c.children.get()
