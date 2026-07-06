@@ -21,23 +21,23 @@ class Object(GdValue):
         self.kwargs = kwargs
     
     def __eq__(self, value):
-        if isinstance(value, Object):
-            return all([
-                self.type == value.type,
-                self.kwargs == value.kwargs,
-            ])
-        return super().__eq__(value)
+        if not isinstance(value, Object):
+            return super().__eq__(value)
+        return all([
+            self.type == value.type,
+            self.kwargs == value.kwargs,
+        ])
 
 class Dictionary(OrderedDict, GdValue):
-    _typing : GdTypeValueSet 
-    def __init__(self, map=tuple(), /, types:tuple[GdType|GdTypeValue|Any]=None):
-        self._typing = types
+    typing : GdTypeValueSet 
+    def __init__(self, map=tuple(), /, typing:tuple[GdType|GdTypeValue|Any]=None):
+        self.typing = typing
         super().__init__(map)
 
 class Array(list, GdValue):
-    _typing : GdTypeValueSet 
-    def __init__(self, *values, types:tuple[GdType|GdTypeValue|Any]=None):
-        self._typing = types
+    typing : GdTypeValueSet 
+    def __init__(self, *values, typing:tuple[GdType|GdTypeValue|Any]=None):
+        self.typing = typing
         super().__init__(values)
 
 class _FixedLenArray(GdValue):
@@ -156,4 +156,5 @@ class PackedColorArray(_PackedListComplex):
 
 
 class PackedByteArray(bytearray, GdValue): 
-    ...
+    def __init__(self, string, /, encoding="utf-8", errors = "strict"):
+        super().__init__(string, encoding, errors)

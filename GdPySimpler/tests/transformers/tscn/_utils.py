@@ -55,4 +55,6 @@ class _StructureTest[T:Type]():
         assert (ground == new)
 
     def gd_compare(self, ground:str, new:str):
-        assert(ground.replace("/n","").replace(" ","") == new.replace("/n","").replace(" ",""))
+        g = ground.replace("\n","").replace("\t","").replace(" ","")
+        n = new.replace("\n","").replace("\t","").replace(" ","")
+        assert( g == n ) 

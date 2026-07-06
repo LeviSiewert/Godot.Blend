@@ -126,18 +126,19 @@ class GdToPy_ExtResourceRef(GdToPyModule):
     _keys = ("extresourceref",)
     def transform(self, c, node):
         yield node.children
-        idname = c.children.get()[0]
-        return ExtResourceRef(**idname)
+        typing, idname = c.children.get()
+        return ExtResourceRef(idname, typing = typing)
 
 class PyToGd_ExtResourceRef(PyToGdModule):
     _keys = (ExtResourceRef,)
     def transform(self, c, node:ExtResourceRef):
         ## TODO: ID VERIFICATION / FETCH!
-        
-        yield (node.id.addr,)
-        path = c.children.get()[0]
+       
+        yield (node.typing, node.id.addr)
+        typing, path = c.children.get()
         assert not (path is None)
-        # raise NotImplementedError()
+        if typing is None:
+            return f'ExtResource({path})'
         return f'ExtResource({path})'
 
 
@@ -146,20 +147,20 @@ class GdToPy_RID(GdToPyModule):
     _keys = ("rid",)
     def transform(self, c, node):
         yield node.children
-        idname = c.children.get()[0]
-        return RID(**idname)
+        typing, idname = c.children.get()
+        return RID(idname, typing = typing)
 
 class PyToGd_RID(PyToGdModule):
     _keys = (RID,)
     def transform(self, c, node:RID):
         ## TODO: ID VERIFICATION / FETCH!
         
-        yield (node.cached_addr,)
-        path = c.children.get()[0]
+        yield (node.typing, node.id.addr)
+        typing, path = c.children.get()
         assert not (path is None)
-        # raise NotImplementedError()
+        if typing is None:
+            return f'RID({path})'
         return f'RID({path})'
-
 
 
 class GdToPy_Collections(GdToPyModule):

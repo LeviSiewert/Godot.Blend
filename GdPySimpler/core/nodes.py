@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from .structure import _Resource, StructContext, ExtResource, ExtResource, ExtResourceCollection, GdType
+from .structure import _Resource, StructContext, ExtResource, ExtResourceRef, ExtResourceCollection, GdType
 from .subresources import SubResource, SubResourceCollection, SubResourceRef
 
 from .property_collection import PropertyCollection
@@ -254,9 +254,12 @@ class Node():
     # Should be accessed through get/set:
     _parent : Node = None 
     _defered_parent : str # TEMP! TODO: determine better method
+    index : int = None
 
     _children: list[Node]
     _type : GdType|None = None
+
+    # node_paths : list[NodePath] ## Ignored in favor of context fetch during export
 
     owner : _Resource|None = None
     
@@ -265,6 +268,7 @@ class Node():
 
     overlay : Node|None = None
     overlay_is_thin : bool = False
+
 
     @classmethod
     def construct_thin(cls, overlay:Node):
@@ -307,11 +311,14 @@ class Node():
             self.context.callback(key="resource", once=False, local_only=True, callback=set_owner_callback)
             
         if isinstance(instance,str):
-            self.instance = ExtResource(key_id="uid", address=instance)
-        elif isinstance(instance,ExtResource):
+            self.instance = ExtResourceRef(address=instance)
+        elif isinstance(instance,ExtResourceRef):
             self.instance = instance
-        elif isinstance(instance,ResourceScene):
-            self.instance = ExtResource(key_id="uid", cached_value=instance)
+        elif isinstance(instance,ExtResource):
+            self.instance = ExtResourceRef(cached_value=ExtResourceRef)
+        # elif isinstance(instance,ResourceScene):
+            ## Will have to attach dep to resource !
+            # self.instance = ExtResourceRef(key_id="uid", cached_value=instance)
         elif not (instance is None):
             raise Exception(instance)
 

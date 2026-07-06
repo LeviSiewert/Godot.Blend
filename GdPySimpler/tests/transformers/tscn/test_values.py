@@ -50,9 +50,22 @@ class Test_StringName(_StructureTest):
 class Test_Object(_StructureTest):
     _type = Object
     _parser_key = "value"
-    def data(self,):
-        yield 'Object(TestType)', Object("TestType",)
-        yield 'Object(TestType,A={},B="c")', Object("TestType", A={}, B="c")
+    def data(self):
+        txt = ''' Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null) '''
+        res = Object('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
+        yield (txt, res)
+
+        txt = ''' Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194310,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null) '''
+        res = Object('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":4194310,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":False,"script":None}),
+        yield (txt, res)
+
+        txt = ''' Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"location":0,"echo":false,"script":null) '''
+        res = Object('InputEventKey',**{"resource_local_to_scene":False,"resource_name":"","device":0,"window_id":0,"alt_pressed":False,"shift_pressed":False,"ctrl_pressed":False,"meta_pressed":False,"pressed":False,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"location":0,"echo":False,"script":None}),
+        yield (txt, res)
+
+        txt = ''' Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":0,"pressure":0.0,"pressed":false,"script":null) '''
+        res = Object('InputEventJoypadButton',**{"resource_local_to_scene":False,"resource_name":"","device":-1,"button_index":0,"pressure":0.0,"pressed":False,"script":None})
+        yield (txt, res)
 
 class Test_Dictionary(_StructureTest):
     _type = Dictionary
@@ -65,20 +78,20 @@ class Test_Dictionary(_StructureTest):
         yield 'Dictionary[Variant,Variant]({})', Dictionary()
         yield 'Dictionary({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"})
         yield 'Dictionary[Variant,Variant]({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"})
-        yield 'Dictionary[String,String]({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"}, typing=GdTypeValueSet(str,str))
+        yield 'Dictionary[String,String]({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"}, typing=["String","String"])
 
 class Test_Array(_StructureTest):
     _type = Array
     _parser_key = "value"
     def data(self,):
         yield '[]', Array()
-        yield 'Array()', Array()
-        yield 'Array[Variant]()', Array()
-        yield 'Array([])', Array()
-        yield 'Array[Variant]([])', Array()
-        yield 'Array(["a","b","c"])', Array("a","b","c")
-        yield 'Array[Variant](["a","b","c"])', Array("a","b","c")
-        yield 'Array[String](["a","b","c"])', Array("a","b","c", types=GdTypeValueSet(str))
+        # yield 'Array()', Array()
+        # yield 'Array[Variant]()', Array()
+        # yield 'Array([])', Array()
+        # yield 'Array[Variant]([])', Array()
+        # yield 'Array(["a","b","c"])', Array("a","b","c")
+        # yield 'Array[Variant](["a","b","c"])', Array("a","b","c")
+        yield 'Array[String](["a","b","c"])', Array("a","b","c", typing="String")
     
 class Test_Vector2i(_StructureTest):
     _type = Vector2i

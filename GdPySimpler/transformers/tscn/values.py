@@ -40,7 +40,7 @@ class GdToPy_NodePath(GdToPyModule):
     def transform(self, c, node):
         yield node.children
         anno, addr = c.children.get()
-        return NodePath(addr, type=anno)
+        return NodePath(addr, typing=anno)
 class PyToGd_NodePath(PyToGdModule):
     _keys = (NodePath,)
     def transform(self, c, node:NodePath):
@@ -78,7 +78,7 @@ class PyToGd_Object(PyToGdModule):
     def transform(self, c, node:Object):
         if node.kwargs:
             yield node.kwargs
-            return f"Object({node.type}, {",".join(f"{k}={v}"for k,v in c.children.get()[0])})"
+            return f"Object({node.type}, {",".join(f"{k}:{v}"for k,v in c.children.get()[0])})"
         return f"Object({node.type})"
 
 class GdToPy_DictionaryImplicit(GdToPyModule):
@@ -107,10 +107,10 @@ class PyToGd_Dictionary(PyToGdModule):
         reps = tuple((f'{k}:{v}' for k,v in di.items()))
         inner = '{' + ",".join(reps) + '}'
         
-        if (node._typing is None) or node._typing.is_variant():
+        if (node.typing is None): # or node.typing.is_variant(): #TODO
             return inner
 
-        yield (node._typing,)
+        yield (node.typing,)
         ty = c.children.get()[0]
 
         return f"Dictionary{ty}({inner})"
@@ -127,8 +127,8 @@ class GdToPy_Array(GdToPyModule):
         yield node.children
         typing, children = c.children.get()
         if children is None:
-            return Array(types=typing)
-        return Array(*children, types=typing) 
+            return Array(typing=typing)
+        return Array(*children, typing=typing) 
 
 class PyToGd_Array(PyToGdModule):
     _keys = (Array,)
@@ -138,10 +138,11 @@ class PyToGd_Array(PyToGdModule):
 
         inner = '[' + ",".join(values) + ']'
 
-        if (node._typing is None) or node._typing.is_variant():
+        if (node.typing is None): #or node.typing.is_variant():
+            #TODO:
             return inner
 
-        yield (node._typing,)
+        yield (node.typing,)
         typing = c.children.get()[0]
         
         return f'Array[{typing}]({inner})'
@@ -367,7 +368,7 @@ class GdToPy_PackedByteArray(GdToPyModule):
     def transform(self, c, node):
         yield node.children
         txt = c.children.get()[0]
-        return PackedByteArray(txt.encode("utf-8"))
+        return PackedByteArray(txt, encoding="utf-8")
 class PyToGd_PackedByteArray(PyToGdModule):
     _keys = (PackedByteArray,)
     def transform(self, c, node:PackedByteArray):

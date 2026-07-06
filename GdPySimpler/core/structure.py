@@ -64,7 +64,7 @@ class FileForeign(_File):
 
 class FileCollection(Collection):
     unique_keys = ("_uid", "path")
-    _type = _File 
+    # _type = _File 
 
 class _Resource():
     context : StructContext ##NOTE: Attached when added to a collection
@@ -94,7 +94,7 @@ class _Resource():
 
 class ResourceCollection(Collection):
     unique_keys = ("uid", "file")
-    _type = _Resource
+    # _type = _Resource
 
 class ResourceSettings(_Resource):
     
@@ -151,7 +151,7 @@ class GdTypeValueSet():
 
 class GdTypeCollection(Collection):
     unique_keys = ("class_name", "file", "uid")
-    _type = GdType
+    # _type = GdType
 
 class GdTypeValue(Enum):
     VARIANT = 0
@@ -233,16 +233,17 @@ class Category():
 
 class CategoryCollection(Collection):
     unique_keys = ("name",)
-    _type = Category
+    # _type = Category
 
 
 class ExtResourceRef(Reference, GdValue): 
     ''' Routed reference ID '''
     key_categories = ("id",)
-    _type = _Resource
+    typing : GdType
 
-    def __init__(self, address):
-        super().__init__(address=address,)
+    def __init__(self, address=None, cached_value=None, typing=None):
+        self.typing = typing
+        super().__init__(key_id="id", address=address, cached_value=cached_value)
 
     def __setup__(self):
         super().__setup__()
@@ -259,7 +260,12 @@ class ExtResourceRef(Reference, GdValue):
 class RID(Reference, GdValue):
     ''' Universal ID '''
     key_categories = ("uid",)
-    _type = _Resource
+    # _type = _Resource
+    typing : GdType
+
+    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None, typing=None):
+        super().__init__(key_id, address, cached_value, collection)
+        self.typing = typing
 
     def __setup__(self):
         super().__setup__()

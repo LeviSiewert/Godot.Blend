@@ -4,16 +4,17 @@ from typing import Type, Any
 from .structure import _Resource, StructContext, GdType, GdValue, ExtResourceCollection
 from .collections import Key, Reference, Collection
 from .property_collection import PropertyCollection
-
+from .signals import Signal
 
 class SubResource():
     context : StructContext
     owner : _Resource|None = None
     id : Key[str]
+
     format : int = 3
     type : GdType|None = None
     
-    instance : _Resource
+    instance : _Resource = None
     instance_editable : bool = False
 
     overlay : SubResource|None = None
@@ -39,15 +40,35 @@ class SubResource():
         return (self.id,)
 
     @classmethod
-    def construct(cls, id:str=None, properties:dict=None, **kwargs):
+    def construct(cls, id:str=None, properties:dict=None, _defered_apply_owner:bool=False, **kwargs):
         self = cls(id=id)
         if properties:
             self.properties.update(properties)
+
+        if _defered_apply_owner:
+            def set_owner_callback(scene:_Resource):
+                if scene:
+                    self.owner = scene
+                    return Signal.REMOVE
+            ##TODO: Verify this is only being called once.
+            self.context.callback(key="resource", once=False, local_only=True, callback=set_owner_callback)
+
         for k,v in kwargs.items():
             if not (hasattr(self,k)):
                 raise AttributeError(self, k, obj=self, name=k)
             setattr(self,k,v)
         return self
+    
+    def __eq__(self, value):
+        if not isinstance(value, SubResource):
+            return super().__eq__(value)
+        return all((
+            value.id == self.id,
+            value.type == self.type,
+            value.instance == self.instance,
+            value.properties == self.properties,
+            value.instance_editable == self.instance_editable,
+        ))
 
 class SubResourceCollection(Collection):
     unique_keys = ("id",)
@@ -59,7 +80,11 @@ class SubResourceCollection(Collection):
 
 class SubResourceRef(Reference, GdValue): 
     key_categories = ("id",)
-    _type = SubResource
+    typing = None
+
+    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None, typing = None):
+        self.typing = typing
+        super().__init__(key_id, address, cached_value, collection)
 
     def __setup__(self):
         super().__setup__()
@@ -119,3 +144,16 @@ class ResourceTres(_Resource):
                 raise AttributeError(k, obj=self, name=k)
             setattr(self,k,v)
         return self
+
+    def __eq__(self, value):
+        if not isinstance(value, ResourceTres):
+            return super().__eq__(value)
+        return all((
+            value.type == self.type,
+            value.format == self.format,
+            value.script == self.script,
+            value.script_class == self.script_class,
+            value.properties == self.properties,
+            value.ext_resources == self.ext_resources,
+            value.sub_resources == self.sub_resources,
+        ))

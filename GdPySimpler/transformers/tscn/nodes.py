@@ -73,7 +73,7 @@ class GdToPy_Node(GdToPyModule):
 
         res = Node.construct(
             name=header["name"],
-            type=header["type"],
+            type=header.get("type", None),
             unique_id=header["unique_id"],
             instance=instance,
             #Defered to hooks on collection (better for signal timing, ect.):

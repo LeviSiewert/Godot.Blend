@@ -169,7 +169,7 @@ class Test_Node(_StructureTest):
             parent="GlbEditableAddScript",
             index="0",
             unique_id=895413058,
-            node_paths=PackedStringArray("noderef"),
+            # node_paths=PackedStringArray("noderef"), ## Structurally not used
             properties = {
                 "script" : ExtResourceRef("3_7d4mc"),
                 "noderef" : NodePath(".."),
@@ -346,7 +346,7 @@ class Test_ResourceScene(_StructureTest):
                     type="ArrayMesh", 
                     id="ArrayMesh_3l6rm",
                     properties = {
-                        "_surfaces" : Array({
+                        "_surfaces" : Array(Dictionary({
                             "aabb": AABB(-1, -1, -1, 2, 2, 2),
                             "format": 34896613377,
                             "index_count": 36,
@@ -356,7 +356,7 @@ class Test_ResourceScene(_StructureTest):
                             "uv_scale": Vector4(0, 0, 0, 0),
                             "vertex_count": 8,
                             "vertex_data": PackedByteArray("/////wAAAAAAAP////8AAAAA//8AAAAAAAAAAP//AAD///////8AAAAAAAAAAAAA//8AAAAAAAD//wAA//8AAA==")
-                            }),
+                            })),
                         "blend_shape_mode" : 0,
                     },
                 ),
@@ -365,7 +365,7 @@ class Test_ResourceScene(_StructureTest):
                     id="ArrayMesh_qt25o",
                     properties = {
                         "resource_name" : "blender_Cube",
-                        "_surfaces" : Array({
+                        "_surfaces" : Array(Dictionary({
                             "aabb": AABB(-1, -1, -1, 2, 2, 2),
                             "attribute_data": PackedByteArray("/5//f//f/z//3/9//5//P/9f/z//nwAA/5//P/9fAAD/X////5//v/+f////X/+//x//f/9f/z//X/9//x//P/9f/3//n/8//5//f/9f/z//X/+//5//f/+f/7//X/9/"),
                             "format": 34896613399,
@@ -377,7 +377,7 @@ class Test_ResourceScene(_StructureTest):
                             "uv_scale": Vector4(0, 0, 0, 0),
                             "vertex_count": 24,
                             "vertex_data": PackedByteArray("/////wAA//8AAP///////wAA//8AAP///////////////wAA////vwAA//////+//////////78AAAAA////vwAAAAD//1TVAAD//wAAVNUAAP////9U1QAAAAAAAFTVAAAAAAAA/7///wAA////v///AAAAAP+/AAAAAP///7///wAAAABU1f///////1TV/////wAAVNX//wAA//9U1QAAAAAAAP///////wAA//8AAP//AAD/////AAAAAP///3//v/9//7//f/+//3//v/////////////////////9U1VTVVNVU1VTVVNVU1VTVAAD/fwAA/38AAP9/AAD/f6oqqiqqKqoqqiqqKqoqqir/v/+//7//v/+//7//v/+/")
-                            }),
+                            })),
                         "blend_shape_mode" : 0,
                         "shadow_mesh" : SubResource("ArrayMesh_3l6rm"),
                     },
@@ -452,7 +452,7 @@ class Test_ResourceScene(_StructureTest):
                     parent="GlbEditableAddScript",
                     index="0",
                     unique_id=895413058,
-                    node_paths=PackedStringArray("noderef"),
+                    # node_paths=PackedStringArray("noderef"),
                     properties = {
                         "script" : ExtResourceRef("3_7d4mc"),
                         "noderef" : NodePath(".."),

@@ -32,44 +32,57 @@ from ...core.structure import (
 
 class GdToPy_ResourceTres(GdToPyModule):
     _keys = ("file_resource",)
-    # def transform(self, c, node):
         
-    #     header_props, ext_resources, sub_resources, prim_resource = node.children
+    def transform(self, c, node):
+        header_props, ext_resources, sub_resources, prim_resource = node.children
+        
+        yield (header_props,)
+
+        res = ResourceTres.construct( **c.children.get()[0] )
+        t0 = c.resource.set(res)
+        
+        yield {        
+            "ext_resources" : ext_resources,
+            "sub_resources" : sub_resources,
+        }
+        d = c.children.get()
+
+        if prim_resource:
+            yield dict(prim_resource)
+            d["prim_resource"] = c.children.get()
+        
+        if r:=d.get("ext_resources", None):
+            res.ext_resources.extend(r)
+        if r:=d.get("sub_resources", None):
+            res.sub_resources.extend(r)
+        if r:=d.get("prim_resource", None):
+            res.properties.update(r)
         
 
-    #     yield {
-    #         "ext_resources" : ext_resources,
-    #         "header_props" : header_props,
-    #     }
-        
-    #     res = ResourceTres(
-    #         **c.children.get()["header_props"],
-    #     )
-    #     apply(res,
-    #         ext_resources = c.children.get()["ext_resources"],
-    #     )
-
-    #     t0 = c.resource.set(res)
-
-    #     yield {
-    #         "sub_resources" : sub_resources,
-    #         "prim_resource" : prim_resource,
-    #     }
-
-    #     apply(res,
-    #         sub_resources = c.children.get()["sub_resources"],
-    #         prim_resource = c.children.get()["prim_resource"],
-    #     )
-
-    #     c.resource.reset(t0)
-    #     return res
-
+        c.resource.reset(t0)
+        return res
 
     
 class PyToGd_ResourceTres(PyToGdModule):
     _keys = (ResourceTres,)
 
+    def transform(self, c, node):
+        yield dict(node.properties)
+        _properties : dict[str,str] = c.children.get()
+        properties = "\n".join(f"{k} = {v}" for k,v in _properties.items())
 
+        _header_props = {
+            "type": node.type,
+            "format": node.format,
+            "uid": node.uid.addr,
+        }
+        # if node.instance:
+        #     _header_props["instance"] = node.instance.addr
+
+        _header_props : dict = c.children.get()
+        header_props = " ".join(f"{k}={v}" for k,v in _properties.items()) 
+
+        return f"[node {header_props}]" + properties
 
 
 ## SUBRESOURCES:
@@ -108,30 +121,33 @@ class PyToGd_SubResource(PyToGdModule):
         properties = "\n".join(f"{k} = {v}" for k,v in _properties.items())
         
         _header_props = {
-            "id": node.id,
             "type": node.type,
+            "id": node.id.addr,
         }
+        yield _header_props
         _header_props : dict = c.children.get()
-        header_props = " ".join(f"{k}={v}" for k,v in _properties.items()) 
+        header_props = " ".join(f"{k}={v}" for k,v in _header_props.items() if not (v is None)) 
 
-        return f"[node {header_props}]" + properties
+        return f"[sub_resource {header_props}]\n" + properties
     
 class GdToPy_SubResourceRef(GdToPyModule):
     _keys = ("subresourceref",)
     def transform(self, c, node):
         yield node.children
-        idname = c.children.get()[0]
-        return SubResourceRef(**idname)
-
+        typing, idname = c.children.get()
+        return ExtResourceRef(idname, typing = typing)
+    
 class PyToGd_SubResourceRef(PyToGdModule):
     _keys = (SubResourceRef,)
     def transform(self, c, node:SubResourceRef):
         ## TODO: ID VERIFICATION / FETCH!
-        
-        yield (node.cached_addr,)
-        path = c.children.get()[0]
+       
+        yield (node.typing, node.cached_addr)
+        typing, path = c.children.get()
         assert not (path is None)
-        return f'ExtResource({path})'
+        if typing is None:
+            return f'SubResource({path})'
+        return f'SubResource({path})'
 
     
 gd_to_py_ruleset = GdToPyRuleset("STD_Nodes", [
