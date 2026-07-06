@@ -157,34 +157,44 @@ class PyToGd_ResourceScene(PyToGdModule):
 class GdToPy_SubResource(GdToPyModule):
     _keys = ("sub_resource",)
     def transform(self, c, node):
-        _header_props, _properties = node.children
-        
-        yield _header_props
-        header_props = c.children.get()
+        header_props, _properties = node.children
 
-        _type = None
-        if type_id := header_props.get("type",None):
-            _type = c.project.get().typing.get(type_id, default=type_id)
+        yield header_props.children
+        header = dict(c.children.get())
 
-        res = SubResource(
-            owner=c.owner.get(),
-            type = _type,
+
+        res = SubResource.construct(
+            **header,
+            # properties=dict(properties),
+            _defered_apply_owner = True
         )
-
+        
         t0 = c.sub_resource.set(res)
-        
-        yield _properties
-        
-        apply(res,
-            properties = PropertyCollection(c.children.get()),
-        )
-
+    
+        yield (_properties,)
+        properties = c.children.get()[0]
+        res.properties.update(properties)
+    
         c.sub_resource.reset(t0)
+
         return res       
     
 class PyToGd_SubResource(PyToGdModule):
     _keys = (SubResource,)
+    
+    def transform(self, c, node:SubResource):
+        yield dict(node.properties)
+        _properties : dict[str,str] = c.children.get()
+        properties = "\n".join(f"{k} = {v}" for k,v in _properties.items())
+        
+        _header_props = {
+            "id": node.id,
+            "type": node.type,
+        }
+        _header_props : dict = c.children.get()
+        header_props = " ".join(f"{k}={v}" for k,v in _properties.items()) 
 
+        return f"[node {header_props}]" + properties
 
 
 class GdToPy_Node(GdToPyModule):
@@ -192,45 +202,54 @@ class GdToPy_Node(GdToPyModule):
     def transform(self, c, node):
         header_props, _properties = node.children
 
-        yield header_props
-        header : PropertyCollection = PropertyCollection(c.children.get())
-
-        name = header["name"]
-        path = header["parent"] + "/" + name
-
+        yield header_props.children
+        header = dict(c.children.get())
+        
         instance = None
-        instance_editable = False
         if inst_id := header.get("instance",None):
-            instance = c.resource.get().ext_resources.get(inst_id).file
-            instance_editable = not (c.resource.get().edit_flags.get(path, None) is None)
+            instance = ExtResourceRef(inst_id)
 
-        _type = None
-        if type_id := header.get("type",None):
-            _type = c.project.get().typing.get(type_id, default=type_id)
-
-        res = Node(
-            owner=c.resource.get(),
-            name=name,
-            type=_type,
+        res = Node.construct(
+            name=header["name"],
+            type=header["type"],
             unique_id=header["unique_id"],
             instance=instance,
-            instance_editable=instance_editable,
+            #Defered to hooks on collection (better for signal timing, ect.):
+            _defered_parent = header.get("parent", None),
+            _defered_apply_owner = True,
         )
 
         t0 = c.sub_resource.set(res)
 
-        yield _properties
-        
-        apply(res,
-            properties=PropertyCollection(c.children.get()),
-        )
+        yield (_properties,)
+        res.properties.update(dict(c.children.get()[0]))
 
         c.sub_resource.reset(t0)
-        
+
         return res
 
 class PyToGd_Node(PyToGdModule):
     _keys = (Node,)
+    
+    def transform(self, c, node:Node):
+        yield dict(node.properties)
+        _properties : dict[str,str] = c.children.get()
+        properties = "\n".join(f"{k} = {v}" for k,v in _properties.items())
+        
+        _header_props = {
+            "type": node.type,
+            "name": node.name,
+            "parent": node.get_nodepath_local(), 
+            "unique_id": node.unique_id.addr,
+        }
+        if node.instance:
+            _header_props["instance"] = node.instance.addr
+
+        _header_props : dict = c.children.get()
+        header_props = " ".join(f"{k}={v}" for k,v in _properties.items()) 
+
+        return f"[node {header_props}]" + properties
+
 
 
 class GdToPy_Category(GdToPyModule):

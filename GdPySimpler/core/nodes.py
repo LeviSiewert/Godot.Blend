@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from .structure import _Resource, StructContext, ExtResource, ExtResource, ExtResourceCollection, GdType
 from .subresources import SubResource, SubResourceCollection, SubResourceRef
@@ -247,7 +248,7 @@ class Node():
     name : str
     context : StructContext = None
     
-    unique_id : Key[str]
+    unique_id : Key[int]
     properties : PropertyCollection
     
     # Should be accessed through get/set:
@@ -272,7 +273,7 @@ class Node():
         return self
 
     @classmethod
-    def construct(cls, name:str="Node", /, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResource|None=None, children:list=None, **kwargs):
+    def construct(cls, name:str="Node", /, unique_id:int=None, type:GdType=None, properties:dict=None, _defered_apply_owner:bool=False, _defered_parent:str=None, parent:Node=None, instance:str|ResourceScene|ExtResource|None=None, children:list=None, **kwargs):
         ''' Construction within an specific context, before being extended/appended into a Scene 
         _defered_apply_owner: set owner to constructed scene. Default False
         '''
@@ -285,10 +286,16 @@ class Node():
             for c in children:
                 self.add_child(c)
 
-        if parent:
+        if unique_id:
+            self.unique_id.set(unique_id)
+
+        if isinstance(parent, Node):
             #TODO: Swap to defered reference?
             parent.add_child(self)
+        elif parent:
+            self._defered_parent = parent
         elif not (_defered_parent is None):
+            assert (not parent)
             self._defered_parent = _defered_parent 
 
         if _defered_apply_owner:
@@ -364,6 +371,16 @@ class Node():
     
     def __hash__(self):
         return super().__hash__()
+    
+    def __eq__(self,value:Node|Any):
+        if not isinstance(value, Node):
+            return super().__eq__(value)
+        
+        return all((
+            value.name == self.name,
+            value.properties == self.properties,
+            value.instance == self.instance,
+        ))
 
 class NodeCollection(Collection):
     unique_keys = ("unique_id",)

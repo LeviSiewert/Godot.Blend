@@ -41,7 +41,19 @@ class PyToGdModule(TransformerModule):
     def transform(self, c, node):
         raise NotImplementedError(f"{self}.transform")
 
-GdToPyContext = Context
+class GdToPyContext(Context):
+    project : ContextVar
+    file : ContextVar
+    resource : ContextVar
+    sub_resource : ContextVar
+    
+    def __init__(self):
+        super().__init__()
+        self.project = ContextVar("project", default=None)
+        self.file = ContextVar("file", default=None)
+        self.resource = ContextVar("resource", default=None)
+        self.sub_resource = ContextVar("sub_resource", default=None)
+
 
 GdToPyTransformer = Transformer
 

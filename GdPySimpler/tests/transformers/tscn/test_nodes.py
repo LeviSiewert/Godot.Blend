@@ -43,8 +43,8 @@ class Test_ExtResource(_StructureTest):
         yield txt, res
 
 class Test_SignalNotation(_StructureTest):
-    _type = SignalNotation
     _parser_key = "signal"
+    _type = SignalNotation
     def data(self,):
         
         txt = '''[connection signal="body_entered" from="." to="." method="_on_door_body_entered"]'''     
@@ -56,6 +56,9 @@ class Test_SignalNotation(_StructureTest):
         yield txt, res
 
 class Test_Node(_StructureTest):
+    _parser_key = "node_resource"
+    _type = Node
+    
     def data(self,):
 
         txt = '''[node name="Complex" type="Node" unique_id=2079728927]
