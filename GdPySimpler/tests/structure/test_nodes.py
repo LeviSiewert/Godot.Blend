@@ -8,7 +8,6 @@ from ...core.nodes import (
         
 class Test_Node():
     def get_nodes(self):
-        names = ("NodeA","NodeB","NodeC","NodeD","NodeE")
 
         ## Tree structure should be in all cases:
         ## A
@@ -85,7 +84,7 @@ class Test_Node():
         )
         node_b = Node.construct("NodeB")
         node_a = Node.construct("NodeA",
-            children = (node_b, node_c, node_d, node_e)
+            children = (node_b, node_c, node_d)
         )
 
         yield (node_a, node_b, node_c, node_d, node_e, node_f)
@@ -135,7 +134,7 @@ class Test_Node():
         i = 0
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
-
+        
             scene = ResourceScene.construct(f"TestIndex:{i}",
                 nodes=tree,
                 set_nodes_owner=False,
@@ -163,12 +162,16 @@ class Test_Node():
         for tree in self.get_nodes():
             node_a, node_b, node_c, node_d, node_e, node_f = tree
 
-            # try:
+
             scene = ResourceScene.construct(f"Test {i}",
+                root = node_a,
                 nodes=tree,
                 _strict=True,
+                _load_instances=False,
             )
 
+
+            assert node_a._parent is None
             assert node_b._parent is node_a
             assert node_c._parent is node_a
             assert node_d._parent is node_a

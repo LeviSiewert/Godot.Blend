@@ -10,89 +10,6 @@ from .signals import Signal
 from . import transformer as _T
 
 
-## Tree constructor is a Transformer w/ particular settings:
-
-class _Context(_T.Context):
-    path : _T.ContextVar[str]
-    root : Node
-    load_instances : bool
-    namespace_parent_asc : dict[str, list[Node]]
-    namespace : dict[str, Node]
-    def __init__(self, root, load_instances, namespace_parent_asc, namespace):
-        self.path = _T.ContextVar("nodepath", default=".")
-        self.root = root
-        self.load_instances = load_instances
-        self.namespace_parent_asc = namespace_parent_asc
-        self.namespace = namespace
-        super().__init__()
-
-class _TransformerModule(_T.TransformerModule):
-    _keys = (_T.DEFAULT,)
-
-    def transform(self, c:_Context, node:tuple[Node,Node]):
-        local, overlay = node
-
-        if local is None:
-            local = Node.construct_thin(overlay)
-        
-        elif (local.instance) and (c.load_instances.get()):
-            assert (local.instance.get())
-            ## ASSUMPTION: an thin node cannot be an instance
-
-            instance : ResourceScene = local.instance.get()
-            instance.ensure_loaded()
-            instance.ensure_constructed(load_instances=True)
-
-            local.overlay = instance.root
-            overlay = instance.root
-
-        if not (c.root is local):
-            path = c.path.get() + "/" + local.name
-        else:
-            path = "."
-        c.namespace[path] = local
-
-        defered_children = c.namespace_parent_asc.get(path, tuple())
-        if path in c.namespace_parent_asc.keys():
-            del c.namespace_parent_asc[path]
-
-        local_children = (*defered_children, *local._children)
-        
-        t = c.path.set(path)
-
-        if overlay:
-            yield self.match_and_order(local_children, overlay._children)
-        else:
-            yield self.match_and_order(local_children, tuple())
-
-        c.path.reset(t)
-
-        for c in c.children.get():
-            local.add_child(c)
-
-        return local
-
-    @staticmethod
-    def match_and_order(local_children, overlay_children):
-        ##TODO: Ordering!!
-        ##TODO: Current ordering is incorrect as well!!
-
-        overlay = {}
-        local = {}
-
-        for n in overlay_children:
-            overlay[n.name] = [None,n]
-
-        for n in local_children:
-            if o:=overlay.get(n.name,None):
-                local[n.name] = [n,o]
-                del overlay[n.name]
-        
-        yield from local.values()
-        yield from overlay.values()
-
-_Transformer = _T.Transformer(_T.TransformerRuleset("DEFAULT",[_TransformerModule]), identifier="TREE_CONSTRUCTION")
-
 class ResourceScene(_Resource):
     uid : Key[str]
 
@@ -152,68 +69,113 @@ class ResourceScene(_Resource):
         return f"ResourceScene({self.uid.get()} :: {self.file})"
     
     def construct_tree(self, load_instances:bool=True, _strict:bool=False,):
-        root = self.root
+        ## REMINDER: Godot Node trees are additive only!! :D
 
-        namespace_parent_asc : dict[str, list[Node]] = {}
+        root : Node|None = self.root
+        
         namespace : dict[str, Node] = {}
-        unassigned : list[Node] = []
+        directly_assigned : list[Node] = []
+        overlay_namespace : dict[str,Node] = {}        
+
 
         for n in self.nodes:
-            n : Node
-
             if n._parent:
-                # Known parent, ignore. 
-                # Later incorperated & ordered in transformer
-                pass 
-
+                directly_assigned.append(n)
             elif not (p:=getattr(n, "_defered_parent", None)) is None:
-                ## Make path styles explicit.
                 if p == "":
                     p = "."
                 elif not p.startswith("./"):
                     p = "./" + p
-
-                if not p in namespace_parent_asc.keys():
-                    namespace_parent_asc[p] = []
-                namespace_parent_asc[p].append(n)
-
+                path = (p + "/" + n.name)
+                namespace[path] = n 
             else:
-                unassigned.append(n)
-
-
-        if (len(unassigned) == 1):
-            if root:
-                assert unassigned[0] == root
-            else:
-                root = unassigned[0]
-        elif len(unassigned):
-            #Multiple nodes do not have an assigned parent!, Only one node (root) should populate unassigned
-            raise Exception("(len(unassigned)>1) :: ", unassigned)
-
-        del unassigned
-
+                assert (root is None) or (root is n)
+                root = n
+        assert(root)
         namespace["."] = root
+
+
+        # resolve_direct_parent_namespaces(directly_assigned, namespace)
+
+        _namespace = {v:k for (k,v) in namespace.items()}
+
+        def _recur(node:Node)->str:
+            if res:=_namespace.get(node, None):
+                if isinstance(res, list):
+                    raise Exception(node, _namespace)
+                return res 
+            
+            if node is root:
+                return "."
+            
+            if node._parent is None:
+                raise Exception(node, _namespace, namespace)
+            
+            path = _recur(node._parent) + "/" + node.name
+            
+            _namespace[node] = path
+            namespace[path] = node
+
+            return path
+            
+        for n in directly_assigned:
+            _recur(n)
+            
+
+        ## Iter through parents until name is found, then assign locally
+        ## In this, all directly assigned chains must have a parent asc w/ the namespace (Root is always in namespace)
+
+        if load_instances:
+            for n in self.nodes:
+                if not n.instance:
+                    continue
+                overlay_namespace.update( n.instance.nodepath_space(localize=namespace[n]) )
         
-        c = _Context(root, load_instances, namespace_parent_asc, namespace)
-        _Transformer.transform_tree(c, (root,None))
+        res_namespace : dict[str, list[Node|None, Node|None]] = {}
 
-        #Missing parents:
+        for k,v in namespace.items():
+            res_namespace[k] = v
 
-        if _strict and namespace_parent_asc:
-            raise Exception(namespace_parent_asc)
+        for k,v in overlay_namespace.items():
+            if not k in res_namespace.keys():
+                res_namespace[k] = Node.construct_thin(v)
+            else:
+                res_namespace[k].set_overlay(v)
         
-        for p_path, ns in namespace_parent_asc.items():
-            for n in ns:
-                n.name = (p_path.replace("/","#") + "#" + n.name).strip(".")
-                root.add_child(n)
+        ## TODO: Namespace can be sorted alphabetically for signals
 
-        # Behavior note for GdPy:
-        ## Orphaned children 
-            # will not be removed (missing refs or not)
-            # Virtual Paths should be respected in traversal of Nodepaths (via central handling)
-            # Virtual paths are nodes under root with "#" replacing "/"
-        ## Empty NodePath references should be accomidated w/ missing or non-loaded instances.
-        ## Instances loaded later will need to construct/attach virtual paths.
+        unresolved = []
+
+        for k, node in res_namespace.items():
+            if k == ".":
+                assert (node is root)
+                continue
+            parent = res_namespace.get(k.rsplit("/",1)[0], None)
+            if parent is None:
+                unresolved.append((k,node))
+                continue
+            else:
+                if node._parent is None:
+                    parent.add_child(node)
+                else:
+                    assert node._parent is parent
+
+        
+        if _strict and unresolved:
+            raise Exception(unresolved)
+        
+        for k,node in unresolved:
+            # Produce "virtual path" that should be able to be written back unharmed
+            node.name = "$" + (k.replace("/","#") + "#" + node.name).strip(".")
+            root.add_child(node)
+
+        # # Behavior note for GdPy:
+        # ## Orphaned children 
+        #     # will not be removed (missing refs or not)
+        #     # Virtual Paths should be respected in traversal of Nodepaths (via central handling)
+        #     # Virtual paths are nodes under root with "#" replacing "/" and starting with "$"
+        # ## Empty NodePath references should be accomidated w/ missing or non-loaded instances.
+        # ## Instances loaded later will need to construct/attach virtual paths.
 
         return root
 
@@ -336,6 +298,9 @@ class Node():
 
     def get_children(self,)->tuple[Node]:
         return tuple(self._children)
+    
+    def __hash__(self):
+        return super().__hash__()
 
 class NodeCollection(Collection):
     unique_keys = ("unique_id",)
