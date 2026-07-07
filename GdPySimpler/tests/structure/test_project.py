@@ -1,17 +1,103 @@
-from ...core.structure import Project, FileLocal, FileForeign
-import fs
-class Test_Project():
-    def test_construction(self,):
-        prj = Project.construct(
-            file_system = fs("mem://"),
-            file_types = (FileLocal, FileScript, FileForeign),
-            resources = [],
-            _inload_files = True,
+from ...core.structure import (
+    FileScript,
+    FileUid,
+    Project,
+)
+from ...core.subresources import (
+    ResourceTres,
+    SubResource,
+)
+from ...file_io import (
+    FileIoTxt,
+)
+
+from fs.memoryfs import MemoryFS
+
+class Test_Project_Fs():
+    def test_construction_defered_mem(self,):
+        fs = MemoryFS()
+
+        file_script = FileScript.construct(
+            "mem://test.gd",
+            _defer_create=True,
+            _defer_create_contents="",
         )
+
+        file_script_uid = FileUid.construct(
+            "mem://test.gd.uid",
+            _defer_create=True,
+            _defer_create_contents="uid://abc",
+        )
+
+        prj = Project.construct(
+            # _discover_files = False,
+            file_system = fs,
+            file_types = (FileUid,),
+            file_io = (FileIoTxt,),
+            files = [
+                file_script,
+                file_script_uid,
+            ],
+            resources = [],
+        )
+
+        ## Collection exists assertions
+        assert file_script in prj.files
+        assert file_script_uid in prj.files
         
-        raise NotImplementedError() 
-    
-    def test_references(self,):
-        raise NotImplementedError() 
-    
-    
+        ## Context assertions
+        assert file_script.context.project is prj
+        assert file_script_uid.context.project is prj
+        
+        ## Structural assertions
+        assert file_script.uid_file is file_script_uid
+        assert file_script.get_uid() == "uid://abc"
+
+        ## Collection key assertions
+        assert prj.files["uid://abc"] is file_script
+        assert prj.files["mem://test.gd"] is file_script
+        assert prj.files["mem://test.gd.uid"] is file_script_uid
+        
+        ## File IO Attachment 
+        assert isinstance(file_script.get_io_handler(), FileIoTxt)
+        assert isinstance(file_script_uid.get_io_handler(), FileIoTxt)
+
+        ## assert defered file creation
+        assert fs.getfile("mem://test.gd")
+        assert fs.getfile("mem://test.gd.uid")
+        assert fs.readtext("mem://test.gd.uid") == "uid://abc"
+
+
+    def test_construction_discovered(self,):
+        fs = MemoryFS()
+
+        fs.writetext(
+            "mem://test.gd",
+            "",
+        )
+        fs.writetext(
+            "mem://test.gd.uid",
+            "uid://abc",
+        )
+
+        prj = Project.construct(
+            file_system = fs,
+            file_types = (FileUid,),
+            file_io = (FileIoTxt,),
+        )
+
+        assert prj.files["mem://test.gd"]
+        file_script = prj.files["mem://test.gd"]
+        assert isinstance(file_script, FileScript) 
+        
+        assert prj.files["mem://test.gd.uid"]
+        file_script_uid = prj.files["mem://test.gd.uid"]
+        assert isinstance(file_script, FileUid)
+
+        assert file_script.uid_file is file_script_uid
+
+        assert prj.files["uid://abc"] is file_script
+
+        ## File IO Attachment 
+        assert isinstance(file_script.get_io_handler(), FileIoTxt)
+        assert isinstance(file_script_uid.get_io_handler(), FileIoTxt)

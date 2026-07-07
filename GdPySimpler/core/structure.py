@@ -1,6 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Type, Any
+from inspect import isclass
 
 from .transformer import Transformer
 from .context import StructContext as _StructContext
@@ -8,7 +9,10 @@ from .collections import Key, Reference, Collection
 from .property_collection import PropertyCollection
 from .signals import Signal
 
+
 from pathlib import Path as _Path
+
+import fs
 
 class StructContext(_StructContext):
     ''' Structural object, via extends '''
@@ -30,41 +34,65 @@ class Project():
     resources : ResourceCollection
     files : FileCollection
 
+    fs : fs.osfs.OSFS | fs.memoryfs.MemoryFs = None
+
+    file_types:tuple[Type[_File]] 
+    file_io:tuple[_FileTypeIoHandler]
+
     def __setup__(self):
         self.context = StructContext(project=self)
         self.resources = ResourceCollection(context_extends=self.context)
         self.files = FileCollection(context_extends=self.context)
         return self
     
-    def __init__(self, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]]):
+    def __init__(self, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]]):
         self.__setup__()
+
+        self.fs = fs
+
+        self.file_types = file_types
+
+        self.file_io = []
+        for v in file_io:
+            if isclass(v):
+                v = v()
+            self.file_io.append(v)
+
+    @classmethod
+    def construct(cls, /, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], files:list[_File]=None, resources:list[_Resource]=None, **kwargs,  ):
+        self = cls(file_system, file_types, file_io)
+
+        if files:
+            self.files.extend(files)
+
+        if resources:
+            self.resources.extend(resources)
+
+        for k,v in kwargs.items():
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of attribute:", self,k)
+            setattr(self,k,v)
+
+        return self
+
 
     def get_file_io(self, path:_Path)->_FileTypeIoHandler|None:
         raise NotImplementedError()
 
-class _FileTypeIoHandler[T:str]():
+class _FileTypeIoHandler[D:bytes|str, R:str]():
     ''' File IO abstraction, centrally located semi-stateless instances
     Passed into the project w/ transformers for a given env.
     Matched by _File using extensions
-    Connects Resource/Other -> Disk rep
+    Converts disk.read -> memory object 
     '''
     extensions : tuple[str] = tuple()
-    fs : Any = None
 
-    def __init__(self, file_system:Any):
-        self.fs = file_system 
-
-    def read(self, path):
+    def convert_from(self, data:D)->R:
         raise NotImplementedError()
     
-    def write(self, path, data:T):
-        raise NotImplementedError()
-    
-    def move(self, fr, to):
+    def convert_to(self, data:R)->D:
         raise NotImplementedError()
 
-    def delete(self, path):
-        raise NotImplementedError()
 
 class _File():
     ''' File abstraction, IO with collection '''
@@ -74,8 +102,6 @@ class _File():
 
     _defer_create : bool = False
     _defer_create_contents : Any = None
-
-    last_updated : int = 0
 
     io_handler : _FileTypeIoHandler[str]
 
@@ -100,22 +126,36 @@ class _File():
             
             def _create_file(project):
                 raise NotImplementedError()
+                return Signal.REMOVE
 
             self.context.callback("project", _create_file)
 
+        for k,v in kwargs.items():
+            if not hasattr(self,k):
+                raise KeyError("Requires predefition of attribute:", self,k)
+            setattr(self,k,v)
+
         return self
 
-def _ResourceFile[T:_Resource](_File):
+class _ResourceFile(_File):
 
-    data : Reference[T]
-    io_handler : _FileTypeIoHandler[T]
+    data : Reference[_Resource]
+    io_handler : _FileTypeIoHandler[_Resource]
 
     def __setup__(self):
+        super().__setup__()
         self.data = RID(None,)
-    
-    def __init__(self, path:_Path, resource:T|str=None):
-        self.__setup__()
         
+        def _update(prj):
+            if prj is None:
+                self.data.set_collection(None)
+            self.data.set_collection(prj.files)
+            
+        self.context.callback("project", _update)
+    
+    def __init__(self, path:_Path, resource:_Resource|str=None):
+        super().__init__(path)
+
         if isinstance(resource, _Resource):
             self.data.store_address(resource.uid)
             self.data.store_value(resource)
@@ -129,24 +169,25 @@ def _ResourceFile[T:_Resource](_File):
         raise NotImplementedError()
 
     @classmethod
-    def construct(self, path:str, resource:T|str=None, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
-        pass
+    def construct(cls, path:str, resource:_Resource|str=None, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
+        self = super().construct(path=path, _defer_create=_defer_create, _defer_create_contents=_defer_create_contents, **kwargs)
 
-    # def read():
-    #     pass
+        if isinstance(resource, _Resource):
+            self.data.store_address(resource.uid)
+            self.data.store_value(resource)
+        elif isinstance(resource, str):
+            self.data.store_address(resource)
 
-    # def write():
-    #     pass
-
-    # def delete():
-    #     pass
-
-    # def move():
-    #     pass
-    
+        return self
 
 class FileCollection(Collection):
-    unique_keys = ("_uid", "path")
+    unique_keys = ("uid", "path")
+
+    def key_matcher(self, addr):
+        if addr.startswith("uid://"):
+            return "uid"
+        else:
+            return "path"
 
 class FileRef(Reference, GdValue):
     ''' File Reference '''
@@ -167,16 +208,16 @@ class FileRef(Reference, GdValue):
             value : Project
             self.set_collection(value.files)
 
-class FileScene(_File, _ResourceFile):
+class FileScene(_ResourceFile):
     extensions = ("tscn",)
 
-class FileTres(_File, _ResourceFile):
+class FileTres(_ResourceFile):
     extensions = ("tres",)
 
-class FileSettings(_File, _ResourceFile):
+class FileSettings(_ResourceFile):
     extensions = ("godot", "import")
 
-class FileForeign(_File, _ResourceFile):
+class FileForeign(_ResourceFile):
     ''' File type that is imported at runtime into a resource format '''
     extension = ("*",)
     import_file : FileTres
@@ -205,15 +246,15 @@ class FileScriptModule(_File):
         
     def get_uid():
         pass
-    
-class FileScript(_ResourceFile):
+
+class FileScript(_File):
     extensions = ("gd", "cpp", "py") 
     uid_file : Reference[FileUid|None]
+
     def __setup__(self):
         super().__setup__()
         self.uid_file = FileRef(None)
         
-
     def get_uid():
         pass
 
