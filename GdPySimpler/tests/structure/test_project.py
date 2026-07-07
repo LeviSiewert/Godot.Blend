@@ -3,19 +3,23 @@ from ...core.structure import (
     FileUid,
     Project,
 )
+
 from ...core.subresources import (
     ResourceTres,
-    SubResource,
-)
-from ...file_io import (
-    FileIoTxt,
 )
 
-from fs.memoryfs import MemoryFS
+from ...file_types import (
+    FileTxt, 
+    FileScript,
+    _all as file_types
+)
+
+# from fs.memoryfs import MemoryFS
+from fsspec.implementations.memory import MemoryFileSystem
 
 class Test_Project_Fs():
     def test_construction_defered_mem(self,):
-        file_system = MemoryFS()
+        file_system = MemoryFileSystem()
 
         file_script = FileScript.construct(
             "mem://test.gd",
@@ -29,16 +33,20 @@ class Test_Project_Fs():
             _defer_create_contents="uid://abc",
         )
 
+        res_script = ResourceTres.construct(
+            uid="uid://abc"
+        )
+
         prj = Project.construct(
-            # _discover_files = False,
             file_system = file_system,
-            file_types = (FileUid,),
-            file_io = (FileIoTxt,),
+            file_types = (FileUid, FileTxt),
             files = [
                 file_script,
                 file_script_uid,
             ],
-            resources = [],
+            resources = [
+                res_script,
+            ],
         )
 
         ## Collection exists assertions
@@ -58,14 +66,14 @@ class Test_Project_Fs():
         assert prj.files["mem://test.gd"] is file_script
         assert prj.files["mem://test.gd.uid"] is file_script_uid
         
-        ## File IO Attachment 
-        assert isinstance(file_script.get_io_handler(), FileIoTxt)
-        assert isinstance(file_script_uid.get_io_handler(), FileIoTxt)
-
         ## assert defered file creation
         assert file_system.getfile("mem://test.gd")
         assert file_system.getfile("mem://test.gd.uid")
         assert file_system.readtext("mem://test.gd.uid") == "uid://abc"
+
+        ## assert resource attachment:
+        assert file_script.data.get() is res_script
+
 
 
     def test_construction_discovered(self,):
@@ -82,8 +90,7 @@ class Test_Project_Fs():
 
         prj = Project.construct(
             file_system = file_system,
-            file_types = (FileUid,),
-            file_io = (FileIoTxt,),
+            file_types = (FileUid, FileTxt),
         )
 
         assert prj.files["mem://test.gd"]
@@ -97,7 +104,3 @@ class Test_Project_Fs():
         assert file_script.uid_file is file_script_uid
 
         assert prj.files["uid://abc"] is file_script
-
-        ## File IO Attachment 
-        assert isinstance(file_script.get_io_handler(), FileIoTxt)
-        assert isinstance(file_script_uid.get_io_handler(), FileIoTxt)

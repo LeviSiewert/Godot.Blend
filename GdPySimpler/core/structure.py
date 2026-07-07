@@ -12,7 +12,9 @@ from .signals import Signal
 
 from pathlib import Path as _Path
 
-import fs
+# import fsspec
+from fsspec import AbstractFileSystem
+
 
 class StructContext(_StructContext):
     ''' Structural object, via extends '''
@@ -34,10 +36,9 @@ class Project():
     resources : ResourceCollection
     files : FileCollection
 
-    file_system : fs.osfs.OSFS | fs.memoryfs.MemoryFs = None
+    file_system : AbstractFileSystem
 
     file_types:tuple[Type[_File]] 
-    file_io:tuple[_FileTypeIoHandler]
 
     def __setup__(self):
         self.context = StructContext(project=self)
@@ -45,22 +46,15 @@ class Project():
         self.files = FileCollection(context=self.context)
         return self
     
-    def __init__(self, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], discover:bool=True):
+    def __init__(self, file_system:AbstractFileSystem, file_types:tuple[Type[_File]], discover:bool=True):
         self.__setup__()
 
         self.file_system = file_system
-
         self.file_types = file_types
 
-        self.file_io = []
-        for v in file_io:
-            if isclass(v):
-                v = v()
-            self.file_io.append(v)
-
     @classmethod
-    def construct(cls, /, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
-        self = cls(file_system, file_types, file_io, discover=False)
+    def construct(cls, /, file_system, file_types:tuple[Type[_File]], discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
+        self = cls(file_system, file_types, discover=False)
 
         if files:
             self.files.extend(files)
@@ -79,41 +73,18 @@ class Project():
         return self
 
 
-    def get_file_io(self, path:_Path)->_FileTypeIoHandler|None:
-        raise NotImplementedError()
-    
     def close(self):
         self.fs.close()
 
-class _FileTypeIoHandler[D:bytes|str, R:str]():
-    ''' File IO abstraction, centrally located semi-stateless instances
-    Passed into the project w/ transformers for a given env.
-    Matched by _File using extensions
-    Converts disk.read -> memory object 
-    '''
-    extensions : tuple[str] = tuple()
-
-    def convert_fr_disk(self, data:D)->R:
-        raise NotImplementedError()
-    
-    def convert_to_disk(self, data:R)->D:
-        raise NotImplementedError()
-
-
-class _File():
+class _File[D:str|bytes, R:Any]():
     ''' File abstraction, IO with collection '''
     context : StructContext ##NOTE: Attached when added to a collection
+    extensions : tuple[str] = tuple()
 
     path : Key[str]
 
     _defer_create : bool = False
     _defer_create_contents : Any = None
-
-    _io_handler : _FileTypeIoHandler[str]
-    def get_file_io(self,)->_FileTypeIoHandler|None:
-        if self._io_handler:
-            return self._io_handler
-        self.context.project.get_file_io(self.path)
 
     def __setup__(self):
         self.context = StructContext(file=self)
@@ -123,11 +94,27 @@ class _File():
         self.__setup__()
         self.path.set(path)
 
-    def on_disk(self,):
-        raise NotImplementedError()
-    
     def __colkeys__(self,):
         return (self.path, )
+    
+    def convert_to_disk(self, data:R)->D:
+        raise NotImplementedError()
+
+    def convert_fr_disk(self, data:D)->R:
+        raise NotImplementedError()
+    
+    @classmethod
+    def filter_folder(cls, folder:list[str])->list[str]:
+        ''' Filter folder contents for a tree walk. 
+        Allows for ignoring bundled files (ie gltf w /textures /geometry)'''
+        return folder
+    
+    @classmethod
+    def matches_filepath(cls, filepath:str):
+        for k in cls.extensions:
+            if filepath.endswith(k):
+                return True
+        return False
 
     @classmethod
     def construct(cls, path:str, _defer_write:bool=False, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
@@ -135,14 +122,14 @@ class _File():
 
         if _defer_write:
             assert not _defer_create
-            def _create_file(project):
-                project.file_system.writetext(self.path.addr, self.get_file_io.convert_to_disk(self) )
+            def _create_file(project:Project):
+                project.file_system.write_text(self.path.addr, self.convert_to_disk(self) )
             self.context.callback("project", _create_file, once=True)
 
         if _defer_create:
             assert not (_defer_create_contents is None) 
-            def _create_file(project):
-                project.file_system.writetext(self.path.addr, _defer_create_contents)
+            def _create_file(project:Project):
+                project.file_system.write_text(self.path.addr, _defer_create_contents)
             self.context.callback("project", _create_file, once=True)
 
         for k,v in kwargs.items():
@@ -155,7 +142,6 @@ class _File():
 class _ResourceFile(_File):
 
     data : Reference[_Resource]
-    io_handler : _FileTypeIoHandler[_Resource]
 
     def __setup__(self):
         super().__setup__()
@@ -179,8 +165,8 @@ class _ResourceFile(_File):
 
     def fetch_uid(self,)->str|None:
         ''' Fetch uid from the file, including defering to secondary files '''
-        # TODO
-        # fs = self.context.resource.fs
+        # fs = self.context.resource.file_system
+        # fs.readtext(self.path.addr)
         raise NotImplementedError()
 
     @classmethod
@@ -222,56 +208,6 @@ class FileRef(Reference, GdValue):
         else:
             value : Project
             self.set_collection(value.files)
-
-class FileScene(_ResourceFile):
-    extensions = ("tscn",)
-
-class FileTres(_ResourceFile):
-    extensions = ("tres",)
-
-class FileSettings(_ResourceFile):
-    extensions = ("godot", "import")
-
-class FileForeign(_ResourceFile):
-    ''' File type that is imported at runtime into a resource format '''
-    extension = ("*",)
-    import_file : FileTres
-
-
-class FileUid(_File):
-    ''' Simple container for a UID string, required (only?) on gdscripts '''
-    extensions = ("uid",)
-
-class FileScriptModule(_File):
-    ''' Resource Tranformer extension script, keyed to an env_id by "*" 
-    Plan: 
-    - Key to UID/Class_ID/Script via;
-        - filepath
-        - contents (when loaded)
-    - Defer load until explicitly requested
-        - In user Env: Hash contents and raise/req when changed?
-        - Security should be respected, but there *are* scripts.
-    - Contents provide modules that give TransformerRulesets for the env (and other env hooks)
-    '''
-    extensions = (".gd.*.py",) 
-    uid_file : Reference[FileUid|None]
-    def __setup__(self):
-        super().__setup__()
-        self.uid_file = FileRef(None)
-        
-    def get_uid():
-        pass
-
-class FileScript(_File):
-    extensions = ("gd", "cpp", "py") 
-    uid_file : Reference[FileUid|None]
-    
-    def __setup__(self):
-        super().__setup__()
-        self.uid_file = FileRef(None)
-        
-    def get_uid():
-        pass
 
 
 class _Resource():

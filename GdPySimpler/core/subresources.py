@@ -131,8 +131,8 @@ class ResourceTres(_Resource):
         return (self.uid,)
         
     @classmethod
-    def construct(cls, properties:dict=None, ext_resources:list=None, sub_resources:list=None, **kwargs):
-        self = cls()
+    def construct(cls, uid=None, properties:dict=None, ext_resources:list=None, sub_resources:list=None, **kwargs):
+        self = cls(uid=uid)
         if properties:
             self.properties.update(properties)
         if ext_resources:

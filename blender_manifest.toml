@@ -42,7 +42,7 @@ license = [
 wheels = [
   ".wheels/watchdog-6.0.0-py3-none-win_amd64.whl",
   ".wheels/lark-1.3.1-py3-none-any.whl",
-  ".wheels/fs-2.4.16-py2.py3-none-any.whl",
+  ".wheels/fsspec-2026.6.0-py3-none-any.whl",
 ]
 
 # Optional: add-ons can list which resources they will require:
