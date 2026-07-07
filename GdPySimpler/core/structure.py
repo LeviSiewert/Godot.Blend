@@ -34,21 +34,21 @@ class Project():
     resources : ResourceCollection
     files : FileCollection
 
-    fs : fs.osfs.OSFS | fs.memoryfs.MemoryFs = None
+    file_system : fs.osfs.OSFS | fs.memoryfs.MemoryFs = None
 
     file_types:tuple[Type[_File]] 
     file_io:tuple[_FileTypeIoHandler]
 
     def __setup__(self):
         self.context = StructContext(project=self)
-        self.resources = ResourceCollection(context_extends=self.context)
-        self.files = FileCollection(context_extends=self.context)
+        self.resources = ResourceCollection(context=self.context)
+        self.files = FileCollection(context=self.context)
         return self
     
-    def __init__(self, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]]):
+    def __init__(self, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], discover:bool=True):
         self.__setup__()
 
-        self.fs = fs
+        self.file_system = file_system
 
         self.file_types = file_types
 
@@ -59,8 +59,8 @@ class Project():
             self.file_io.append(v)
 
     @classmethod
-    def construct(cls, /, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], files:list[_File]=None, resources:list[_Resource]=None, **kwargs,  ):
-        self = cls(file_system, file_types, file_io)
+    def construct(cls, /, file_system: fs.osfs.OSFS|fs.memoryfs.MemoryFs, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]], discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
+        self = cls(file_system, file_types, file_io, discover=False)
 
         if files:
             self.files.extend(files)
@@ -73,11 +73,17 @@ class Project():
                 raise KeyError("Requires predefition of attribute:", self,k)
             setattr(self,k,v)
 
+        if discover:
+            self.search_disk()
+
         return self
 
 
     def get_file_io(self, path:_Path)->_FileTypeIoHandler|None:
         raise NotImplementedError()
+    
+    def close(self):
+        self.fs.close()
 
 class _FileTypeIoHandler[D:bytes|str, R:str]():
     ''' File IO abstraction, centrally located semi-stateless instances
@@ -87,10 +93,10 @@ class _FileTypeIoHandler[D:bytes|str, R:str]():
     '''
     extensions : tuple[str] = tuple()
 
-    def convert_from(self, data:D)->R:
+    def convert_fr_disk(self, data:D)->R:
         raise NotImplementedError()
     
-    def convert_to(self, data:R)->D:
+    def convert_to_disk(self, data:R)->D:
         raise NotImplementedError()
 
 
@@ -103,11 +109,15 @@ class _File():
     _defer_create : bool = False
     _defer_create_contents : Any = None
 
-    io_handler : _FileTypeIoHandler[str]
+    _io_handler : _FileTypeIoHandler[str]
+    def get_file_io(self,)->_FileTypeIoHandler|None:
+        if self._io_handler:
+            return self._io_handler
+        self.context.project.get_file_io(self.path)
 
     def __setup__(self):
         self.context = StructContext(file=self)
-        self.path = Key(self, "filepath", unique=True)
+        self.path = Key(self, "filepath", None)
 
     def __init__(self, path:_Path):
         self.__setup__()
@@ -115,20 +125,25 @@ class _File():
 
     def on_disk(self,):
         raise NotImplementedError()
+    
+    def __colkeys__(self,):
+        return (self.path, )
 
     @classmethod
-    def construct(cls, path:str, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
+    def construct(cls, path:str, _defer_write:bool=False, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
         self = cls(path)
 
-        if _defer_create:
-            self._defer_create = _defer_create
-            self._defer_create_contents = _defer_create_contents
-            
+        if _defer_write:
+            assert not _defer_create
             def _create_file(project):
-                raise NotImplementedError()
-                return Signal.REMOVE
+                project.file_system.writefile(self.path.addr, self.get_file_io.convert_to_disk(self) )
+            self.context.callback("project", _create_file, once=True)
 
-            self.context.callback("project", _create_file)
+        if _defer_create:
+            assert not (_defer_create_contents is None) 
+            def _create_file(project):
+                project.file_system.writefile(self.path.addr, _defer_create_contents)
+            self.context.callback("project", _create_file, once=True)
 
         for k,v in kwargs.items():
             if not hasattr(self,k):
@@ -250,7 +265,7 @@ class FileScriptModule(_File):
 class FileScript(_File):
     extensions = ("gd", "cpp", "py") 
     uid_file : Reference[FileUid|None]
-
+    
     def __setup__(self):
         super().__setup__()
         self.uid_file = FileRef(None)

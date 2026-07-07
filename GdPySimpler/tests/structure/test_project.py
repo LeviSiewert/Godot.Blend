@@ -15,7 +15,7 @@ from fs.memoryfs import MemoryFS
 
 class Test_Project_Fs():
     def test_construction_defered_mem(self,):
-        fs = MemoryFS()
+        file_system = MemoryFS()
 
         file_script = FileScript.construct(
             "mem://test.gd",
@@ -31,7 +31,7 @@ class Test_Project_Fs():
 
         prj = Project.construct(
             # _discover_files = False,
-            file_system = fs,
+            file_system = file_system,
             file_types = (FileUid,),
             file_io = (FileIoTxt,),
             files = [
@@ -63,25 +63,25 @@ class Test_Project_Fs():
         assert isinstance(file_script_uid.get_io_handler(), FileIoTxt)
 
         ## assert defered file creation
-        assert fs.getfile("mem://test.gd")
-        assert fs.getfile("mem://test.gd.uid")
-        assert fs.readtext("mem://test.gd.uid") == "uid://abc"
+        assert file_system.getfile("mem://test.gd")
+        assert file_system.getfile("mem://test.gd.uid")
+        assert file_system.readtext("mem://test.gd.uid") == "uid://abc"
 
 
     def test_construction_discovered(self,):
-        fs = MemoryFS()
+        file_system = MemoryFS()
 
-        fs.writetext(
-            "mem://test.gd",
+        file_system.writetext(
+            "test.gd",
             "",
         )
-        fs.writetext(
-            "mem://test.gd.uid",
+        file_system.writetext(
+            "test.gd.uid",
             "uid://abc",
         )
 
         prj = Project.construct(
-            file_system = fs,
+            file_system = file_system,
             file_types = (FileUid,),
             file_io = (FileIoTxt,),
         )
