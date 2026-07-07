@@ -34,11 +34,28 @@ class Dictionary(OrderedDict, GdValue):
         self.typing = typing
         super().__init__(map)
 
-class Array(list, GdValue):
+    def __setitem__(self, key, value):
+        if isinstance(value, (dict, list)):
+            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        return super().__setitem__(key, value)
+
+class Array(UserList, GdValue):
     typing : GdTypeValueSet 
+
     def __init__(self, *values, typing:tuple[GdType|GdTypeValue|Any]=None):
         self.typing = typing
         super().__init__(values)
+
+    def append(self, value):        
+        if isinstance(value, (dict, list)):
+            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        return super().append(object)
+    
+    def __setitem__(self, key, value):
+        if isinstance(value, (dict, list)):
+            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        return super().__setitem__(key, value)
+    
 
 class _FixedLenArray(GdValue):
     val : array
