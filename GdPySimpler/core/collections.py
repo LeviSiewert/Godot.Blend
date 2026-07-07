@@ -71,15 +71,15 @@ class Reference[ADDR:Any, V:Item]():
         return False
     
     def get(self,)->V:
-        pass
+        #TODO: Search/double check against col if valid ref!
+        return self.cached_value()
 
     def __eq__(self, value):
         if isinstance(value, Reference):
             return any((
                 value.cached_addr == self.cached_addr,
-                value.cached_value == self.cached_value,
+                ((value.cached_value() == self.cached_value()) and self.cached_value()),
                 ))
-            pass
         return super().__eq__(value)
     
     def __repr__(self):

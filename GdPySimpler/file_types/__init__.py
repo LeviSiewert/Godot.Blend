@@ -24,11 +24,22 @@ class FileGodot(_ResourceFile):
 class FileTxt(_File):
     ''' string container '''
     extensions = ("uid","txt","md")
+    data : str = None
 
-    def convert_fr_disk(self, data:str):
+    def load_data(self,):
+        fs = self.context.project.file_system 
+        return self.data
+        #TODO:
+        return self.convert_fr_disk(fs.read_text(self.path.addr))
+
+    def write_data(self,):
+        fs = self.context.project.file_system 
+        return fs.write_text(self.path.addr, self.convert_to_disk(self.data))
+
+    def convert_fr_disk(self, data:str)->str:
         return data
 
-    def convert_to_disk(self, data):
+    def convert_to_disk(self, data:str)->str:
         return data
 
 
@@ -49,22 +60,25 @@ class FileScriptModule(_File):
 
     def __setup__(self):
         super().__setup__()
-        self.uid_file = FileRef(None)
+        self.uid_file = FileRef(None, context=self.context)
 
-class FileScript(_File):
+class FileScript(_ResourceFile):
     extensions = ("gd", "py") 
     uid_file : Reference[str, FileTxt]
     
     def __setup__(self):
         super().__setup__()
-        self.uid_file = FileRef(None)
+        self.uid_file = FileRef(None, context=self.context)
     
     def __init__(self, path):
         super().__init__(path)
         self.uid_file.store_address(path+".uid")
 
-    def get_uid():
-        pass
+    def get_uid(self,)->str|None:
+        if file:=self.uid_file.get():
+            file:FileTxt
+            return file.load_data()
+        return None
 
 class FileGeneric(_ResourceFile):
     @classmethod

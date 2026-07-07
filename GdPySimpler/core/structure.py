@@ -52,8 +52,14 @@ class Project():
         self.file_system = file_system
         self.file_types = file_types
 
+    def search_disk(self):
+        ''' Check disk against whats in memory '''
+        #TODO
+        pass
+
+
     @classmethod
-    def construct(cls, /, file_system, file_types:tuple[Type[_File]], discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
+    def construct(cls, /, file_system=None, file_types:tuple[Type[_File]]=tuple(), discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
         self = cls(file_system, file_types, discover=False)
 
         if files:
@@ -182,20 +188,22 @@ class _ResourceFile[T:_Resource](_File):
         return self
 
 class FileCollection(Collection):
-    unique_keys = ("uid", "path")
+    unique_keys = ("uid", "filepath")
 
     def key_matcher(self, addr):
         if addr.startswith("uid://"):
             return "uid"
         else:
-            return "path"
+            return "filepath"
 
-class FileRef(Reference, GdValue):
+class FileRef(Reference):
     ''' File Reference '''
-    key_categories = ("path",)
+    key_categories = ("filepath",)
 
-    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None):
+    def __init__(self, address=None, /, context=None, key_id = None, cached_value = None, collection=None):
         super().__init__(key_id, address, cached_value, collection)
+        if context:
+            self.context.set_extends(context)
 
     def __setup__(self):
         super().__setup__()
@@ -221,7 +229,7 @@ class _Resource():
     def __setup__(self):
         self.context = StructContext(resource=self)
         self.uid = Key(self, "uid")
-        self.file = FileRef(None)
+        self.file = FileRef(None, context=self.context)
         return self
     
     def __init__(self, format:int=None, uid:str=None, file:_File|str=None):

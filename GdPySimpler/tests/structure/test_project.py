@@ -16,6 +16,46 @@ from ...file_types import (
 from fsspec.implementations.memory import MemoryFileSystem
 
 class Test_Project_Fs():
+
+    def test_discovered_relations(self,):
+        file_system = MemoryFileSystem()
+
+        file_script = FileScript.construct(
+            "mem://test.gd",
+        )
+        ## Test that this discovers file_script_uid 
+
+        file_script_uid = FileTxt.construct(
+            "mem://test.gd.uid",
+            data="uid://abc",
+        )
+        ## Test that this is discovered by file_script 
+
+        res_script = ResourceTres.construct(
+            uid="uid://abc"
+        )
+        ## Test that res_script is asc with file_script 
+
+        prj = Project.construct(
+            discover = False,
+            file_system = None,
+            files = [
+                file_script,
+                file_script_uid,
+            ],
+            resources = [
+                res_script,
+            ],
+        )
+
+        assert file_script.uid_file.get() is file_script_uid
+        assert file_script.get_uid() == "uid://abc"
+        ## On update of uid_file: data.store_key(get_uid())
+
+        assert file_script.data.cached_addr == "uid://abc"
+        assert file_script.data.get() is res_script
+
+
     def test_construction_defered_mem(self,):
         file_system = MemoryFileSystem()
 
@@ -56,7 +96,7 @@ class Test_Project_Fs():
         assert file_script_uid.context.project is prj
         
         ## Structural assertions
-        assert file_script.uid_file is file_script_uid
+        assert file_script.uid_file.get() is file_script_uid
         assert file_script.get_uid() == "uid://abc"
 
         ## Collection key assertions
@@ -65,13 +105,11 @@ class Test_Project_Fs():
         assert prj.files["mem://test.gd.uid"] is file_script_uid
         
         ## assert defered file creation
-        assert file_system.getfile("mem://test.gd")
-        assert file_system.getfile("mem://test.gd.uid")
-        assert file_system.readtext("mem://test.gd.uid") == "uid://abc"
+        assert file_system.read_text("mem://test.gd")
+        assert file_system.read_text("mem://test.gd.uid") == "uid://abc"
 
         ## assert resource attachment:
         assert file_script.data.get() is res_script
-
 
 
     def test_construction_discovered(self,):
@@ -99,6 +137,6 @@ class Test_Project_Fs():
         file_script_uid = prj.files["mem://test.gd.uid"]
         assert isinstance(file_script, FileTxt)
 
-        assert file_script.uid_file is file_script_uid
+        assert file_script.uid_file.get() is file_script_uid
 
         assert prj.files["uid://abc"] is file_script
