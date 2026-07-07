@@ -36,8 +36,11 @@ class Project():
         self.files = FileCollection(context_extends=self.context)
         return self
     
-    def __init__(self):
+    def __init__(self, file_types:tuple[Type[_File]], file_io:tuple[Type[_FileTypeIoHandler]]):
         self.__setup__()
+
+    def get_file_io(self, path:_Path)->_FileTypeIoHandler|None:
+        raise NotImplementedError()
 
 class _FileTypeIoHandler[T:str]():
     ''' File IO abstraction, centrally located semi-stateless instances
@@ -46,18 +49,22 @@ class _FileTypeIoHandler[T:str]():
     Connects Resource/Other -> Disk rep
     '''
     extensions : tuple[str] = tuple()
+    fs : Any = None
 
-    def read():
-        pass
-    
-    def write():
-        pass
-    
-    def move():
-        pass
+    def __init__(self, file_system:Any):
+        self.fs = file_system 
 
-    def delete():
-        pass
+    def read(self, path):
+        raise NotImplementedError()
+    
+    def write(self, path, data:T):
+        raise NotImplementedError()
+    
+    def move(self, fr, to):
+        raise NotImplementedError()
+
+    def delete(self, path):
+        raise NotImplementedError()
 
 class _File():
     ''' File abstraction, IO with collection '''
@@ -78,6 +85,7 @@ class _File():
 
     def __init__(self, path:_Path):
         self.__setup__()
+        self.path.set(path)
 
     def on_disk(self,):
         raise NotImplementedError()
