@@ -26,13 +26,12 @@ class Project():
     context : StructContext
 
     path : str
-    settings : ResourceSettings
+    settings : _File
     resources : ResourceCollection
     files : FileCollection
 
     def __setup__(self):
         self.context = StructContext(project=self)
-        self.settings = ResourceSettings(context_extends=self.context)
         self.resources = ResourceCollection(context_extends=self.context)
         self.files = FileCollection(context_extends=self.context)
         return self
@@ -54,61 +53,94 @@ class _File[T:_Resource]():
     
     def __init__(self, path:_Path, resource:_Resource=None):
         self.__setup__()
-    
+
+class FileCollection(Collection):
+    unique_keys = ("_uid", "path")
+
+class FileRef(Reference, GdValue):
+    ''' File Reference '''
+    key_categories = ("path",)
+
+    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None):
+        super().__init__(key_id, address, cached_value, collection)
+
+    def __setup__(self):
+        super().__setup__()
+        self.context = StructContext()
+        self.context.callback("project", self._on_context_updated)
+        
+    def _on_context_updated(self, value:Any):
+        if value is None:
+            self.set_collection(None)
+        else:
+            value : Project
+            self.set_collection(value.files)
+
 class FileLocal(_File):
     transformer : Transformer
 
 class FileForeign(_File):
-    import_file : _File[ResourceSettings]
+    import_file : _File
     transformer : Transformer
 
-class FileCollection(Collection):
-    unique_keys = ("_uid", "path")
-    # _type = _File 
+
 
 class _Resource():
     context : StructContext ##NOTE: Attached when added to a collection
 
-    project : Project|None = None
-    uid : Key[str]
+    format : int = 4
 
-    file : _File|None = None
+    uid : Key[str]
+    file : FileRef
     
     def __setup__(self):
         self.context = StructContext(resource=self)
         self.uid = Key(self, "uid")
-        self.file = Key(self, "file")
+        self.file = FileRef(None)
         return self
     
-    def __init__(self, format:int=4, uid:str=None, file:_File=None, filepath:str=None):
+    def __init__(self, format:int=None, uid:str=None, file:_File|str=None):
         self.__setup__()
 
-        self.format = format
+        if format:
+            self.format = format
         
         self.uid.set(uid)
         
-        if file:
-            self.file.set(file.filepath)
-        elif filepath:
-            self.file.set(filepath)
+        if isinstance(file, _File):
+            self.file.store_addr(file.filepath)
+            self.file.store_value(file)
+        elif isinstance(file, str):
+            self.file.cached_addr = file
 
 class ResourceCollection(Collection):
     unique_keys = ("uid", "file")
-    # _type = _Resource
 
-class ResourceSettings(_Resource):
-    
-    properties : PropertyCollection
-    cat_resources : CategoryCollection
+class RID(Reference, GdValue):
+    ''' Resource reference '''
+    key_categories = ("uid",)
+    typing : GdType
+
+    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None, typing=None):
+        super().__init__(key_id, address, cached_value, collection)
+        self.typing = typing
 
     def __setup__(self):
         super().__setup__()
-        self.properties = PropertyCollection()
-        self.cat_resources = CategoryCollection()
+        self.context = StructContext()
+        self.context.callback("project", self._on_context_updated)
+        
+    def _on_context_updated(self, value:Any):
+        if value is None:
+            self.set_collection(None)
+        else:
+            value : Project
+            self.set_collection(value.resources)
 
 
 class ResourceScript(_Resource):
     pass
+
 
 
 class TypePropDef():
@@ -217,24 +249,6 @@ class ExtResourceCollection(Collection):
         return "id"
 
 
-class Category():
-    context : StructContext
-    name : str
-    properties : PropertyCollection
-    def __setup__(self):
-        self.context = StructContext()
-        self.properties = PropertyCollection()
-        return self
-
-    def __init__(self, name, properties:dict):
-        self.__setup__()
-        self.name = name
-        self.properties.update(properties)
-
-class CategoryCollection(Collection):
-    unique_keys = ("name",)
-    # _type = Category
-
 
 class ExtResourceRef(Reference, GdValue): 
     ''' Routed reference ID '''
@@ -257,27 +271,7 @@ class ExtResourceRef(Reference, GdValue):
             value : _Resource
             self.set_collection(value.ext_resources)
 
-class RID(Reference, GdValue):
-    ''' Universal ID '''
-    key_categories = ("uid",)
-    # _type = _Resource
-    typing : GdType
 
-    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None, typing=None):
-        super().__init__(key_id, address, cached_value, collection)
-        self.typing = typing
-
-    def __setup__(self):
-        super().__setup__()
-        self.context = StructContext()
-        self.context.callback("project",self._on_context_updated)
-        
-    def _on_context_updated(self, value:Any):
-        if value is None:
-            self.set_collection(None)
-        else:
-            value:Project
-            self.set_collection(value.resources)
 
 
 # def transformer(self, c, node:BlAny)->Node: #NODESET???
