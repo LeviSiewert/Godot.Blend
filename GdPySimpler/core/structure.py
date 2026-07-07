@@ -136,13 +136,13 @@ class _File():
         if _defer_write:
             assert not _defer_create
             def _create_file(project):
-                project.file_system.writefile(self.path.addr, self.get_file_io.convert_to_disk(self) )
+                project.file_system.writetext(self.path.addr, self.get_file_io.convert_to_disk(self) )
             self.context.callback("project", _create_file, once=True)
 
         if _defer_create:
             assert not (_defer_create_contents is None) 
             def _create_file(project):
-                project.file_system.writefile(self.path.addr, _defer_create_contents)
+                project.file_system.writetext(self.path.addr, _defer_create_contents)
             self.context.callback("project", _create_file, once=True)
 
         for k,v in kwargs.items():

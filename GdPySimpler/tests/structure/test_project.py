@@ -18,13 +18,13 @@ class Test_Project_Fs():
         file_system = MemoryFS()
 
         file_script = FileScript.construct(
-            "mem://test.gd",
+            "test.gd",
             _defer_create=True,
             _defer_create_contents="",
         )
 
         file_script_uid = FileUid.construct(
-            "mem://test.gd.uid",
+            "test.gd.uid",
             _defer_create=True,
             _defer_create_contents="uid://abc",
         )
