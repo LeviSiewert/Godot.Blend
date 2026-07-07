@@ -139,9 +139,9 @@ class _File[D:str|bytes, R:Any]():
 
         return self
 
-class _ResourceFile(_File):
+class _ResourceFile[T:_Resource](_File):
 
-    data : Reference[_Resource]
+    data : Reference[T]
 
     def __setup__(self):
         super().__setup__()
@@ -154,7 +154,7 @@ class _ResourceFile(_File):
             
         self.context.callback("project", _update)
     
-    def __init__(self, path:_Path, resource:_Resource|str=None):
+    def __init__(self, path:_Path, resource:T|str=None):
         super().__init__(path)
 
         if isinstance(resource, _Resource):

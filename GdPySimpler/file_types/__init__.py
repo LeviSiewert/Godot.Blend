@@ -45,7 +45,7 @@ class FileScriptModule(_File):
     '''
 
     extensions = (".gd.*.py",) 
-    uid_file : Reference[FileTxt|None] = None
+    uid_file : Reference[str, FileTxt]
 
     def __setup__(self):
         super().__setup__()
@@ -53,7 +53,7 @@ class FileScriptModule(_File):
 
 class FileScript(_File):
     extensions = ("gd", "py") 
-    uid_file : Reference[FileTxt|None]
+    uid_file : Reference[str, FileTxt]
     
     def __setup__(self):
         super().__setup__()
@@ -87,7 +87,7 @@ class _FileForeign(_ResourceFile):
         *("svg"),
         *("wav","ogg","mp3"),
     )
-    import_file : FileGodot[ResourceSettings]
+    import_file : _ResourceFile[FileGodot]
 
     def convert_fr_disk(self, data:str):
         raise NotImplementedError("unsupported FileForeign Resource:", self.path.addr)
@@ -95,7 +95,7 @@ class _FileForeign(_ResourceFile):
     def convert_to_disk(self, data):
         raise NotImplementedError("unsupported FileForeign Resource:", self.path.addr)
     
-    
+
 _all = (
     FileGodot,
     FileTxt,

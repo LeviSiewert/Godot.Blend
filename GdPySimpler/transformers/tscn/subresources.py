@@ -17,17 +17,20 @@ from ...core.subresources import (
 )
 
 from ...core.structure import (
-    ResourceSettings, 
     Collection,
-    Category,
-    CategoryCollection,
     ExtResource,
     ExtResourceRef,
     ExtResourceCollection,
     GdType,
     GdTypeValueSet,
     RID,
-    )
+)
+
+from ...core.settings import (
+    ResourceSettings, 
+    Category,
+    CategoryCollection,
+)
 
 
 class GdToPy_ResourceTres(GdToPyModule):

@@ -1,6 +1,4 @@
 from ...core.structure import (
-    FileScript,
-    FileUid,
     Project,
 )
 
@@ -27,7 +25,7 @@ class Test_Project_Fs():
             _defer_create_contents="",
         )
 
-        file_script_uid = FileUid.construct(
+        file_script_uid = FileTxt.construct(
             "mem://test.gd.uid",
             _defer_create=True,
             _defer_create_contents="uid://abc",
@@ -39,7 +37,7 @@ class Test_Project_Fs():
 
         prj = Project.construct(
             file_system = file_system,
-            file_types = (FileUid, FileTxt),
+            file_types = (FileTxt, FileTxt),
             files = [
                 file_script,
                 file_script_uid,
@@ -77,20 +75,20 @@ class Test_Project_Fs():
 
 
     def test_construction_discovered(self,):
-        file_system = MemoryFS()
+        file_system = MemoryFileSystem()
 
-        file_system.writetext(
+        file_system.write_text(
             "test.gd",
             "",
         )
-        file_system.writetext(
+        file_system.write_text(
             "test.gd.uid",
             "uid://abc",
         )
 
         prj = Project.construct(
             file_system = file_system,
-            file_types = (FileUid, FileTxt),
+            file_types = (FileTxt, FileScript),
         )
 
         assert prj.files["mem://test.gd"]
@@ -99,7 +97,7 @@ class Test_Project_Fs():
         
         assert prj.files["mem://test.gd.uid"]
         file_script_uid = prj.files["mem://test.gd.uid"]
-        assert isinstance(file_script, FileUid)
+        assert isinstance(file_script, FileTxt)
 
         assert file_script.uid_file is file_script_uid
 

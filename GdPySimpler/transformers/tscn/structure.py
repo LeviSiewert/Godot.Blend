@@ -17,10 +17,7 @@ from ...core.subresources import (
 )
 
 from ...core.structure import (
-    ResourceSettings, 
     Collection,
-    Category,
-    CategoryCollection,
     ExtResource,
     ExtResourceRef,
     ExtResourceCollection,
@@ -28,6 +25,12 @@ from ...core.structure import (
     GdTypeValueSet,
     RID,
     )
+
+from ...core.settings import (
+    ResourceSettings,
+    Category,
+    CategoryCollection,
+)
 
 from ...core.structure import PropertyCollection
 
