@@ -39,20 +39,103 @@ class Project():
     def __init__(self):
         self.__setup__()
 
-class _File[T:_Resource]():
+class _FileTypeIoHandler[T:str]():
+    ''' File IO abstraction, centrally located semi-stateless instances
+    Passed into the project w/ transformers for a given env.
+    Matched by _File using extensions
+    Connects Resource/Other -> Disk rep
+    '''
+    extensions : tuple[str] = tuple()
+
+    def read():
+        pass
+    
+    def write():
+        pass
+    
+    def move():
+        pass
+
+    def delete():
+        pass
+
+class _File():
+    ''' File abstraction, IO with collection '''
     context : StructContext ##NOTE: Attached when added to a collection
 
-    path : str
-    data : T
-    _uid : str #Cached
+    path : Key[str]
+
+    _defer_create : bool = False
+    _defer_create_contents : Any = None
+
+    last_updated : int = 0
+
+    io_handler : _FileTypeIoHandler[str]
 
     def __setup__(self):
         self.context = StructContext(file=self)
         self.path = Key(self, "filepath", unique=True)
-        self._uid = Key(self, "uid", unique=True)
-    
-    def __init__(self, path:_Path, resource:_Resource=None):
+
+    def __init__(self, path:_Path):
         self.__setup__()
+
+    def on_disk(self,):
+        raise NotImplementedError()
+
+    @classmethod
+    def construct(cls, path:str, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
+        self = cls(path)
+
+        if _defer_create:
+            self._defer_create = _defer_create
+            self._defer_create_contents = _defer_create_contents
+            
+            def _create_file(project):
+                raise NotImplementedError()
+
+            self.context.callback("project", _create_file)
+
+        return self
+
+def _ResourceFile[T:_Resource](_File):
+
+    data : Reference[T]
+    io_handler : _FileTypeIoHandler[T]
+
+    def __setup__(self):
+        self.data = RID(None,)
+    
+    def __init__(self, path:_Path, resource:T|str=None):
+        self.__setup__()
+        
+        if isinstance(resource, _Resource):
+            self.data.store_address(resource.uid)
+            self.data.store_value(resource)
+        elif isinstance(resource, str):
+            self.data.store_address(resource)
+
+    def fetch_uid(self,)->str|None:
+        ''' Fetch uid from the file, including defering to secondary files '''
+        # TODO
+        # fs = self.context.resource.fs
+        raise NotImplementedError()
+
+    @classmethod
+    def construct(self, path:str, resource:T|str=None, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
+        pass
+
+    # def read():
+    #     pass
+
+    # def write():
+    #     pass
+
+    # def delete():
+    #     pass
+
+    # def move():
+    #     pass
+    
 
 class FileCollection(Collection):
     unique_keys = ("_uid", "path")
@@ -76,13 +159,55 @@ class FileRef(Reference, GdValue):
             value : Project
             self.set_collection(value.files)
 
-class FileLocal(_File):
-    transformer : Transformer
+class FileScene(_File, _ResourceFile):
+    extensions = ("tscn",)
 
-class FileForeign(_File):
-    import_file : _File
-    transformer : Transformer
+class FileTres(_File, _ResourceFile):
+    extensions = ("tres",)
 
+class FileSettings(_File, _ResourceFile):
+    extensions = ("godot", "import")
+
+class FileForeign(_File, _ResourceFile):
+    ''' File type that is imported at runtime into a resource format '''
+    extension = ("*",)
+    import_file : FileTres
+
+
+class FileUid(_File):
+    ''' Simple container for a UID string, required (only?) on gdscripts '''
+    extensions = ("uid",)
+
+class FileScriptModule(_File):
+    ''' Resource Tranformer extension script, keyed to an env_id by "*" 
+    Plan: 
+    - Key to UID/Class_ID/Script via;
+        - filepath
+        - contents (when loaded)
+    - Defer load until explicitly requested
+        - In user Env: Hash contents and raise/req when changed?
+        - Security should be respected, but there *are* scripts.
+    - Contents provide modules that give TransformerRulesets for the env (and other env hooks)
+    '''
+    extensions = (".gd.*.py",) 
+    uid_file : Reference[FileUid|None]
+    def __setup__(self):
+        super().__setup__()
+        self.uid_file = FileRef(None)
+        
+    def get_uid():
+        pass
+    
+class FileScript(_ResourceFile):
+    extensions = ("gd", "cpp", "py") 
+    uid_file : Reference[FileUid|None]
+    def __setup__(self):
+        super().__setup__()
+        self.uid_file = FileRef(None)
+        
+
+    def get_uid():
+        pass
 
 
 class _Resource():
