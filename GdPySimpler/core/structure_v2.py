@@ -28,7 +28,7 @@ class _ContextualReference(_Reference):
         self.context = StructContext()
         self.context.callback(self._context_target, self._on_context_updated)
 
-    def __init__(self, /, context:StructContext, key_id = None, address = None, cached_value = None, collection=None):
+    def __init__(self, address = None, /, context:StructContext=None, key_id = None, cached_value = None, collection=None):
         super().__init__(key_id, address, cached_value, collection)
         self.context.set_extends(context)
 
@@ -166,9 +166,12 @@ class _File():
         #TODO
         raise NotImplementedError()
 
+
     def read(self, force=False):
         fs = self.get_file_system()
         raise NotImplementedError()
+        self.update_metadata()
+
 
     def write(self):
         assert not (self.data is None)
@@ -182,6 +185,7 @@ class _File():
     def _on_disc_created(self, fp):
         fs = self.get_file_system()
         raise NotImplementedError()
+            
 
     def _on_disc_updated_filter(self,fp:str,*args):
         if (fp != self.filepath.addr): 
@@ -273,6 +277,9 @@ class _FileResource(_File):
 class FileCollection(_Collection):
     unique_keys = ("path",)
 
+    def key_matcher(self, addr):
+        return "path"
+
 class FileRef(_ContextualReference):
     _context_target : str = "project"
     _collection_key : str = "files"
@@ -332,7 +339,10 @@ class _Resource():
 
 class ResourceCollection(_Collection):
     unique_keys = ("uid",)
-    
+
+    def key_matcher(self, addr):
+        return "uid"
+
 class ResourceRef(_ContextualReference):
     _context_target : str = "project"
     _collection_key : str = "references"
