@@ -17,6 +17,39 @@ from fsspec.implementations.memory import MemoryFileSystem
 
 class Test_Project_Fs():
 
+    def test_defered_write_import():
+        file_system = MemoryFileSystem()
+        
+        file_script_uid = FileTxt.construct(
+            "mem://test.gd.uid",
+            _defered_write=True,
+            _defered_write_data="uid://abc",
+            _defered_import=True,
+        )
+
+        prj = Project.construct(
+            files = [
+                file_script_uid,
+            ]
+        )
+
+
+        ## Test collection attachment:
+        assert prj["mem://test.gd.uid"] is file_script_uid
+
+        ## Test _defered_write:
+        assert file_system.read_text("mem://test.gd.uid") == "uid://abc"
+        
+        ## Test _defered_import:
+        assert file_script_uid.data == "uid://abc"
+
+
+    def test_defered_export():
+        pass
+
+    def test_defered_write_uid_discovery():
+        pass
+
     def test_discovered_relations(self,):
         file_system = MemoryFileSystem()
 
@@ -100,7 +133,7 @@ class Test_Project_Fs():
         assert file_script.get_uid() == "uid://abc"
 
         ## Collection key assertions
-        assert prj.files["uid://abc"] is file_script
+        assert prj.files.get_cached_uid("uid://abc") is file_script
         assert prj.files["mem://test.gd"] is file_script
         assert prj.files["mem://test.gd.uid"] is file_script_uid
         
@@ -139,4 +172,4 @@ class Test_Project_Fs():
 
         assert file_script.uid_file.get() is file_script_uid
 
-        assert prj.files["uid://abc"] is file_script
+        assert prj.files.get_cached_uid("uid://abc") is file_script

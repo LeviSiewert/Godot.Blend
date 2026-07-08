@@ -17,7 +17,6 @@ from ...core.resources import (
 )
 
 from ...core.structure import (
-    Collection,
     ExtResource,
     ExtResourceRef,
     ExtResourceCollection,
@@ -25,6 +24,9 @@ from ...core.structure import (
     GdTypeValueSet,
     RID,
     )
+from ...core.collections import (    
+    Collection,
+)
 
 from ...core.settings import (
     ResourceSettings,

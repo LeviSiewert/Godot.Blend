@@ -103,11 +103,11 @@ class Project():
 
 
 class _FileMetadata():
-    __slots__ = ("last_imported", "last_exported", "file")
-    file : _File
+    __slots__ = tuple()
+    file : _File = None
 
-    last_imported : int|None = None
-    last_exported : int|None = None
+    last_imported : int|None
+    last_exported : int|None
 
     def __init__(self, file:_File):
         self.file = file
@@ -189,9 +189,12 @@ class _File():
         raise NotImplementedError()
         self.update_metadata()
 
-
     def write(self):
         assert not (self.data is None)
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+    def move(self):
         fs = self.get_file_system()
         raise NotImplementedError()
 
@@ -213,20 +216,11 @@ class _File():
         raise NotImplementedError()
     
 
-    def move(self):
-        fs = self.get_file_system()
-        raise NotImplementedError()
-    
     def _on_disc_moved_filter(self,fp:str,*args):
         if (fp != self.filepath.addr): 
             return
         self._on_disc_moved_filter(fp, *args)
     def _on_disc_moved(self, fr:str, to:str):
-        fs = self.get_file_system()
-        raise NotImplementedError()
-
-
-    def delete(self):
         fs = self.get_file_system()
         raise NotImplementedError()
 
@@ -240,7 +234,7 @@ class _File():
 
 
     @classmethod
-    def construct(cls, path, /, data:Any=None, _defered_write:bool=False, _defered_write_data:Any=None, **kwargs):
+    def construct(cls, path, /, data:Any=None, _defered_write:bool=False, _defered_write_data:Any=None, _defered_import:bool=False, **kwargs):
         self = cls(path)
 
         if not (data is None):
@@ -250,6 +244,10 @@ class _File():
             if not hasattr(self,k):
                 raise AttributeError(obj=self, name=k)
             setattr(self, v)
+
+        if _defered_import:
+            ## TODO VERIFY: Test order of ops!
+            self.context.callback("project", self.read, once=True)
 
         if _defered_write:
             def _write(prj):
