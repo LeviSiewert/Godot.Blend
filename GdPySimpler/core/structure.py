@@ -170,6 +170,11 @@ class _File():
 
     def get_file_system(self):
         return self.context.project.file_system
+    
+    def get_filepath(self,)->str|None:
+        if self.path.addr:
+            return self.path.addr.split("://", 1)[-1]
+        return None
 
     @contextmanager
     def locked(self, lock=True, update_meta=False):
@@ -196,12 +201,12 @@ class _File():
         if self.lock and (not force):
             raise Exception("Contextually locked file cannot have data read into! (Lock declares Python data priority)")
         with self.locked(update_meta=True):
-            self.data = fs.read_text(self.path.addr)
+            self.data = fs.read_text(self.get_filepath())
 
     def write(self):
         fs = self.get_file_system()
         with self.locked(update_meta=True):
-            fs.write_text(self.path.addr, self.data)
+            fs.write_text(self.get_filepath(), self.data)
 
     def move(self):
         fs = self.get_file_system()
