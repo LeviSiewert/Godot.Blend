@@ -12,7 +12,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name": "Bl_Gd_importer",
+    "name": "Godot Importer-Exporter",
     "author": "Levi Siewert",
     "description": "",
     "blender": (2, 80, 0),
@@ -22,10 +22,10 @@ bl_info = {
     "category": "Generic",
 }
 
-from .GdBl import structure 
+from . import GdBl 
 
 def register(): 
-    structure.register()
+    GdBl.register()
 
 def unregister(): 
-    structure.unregister()
+    GdBl.unregister()
