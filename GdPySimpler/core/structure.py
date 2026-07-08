@@ -76,13 +76,20 @@ class Project():
             self.search()
 
     @classmethod
-    def construct(cls, file_system:AbstractFileSystem=None, file_types:list[Type[_File]]=tuple(), search:bool=False, **kwargs):
+    def construct(cls, file_system:AbstractFileSystem=None, files:list=None,resources:list=None, file_types:list[Type[_File]]=tuple(), search:bool=False, **kwargs):
         self = cls(file_system, file_types, search=False)
 
         for k,v in kwargs.items():
             if not hasattr(self,k):
                 raise AttributeError(obj=self, name=k)
-            setattr(self, v)
+            setattr(self, k, v)
+
+        if resources:
+            self.resources.extend(resources)
+
+        if files:
+            ## _defered_export option requires resources to be appended before files
+            self.files.extend(files)
 
         if search:
             self.search()
@@ -103,8 +110,8 @@ class Project():
 
 
 class _FileMetadata():
-    __slots__ = tuple()
-    file : _File = None
+    __slots__ = ("file", "last_imported", "file")
+    file : _File
 
     last_imported : int|None
     last_exported : int|None
@@ -243,20 +250,20 @@ class _File():
         for k,v in kwargs.items():
             if not hasattr(self,k):
                 raise AttributeError(obj=self, name=k)
-            setattr(self, v)
+            setattr(self, k, v)
 
-        if _defered_import:
-            ## TODO VERIFY: Test order of ops!
-            self.context.callback("project", self.read, once=True)
 
         if _defered_write:
             def _write(prj):
                 if _defered_write_data:
                     fs = self.get_file_system()
-                    fs.write_text(self.path.add, _defered_write_data)
+                    fs.write_text(self.path.addr, _defered_write_data)
                     return
                 self.write()
             self.context.callback("project", _write, once=True)
+
+        if _defered_import:
+            self.context.callback("project", self.read, once=True)
 
         return self
         

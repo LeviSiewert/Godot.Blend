@@ -17,7 +17,7 @@ from fsspec.implementations.memory import MemoryFileSystem
 
 class Test_Project_Fs():
 
-    def test_defered_write_import():
+    def test_defered_write_import(self,):
         file_system = MemoryFileSystem()
         
         file_script_uid = FileTxt.construct(
@@ -28,14 +28,16 @@ class Test_Project_Fs():
         )
 
         prj = Project.construct(
+            file_system=file_system,
+            file_types=(FileTxt,),
             files = [
                 file_script_uid,
-            ]
+            ],
         )
 
 
         ## Test collection attachment:
-        assert prj["mem://test.gd.uid"] is file_script_uid
+        assert prj.files["mem://test.gd.uid"] is file_script_uid
 
         ## Test _defered_write:
         assert file_system.read_text("mem://test.gd.uid") == "uid://abc"
