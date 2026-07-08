@@ -13,7 +13,7 @@ def make_parser_cached(key):
     if res:=_parser_cache.get(key,None):
         return res
     res = make_parser(key)
-    _parser_cache[key] = res
+    _parser_cache[CollectionKey] = res
     return res
 
 class _StructureTest[T:Type]():

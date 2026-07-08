@@ -4,13 +4,13 @@ from ...core.collections import Collection, Reference, Item, CollectionKey, Stru
 def test():
     class ItemExample(Item):
         # context : StructContext
-        def __colkeys__(self,)->tuple[Key]:
+        def __colkeys__(self,)->tuple[CollectionKey]:
             return (self.key_a, self.key_b, self.key_c)
 
-        key_a : ForeignCollectionKey[str, ItemExample] #UNIQuE
-        key_b : ForeignCollectionKey[str, ItemExample] #UNIQuE
+        key_a : CollectionKey[str, ItemExample] #UNIQuE
+        key_b : CollectionKey[str, ItemExample] #UNIQuE
 
-        key_c : ForeignCollectionKey[str, ItemExample] #SHARED
+        key_c : CollectionKey[str, ItemExample] #SHARED
 
         def __setup__(self):
             # self.context = StructContext()

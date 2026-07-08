@@ -131,7 +131,7 @@ class CollectionKey[ADDR:Any, I:Item]():
         return f"{self.__class__.__name__}({self.key_id} :: {self.addr})"
 
 class Item():
-    def __colkeys__(self,)->tuple[Key]:
+    def __colkeys__(self,)->tuple[CollectionKey]:
         pass
 
 class Collection[I:Item, ADDR:str|Any, V:Item]():

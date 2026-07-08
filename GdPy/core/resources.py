@@ -9,7 +9,7 @@ from .signals import Signal
 class SubResource():
     context : StructContext
     owner : _Resource|None = None
-    id : ForeignCollectionKey[str]
+    id : CollectionKey[str]
 
     format : int = 3
     type : GdType|None = None
@@ -36,7 +36,7 @@ class SubResource():
             self.format = format
         self.type = type
     
-    def __colkeys__(self,)->tuple[Key]:
+    def __colkeys__(self,)->tuple[CollectionKey]:
         return (self.id,)
 
     @classmethod
@@ -127,7 +127,7 @@ class ResourceTres(_Resource):
         if uid:
             self.uid.set(uid)
 
-    def __colkeys__(self,)->tuple[Key]:
+    def __colkeys__(self,)->tuple[CollectionKey]:
         return (self.uid,)
         
     @classmethod
@@ -161,10 +161,10 @@ class ResourceTres(_Resource):
 class ExtResource():
     context : StructContext
 
-    type : ForeignCollectionKey[str]
-    uid : ForeignCollectionKey[str]
-    path : ForeignCollectionKey[str]
-    id : ForeignCollectionKey[int]
+    type : CollectionKey[str]
+    uid : CollectionKey[str]
+    path : CollectionKey[str]
+    id : CollectionKey[int]
 
     def __setup__(self):
         self.context = StructContext()

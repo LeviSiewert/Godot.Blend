@@ -75,7 +75,7 @@ class SignalNotationCollection(Collection):
     _type = Signal
 
 class ResourceScene(_Resource):
-    uid : ForeignCollectionKey[str]
+    uid : CollectionKey[str]
 
     type : GdType|None|str
     format : int
@@ -248,7 +248,7 @@ class Node():
     name : str
     context : StructContext = None
     
-    unique_id : ForeignCollectionKey[int]
+    unique_id : CollectionKey[int]
     properties : PropertyCollection
     
     # Should be accessed through get/set:

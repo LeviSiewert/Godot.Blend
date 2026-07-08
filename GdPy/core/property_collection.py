@@ -15,7 +15,7 @@ class PropertyCollection(UserDict):
 
     def __missing_key__(self, key)->Any:
         if not self.overlay is None:
-            return self.overlay[key]
+            return self.overlay[CollectionKey]
         raise KeyError
     def __setitem__(self, key, value):
         res = super().__setitem__(key, value)

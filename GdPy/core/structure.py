@@ -126,7 +126,7 @@ class _File():
     context : StructContext
     metadata : _FileMetadata
 
-    path : ForeignCollectionKey[str]
+    path : CollectionKey[str]
     data : Any|None
 
     lock : ContextVar[bool]
@@ -293,7 +293,7 @@ class _File():
 
 class _FileResource(_File):
     context : StructContext
-    path : ForeignCollectionKey[str]
+    path : CollectionKey[str]
     data : _Reference[str, _Resource]
 
     def __init__(self, path:str, defer_fetch_uid:bool=True):
@@ -344,7 +344,7 @@ class FileRef(_ContextualReference):
 
 class _Resource():
     context : StructContext
-    uid : ForeignCollectionKey[str, _FileResource]
+    uid : CollectionKey[str, _FileResource]
     file : _Reference[str, _FileResource]
     
     def __setup__(self):
@@ -425,9 +425,9 @@ class TypeSignalDef():
 class GdType():
     context : StructContext
     location : str # "script" | "internal"
-    class_name : ForeignCollectionKey[str] # script_class in sub_res header
-    file : ForeignCollectionKey[str]
-    uid : ForeignCollectionKey[str]
+    class_name : CollectionKey[str] # script_class in sub_res header
+    file : CollectionKey[str]
+    uid : CollectionKey[str]
 
     extends : GdType|None
     signals : dict[str, TypeSignalDef]
