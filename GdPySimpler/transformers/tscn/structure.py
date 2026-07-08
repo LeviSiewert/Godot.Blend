@@ -14,16 +14,17 @@ from ...core.resources import (
     SubResource,
     SubResourceRef,  
     SubResourceCollection,
-)
-
-from ...core.structure import (
     ExtResource,
     ExtResourceRef,
     ExtResourceCollection,
+)
+
+from ...core.structure import (
     GdType,
     GdTypeValueSet,
     RID,
     )
+
 from ...core.collections import (    
     Collection,
 )
@@ -34,7 +35,7 @@ from ...core.settings import (
     CategoryCollection,
 )
 
-from ...core.structure import PropertyCollection
+from ...core.property_collection import PropertyCollection
 
 def apply(inst, **kwargs):
     for k,v in kwargs.items():

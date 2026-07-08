@@ -7,9 +7,9 @@ from ...core.nodes import (
     SignalNotation,
 )
 
-from ...core.structure import (
+from ...core.resources import (
     ExtResourceRef,
-    )
+)
 
 
 class GdToPy_ResourceScene(GdToPyModule):

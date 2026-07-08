@@ -14,13 +14,16 @@ from ...core.resources import (
     SubResource,
     SubResourceRef,  
     SubResourceCollection,
-)
-
-from ...core.structure import (
-    Collection,
     ExtResource,
     ExtResourceRef,
     ExtResourceCollection,
+)
+
+from ...core.collections import (
+    Collection,
+)
+
+from ...core.structure import (
     GdType,
     GdTypeValueSet,
     RID,
