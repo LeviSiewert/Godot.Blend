@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Type
 from fsspec import AbstractFileSystem
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 
 from .collections import (
@@ -10,6 +12,7 @@ from .collections import (
     Reference as _Reference,
 )
 from .context import StructContext as _StructContext
+from .signals import Signal
 
 class StructContext(_StructContext):
     project : Project
@@ -43,10 +46,20 @@ class Project():
 
     file_system : AbstractFileSystem
 
+    disc_file_created : Signal[str]
+    disc_file_deleted : Signal[str]
+    disc_file_updated : Signal[str]
+    disc_file_moved : Signal[str,str]
+
     def __setup__(self):
         self.context = StructContext(project=self)
         self.files = FileCollection(self.context)
         self.resources = ResourceCollection(self.context)
+        
+        self.disc_file_created = Signal(self)
+        self.disc_file_deleted = Signal(self)
+        self.disc_file_updated = Signal(self)
+        self.disc_file_moved = Signal(self)
 
     def __init__(self, file_system:AbstractFileSystem, file_types:list[Type[_File]], search:bool=True):
         self.__setup__()
@@ -100,11 +113,34 @@ class _File():
     path : Key[str]
     data : Any|None
 
+    lock : ContextVar[bool]
+        # If locked, do not interpret input signals.
+
     def __setup__(self):
+        self.context = StructContext(file=self)
+        self.context.callback("project", self._on_project_updated)
+
+        self.lock = ContextVar("locked", default=False)
         self.metadata = _FileMetadata(self)
         self.path = Key(self, "path", None)
-        self.context = StructContext(file=self)
         self.data = None
+
+    _project_cached : Project = None
+
+    def _on_project_updated(self, project:Project|None):
+        if self._project_cached:
+            self._project_cached.disc_file_created.disconnect(self._on_disc_created_filter)
+            self._project_cached.disc_file_deleted.disconnect(self._on_disc_deleted_filter)
+            self._project_cached.disc_file_updated.disconnect(self._on_disc_updated_filter)
+            self._project_cached.disc_file_moved.disconnect(self._on_disc_moved_filter)
+        
+        self._project_cached = project
+        if project:
+            self._project_cached.disc_file_created.connect(self._on_disc_created_filter)
+            self._project_cached.disc_file_deleted.connect(self._on_disc_deleted_filter)
+            self._project_cached.disc_file_updated.connect(self._on_disc_updated_filter)
+            self._project_cached.disc_file_moved.connect(self._on_disc_moved_filter)
+        
 
     def __init__(self, path:str, data:Any=None):
         self.__setup__()
@@ -117,20 +153,67 @@ class _File():
     def get_file_system(self):
         return self.context.project.file_system
 
+    @contextmanager
+    def locked(self, lock=True, update_meta=False):
+        t = self.lock.set(lock)
+        yield
+        if update_meta:
+            self.update_metadata()
+        t = self.lock.reset(t)
+
+    def update_metadata(self):
+        fs = self.get_file_system()
+        #TODO
+        raise NotImplementedError()
 
     def read(self, force=False):
         fs = self.get_file_system()
         raise NotImplementedError()
 
     def write(self):
+        assert not (self.data is None)
         fs = self.get_file_system()
         raise NotImplementedError()
+
+    def _on_disc_created_filter(self, fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_created_filter(fp, *args)
+    def _on_disc_created(self, fp):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+    def _on_disc_updated_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_updated_filter(fp, *args)
+    def _on_disc_updated(self, fp):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+    
 
     def move(self):
         fs = self.get_file_system()
         raise NotImplementedError()
+    
+    def _on_disc_moved_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_moved_filter(fp, *args)
+    def _on_disc_moved(self, fr:str, to:str):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
 
     def delete(self):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+    def _on_disc_deleted_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_deleted_filter(fp, *args)
+    def _on_disc_deleted(self,fp):
         fs = self.get_file_system()
         raise NotImplementedError()
 
@@ -215,6 +298,37 @@ class _Resource():
 
     def __colkeys__(self,):
         return (self.uid, )
+
+    def write(self):
+        assert self.file.get()
+        raise NotImplementedError()
+    
+    def _on_disc_created(self):
+        ## TODO: Signal forwarding from file.
+        ## Uncertain behavior here as
+        raise NotImplementedError()
+    
+    def write_update(self,):
+        assert self.file.get()
+        raise NotImplementedError()
+
+    def _on_disc_updated(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwarded
+        ## Import-dif.
+        raise NotImplementedError()
+    
+    def _on_disc_moved(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwared
+        ## Disc moving should not impact local
+        raise NotImplementedError()
+    
+    def _on_disc_deleted(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwared
+        ## Unknown desired behavior. Perhaps removal and cleanup of self?
+        raise NotImplementedError()
 
 class ResourceCollection(_Collection):
     unique_keys = ("uid",)
