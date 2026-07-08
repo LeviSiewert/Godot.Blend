@@ -2,6 +2,7 @@ import bpy
 
 from typing import Any
 from contextvars import ContextVar
+from contextlib import contextmanager
 
 from ...GdBl import register, unregister
 
@@ -23,6 +24,12 @@ class BlenderPytestAttr():
     property_type : Any #= bpy.props.StringProperty()
     property_name : str = "TESTATTR"
     mount_onto : Any = bpy.types.Scene
+
+    @classmethod
+    @contextmanager
+    def temp_attr(cls,):
+        NotImplementedError()
+        yield
 
     @classmethod
     def get_attr(cls):

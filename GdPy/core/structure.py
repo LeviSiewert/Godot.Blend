@@ -351,6 +351,7 @@ class _Resource():
         self.uid = CollectionKey(self, "uid", None)
         self.context = StructContext(file=self)
         self.data = ResourceRef(context=self.context)
+        self.file = FileRef(None, context=self.context)
 
     def __init__(self, uid=None):
         self.__setup__()

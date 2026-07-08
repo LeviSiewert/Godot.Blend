@@ -3,42 +3,43 @@ from ...core.resources import *
 from ...core.values import StringName, Array
 
 class Test_Subresources():
-    
+    def data(self,):
+        yield SubResource.construct(
+            type="CameraAttributesPractical",
+            id="CameraAttributesPractical_fssom",
+        )
+        yield SubResource.construct(
+            type="ProceduralSkyMaterial",
+            id="ProceduralSkyMaterial_6okqy",
+        )
+        yield SubResource.construct(
+            type="Sky",
+            id="Sky_b8yvd",
+            properties={
+                "sky_material" : SubResourceRef("ProceduralSkyMaterial_6okqy"),
+            },
+        )
+        yield SubResource.construct(
+            type="Environment",
+            id="Environment_gatl5",
+            properties={
+                "background_mode" : 2,
+                "sky" : SubResourceRef("Sky_b8yvd"),
+                "ambient_light_source" : 3,
+            },
+        )
+        yield SubResource.construct(
+            type="Environment",
+            id="Environment_c5o2k",
+        )
+        
+
     def test_basic_construction(self,):
         res = ResourceTres.construct(
             type = "World3D",
             format = 3,
             uid = "uid://b52f332102m2l",
-            sub_resources = [
-                SubResource.construct(
-                    type="CameraAttributesPractical",
-                    id="CameraAttributesPractical_fssom",
-                ),
-                SubResource.construct(
-                    type="ProceduralSkyMaterial",
-                    id="ProceduralSkyMaterial_6okqy",
-                ),
-                SubResource.construct(
-                    type="Sky",
-                    id="Sky_b8yvd",
-                    properties={
-                        "sky_material" : SubResourceRef("ProceduralSkyMaterial_6okqy"),
-                    },
-                ),
-                SubResource.construct(
-                    type="Environment",
-                    id="Environment_gatl5",
-                    properties={
-                        "background_mode" : 2,
-                        "sky" : SubResourceRef("Sky_b8yvd"),
-                        "ambient_light_source" : 3,
-                    },
-                ),
-                SubResource.construct(
-                    type="Environment",
-                    id="Environment_c5o2k",
-                ),
-            ],
+            sub_resources = list(self.data()),
             properties = {
                 "environment" : SubResourceRef("Environment_gatl5"),
                 "fallback_environment" : SubResourceRef("Environment_c5o2k"),

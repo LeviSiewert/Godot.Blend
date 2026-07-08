@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Type, Any
 
-from .structure import _Resource, StructContext, GdType, GdValue
+from .structure import _Resource, _File, StructContext, GdType, GdValue
 from .collections import CollectionKey, Reference, Collection
 from .property_collection import PropertyCollection
 from .signals import Signal
@@ -98,6 +98,8 @@ class SubResourceRef(Reference, GdValue):
             value : ResourceTres
             self.set_collection(value.sub_resources)
 
+from .structure import FileRef
+
 class ResourceTres(_Resource):
     type : GdType|None|str = None
     format : int = None
@@ -109,14 +111,12 @@ class ResourceTres(_Resource):
     sub_resources : SubResourceCollection
 
     def __setup__(self):
-        self.context = StructContext(resource=self)
-        self.uid = CollectionKey(self, "uid", None)
+        super().__setup__()
         self.properties = PropertyCollection(context=self.context)
         self.ext_resources = ExtResourceCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
-        return self
     
-    def __init__(self, /, type:str=None, format:int=None, uid:str=None, script_class:str=None):
+    def __init__(self, /, type:str=None, format:int=None, uid:str=None, script_class:str=None, file:str|_File=None):
         self.__setup__()
         if type:
             self.type = type
@@ -126,13 +126,18 @@ class ResourceTres(_Resource):
             self.script_class = script_class
         if uid:
             self.uid.set(uid)
+        if isinstance(file,str):
+            self.file.store_address(file)
+        elif isinstance(file, _File):
+            self.file.store_value(file)
+            self.file.store_address(file.path.addr)
 
     def __colkeys__(self,)->tuple[CollectionKey]:
         return (self.uid,)
         
     @classmethod
-    def construct(cls, uid=None, properties:dict=None, ext_resources:list=None, sub_resources:list=None, **kwargs):
-        self = cls(uid=uid)
+    def construct(cls, type:str=None, format:int=None, uid:str=None, script_class:str=None, file:str|_File=None, properties:dict=None, ext_resources:list=None, sub_resources:list=None, **kwargs):
+        self = cls(type=type, format=format, uid=uid, script_class=script_class, file=file)
         if properties:
             self.properties.update(properties)
         if ext_resources:
@@ -210,8 +215,6 @@ class ExtResourceCollection(Collection):
         if addr.startswith("uid://"):
             return "uid"
         return "id"
-
-
 
 class ExtResourceRef(Reference, GdValue): 
     ''' Routed reference ID '''
