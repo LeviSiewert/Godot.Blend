@@ -104,7 +104,7 @@ class Collection[T](ABC, SignalContainer):
         return None
     
     def get(self, key, default=None):
-        res = self[key]
+        res = self[CollectionKey]
         if res is None:
             return default
         return res
@@ -341,9 +341,9 @@ class MultiKeyCollection[PK:str, SK:Any, T:Any](SignalContainer):
 
     def __getitem__(self, key:tuple[PK,SK]|SK|PK):
         if (key in self._keys):
-            return self._shared_dicts[key]
+            return self._shared_dicts[CollectionKey]
         if (key in self._unique_keys):
-            return self._unique_dicts[key]
+            return self._unique_dicts[CollectionKey]
         
         if isinstance(key, tuple):
             pk,sk = key

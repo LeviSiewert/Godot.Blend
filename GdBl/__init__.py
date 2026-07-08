@@ -1,6 +1,7 @@
+from . import core
 
 def register():
-    pass
+    core.register()
 
 def unregister():
-    pass
+    core.unregister()

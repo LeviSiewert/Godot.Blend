@@ -45,11 +45,11 @@ class PropertyCollection[T](Collection, ClassDbEnforcable):
     
     def _integrate(self, key, item):
         # assert(self.allowed(key,item)) ## Featureset ClassDbEnforceable
-        self.items[key] = item
+        self.items[CollectionKey] = item
         self.item_appended(key,item)
     
     def _disintegrate(self, key):
-        val = self.items[key]
+        val = self.items[CollectionKey]
         self.item_removed(key, val)
         self.items.remove(key)        
     
