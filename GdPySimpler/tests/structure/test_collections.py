@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ...core.collections import Collection, Reference, Item, Key, StructContext
+from ...core.collections import Collection, Reference, Item, ForeignKey, StructContext
 
 def test():
     class ItemExample(Item):
@@ -7,16 +7,16 @@ def test():
         def __colkeys__(self,)->tuple[Key]:
             return (self.key_a, self.key_b, self.key_c)
 
-        key_a : Key[str, ItemExample] #UNIQuE
-        key_b : Key[str, ItemExample] #UNIQuE
+        key_a : ForeignForeignKey[str, ItemExample] #UNIQuE
+        key_b : ForeignForeignKey[str, ItemExample] #UNIQuE
 
-        key_c : Key[str, ItemExample] #SHARED
+        key_c : ForeignForeignKey[str, ItemExample] #SHARED
 
         def __setup__(self):
             # self.context = StructContext()
-            self.key_a = Key(self, "key_a", None)
-            self.key_b = Key(self, "key_b", None)
-            self.key_c = Key(self, "key_c", None)
+            self.key_a = ForeignKey(self, "key_a", None)
+            self.key_b = ForeignKey(self, "key_b", None)
+            self.key_c = ForeignKey(self, "key_c", None)
 
         def __init__(self, id:str, a:str, b:str):
             self.__setup__()

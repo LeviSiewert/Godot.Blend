@@ -87,7 +87,7 @@ class Reference[ADDR:Any, V:Item]():
         return f"{self.__class__.__name__}({self.cached_addr} :: {self.cached_value})"
             
 
-class Key[ADDR:Any, I:Item]():
+class ForeignKey[ADDR:Any, I:Item]():
     collection : Collection|None = None
     key_id : str|None = None
     
@@ -266,7 +266,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         return default
     
     def get_key[D](self, obj:V, key_id:str,/, default:D=_UNSET)->Key|D :
-        key : Key = self.get_keys(obj, default={}).get(key_id, None)
+        key : ForeignKey = self.get_keys(obj, default={}).get(key_id, None)
         if (key is None): 
             if (default is _UNSET):
                raise KeyError("Object was not initialized with key_id: ", key_id)
