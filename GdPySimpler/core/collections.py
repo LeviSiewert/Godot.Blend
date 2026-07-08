@@ -2,6 +2,7 @@ from __future__ import annotations
 from weakref import ref, ReferenceType as _RefType
 from string import ascii_letters
 from typing import Any, Iterable
+from .signals import Signal
 import random
 
 from .context import StructContext
@@ -92,8 +93,10 @@ class Key[ADDR:Any, I:Item]():
     
     source : I
     addr : ADDR
-    
+    addr_updated : Signal[ADDR]
+
     def __init__(self, source:I, key_id:str, addr:ADDR,):
+        self.addr_updated = Signal(self)
         self.key_id = key_id
         self.source = source
         self.addr = addr
@@ -103,6 +106,7 @@ class Key[ADDR:Any, I:Item]():
         if self.collection:
             return self.collection.set(key=addr, value=self.source, key_id=self.key_id)
         self.addr = addr
+        self.addr_updated(addr)
 
     def get(self):
         return self.addr

@@ -121,6 +121,8 @@ class _FileMetadata():
 
 
 class _File():
+    extensions : tuple[str] = tuple()
+
     context : StructContext
     metadata : _FileMetadata
 
@@ -131,8 +133,6 @@ class _File():
         # If locked, do not interpret input signals.
 
     cached_uid : str = None 
-
-
 
     def __setup__(self):
         self.context = StructContext(file=self)
@@ -193,13 +193,15 @@ class _File():
 
     def read(self, force=False):
         fs = self.get_file_system()
-        raise NotImplementedError()
-        self.update_metadata()
+        if self.lock and (not force):
+            raise Exception("Contextually locked file cannot have data read into! (Lock declares Python data priority)")
+        with self.locked(update_meta=True):
+            self.data = fs.read_text(self.path.addr)
 
     def write(self):
-        assert not (self.data is None)
         fs = self.get_file_system()
-        raise NotImplementedError()
+        with self.locked(update_meta=True):
+            fs.write_text(self.path.addr, self.data)
 
     def move(self):
         fs = self.get_file_system()
@@ -239,6 +241,11 @@ class _File():
         fs = self.get_file_system()
         raise NotImplementedError()
 
+    def _transform_to_disc(self,data)->Any:
+        return data
+    
+    def _transform_fr_disc(self,data)->Any:
+        return data
 
     @classmethod
     def construct(cls, path, /, data:Any=None, _defered_write:bool=False, _defered_write_data:Any=None, _defered_import:bool=False, **kwargs):
@@ -266,7 +273,18 @@ class _File():
             self.context.callback("project", self.read, once=True)
 
         return self
-        
+    
+    @classmethod
+    def matches_filepath(cls, filepath):
+        for k in cls.extensions:
+            if filepath.endswith(k):
+                return True
+        return False
+
+    @classmethod
+    def filter_filepaths(cls, folder:list[str]):
+        return folder
+
 
 class _FileResource(_File):
     context : StructContext
@@ -300,6 +318,7 @@ class _FileResource(_File):
                 self.cached_uid = data_or_uid
 
         return self
+
 
 class FileCollection(_Collection):
     unique_keys = ("path",)
