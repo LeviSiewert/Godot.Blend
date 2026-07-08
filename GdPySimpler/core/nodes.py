@@ -5,7 +5,7 @@ from .structure import _Resource, StructContext, GdType
 from .resources import SubResource, SubResourceCollection, SubResourceRef, ExtResource, ExtResourceRef, ExtResourceCollection
 
 from .property_collection import PropertyCollection
-from .collections import Collection, ForeignKey
+from .collections import Collection, CollectionKey
 from .values import NodePath 
 from .signals import Signal
 
@@ -38,13 +38,13 @@ class SignalNotation():
 
     signal : str
     method : str
-    fr : ForeignKey #Node
-    to : ForeignKey #Node
+    fr : CollectionKey #Node
+    to : CollectionKey #Node
 
     def __setup__(self):
         self.context = StructContext(signal=self)
-        self.fr = ForeignKey(self, "nodepath", None)
-        self.to = ForeignKey(self, "nodepath", None)
+        self.fr = CollectionKey(self, "nodepath", None)
+        self.to = CollectionKey(self, "nodepath", None)
     
     def __init__(self, signal:str, method:str, fr:str, to:str):
         self.__setup__()
@@ -75,7 +75,7 @@ class SignalNotationCollection(Collection):
     _type = Signal
 
 class ResourceScene(_Resource):
-    uid : ForeignForeignKey[str]
+    uid : ForeignCollectionKey[str]
 
     type : GdType|None|str
     format : int
@@ -114,7 +114,7 @@ class ResourceScene(_Resource):
         return self
 
     def __setup__(self):
-        self.uid = ForeignKey(self,"uid", None)
+        self.uid = CollectionKey(self,"uid", None)
         
         self.context = StructContext(_identifier=self,resource=self)
 
@@ -248,7 +248,7 @@ class Node():
     name : str
     context : StructContext = None
     
-    unique_id : ForeignForeignKey[int]
+    unique_id : ForeignCollectionKey[int]
     properties : PropertyCollection
     
     # Should be accessed through get/set:
@@ -333,7 +333,7 @@ class Node():
     def __setup__(self):
         self._children = []
         
-        self.unique_id = ForeignKey(self, "unique_id", None)
+        self.unique_id = CollectionKey(self, "unique_id", None)
 
         self.context = StructContext(_identifier=self, sub_resource=self)
         self.properties = PropertyCollection(context=self.context)

@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import Type, Any
 
 from .structure import _Resource, StructContext, GdType, GdValue
-from .collections import ForeignKey, Reference, Collection
+from .collections import CollectionKey, Reference, Collection
 from .property_collection import PropertyCollection
 from .signals import Signal
 
 class SubResource():
     context : StructContext
     owner : _Resource|None = None
-    id : ForeignForeignKey[str]
+    id : ForeignCollectionKey[str]
 
     format : int = 3
     type : GdType|None = None
@@ -24,7 +24,7 @@ class SubResource():
 
     def __setup__(self):
         self.context = StructContext(sub_resource=self)
-        self.id = ForeignKey(self, "id", None)
+        self.id = CollectionKey(self, "id", None)
         self.properties = PropertyCollection()
         return self
 
@@ -110,7 +110,7 @@ class ResourceTres(_Resource):
 
     def __setup__(self):
         self.context = StructContext(resource=self)
-        self.uid = ForeignKey(self, "uid", None)
+        self.uid = CollectionKey(self, "uid", None)
         self.properties = PropertyCollection(context=self.context)
         self.ext_resources = ExtResourceCollection(context=self.context)
         self.sub_resources = SubResourceCollection(context=self.context)
@@ -161,17 +161,17 @@ class ResourceTres(_Resource):
 class ExtResource():
     context : StructContext
 
-    type : ForeignForeignKey[str]
-    uid : ForeignForeignKey[str]
-    path : ForeignForeignKey[str]
-    id : ForeignForeignKey[int]
+    type : ForeignCollectionKey[str]
+    uid : ForeignCollectionKey[str]
+    path : ForeignCollectionKey[str]
+    id : ForeignCollectionKey[int]
 
     def __setup__(self):
         self.context = StructContext()
-        self.type = ForeignKey(self, "type", None)
-        self.uid = ForeignKey(self, "uid", None)
-        self.path = ForeignKey(self, "path", None)
-        self.id = ForeignKey(self, "id", None)
+        self.type = CollectionKey(self, "type", None)
+        self.uid = CollectionKey(self, "uid", None)
+        self.path = CollectionKey(self, "path", None)
+        self.id = CollectionKey(self, "id", None)
     
     def __init__(self, type:str, uid:str, path:str, id:int,):
         self.__setup__()

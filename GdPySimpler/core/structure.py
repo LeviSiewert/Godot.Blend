@@ -12,7 +12,7 @@ from .context import StructContext as _StructContext
 from .signals import Signal
 
 from .collections import (
-    ForeignKey, 
+    CollectionKey, 
     Collection as _Collection, 
     Reference as _Reference,
 )
@@ -126,7 +126,7 @@ class _File():
     context : StructContext
     metadata : _FileMetadata
 
-    path : ForeignForeignKey[str]
+    path : ForeignCollectionKey[str]
     data : Any|None
 
     lock : ContextVar[bool]
@@ -140,7 +140,7 @@ class _File():
 
         self.lock = ContextVar("locked", default=False)
         self.metadata = _FileMetadata(self)
-        self.path = ForeignKey(self, "path", None)
+        self.path = CollectionKey(self, "path", None)
         self.data = None
 
     _project_cached : Project = None
@@ -293,7 +293,7 @@ class _File():
 
 class _FileResource(_File):
     context : StructContext
-    path : ForeignForeignKey[str]
+    path : ForeignCollectionKey[str]
     data : _Reference[str, _Resource]
 
     def __init__(self, path:str, defer_fetch_uid:bool=True):
@@ -344,11 +344,11 @@ class FileRef(_ContextualReference):
 
 class _Resource():
     context : StructContext
-    uid : ForeignForeignKey[str, _FileResource]
+    uid : ForeignCollectionKey[str, _FileResource]
     file : _Reference[str, _FileResource]
     
     def __setup__(self):
-        self.uid = ForeignKey(self, "uid", None)
+        self.uid = CollectionKey(self, "uid", None)
         self.context = StructContext(file=self)
         self.data = ResourceRef(context=self.context)
 
@@ -425,9 +425,9 @@ class TypeSignalDef():
 class GdType():
     context : StructContext
     location : str # "script" | "internal"
-    class_name : ForeignForeignKey[str] # script_class in sub_res header
-    file : ForeignForeignKey[str]
-    uid : ForeignForeignKey[str]
+    class_name : ForeignCollectionKey[str] # script_class in sub_res header
+    file : ForeignCollectionKey[str]
+    uid : ForeignCollectionKey[str]
 
     extends : GdType|None
     signals : dict[str, TypeSignalDef]
@@ -437,9 +437,9 @@ class GdType():
         self.context = StructContext()
         self.signals = {}
         self.properties = {}
-        self.class_name = ForeignKey(self, "class_name", None)
-        self.file = ForeignKey(self, "file", None)
-        self.uid = ForeignKey(self, "uid", None)
+        self.class_name = CollectionKey(self, "class_name", None)
+        self.file = CollectionKey(self, "file", None)
+        self.uid = CollectionKey(self, "uid", None)
         return self
     
     def __init__(self, location:str, class_name:str=None, file:str=None, uid:str=None):
