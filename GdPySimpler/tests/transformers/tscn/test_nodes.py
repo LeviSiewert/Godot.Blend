@@ -1,7 +1,7 @@
 from ._utils import _StructureTest
 
 from ....core.nodes import ResourceScene, Node, EditFlag, SignalNotation
-from ....core.subresources import SubResource, SubResourceRef
+from ....core.resources import SubResource, SubResourceRef
 from ....core.structure import ExtResource, ExtResourceRef
 from ....core.values import NodePath, PackedStringArray, Color, Array, PackedByteArray, Dictionary, AABB, PackedByteArray, Vector4
 

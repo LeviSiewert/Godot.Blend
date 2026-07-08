@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Type, Any
 
-from .structure import _Resource, StructContext, GdType, GdValue, ExtResourceCollection
+from .structure import _Resource, StructContext, GdType, GdValue
 from .collections import Key, Reference, Collection
 from .property_collection import PropertyCollection
 from .signals import Signal
@@ -157,3 +157,79 @@ class ResourceTres(_Resource):
             value.ext_resources == self.ext_resources,
             value.sub_resources == self.sub_resources,
         ))
+    
+class ExtResource():
+    context : StructContext
+
+    type : Key[str]
+    uid : Key[str]
+    path : Key[str]
+    id : Key[int]
+
+    def __setup__(self):
+        self.context = StructContext()
+        self.type = Key(self, "type", None)
+        self.uid = Key(self, "uid", None)
+        self.path = Key(self, "path", None)
+        self.id = Key(self, "id", None)
+    
+    def __init__(self, type:str, uid:str, path:str, id:int,):
+        self.__setup__()
+        self.type.set(type)
+        self.uid.set(uid)
+        self.path.set(path)
+        self.id.set(id)
+
+    def __colkeys__(self,):
+        return (
+            self.uid,
+            self.path,
+            self.id,
+            # self.type
+            )
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.type},{self.id},{self.path},{self.id})"
+
+    def __eq__(self, value):
+        if isinstance(value, ExtResource):
+            return all((
+                self.type == value.type,
+                self.uid == value.uid,
+                self.path == value.path,
+                self.id == value.id
+            ))
+        return super().__eq__(value)
+
+class ExtResourceCollection(Collection):
+    unique_keys = ("uid","path","id")
+    # shared_keys = ("type",)
+
+    def key_matcher(self, addr:str):
+        if addr.startswith("res://"):
+            return "path"
+        if addr.startswith("uid://"):
+            return "uid"
+        return "id"
+
+
+
+class ExtResourceRef(Reference, GdValue): 
+    ''' Routed reference ID '''
+    key_categories = ("id",)
+    typing : GdType
+
+    def __init__(self, address=None, cached_value=None, typing=None):
+        self.typing = typing
+        super().__init__(key_id="id", address=address, cached_value=cached_value)
+
+    def __setup__(self):
+        super().__setup__()
+        self.context = StructContext()
+        self.context.callback("resource",self._on_context_updated)
+        
+    def _on_context_updated(self, value:Any):
+        if value is None:
+            self.set_collection(None)
+        else:
+            value : _Resource
+            self.set_collection(value.ext_resources)

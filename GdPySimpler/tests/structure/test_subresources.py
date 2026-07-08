@@ -1,5 +1,5 @@
 from ...core.structure import ExtResource, ExtResourceRef
-from ...core.subresources import *
+from ...core.resources import *
 from ...core.values import StringName, Array
 
 class Test_Subresources():

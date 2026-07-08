@@ -9,7 +9,7 @@ from ...core.nodes import (
     SignalNotation,
     SignalNotationCollection,
 )
-from ...core.subresources import (
+from ...core.resources import (
     ResourceTres, 
     SubResource,
     SubResourceRef,  

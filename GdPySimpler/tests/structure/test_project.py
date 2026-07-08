@@ -2,7 +2,7 @@ from ...core.structure import (
     Project,
 )
 
-from ...core.subresources import (
+from ...core.resources import (
     ResourceTres,
 )
 

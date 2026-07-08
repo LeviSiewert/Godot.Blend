@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Any
 
-from .structure import _Resource, StructContext, ExtResource, ExtResourceRef, ExtResourceCollection, GdType
-from .subresources import SubResource, SubResourceCollection, SubResourceRef
+from .structure import _Resource, StructContext, GdType
+from .resources import SubResource, SubResourceCollection, SubResourceRef, ExtResource, ExtResourceRef, ExtResourceCollection
 
 from .property_collection import PropertyCollection
 from .collections import Collection, Key

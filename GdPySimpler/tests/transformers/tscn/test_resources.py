@@ -1,5 +1,5 @@
 from ._utils import _StructureTest
-from ....core.subresources import ResourceTres, SubResource, SubResourceRef
+from ....core.resources import ResourceTres, SubResource, SubResourceRef
 from ....core.structure import ExtResource, ExtResourceRef
 from ....core.values import NodePath, PackedStringArray, Color, Array, PackedByteArray, Dictionary, AABB, PackedByteArray, Vector4, StringName
 

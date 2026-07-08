@@ -1,279 +1,390 @@
 from __future__ import annotations
-from enum import Enum
+
+from contextvars import ContextVar
+from contextlib import contextmanager
+
 from typing import Type, Any
-from inspect import isclass
+from enum import Enum
 
-from .transformer import Transformer
-from .context import StructContext as _StructContext
-from .collections import Key, Reference, Collection
-from .property_collection import PropertyCollection
-from .signals import Signal
-
-
-from pathlib import Path as _Path
-
-# import fsspec
 from fsspec import AbstractFileSystem
 
+from .context import StructContext as _StructContext
+from .signals import Signal
+
+from .collections import (
+    Key, 
+    Collection as _Collection, 
+    Reference as _Reference,
+)
 
 class StructContext(_StructContext):
-    ''' Structural object, via extends '''
     _slots_ = ("project", "file", "resource", "sub_resource")
-
     project : Project | None
-    file: _File | None
-    resource: _Resource | None
-    sub_resource: Any | None
+    file : _File | None
+    resource : _Resource | None
+    sub_resource : Any | None
 
 class GdValue():
-    ...
+    ''' Base class for all writeable atomic values, prim for isinstance checking '''
+
+class _ContextualReference(_Reference, GdValue):
+    _context_target : str
+    _collection_key : str
+
+    def __setup__(self):
+        self.context = StructContext()
+        self.context.callback(self._context_target, self._on_context_updated)
+
+    def __init__(self, address = None, /, context:StructContext=None, key_id = None, cached_value = None, collection=None):
+        super().__init__(key_id, address, cached_value, collection)
+        self.context.set_extends(context)
+
+    def _on_context_updated(self, ctx_obj:object):
+        if ctx_obj is None:
+            self.set_collection(None)
+        else:
+            self.set_collection(getattr(ctx_obj, self._collection_key))
+
 
 class Project():
     context : StructContext
-
-    path : str
-    settings : _File
-    resources : ResourceCollection
     files : FileCollection
+    resources : ResourceCollection
 
     file_system : AbstractFileSystem
 
-    file_types:tuple[Type[_File]] 
+    disc_file_created : Signal[str]
+    disc_file_deleted : Signal[str]
+    disc_file_updated : Signal[str]
+    disc_file_moved : Signal[str,str]
 
     def __setup__(self):
         self.context = StructContext(project=self)
-        self.resources = ResourceCollection(context=self.context)
-        self.files = FileCollection(context=self.context)
-        return self
-    
-    def __init__(self, file_system:AbstractFileSystem, file_types:tuple[Type[_File]], discover:bool=True):
-        self.__setup__()
+        self.files = FileCollection(self.context)
+        self.resources = ResourceCollection(self.context)
+        
+        self.disc_file_created = Signal(self)
+        self.disc_file_deleted = Signal(self)
+        self.disc_file_updated = Signal(self)
+        self.disc_file_moved = Signal(self)
 
+    def __init__(self, file_system:AbstractFileSystem, file_types:list[Type[_File]], search:bool=True):
+        self.__setup__()
         self.file_system = file_system
         self.file_types = file_types
-
-    def search_disk(self):
-        ''' Check disk against whats in memory '''
-        #TODO
-        pass
-
+        if search:
+            self.search()
 
     @classmethod
-    def construct(cls, /, file_system=None, file_types:tuple[Type[_File]]=tuple(), discover:bool=True, files:list[_File]=None, resources:list[_Resource]=None, **kwargs):
-        self = cls(file_system, file_types, discover=False)
-
-        if files:
-            self.files.extend(files)
-
-        if resources:
-            self.resources.extend(resources)
+    def construct(cls, file_system:AbstractFileSystem=None, file_types:list[Type[_File]]=tuple(), search:bool=False, **kwargs):
+        self = cls(file_system, file_types, search=False)
 
         for k,v in kwargs.items():
             if not hasattr(self,k):
-                raise KeyError("Requires predefition of attribute:", self,k)
-            setattr(self,k,v)
+                raise AttributeError(obj=self, name=k)
+            setattr(self, v)
 
-        if discover:
-            self.search_disk()
+        if search:
+            self.search()
 
         return self
 
+    def search(self):
+        # search file_system, populate self.files, update all uid paths on files.
+        raise NotImplementedError()
 
-    def close(self):
-        self.fs.close()
+    def match_filetype(self, filepath:str)->Type[_File]:
+        ## find first match from self.file_types and return
+        raise NotImplementedError()
 
-class _File[D:str|bytes, R:Any]():
-    ''' File abstraction, IO with collection '''
-    context : StructContext ##NOTE: Attached when added to a collection
-    extensions : tuple[str] = tuple()
+    def filter_folder(self, folder:list[str])->list[str]:
+        ## pass folder through all self.file_types
+        raise NotImplementedError()
+
+
+class _FileMetadata():
+    __slots__ = ("last_imported", "last_exported", "file")
+    file : _File
+
+    last_imported : int|None = None
+    last_exported : int|None = None
+
+    def __init__(self, file:_File):
+        self.file = file
+
+
+class _File():
+    context : StructContext
+    metadata : _FileMetadata
 
     path : Key[str]
+    data : Any|None
 
-    _defer_create : bool = False
-    _defer_create_contents : Any = None
+    lock : ContextVar[bool]
+        # If locked, do not interpret input signals.
+
+    cached_uid : str = None 
+
+
 
     def __setup__(self):
         self.context = StructContext(file=self)
-        self.path = Key(self, "filepath", None)
+        self.context.callback("project", self._on_project_updated)
 
-    def __init__(self, path:_Path):
+        self.lock = ContextVar("locked", default=False)
+        self.metadata = _FileMetadata(self)
+        self.path = Key(self, "path", None)
+        self.data = None
+
+    _project_cached : Project = None
+
+    def _on_project_updated(self, project:Project|None):
+        if self._project_cached:
+            self._project_cached.disc_file_created.disconnect(self._on_disc_created_filter)
+            self._project_cached.disc_file_deleted.disconnect(self._on_disc_deleted_filter)
+            self._project_cached.disc_file_updated.disconnect(self._on_disc_updated_filter)
+            self._project_cached.disc_file_moved.disconnect(self._on_disc_moved_filter)
+        
+        self._project_cached = project
+        if project:
+            self._project_cached.disc_file_created.connect(self._on_disc_created_filter)
+            self._project_cached.disc_file_deleted.connect(self._on_disc_deleted_filter)
+            self._project_cached.disc_file_updated.connect(self._on_disc_updated_filter)
+            self._project_cached.disc_file_moved.connect(self._on_disc_moved_filter)
+        
+
+    def __init__(self, path:str, data:Any=None):
         self.__setup__()
         self.path.set(path)
+        self.data = data
 
     def __colkeys__(self,):
         return (self.path, )
-    
-    def convert_to_disk(self, data:R)->D:
+
+    def get_file_system(self):
+        return self.context.project.file_system
+
+    @contextmanager
+    def locked(self, lock=True, update_meta=False):
+        t = self.lock.set(lock)
+        yield
+        if update_meta:
+            self.update_metadata()
+        t = self.lock.reset(t)
+
+    def update_cached_uid(self,)->str:
+        ''' Fetch the UID from disc, or fetch from res if locked '''
+        #TODO Trigger from file write!
         raise NotImplementedError()
 
-    def convert_fr_disk(self, data:D)->R:
+    def update_metadata(self):
+        ''' Update metadata, assuming just written or changes accepted '''
+        fs = self.get_file_system()
+        #TODO
+        raise NotImplementedError()
+
+
+    def read(self, force=False):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+        self.update_metadata()
+
+
+    def write(self):
+        assert not (self.data is None)
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+    def _on_disc_created_filter(self, fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_created_filter(fp, *args)
+    def _on_disc_created(self, fp):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+            
+
+    def _on_disc_updated_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_updated_filter(fp, *args)
+    def _on_disc_updated(self, fp):
+        fs = self.get_file_system()
         raise NotImplementedError()
     
-    @classmethod
-    def filter_folder(cls, folder:list[str])->list[str]:
-        ''' Filter folder contents for a tree walk. 
-        Allows for ignoring bundled files (ie gltf w /textures /geometry)'''
-        return folder
+
+    def move(self):
+        fs = self.get_file_system()
+        raise NotImplementedError()
     
-    @classmethod
-    def matches_filepath(cls, filepath:str):
-        for k in cls.extensions:
-            if filepath.endswith(k):
-                return True
-        return False
+    def _on_disc_moved_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_moved_filter(fp, *args)
+    def _on_disc_moved(self, fr:str, to:str):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+
+    def delete(self):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
+    def _on_disc_deleted_filter(self,fp:str,*args):
+        if (fp != self.filepath.addr): 
+            return
+        self._on_disc_deleted_filter(fp, *args)
+    def _on_disc_deleted(self,fp):
+        fs = self.get_file_system()
+        raise NotImplementedError()
+
 
     @classmethod
-    def construct(cls, path:str, _defer_write:bool=False, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
+    def construct(cls, path, /, data:Any=None, _defered_write:bool=False, _defered_write_data:Any=None, **kwargs):
         self = cls(path)
 
-        if _defer_write:
-            assert not _defer_create
-            def _create_file(project:Project):
-                project.file_system.write_text(self.path.addr, self.convert_to_disk(self) )
-            self.context.callback("project", _create_file, once=True)
-
-        if _defer_create:
-            assert not (_defer_create_contents is None) 
-            def _create_file(project:Project):
-                project.file_system.write_text(self.path.addr, _defer_create_contents)
-            self.context.callback("project", _create_file, once=True)
+        if not (data is None):
+            self.data = data
 
         for k,v in kwargs.items():
             if not hasattr(self,k):
-                raise KeyError("Requires predefition of attribute:", self,k)
-            setattr(self,k,v)
+                raise AttributeError(obj=self, name=k)
+            setattr(self, v)
+
+        if _defered_write:
+            def _write(prj):
+                if _defered_write_data:
+                    fs = self.get_file_system()
+                    fs.write_text(self.path.add, _defered_write_data)
+                    return
+                self.write()
+            self.context.callback("project", _write, once=True)
 
         return self
-
-class _ResourceFile[T:_Resource](_File):
-
-    data : Reference[T]
-
-    def __setup__(self):
-        super().__setup__()
-        self.data = RID(None,)
         
-        def _update(prj):
-            if prj is None:
-                self.data.set_collection(None)
-            self.data.set_collection(prj.files)
-            
-        self.context.callback("project", _update)
-    
-    def __init__(self, path:_Path, resource:T|str=None):
-        super().__init__(path)
 
-        if isinstance(resource, _Resource):
-            self.data.store_address(resource.uid)
-            self.data.store_value(resource)
-        elif isinstance(resource, str):
-            self.data.store_address(resource)
+class _FileResource(_File):
+    context : StructContext
+    path : Key[str]
+    data : _Reference[str, _Resource]
 
-    def fetch_uid(self,)->str|None:
-        ''' Fetch uid from the file, including defering to secondary files '''
-        # fs = self.context.resource.file_system
-        # fs.readtext(self.path.addr)
-        raise NotImplementedError()
+    def __init__(self, path:str, defer_fetch_uid:bool=True):
+        self.__setup__()
+        self.path.set(path)
+        
+        if defer_fetch_uid:
+            def _update():
+                # Attach disc uid when added to the project, if otherwise not set (usually by function construct)
+                if self.data.get():
+                    return
+                self.update_cached_uid()
+                if self.cached_uid:
+                    self.data.store_address(self.cached_uid)
+            self.context.callback("project", _update, once=True)
 
     @classmethod
-    def construct(cls, path:str, resource:_Resource|str=None, _defer_create:bool=False, _defer_create_contents:bytes|str=None, **kwargs):
-        self = super().construct(path=path, _defer_create=_defer_create, _defer_create_contents=_defer_create_contents, **kwargs)
-
-        if isinstance(resource, _Resource):
-            self.data.store_address(resource.uid)
-            self.data.store_value(resource)
-        elif isinstance(resource, str):
-            self.data.store_address(resource)
+    def construct(cls, path, /, data_or_uid:_Resource|str=None, defer_fetch_uid:bool=True, _defered_write:bool=False, _defered_write_data:Any=None, **kwargs):
+        self = super().construct(path, data=None, _defered_write=_defered_write, _defered_write_data=_defered_write_data)
+        
+        if isinstance(data_or_uid, str):
+            self.data.store_address(data_or_uid)
+            self.cached_uid = data_or_uid
+        elif isinstance(data_or_uid, _Resource):
+            self.data.store_value(data_or_uid)
+            if data_or_uid.uid.addr:
+                self.cached_uid = data_or_uid
 
         return self
 
-class FileCollection(Collection):
-    unique_keys = ("uid", "filepath")
+class FileCollection(_Collection):
+    unique_keys = ("path",)
 
     def key_matcher(self, addr):
-        if addr.startswith("uid://"):
-            return "uid"
-        else:
-            return "filepath"
+        return "path"
+    
+    def get_cached_uid(self, uid:str):
+        raise NotImplementedError()
+    
+    def key_unique_collision_handle(self, left_obj, left_key, right_obj, right_key):
+        raise KeyError("Files cannot be procedurally pathed, rename before appending or otherwise ensure file names do not overlap", left_key.addr, left_obj, right_obj)
 
-class FileRef(Reference):
-    ''' File Reference '''
-    key_categories = ("filepath",)
-
-    def __init__(self, address=None, /, context=None, key_id = None, cached_value = None, collection=None):
-        super().__init__(key_id, address, cached_value, collection)
-        if context:
-            self.context.set_extends(context)
-
-    def __setup__(self):
-        super().__setup__()
-        self.context = StructContext()
-        self.context.callback("project", self._on_context_updated)
-        
-    def _on_context_updated(self, value:Any):
-        if value is None:
-            self.set_collection(None)
-        else:
-            value : Project
-            self.set_collection(value.files)
+class FileRef(_ContextualReference):
+    _context_target : str = "project"
+    _collection_key : str = "files"
 
 
 class _Resource():
-    context : StructContext ##NOTE: Attached when added to a collection
-
-    format : int = 4
-
-    uid : Key[str]
-    file : FileRef
+    context : StructContext
+    uid : Key[str, _FileResource]
+    file : _Reference[str, _FileResource]
     
     def __setup__(self):
-        self.context = StructContext(resource=self)
-        self.uid = Key(self, "uid")
-        self.file = FileRef(None, context=self.context)
-        return self
-    
-    def __init__(self, format:int=None, uid:str=None, file:_File|str=None):
+        self.uid = Key(self, "uid", None)
+        self.context = StructContext(file=self)
+        self.data = ResourceRef(context=self.context)
+
+    def __init__(self, uid=None):
         self.__setup__()
-
-        if format:
-            self.format = format
-        
         self.uid.set(uid)
-        
-        if isinstance(file, _File):
-            self.file.store_addr(file.filepath)
-            self.file.store_value(file)
-        elif isinstance(file, str):
-            self.file.cached_addr = file
 
-class ResourceCollection(Collection):
-    unique_keys = ("uid", "file")
+    @classmethod
+    def construct(cls,):
+        raise NotImplementedError()
 
-class RID(Reference, GdValue):
-    ''' Resource reference '''
-    key_categories = ("uid",)
+    def __colkeys__(self,):
+        return (self.uid, )
+
+    def write(self):
+        assert self.file.get()
+        raise NotImplementedError()
+    
+    def _on_disc_created(self):
+        ## TODO: Signal forwarding from file.
+        ## Uncertain behavior here as
+        raise NotImplementedError()
+    
+    def write_update(self,):
+        assert self.file.get()
+        raise NotImplementedError()
+
+    def _on_disc_updated(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwarded
+        ## Import-dif.
+        raise NotImplementedError()
+    
+    def _on_disc_moved(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwared
+        ## Disc moving should not impact local
+        raise NotImplementedError()
+    
+    def _on_disc_deleted(self,):
+        ## TODO: Signal forwarding from file.
+        ## File lock will prevent this from being forwared
+        ## Unknown desired behavior. Perhaps removal and cleanup of self?
+        raise NotImplementedError()
+
+class ResourceCollection(_Collection):
+    unique_keys = ("uid",)
+
+    def key_matcher(self, addr):
+        return "uid"
+
+class ResourceRef(_ContextualReference):
+    _context_target : str = "project"
+    _collection_key : str = "resources"
+
+
+class RID(ResourceRef):
+    ''' Resource reference with typing, use as GdValue '''
+    _context_target : str = "project"
+    _collection_key : str = "resources"
     typing : GdType
 
-    def __init__(self, address = None, /, key_id = None, cached_value = None, collection=None, typing=None):
-        super().__init__(key_id, address, cached_value, collection)
+    def __init__(self, address=None, /, typing=None, context = None, key_id=None, cached_value=None, collection=None):
+        super().__init__(address, context, key_id, cached_value, collection)
         self.typing = typing
-
-    def __setup__(self):
-        super().__setup__()
-        self.context = StructContext()
-        self.context.callback("project", self._on_context_updated)
-        
-    def _on_context_updated(self, value:Any):
-        if value is None:
-            self.set_collection(None)
-        else:
-            value : Project
-            self.set_collection(value.resources)
-
-
-class ResourceScript(_Resource):
-    pass
-
 
 
 class TypePropDef():
@@ -314,7 +425,7 @@ class GdTypeValueSet():
     def __init__(*args):
         pass
 
-class GdTypeCollection(Collection):
+class GdTypeCollection(_Collection):
     unique_keys = ("class_name", "file", "uid")
     # _type = GdType
 
@@ -327,82 +438,6 @@ class Typing():
     prim : GdType|GdTypeValue|Type|None = None
     contents : tuple[Typing|GdType|GdTypeValue]|None = None
 
-
-class ExtResource():
-    context : StructContext
-
-    type : Key[str]
-    uid : Key[str]
-    path : Key[str]
-    id : Key[int]
-
-    def __setup__(self):
-        self.context = StructContext()
-        self.type = Key(self, "type", None)
-        self.uid = Key(self, "uid", None)
-        self.path = Key(self, "path", None)
-        self.id = Key(self, "id", None)
-    
-    def __init__(self, type:str, uid:str, path:str, id:int,):
-        self.__setup__()
-        self.type.set(type)
-        self.uid.set(uid)
-        self.path.set(path)
-        self.id.set(id)
-
-    def __colkeys__(self,):
-        return (
-            self.uid,
-            self.path,
-            self.id,
-            # self.type
-            )
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.type},{self.id},{self.path},{self.id})"
-
-    def __eq__(self, value):
-        if isinstance(value, ExtResource):
-            return all((
-                self.type == value.type,
-                self.uid == value.uid,
-                self.path == value.path,
-                self.id == value.id
-            ))
-        return super().__eq__(value)
-
-class ExtResourceCollection(Collection):
-    unique_keys = ("uid","path","id")
-    # shared_keys = ("type",)
-
-    def key_matcher(self, addr:str):
-        if addr.startswith("res://"):
-            return "path"
-        if addr.startswith("uid://"):
-            return "uid"
-        return "id"
-
-
-
-class ExtResourceRef(Reference, GdValue): 
-    ''' Routed reference ID '''
-    key_categories = ("id",)
-    typing : GdType
-
-    def __init__(self, address=None, cached_value=None, typing=None):
-        self.typing = typing
-        super().__init__(key_id="id", address=address, cached_value=cached_value)
-
-    def __setup__(self):
-        super().__setup__()
-        self.context = StructContext()
-        self.context.callback("resource",self._on_context_updated)
-        
-    def _on_context_updated(self, value:Any):
-        if value is None:
-            self.set_collection(None)
-        else:
-            value : _Resource
-            self.set_collection(value.ext_resources)
 
 
 
