@@ -213,25 +213,25 @@ class Transformer():
             elif isgenerator(child_set):
                 # _c = deepcopy(c)
                 def _call_transform(val):
-                    return c.transformer.get().transform_tree(c,val)
+                    return c.transformer.get()._transform_tree(c,val)
                 _t = c.children.set(TStream(child_set, caching=True).iter(_call_transform))
 
             elif isinstance(child_set, _TransformerCmd):
                 # _c = deepcopy(c)
                 def _call_transform(val):
-                    return c.transformer.get().transform_tree(c,val)
+                    return c.transformer.get()._transform_tree(c,val)
                 _t = c.children.set(child_set.iter(_call_transform))
             
             elif isinstance(child_set, dict):
                 res = {}
                 for k,v in child_set.items():
-                    res[k] = c.transformer.get().transform_tree(c,v)
+                    res[k] = c.transformer.get()._transform_tree(c,v)
                 _t = c.children.set(res)
 
             elif hasattr(child_set, "__iter__"):
                 res = []
                 for v in child_set:
-                    res.append(c.transformer.get().transform_tree(c,v))
+                    res.append(c.transformer.get()._transform_tree(c,v))
                 _t = c.children.set(res)
 
             else:
