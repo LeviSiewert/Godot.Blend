@@ -28,7 +28,7 @@ class BlenderPytestAttr():
     @classmethod
     @contextmanager
     def temp_attr(cls,):
-        NotImplementedError()
+        raise NotImplementedError()
         yield
 
     @classmethod

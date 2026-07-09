@@ -29,20 +29,30 @@ class GdPropertyCollection(_PointerCollection):
 
 
 class GdDictionary(_BlPointerDictionary):
-    _subtypes = ("Dictionary",)
-    subtype = "Dictionary"
+    _subtypes = ("Dictionary", "Object")
+    subtype : bpy.props.StringProperty(default="Dictionary") #type:ignore
     typing : bpy.props.StringProperty() #type:ignore
+    objtype : bpy.props.StringProperty() #type:ignore
+
+    def _set_subtype_fr_val(self,val):
+        subtype = val.__class__.__name__
+        if subtype in self._subtypes:
+            self.subtype = subtype
 
     ##TODO: Draw
 
 
 class GdArray(_BlPointerArray):
-    _subtypes = ("Array",)
-    subtype = "Array"
+    _subtypes = ("Array", "PackedInt32Array", "PackedInt64Array", "PackedFloat32Array", "PackedFloat64Array", "PackedStringArray", "PackedVector2Array", "PackedVector3Array", "PackedVector4Array", "PackedColorArray", "PackedByteArray",)
+    subtype : bpy.props.StringProperty(default="Array") #type:ignore
     typing : bpy.props.StringProperty() #type:ignore
 
-    ##TODO: Draw
+    def _set_subtype_fr_val(self,val):
+        subtype = val.__class__.__name__
+        if subtype in self._subtypes:
+            self.subtype = subtype
 
+    ##TODO: Draw
 
 class GdReference(bpy.types.PropertyGroup):
     _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
@@ -72,9 +82,10 @@ class GdReference(bpy.types.PropertyGroup):
 
 
 class GdPrimitive(bpy.types.PropertyGroup):
-    _subtypes = ("StringName", "str", "int", "float", "bool", "None")
+    _subtypes = ("NodePath","StringName", "str", "int", "float", "bool", "None")
     subtype : bpy.props.StringProperty() #type:ignore
 
+    val_nodepath : bpy.props.StringProperty() #type:ignore
     val_stringname : bpy.props.StringProperty() #type:ignore
     val_str : bpy.props.StringProperty() #type:ignore
     val_int : bpy.props.IntProperty() #type:ignore

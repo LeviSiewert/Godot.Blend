@@ -1,6 +1,8 @@
 import bpy
 import pytest
 
+from contextlib import contextmanager
+
 from .....GdPy.tests.transformers.tscn.test_values import (
     Test_NodePath as _NodePath,
     Test_StringName as _StringName,
@@ -61,6 +63,11 @@ def data(x):
 class Test_PropertyCollection(BlenderPytestAttr):
     property_type = bpy.props.PointerProperty(type=BlGdPropertyCollection)
 
+    @contextmanager
+    def temp_attr(self,):
+        yield self.get_attr()
+
+
     @pytest.mark.parametrize("pydata",[
             *data(_NodePath),
             *data(_StringName),
@@ -96,11 +103,14 @@ class Test_PropertyCollection(BlenderPytestAttr):
     def test_round_trip(self, pydata):        
         with self.temp_attr() as bl_properties:
             bl_properties : BlGdPropertyCollection
+            
             c = PyToBlContext()
             c.existing_object.set(bl_properties)
+            py_to_bl_transformer.transform_tree(c, PyPropertyCollection({"testattr":pydata}.items()))
             
 
-            py_to_bl_transformer.transform_tree(c, PyPropertyCollection({"testattr":pydata}.items()))
-            res = bl_to_py_transformer.transform_tree(BlToPyContext(), bl_properties)
+            c = BlToPyContext()
+            c.existing_object.set(bl_properties)
+            res = bl_to_py_transformer.transform_tree(c, bl_properties)
 
             assert pydata == res
