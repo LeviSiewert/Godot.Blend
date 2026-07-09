@@ -105,12 +105,25 @@ class _GenericBinItem(bpy.types.PropertyGroup):
 
 class GdReference(_GenericBinItem):
     _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
-    _caster = lambda x: x.addr
+    _caster = lambda x: x.cached_addr
     _cast_types = {"ExtResourceRef":_caster, "SubResourceRef":_caster, "RID":_caster, "ResourceRef":_caster}
 
     typing : bpy.props.StringProperty() #type:ignore
 
     val_str : bpy.props.StringProperty() #type:ignore
+
+    @property
+    def value(self,):
+        if (self.subtype == "None"):
+            return None
+        return getattr(self, "val_str")
+    
+    @value.setter
+    def value(self, v):
+        if v is None:
+            self.subtype = "None"
+            return
+        self["val_str"] = self._cast(v)
 
 
 class GdPrimitive(_GenericBinItem):

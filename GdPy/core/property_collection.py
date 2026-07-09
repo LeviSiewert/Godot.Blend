@@ -13,8 +13,8 @@ class PropertyCollection(UserDict):
     pinned : list[str]
 
     def __init__(self, iterable=tuple(), /, context:StructContext=None,):
-        super().__init__(iterable)
         self.context = StructContext(extends=context)
+        super().__init__(iterable)
 
     def __missing_key__(self, key)->Any:
         if not self.overlay is None:

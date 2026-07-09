@@ -75,7 +75,7 @@ class Array(UserList, GdValue):
     
 
 class _FixedLenArray(GdValue):
-    val : array
+    val : array = None
     _type_str : str = "f"
     _types = (int, float,)
     _len: int = 0
@@ -92,7 +92,7 @@ class _FixedLenArray(GdValue):
         yield from self.val
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({list(self.val).__repr__().strip("[]")})"
+        return f"{self.__class__.__name__}({self.val.__repr__()})"
 
 class Vector2i(_FixedLenArray):
     _type_str : str = "i"
@@ -137,6 +137,11 @@ class Transform3D(_FixedLenArray):
     _len = 12
 class Basis(_FixedLenArray): 
     _len = 9
+    def __init__(self, *args):
+        if len(args) == 3:
+            super().__init__(*args[0],*args[1],*args[2])
+            return
+        super().__init__(*args)
 
 
 class _PackedListSimple(UserList, GdValue):

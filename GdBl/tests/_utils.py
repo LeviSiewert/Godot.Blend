@@ -25,9 +25,8 @@ class BlenderPytestAttr():
     property_name : str = "TESTATTR"
     mount_onto : Any = bpy.types.Scene
 
-    @classmethod
     @contextmanager
-    def temp_attr(cls,):
+    def temp_attr(self,):
         raise NotImplementedError()
         yield
 

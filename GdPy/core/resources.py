@@ -9,38 +9,41 @@ from .signals import Signal
 class SubResource():
     context : StructContext
     owner : _Resource|None = None
-    id : CollectionKey[str]
-
     format : int = 3
-    type : GdType|None = None
-    
+
+    id : CollectionKey[str]
+    type : str = ""
+    script_type : str = ""
+    properties : PropertyCollection
+
+    ##FUTURE:
     instance : _Resource = None
     instance_editable : bool = False
-
     overlay : SubResource|None = None
     overlay_is_thin : bool = False
     
-    properties : PropertyCollection
-
     def __setup__(self):
         self.context = StructContext(sub_resource=self)
         self.id = CollectionKey(self, "id", None)
         self.properties = PropertyCollection()
         return self
 
-    def __init__(self, /, type:str=None, format:int=None, id:str=None):
+    def __init__(self, /, type:str=None, script_type:str=None, format:int=None, id:str=None):
         self.__setup__()
         if not (id is None):
             self.id.set(id)
         if format:
             self.format = format
-        self.type = type
+        if type:
+            self.type = type
+        if script_type:
+            self.script_type = script_type
     
     def __colkeys__(self,)->tuple[CollectionKey]:
         return (self.id,)
 
     @classmethod
-    def construct(cls, id:str=None, /, type:str=None, format:int=None, properties:dict=None, _defered_apply_owner:bool=False, **kwargs):
+    def construct(cls, id:str=None, type:str=None, format:int=None, properties:dict=None, _defered_apply_owner:bool=False, **kwargs):
         self = cls(id=id, type=type, format=format)
         if properties:
             self.properties.update(properties)
@@ -69,6 +72,9 @@ class SubResource():
             value.properties == self.properties,
             value.instance_editable == self.instance_editable,
         ))
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.id} {self.type})"
 
 class SubResourceCollection(Collection):
     unique_keys = ("id",)
@@ -101,10 +107,10 @@ class SubResourceRef(Reference, GdValue):
 from .structure import FileRef
 
 class ResourceTres(_Resource):
-    type : GdType|None|str = None
-    format : int = None
-    script : str = None #TEMP! resolve to from typing eventually w/a
-    script_class : str = None #TEMP! resolve to from typing eventually w/a
+    type : GdType|None|str = ""
+    format : int = ""
+    script : str = "" #TEMP! resolve to from typing eventually w/a
+    script_class : str = "" #TEMP! resolve to from typing eventually w/a
     
     properties : PropertyCollection
     ext_resources : ExtResourceCollection # Contextual re-mapping, req stability for diffing, export should trim based on ref count.
@@ -153,6 +159,16 @@ class ResourceTres(_Resource):
     def __eq__(self, value):
         if not isinstance(value, ResourceTres):
             return super().__eq__(value)
+
+        assert value.type == self.type
+        assert value.format == self.format
+        assert value.script == self.script
+        assert value.script_class == self.script_class
+        assert value.properties == self.properties
+
+        assert value.ext_resources == self.ext_resources
+        assert value.sub_resources == self.sub_resources
+
         return all((
             value.type == self.type,
             value.format == self.format,
@@ -162,7 +178,11 @@ class ResourceTres(_Resource):
             value.ext_resources == self.ext_resources,
             value.sub_resources == self.sub_resources,
         ))
-    
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}( {self.uid.addr} {self.format} {self.script} {self.script_class} exts:{len(self.ext_resources)} ress:{len(self.sub_resources)} props:{len(self.properties)} )"
+
+
 class ExtResource():
     context : StructContext
 

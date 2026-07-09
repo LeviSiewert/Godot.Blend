@@ -7,6 +7,7 @@ class PyToBlContext(Context):
         super().__init__()
         self.existing_object = ContextVar("existing_object", default=None)
         self.property_collection = ContextVar("property_collection", default=None)
+        self.collection = ContextVar("collection", default=None)
 
 
 PyToBlTransformer = Transformer
@@ -21,6 +22,7 @@ class BlToPyContext(Context):
         super().__init__()
         self.existing_object = ContextVar("existing_object", default=None)
         self.property_collection = ContextVar("property_collection", default=None)
+        self.collection = ContextVar("collection", default=None)
 
 BlToPyTransformer = Transformer
 

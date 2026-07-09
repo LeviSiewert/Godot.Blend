@@ -118,7 +118,7 @@ class CollectionKey[ADDR:Any, I:Item]():
             self.set(self.collection.addr_generate(self.key_id))
 
     def __eq__(self, value):
-        if isinstance(value, Key):
+        if isinstance(value, CollectionKey):
             return all((
                 self.addr == value.addr,
                 self.key_id == value.key_id,
@@ -216,7 +216,7 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         return default
 
     def remove(self,item:I):
-        idx = self.find(self,item,None)
+        idx = self.find(item,None)
         if idx is None:
             raise KeyError(item)
         obj,keys = self.data.pop(idx)
@@ -349,5 +349,21 @@ class Collection[I:Item, ADDR:str|Any, V:Item]():
         return self.set(key, val)
     
     def __iter__(self):
+        for o,d in self.data:
+            yield o
+
+    def __len__(self):
+        return len(self.data)
+    
+    def clear(self,):
+        for o,d in self.data:
+            self.remove(o)
+
+    def __eq__(self, value):
+        if not isinstance(value, Collection):
+            return super().__eq__(value)
+        return sorted((*self.values(),)) == sorted((*value.values(),)) 
+    
+    def values(self):
         for o,d in self.data:
             yield o

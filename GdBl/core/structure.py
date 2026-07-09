@@ -20,21 +20,29 @@ class GdSceneExportSettings(bpy.types.PropertyGroup):
 class GdScene(bpy.types.PropertyGroup):
     export_settings : bpy.props.PointerProperty(type=GdSceneExportSettings) #type:ignore
     
-    file : str
-    uid : str
+    type : bpy.props.StringProperty() #type:ignore
+    file : bpy.props.StringProperty() #type:ignore
+    uid : bpy.props.StringProperty() #type:ignore
 
     root_node : bpy.props.PointerProperty(type=bpy.types.Object) #type:ignore
     sub_resources : bpy.props.CollectionProperty(type=SubResource) #type:ignore
     ext_resources : bpy.props.CollectionProperty(type=ExtResource) #type:ignore
+    # properties : bpy.props.PointerProperty(type=GdPropertyCollection) #type:ignore
     #edit_flags ## Generated at export time.
 
 
 class GdResource(bpy.types.PropertyGroup):
-    file : str
-    uid : str
+    file : bpy.props.StringProperty() #type:ignore
+    uid : bpy.props.StringProperty() #type:ignore
+
+    format : bpy.props.IntProperty() #type:ignore
+    type : bpy.props.StringProperty() #type:ignore
+    script_class : bpy.props.StringProperty() #type:ignore
     
     sub_resources : bpy.props.CollectionProperty(type=SubResource) #type:ignore
     ext_resources : bpy.props.CollectionProperty(type=ExtResource) #type:ignore
+    properties : bpy.props.PointerProperty(type=GdPropertyCollection) #type:ignore
+
     #edit_flags ## Generated at export time.
 
 
@@ -47,6 +55,7 @@ class GdNode(bpy.types.PropertyGroup):
 class SubResource(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty() #type:ignore
     type : bpy.props.StringProperty() #type:ignore
+    script_type : bpy.props.StringProperty() #type:ignore
     
     properties : bpy.props.PointerProperty(type=GdPropertyCollection) #type:ignore
 

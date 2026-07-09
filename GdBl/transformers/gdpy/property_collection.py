@@ -119,7 +119,7 @@ class PyToBl_Reference(PyToBlModule):
     
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
-        obj, ptr = propcol.store_value(node.addr, bin_id="bin_reference")
+        obj, ptr = propcol.store_value(node, bin_id="bin_reference")
         return ptr
     
 class BlToPy_Reference(BlToPyModule):
