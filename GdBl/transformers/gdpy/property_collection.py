@@ -35,6 +35,16 @@ from ....GdPy.core.values import (
     PackedByteArray as PyPackedByteArray,
 )
 
+from ....GdPy.core.structure import(
+    ResourceRef as PyResourceRef,
+    RID as PyRID,
+)
+
+from ....GdPy.core.resources import(
+    ExtResourceRef as PyExtResourceRef,
+    SubResourceRef as PySubResourceRef,
+)
+
 from ...core.property_collection import (
     GdDictionary as BlGdDictionary,
     GdArray as BlGdArray,
@@ -60,13 +70,41 @@ from ._transformer import (
 
 
 
-class PyToBl_Values(PyToBlModule):
-    _keys = (PyNodePath, PyStringName, PyObject, PyVector2i, PyVector3i, PyVector4i, PyRect2i, PyVector2, PyVector3, PyVector4, PyRect2, PyPlane, PyColor, PyAABB, PyQuaternion, PyTransform2D, PyTransform3D, PyBasis, PyPackedInt32Array, PyPackedInt64Array, PyPackedFloat32Array, PyPackedFloat64Array, PyPackedStringArray, PyPackedVector2Array, PyPackedVector3Array, PyPackedVector4Array, PyPackedColorArray, PyPackedByteArray)
+class BlToPy_Primitive(BlToPyModule):
+    _keys = (BlGdPrimitive,)
     def transform(self, c, node):
+        propcol = c.property_collection.get()
         raise NotImplementedError(c.key.get())
 
-class BlToPy_Values(BlToPyModule):
-    _keys = (BlGdPrimitive, BlGdVector, BlGdReference)
+class PyToBl_Primitive(PyToBlModule):
+    _keys = (PyStringName, str, int, float, bool, None)
+    def transform(self, c, node):
+        propcol = c.property_collection.get()
+        raise NotImplementedError(c.key.get())
+
+
+class BlToPy_Vector(BlToPyModule):
+    _keys = (BlGdVector,)
+    def transform(self, c, node):
+        propcol = c.property_collection.get()
+        raise NotImplementedError(c.key.get())
+
+class PyToBl_Vector(PyToBlModule):
+    _subtypes = (PyVector2, PyVector3, PyVector4, PyRect2, PyPlane, PyColor, PyAABB, PyQuaternion, PyBasis, PyTransform2D, PyTransform3D, PyVector2i, PyVector3i,PyVector4i, PyRect2i)
+
+    def transform(self, c, node):
+        propcol = c.property_collection.get()
+        raise NotImplementedError(c.key.get())
+
+
+class BlToPy_Reference(BlToPyModule):
+    _keys = (BlGdReference,)
+    def transform(self, c, node):
+        propcol = c.property_collection.get()
+        raise NotImplementedError(c.key.get())
+
+class PyToBl_Reference(PyToBlModule):
+    _keys = (PyExtResourceRef, PySubResourceRef, PyRID, PyResourceRef)
     def transform(self, c, node):
         propcol = c.property_collection.get()
         raise NotImplementedError(c.key.get())
