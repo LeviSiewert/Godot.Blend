@@ -12,6 +12,7 @@ PyToBlTransformer = Transformer
 
 PyToBlRuleset = TransformerRuleset
 
+PyToBlModule = TransformerModule
 
 
 BlToPyContext = Context
@@ -19,3 +20,5 @@ BlToPyContext = Context
 BlToPyTransformer = Transformer
 
 BlToPyRuleset = TransformerRuleset
+
+BlToPyModule = TransformerModule
