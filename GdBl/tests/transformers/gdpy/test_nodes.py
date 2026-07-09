@@ -58,21 +58,19 @@ class _BlenderConstructedTest(BlenderPytest):
         assert base == res
 
     def test_py_to_bl(self,):
-        bl_subres = self.get_attr()
-        for py_subres,_ in self.data():
+        for py_subres, _ in self.data():
             
             c = self.py_to_bl_context()
 
-            py_to_bl_transformer.transform_tree(c, py_subres)
+            bl_subres = py_to_bl_transformer.transform_tree(c, py_subres)
 
             self.py_bl_compare(bl_subres, py_subres)
 
     def test_bl_to_py(self,):
-        bl_subres = self.get_attr()
         for _, make in self.data():
-            with self.temp_make(make) as obj:
+            with self.temp_make(make) as bl_subres:
 
-                res = bl_to_py_transformer.transform_tree(BlToPyContext(), obj)
+                res = bl_to_py_transformer.transform_tree(BlToPyContext(), bl_subres)
 
                 self.py_bl_compare(bl_subres, res)
     
@@ -113,7 +111,7 @@ class Test_Node(_BlenderConstructedTest):
     def compare_round_trip(base:PyNode, res:PyNode):
         assert base == res
 
-    def data():
+    def data(self,):
         res = PyNode.construct(
             "Node",
             unique_id=999999999,
@@ -123,7 +121,7 @@ class Test_Node(_BlenderConstructedTest):
             properties={}
         )
         @contextmanager
-        def _make(obj : bpy.types.object):
+        def _make(obj : bpy.types.Object):
             obj.name = "Node.001"
             gd : BlGdNode = obj.gd
             gd.id = 999999999
@@ -152,7 +150,9 @@ class Test_ResourceScene(_BlenderConstructedTest):
     def data(self,):        
         scene = PyResourceScene.construct("uid://abc",
             file = "res://abc",
-            nodes=[],
+            nodes=[
+                PyNode.construct("Node")
+            ],
             ext_resources=[],
             sub_resources=[],
         )
