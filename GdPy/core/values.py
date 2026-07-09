@@ -11,8 +11,12 @@ class NodePath(UserString, GdValue):
         self._typing = typing
         super().__init__(value)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__()})"
+    
 class StringName(UserString, GdValue):
-    ...
+    def __repr__(self):
+        return f'&{super().__repr__()}'
 
 class Object(GdValue):
     type : str
@@ -40,6 +44,9 @@ class Dictionary(OrderedDict, GdValue):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         return super().__setitem__(key, value)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__().strip("{}")})"
+
 class Array(UserList, GdValue):
     typing : GdTypeValueSet 
 
@@ -56,6 +63,9 @@ class Array(UserList, GdValue):
         if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         return super().__setitem__(key, value)
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
     
 
 class _FixedLenArray(GdValue):
@@ -74,6 +84,9 @@ class _FixedLenArray(GdValue):
         return self.val == other
     def __iter__(self):
         yield from self.val
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({list(self.val).__repr__().strip("[]")})"
 
 class Vector2i(_FixedLenArray):
     _type_str : str = "i"
@@ -127,6 +140,9 @@ class _PackedListSimple(UserList, GdValue):
             l.append(self._types[0](v))
         self.data = l
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+
 class PackedInt32Array(_PackedListSimple):
     _types = (int,)
 class PackedInt64Array(_PackedListSimple):
@@ -161,6 +177,9 @@ class _PackedListComplex(UserList, GdValue):
                 yield ty(*values.pop(0))
             else:
                 raise TypeError("Could not cast input to types", _value, ty)
+            
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
 
 class PackedVector2Array(_PackedListComplex):
     _type = Vector2
@@ -176,3 +195,6 @@ class PackedColorArray(_PackedListComplex):
 class PackedByteArray(bytearray, GdValue): 
     def __init__(self, string, /, encoding="utf-8", errors = "strict"):
         super().__init__(string, encoding, errors)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
