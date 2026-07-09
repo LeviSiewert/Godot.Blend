@@ -65,56 +65,65 @@ class Test_PropertyCollection(BlenderPytestAttr):
 
     @contextmanager
     def temp_attr(self,):
-        yield self.get_attr()
+        try:
+            yield self.get_attr()
+        except:
+            self.get_attr().clear()
+            raise
+        self.get_attr().clear()
 
-    @pytest.mark.parametrize("pydata",[
-            *data(_Array),
-            *data(_Vector2i),
-            *data(_Vector3i),
-            *data(_Vector4i),
-            *data(_Rect2i),
-            *data(_Vector2),
-            *data(_Vector3),
-            *data(_Vector4),
-            *data(_Rect2),
-            *data(_Plane),
-            *data(_Color),
-            *data(_AABB),
-            *data(_Quaternion),
-            *data(_Transform2D),
-            *data(_Transform3D),
-            *data(_Basis),
-    ])
+    _arrays =[ 
+        *data(_Array),
+        *data(_Vector2i),
+        *data(_Vector3i),
+        *data(_Vector4i),
+        *data(_Rect2i),
+        *data(_Vector2),
+        *data(_Vector3),
+        *data(_Vector4),
+        *data(_Rect2),
+        *data(_Plane),
+        *data(_Color),
+        *data(_AABB),
+        *data(_Quaternion),
+        *data(_Transform2D),
+        *data(_Transform3D),
+        *data(_Basis),
+    ]
+    _packedarrays = [
+        *data(_PackedInt32Array),
+        *data(_PackedInt64Array),
+        *data(_PackedFloat32Array),
+        *data(_PackedFloat64Array),
+        *data(_PackedStringArray),
+        *data(_PackedVector2Array),
+        *data(_PackedVector3Array),
+        *data(_PackedVector4Array),
+        *data(_PackedColorArray),
+        # *data(_PackedByteArray),
+    ]
+    _dicts = [            
+        *data(_Object),
+        *data(_Dictionary),
+    ]
+    _simples = [
+        *data(_NodePath),
+        *data(_StringName),
+    ]
+
+    @pytest.mark.parametrize("pydata", _arrays)
     def test_round_trip_arrays(self,pydata):
         self._round_trip(pydata)
 
-    @pytest.mark.parametrize("pydata",[
-            *data(_PackedInt32Array),
-            *data(_PackedInt64Array),
-            *data(_PackedFloat32Array),
-            *data(_PackedFloat64Array),
-            *data(_PackedStringArray),
-            *data(_PackedVector2Array),
-            *data(_PackedVector3Array),
-            *data(_PackedVector4Array),
-            *data(_PackedColorArray),
-            # *data(_PackedByteArray),
-    ])
+    @pytest.mark.parametrize("pydata",_packedarrays)
     def test_round_trip_packedarrays(self,pydata):
         self._round_trip(pydata)
 
-    @pytest.mark.parametrize("pydata",[
-            *data(_Object),
-            *data(_Dictionary),
-    ])
+    @pytest.mark.parametrize("pydata", _dicts)
     def test_round_trip_dicts(self,pydata):
         self._round_trip(pydata)
 
-
-    @pytest.mark.parametrize("pydata",[
-            *data(_NodePath),
-            *data(_StringName),
-    ])
+    @pytest.mark.parametrize("pydata",_simples)
     def test_round_trip_simples(self,pydata):
         self._round_trip(pydata)
 
@@ -126,9 +135,11 @@ class Test_PropertyCollection(BlenderPytestAttr):
             c.existing_object.set(bl_properties)
             py_to_bl_transformer.transform_tree(c, PyPropertyCollection({"testattr":pydata}.items()))
             
+            assert len(bl_properties) == 1
+            assert bl_properties.get("testattr", wrap=False).subtype == pydata.__class__.__name__
 
             c = BlToPyContext()
             c.existing_object.set(bl_properties)
             res = bl_to_py_transformer.transform_tree(c, bl_properties)
 
-            assert pydata == res
+            assert pydata == res["testattr"]

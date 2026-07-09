@@ -38,6 +38,8 @@ class GdDictionary(_BlPointerDictionary):
         subtype = val.__class__.__name__
         if subtype in self._subtypes:
             self.subtype = subtype
+            return
+        raise KeyError(subtype, val)
 
     ##TODO: Draw
 
@@ -51,28 +53,49 @@ class GdArray(_BlPointerArray):
         subtype = val.__class__.__name__
         if subtype in self._subtypes:
             self.subtype = subtype
+            return
+        raise KeyError(subtype, val)
 
     ##TODO: Draw
 
-class GdReference(bpy.types.PropertyGroup):
-    _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
-    typing : bpy.props.StringProperty() #type:ignore
-    subtype : bpy.props.StringProperty() #type:ignore
 
-    val_str : bpy.props.StringProperty() #type:ignore
+class _GenericBinItem(bpy.types.PropertyGroup):
+    _subtypes : tuple[str] = tuple()
+    _cast_types : dict[str,callable] = {}
+    subtype : bpy.props.StringProperty() #type:ignore
+    _val_prefix : str = ""
+
+    def _cast(self,v):
+        self._set_subtype_fr_val(v)
+        if hasattr(v,"typing"):
+            self.typing = str(v.typing)
+        if cast:=self._cast_types.get(self.subtype,None):
+            return cast(v) 
+        return v 
 
     def _set_subtype_fr_val(self,val):
         subtype = val.__class__.__name__
         if subtype in self._subtypes:
             self.subtype = subtype
+            return
+        raise KeyError(subtype, val)
+
+    def set_value(self, val):
+        self.value = val
 
     @property
-    def value(self, v):
-        self._set_subtype_fr_val(v)
-        self.val_str = v
-    @value.getter
     def value(self,):
-        return self.val_str
+        if (self.subtype == "None"):
+            return None
+        return getattr(self, self._val_prefix+self.subtype.lower())
+    
+    @value.setter
+    def value(self, v):
+        if v is None:
+            self.subtype = "None"
+            return
+        self[self._val_prefix+self.subtype.lower()] = self._cast(v)
+        # setattr(self, self._val_prefix+self.subtype.lower(), self._cast(v))
 
     def draw(self, layout):
         if self.subtype:
@@ -80,10 +103,20 @@ class GdReference(bpy.types.PropertyGroup):
         else:
             pass
 
+class GdReference(_GenericBinItem):
+    _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
+    _caster = lambda x: x.addr
+    _cast_types = {"ExtResourceRef":_caster, "SubResourceRef":_caster, "RID":_caster, "ResourceRef":_caster}
 
-class GdPrimitive(bpy.types.PropertyGroup):
+    typing : bpy.props.StringProperty() #type:ignore
+
+    val_str : bpy.props.StringProperty() #type:ignore
+
+
+class GdPrimitive(_GenericBinItem):
     _subtypes = ("NodePath","StringName", "str", "int", "float", "bool", "None")
-    subtype : bpy.props.StringProperty() #type:ignore
+    _cast_types = {"NodePath":str, "StringName":str}
+    _val_prefix = "val_"
 
     val_nodepath : bpy.props.StringProperty() #type:ignore
     val_stringname : bpy.props.StringProperty() #type:ignore
@@ -93,30 +126,15 @@ class GdPrimitive(bpy.types.PropertyGroup):
     val_bool : bpy.props.BoolProperty() #type:ignore
     val_none = None
 
-    def _set_subtype_fr_val(self,val):
-        subtype = val.__class__.__name__
-        if subtype in self._subtypes:
-            self.subtype = subtype
 
-    @property
-    def value(self, v):
-        self._set_subtype_fr_val(v)
-        if v is None: return
-        setattr(self, "val_"+self.subtype.lower(), v)
-    @value.getter
-    def value(self,):
-        return getattr(self, "val_"+self.subtype.lower())
-
-    def draw(self, layout):
-        if self.subtype:
-            layout.prop(self, self.subtype)
-        else:
-            pass
-
-class GdVector(bpy.types.PropertyGroup):
+class GdVector(_GenericBinItem):
     _subtypes = ("Vector2", "Vector3", "Vector4", "Rect2", "Plane", "Color", "AABB", "Quaternion", "Basis", "Transform2D", "Transform3D", "Vector2i", "Vector3i", "Vector4i", "Rect2i")
-    subtype : bpy.props.StringProperty() #type:ignore
     
+    def _cast(self,v):
+        self._set_subtype_fr_val(v)
+        return tuple(v)
+         
+
     vector2 : bpy.props.FloatVectorProperty(size = 2) #type:ignore
     vector3 : bpy.props.FloatVectorProperty(size = 3) #type:ignore
     vector4 : bpy.props.FloatVectorProperty(size = 4) #type:ignore
@@ -134,25 +152,6 @@ class GdVector(bpy.types.PropertyGroup):
     vector3i : bpy.props.IntVectorProperty(size=3) #type:ignore
     vector4i : bpy.props.IntVectorProperty(size=4) #type:ignore
     rect2i : bpy.props.IntVectorProperty(size=4) #type:ignore
-
-    def _set_subtype_fr_val(self,val):
-        subtype = val.__class__.__name__
-        if subtype in self._subtypes:
-            self.subtype = subtype
-
-    @property
-    def value(self, v):
-        self._set_subtype_fr_val(v)
-        setattr(self, self.subtype.lower(), v)
-    @value.getter
-    def value(self,):
-        return getattr(self, self.subtype.lower())
-
-    def draw(self, layout):
-        if self.subtype:
-            layout.prop(self, self.subtype)
-        else:
-            pass
 
 
 from .primitives.pointer_collection import (

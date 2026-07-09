@@ -31,4 +31,4 @@ class PropertyCollection(UserDict):
         return res
         
     def __repr__(self):
-        return f"{self._class__.__name__}({super().__repr__().strip("{}")})"
+        return f"{self.__class__.__name__}({super().__repr__().strip("{}")})"

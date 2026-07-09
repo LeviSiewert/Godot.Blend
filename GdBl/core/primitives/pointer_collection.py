@@ -326,6 +326,8 @@ class PointerCollection(bpy.types.PropertyGroup):
 
         return res
                 
+    def __len__(self):
+        return len(self.properties)
 
     # def _get_sub_pointers(self, ptr:str, _explored:list=None)->list[str]:
     #     if _explored is None:

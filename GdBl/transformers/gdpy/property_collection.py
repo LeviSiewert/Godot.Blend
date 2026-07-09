@@ -75,7 +75,7 @@ class PyToBl_Primitive(PyToBlModule):
     _keys = (PyNodePath, PyStringName, str, int, float, bool, None)
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
-        obj, ptr = propcol.store_value(val=node, bin_id="bin_primitive")
+        obj, ptr = propcol.store_value(node, bin_id="bin_primitive")
         return ptr
 
 class BlToPy_Primitive(BlToPyModule):
@@ -85,7 +85,15 @@ class BlToPy_Primitive(BlToPyModule):
     def transform(self, c, node:BlGdPrimitive):
         if cls := self._subtype_map.get(node.subtype, None):
             return cls(node.value)
+        if node.subtype == "":
+            raise Exception("unset value!")
         return node.value
+
+class BlToPy_Terminals(BlToPyModule):
+    _keys = (str, int, float, bool, None,)
+    def transform(self, c, node):
+        return node
+
 
 
 class PyToBl_Vector(PyToBlModule):
@@ -93,16 +101,16 @@ class PyToBl_Vector(PyToBlModule):
 
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
-        obj, ptr = propcol.store_value(val=node, bin_id="bin_vector")
+        obj, ptr = propcol.store_value(node, bin_id="bin_vector")
         return ptr
 
 class BlToPy_Vector(BlToPyModule):
     _keys = (BlGdVector,)
-    _subtype_map = {x.__class__.__name__:x for x in PyToBl_Vector._keys} 
+    _subtype_map = {x.__name__:x for x in PyToBl_Vector._keys} 
 
     def transform(self, c, node:BlGdPrimitive):
         if cls := self._subtype_map.get(node.subtype, None):
-            return cls(node.value)
+            return cls(*node.value)
         return node.value
 
 
@@ -111,12 +119,12 @@ class PyToBl_Reference(PyToBlModule):
     
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
-        obj, ptr = propcol.store_value(val=node.addr, bin_id="bin_reference")
+        obj, ptr = propcol.store_value(node.addr, bin_id="bin_reference")
         return ptr
     
 class BlToPy_Reference(BlToPyModule):
     _keys = (BlGdReference,)
-    _subtype_map = {x.__class__.__name__:x for x in PyToBl_Reference._keys}
+    _subtype_map = {x.__name__:x for x in PyToBl_Reference._keys}
     
     def transform(self, c, node:BlGdPrimitive):
         yield (node.typing,)
@@ -127,15 +135,25 @@ class BlToPy_Reference(BlToPyModule):
 
 class PyToBl_Dictionary(PyToBlModule):
     _keys = (PyDictionary, PyObject,)
-    def transform(self, c, node:PyDictionary):
-        propcol : BlGdPropertyCollection = c.property_collection.get()
-        raise NotImplementedError(c.key.get())
-
-    def transform(self, c, node):
+    def transform(self, c, node:PyDictionary|PyObject):
         propcol : BlGdPropertyCollection = c.property_collection.get()
         obj, ptr = propcol.store_value(bin_id="bin_dict", wrap=False)
         obj : BlGdDictionary
-        raise NotImplementedError()
+
+        if isinstance(node, PyDictionary):
+            obj.typing = str(node.typing)
+            obj.subtype = "Dictionary"
+        elif isinstance(node, PyObject):
+            obj.objtype = node.type
+            obj.subtype = "Object"
+
+        for k,v in node.items():
+            item = obj.items.add()
+            yield {"key":k, "val":v}
+            _m = c.children.get()
+            item.key_ptr = _m["key"]
+            item.val_ptr = _m["val"]
+
         return ptr
 
 class BlToPy_Dictionary(BlToPyModule):
@@ -165,27 +183,40 @@ class BlToPy_Dictionary(BlToPyModule):
 
 
 class PyToBl_Array(PyToBlModule):
-    _keys = (PyArray, PyPackedInt32Array, PyPackedInt64Array, PyPackedFloat32Array, PyPackedFloat64Array, PyPackedStringArray, PyPackedVector2Array, PyPackedVector3Array, PyPackedVector4Array, PyPackedColorArray, PyPackedByteArray, )
-
+    _keys = (PyArray, PyPackedInt32Array, PyPackedInt64Array, PyPackedFloat32Array, PyPackedFloat64Array, PyPackedStringArray, PyPackedVector2Array, PyPackedVector3Array, PyPackedVector4Array, PyPackedColorArray, PyPackedByteArray)
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
         obj, ptr = propcol.store_value(bin_id="bin_array", wrap=False)
         obj : BlGdArray
-        raise NotImplementedError()
+
+        obj['subtype'] = node.__class__.__name__
+
+        yield node.__iter__()
+        for c_ptr in c.children.get():
+            e = obj.items.add()
+            e.ptr = c_ptr
+
         return ptr
 
 class BlToPy_Array(BlToPyModule):
     _keys = (BlArrayWrapper, )
+    _subtype_map = {x.__name__:x for x in PyToBl_Array._keys}
+
     def transform(self, c, node:BlArrayWrapper):
-        cls = self._subtype_map.get(node.subtype)
+        cls = self._subtype_map.get(node.data.subtype, None)
+
+        if cls is None:
+            raise KeyError(self._subtype_map, node.data.subtype)
 
         if cls is PyArray:
             yield (node.data.typing,)
             typing = c.children.get()[0]
-            yield node.values()
+
+            yield tuple(node.values())
             return cls(*c.children.get(), typing=typing)
-        yield node.values()
-        return cls(c.children.get())
+
+        yield tuple(node.values())
+        return cls(*c.children.get())
 
 
 _COL_py_to_bl_ruleset = PyToBlRuleset("PropCol :: VALUES",(
@@ -198,6 +229,7 @@ _COL_py_to_bl_ruleset = PyToBlRuleset("PropCol :: VALUES",(
 
 _COL_bl_to_py_ruleset = BlToPyRuleset("PropCol :: VALUES",(
     BlToPy_Primitive,
+    BlToPy_Terminals,
     BlToPy_Vector,
     BlToPy_Reference,
     BlToPy_Dictionary,

@@ -32,6 +32,12 @@ class Object(GdValue):
             self.type == value.type,
             self.kwargs == value.kwargs,
         ])
+    
+    def items(self,):
+        return self.kwargs.items()
+    
+    def __repr__(self,):
+        return f"{self.__class__.__name__}({self.type,} ...{len(self.kwargs)})"
 
 class Dictionary(OrderedDict, GdValue):
     typing : GdTypeValueSet 
