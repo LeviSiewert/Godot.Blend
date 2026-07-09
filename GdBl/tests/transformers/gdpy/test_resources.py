@@ -31,12 +31,11 @@ def str_eq_none(a,b):
 
 class _StructureTest(BlenderPytestAttr):    
     def test_py_to_bl(self,):
+        bl_subres : BlSubResource = self.get_attr()
         for py_subres,_ in self.data():
             with self.temp_attr():
-                bl_subres = self.get_attr()
-                c = PyToBlContext()
+                c = self.py_to_bl_context()
 
-                c.existing_object.set(bl_subres)
                 py_to_bl_transformer.transform_tree(c, py_subres)
 
                 self.py_bl_compare(bl_subres, py_subres)

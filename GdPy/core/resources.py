@@ -40,8 +40,8 @@ class SubResource():
         return (self.id,)
 
     @classmethod
-    def construct(cls, id:str=None, properties:dict=None, _defered_apply_owner:bool=False, **kwargs):
-        self = cls(id=id)
+    def construct(cls, id:str=None, /, type:str=None, format:int=None, properties:dict=None, _defered_apply_owner:bool=False, **kwargs):
+        self = cls(id=id, type=type, format=format)
         if properties:
             self.properties.update(properties)
 
