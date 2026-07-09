@@ -67,12 +67,7 @@ class Test_PropertyCollection(BlenderPytestAttr):
     def temp_attr(self,):
         yield self.get_attr()
 
-
     @pytest.mark.parametrize("pydata",[
-            *data(_NodePath),
-            *data(_StringName),
-            *data(_Object),
-            *data(_Dictionary),
             *data(_Array),
             *data(_Vector2i),
             *data(_Vector3i),
@@ -89,6 +84,11 @@ class Test_PropertyCollection(BlenderPytestAttr):
             *data(_Transform2D),
             *data(_Transform3D),
             *data(_Basis),
+    ])
+    def test_round_trip_arrays(self,pydata):
+        self._round_trip(pydata)
+
+    @pytest.mark.parametrize("pydata",[
             *data(_PackedInt32Array),
             *data(_PackedInt64Array),
             *data(_PackedFloat32Array),
@@ -100,7 +100,25 @@ class Test_PropertyCollection(BlenderPytestAttr):
             *data(_PackedColorArray),
             # *data(_PackedByteArray),
     ])
-    def test_round_trip(self, pydata):        
+    def test_round_trip_packedarrays(self,pydata):
+        self._round_trip(pydata)
+
+    @pytest.mark.parametrize("pydata",[
+            *data(_Object),
+            *data(_Dictionary),
+    ])
+    def test_round_trip_dicts(self,pydata):
+        self._round_trip(pydata)
+
+
+    @pytest.mark.parametrize("pydata",[
+            *data(_NodePath),
+            *data(_StringName),
+    ])
+    def test_round_trip_simples(self,pydata):
+        self._round_trip(pydata)
+
+    def _round_trip(self, pydata):        
         with self.temp_attr() as bl_properties:
             bl_properties : BlGdPropertyCollection
             

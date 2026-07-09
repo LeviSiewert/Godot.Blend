@@ -369,7 +369,7 @@ class PointerCollection(bpy.types.PropertyGroup):
         return res
 
     def set_property(self, key:str, val:Any=_UNSET, /, bin_id:str=None, make_ok=True, wrap=True, *args, **kwargs)->tuple[Any,BlPropertyItem]:
-        if key in self.properties[key]:
+        if key in self.properties.keys():
             prop = self.properties[key]
             self.delete_value(prop.ptr)
         elif not make_ok:

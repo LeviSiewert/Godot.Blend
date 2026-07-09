@@ -133,7 +133,7 @@ class PyToBl_Dictionary(PyToBlModule):
 
     def transform(self, c, node):
         propcol : BlGdPropertyCollection = c.property_collection.get()
-        obj, ptr = propcol.store_value(bin_id="bin_dictionary", wrap=False)
+        obj, ptr = propcol.store_value(bin_id="bin_dict", wrap=False)
         obj : BlGdDictionary
         raise NotImplementedError()
         return ptr
@@ -215,9 +215,13 @@ class PyToBl_PropertyCollection(PyToBlModule):
         yield dict(node.items())
         res : dict[str,str] = c.children.get()
         ## Every item in _COL_py_to_bl_ruleset must attach itself to the c.property_collection and return a ptr!
+        ## Input must be dict[str, Any]
 
         for key, ptr in res.items():
-            target.set_property(key, ptr=ptr)
+            prop = target.properties.add()
+            prop.name = key
+            prop.ptr = ptr
+            # target.set_property(key, ptr=ptr)
 
         c.rulesets.reset(t1)
         c.property_collection.reset(t0)
@@ -231,7 +235,7 @@ class BlToPy_PropertyCollection(BlToPyModule):
         t0 = c.property_collection.set(node)
         t1 = c.rulesets.set((_COL_bl_to_py_ruleset,))
         
-        yield node.items()
+        yield dict(node.items())
         ## Generator, context must be maintained until consumed ?? TODO: ensure I'm copying context
 
         res = PyPropertyCollection(c.children.get().items()) 
