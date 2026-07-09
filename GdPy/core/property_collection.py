@@ -30,3 +30,5 @@ class PropertyCollection(UserDict):
             value.context.set_extends(self.context)
         return res
         
+    def __repr__(self):
+        return f"{self._class__.__name__}({super().__repr__().strip("{}")})"
