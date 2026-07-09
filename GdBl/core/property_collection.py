@@ -4,7 +4,7 @@ import bpy
 from .primitives.pointer_collection import (
     PointerCollection as _PointerCollection, 
     BlPointerDictionary as _BlPointerDictionary, 
-    BlPointerArray as _BlPointerArray
+    BlPointerArray as _BlPointerArray,
 )
 
 class GdPropertyCollection(_PointerCollection):    
