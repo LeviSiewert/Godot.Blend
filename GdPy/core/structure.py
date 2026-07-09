@@ -17,6 +17,8 @@ from .collections import (
     Reference as _Reference,
 )
 
+from .property_collection import GdValue, PropertyCollection
+
 class StructContext(_StructContext):
     _slots_ = ("project", "file", "resource", "sub_resource")
     project : Project | None
@@ -24,8 +26,6 @@ class StructContext(_StructContext):
     resource : _Resource | None
     sub_resource : Any | None
 
-class GdValue():
-    ''' Base class for all writeable atomic values, prim for isinstance checking '''
 
 class _ContextualReference(_Reference, GdValue):
     _context_target : str

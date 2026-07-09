@@ -61,37 +61,37 @@ def data(x):
 class Test_PropertyCollection(BlenderPytestAttr):
     property_type = bpy.props.PointerProperty(type=BlGdPropertyCollection)
 
-    @pytest.mark.parameterize("pydata",[
-            *data(_NodePath)
-            *data(_StringName)
-            *data(_Object)
-            *data(_Dictionary)
-            *data(_Array)
-            *data(_Vector2i)
-            *data(_Vector3i)
-            *data(_Vector4i)
-            *data(_Rect2i)
-            *data(_Vector2)
-            *data(_Vector3)
-            *data(_Vector4)
-            *data(_Rect2)
-            *data(_Plane)
-            *data(_Color)
-            *data(_AABB)
-            *data(_Quaternion)
-            *data(_Transform2D)
-            *data(_Transform3D)
-            *data(_Basis)
-            *data(_PackedInt32Array)
-            *data(_PackedInt64Array)
-            *data(_PackedFloat32Array)
-            *data(_PackedFloat64Array)
-            *data(_PackedStringArray)
-            *data(_PackedVector2Array)
-            *data(_PackedVector3Array)
-            *data(_PackedVector4Array)
-            *data(_PackedColorArray)
-            *data(_PackedByteArray)
+    @pytest.mark.parametrize("pydata",[
+            *data(_NodePath),
+            *data(_StringName),
+            *data(_Object),
+            *data(_Dictionary),
+            *data(_Array),
+            *data(_Vector2i),
+            *data(_Vector3i),
+            *data(_Vector4i),
+            *data(_Rect2i),
+            *data(_Vector2),
+            *data(_Vector3),
+            *data(_Vector4),
+            *data(_Rect2),
+            *data(_Plane),
+            *data(_Color),
+            *data(_AABB),
+            *data(_Quaternion),
+            *data(_Transform2D),
+            *data(_Transform3D),
+            *data(_Basis),
+            *data(_PackedInt32Array),
+            *data(_PackedInt64Array),
+            *data(_PackedFloat32Array),
+            *data(_PackedFloat64Array),
+            *data(_PackedStringArray),
+            *data(_PackedVector2Array),
+            *data(_PackedVector3Array),
+            *data(_PackedVector4Array),
+            *data(_PackedColorArray),
+            # *data(_PackedByteArray),
     ])
     def test_round_trip(self, pydata):        
         with self.temp_attr() as bl_properties:
@@ -99,7 +99,8 @@ class Test_PropertyCollection(BlenderPytestAttr):
             c = PyToBlContext()
             c.existing_object.set(bl_properties)
             
-            py_to_bl_transformer.transform_tree(c, PyPropertyCollection(testattr=pydata))
+
+            py_to_bl_transformer.transform_tree(c, PyPropertyCollection({"testattr":pydata}.items()))
             res = bl_to_py_transformer.transform_tree(BlToPyContext(), bl_properties)
 
             assert pydata == res

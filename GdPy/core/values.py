@@ -1,8 +1,9 @@
 from array import array
 from typing import Any
 from collections import OrderedDict, UserString, UserList
-from .structure import GdType, GdTypeValue, GdTypeValueSet, GdValue
+from .structure import GdType, GdTypeValue, GdTypeValueSet
 
+from .property_collection import GdValue
 
 class NodePath(UserString, GdValue):
     _typing : GdType|GdTypeValue
@@ -35,7 +36,7 @@ class Dictionary(OrderedDict, GdValue):
         super().__init__(map)
 
     def __setitem__(self, key, value):
-        if isinstance(value, (dict, list)):
+        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         return super().__setitem__(key, value)
 
@@ -47,12 +48,12 @@ class Array(UserList, GdValue):
         super().__init__(values)
 
     def append(self, value):        
-        if isinstance(value, (dict, list)):
+        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         return super().append(object)
     
     def __setitem__(self, key, value):
-        if isinstance(value, (dict, list)):
+        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         return super().__setitem__(key, value)
     
@@ -141,7 +142,7 @@ class PackedStringArray(_PackedListSimple):
 
 
 
-class _PackedListComplex(list, GdValue):
+class _PackedListComplex(UserList, GdValue):
     _type : _FixedLenArray = Vector2
     def __init__(self, *args):
         super().__init__(self._unpack(args))
