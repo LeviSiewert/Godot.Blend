@@ -106,6 +106,7 @@ class TransformerModule[IN:Any, CHILDREN:Any|TERMINAL, OUT:Any|IGNORE]():
         return self._keys
     
     def transform(self, c:Context, node:IN)->Generator[CHILDREN,OUT]:
+        raise NotImplementedError(f"{c.ruleset.get().identifier} :: {self.__class__.__name__}.transform(...)")
         yield TERMINAL
         return IGNORE
 

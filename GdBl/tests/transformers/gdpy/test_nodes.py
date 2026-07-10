@@ -16,6 +16,7 @@ from .....GdPy.core.resources import(
     SubResource as PySubResource,
     SubResourceRef as PySubResourceRef,
 )
+
 from .....GdPy.core.nodes import(
     ResourceScene as PyResourceScene,
     Node as PyNode,
@@ -88,7 +89,7 @@ class Test_Node(_BlenderConstructedTest):
 
     @contextmanager
     def temp_make(_, make_func):
-        obj = bpy.data.objects.new("Node")
+        obj = bpy.data.objects.new("Node", None)
         make_func(obj)
         yield obj
         bpy.data.objects.remove(obj)

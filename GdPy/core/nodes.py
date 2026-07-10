@@ -247,14 +247,15 @@ class ResourceScene(_Resource):
 class Node():
     name : str
     context : StructContext = None
-    
+
     unique_id : CollectionKey[int]
     properties : PropertyCollection
+    type : str = ""
+    script_type : str = ""
     
     # Should be accessed through get/set:
     _parent : Node = None 
     _defered_parent : str # TEMP! TODO: determine better method
-    index : int = None
 
     _children: list[Node]
     _type : GdType|None = None
@@ -265,6 +266,7 @@ class Node():
     
     instance : ExtResource = None
     instance_editable : bool = False
+    index : int = None
 
     overlay : Node|None = None
     overlay_is_thin : bool = False

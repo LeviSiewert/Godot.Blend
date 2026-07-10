@@ -47,9 +47,11 @@ class GdResource(bpy.types.PropertyGroup):
 
 
 class GdNode(bpy.types.PropertyGroup):
-    name : bpy.props.IntProperty() #type:ignore
+    name : bpy.props.StringProperty() #type:ignore
     type : bpy.props.StringProperty() #type:ignore
-    
+    script_type : bpy.props.StringProperty() #type:ignore
+    unique_id : bpy.props.IntProperty() #type:ignore
+
     properties : bpy.props.PointerProperty(type=GdPropertyCollection) #type:ignore
 
 class SubResource(bpy.types.PropertyGroup):

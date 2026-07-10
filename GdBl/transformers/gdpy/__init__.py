@@ -2,15 +2,18 @@ from ._transformer import PyToBlTransformer, BlToPyTransformer, BlToPyContext, P
 
 from . import property_collection
 from . import resources
+from . import nodes
 
 py_to_bl_transformer = PyToBlTransformer(
     property_collection.py_to_bl_ruleset,
     resources.py_to_bl_ruleset,
+    nodes.py_to_bl_ruleset,
     identifier="Standard",
 )
 
 bl_to_py_transformer = BlToPyTransformer(
     property_collection.bl_to_py_ruleset,
     resources.bl_to_py_ruleset,
+    nodes.bl_to_py_ruleset,
     identifier="Standard",
 ) 
