@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://c3834g5uvmvqf"]
+
+[ext_resource type="PackedScene" uid="uid://ce8wc1arycqf1" path="res://GdBl/tests/_resources/baseline_blend_gltf_tscn.glb" id="1_46e8e"]
+
+[node name="TestScene" type="Node" unique_id=1607089513]
+
+[node name="baseline_blend_gltf_tscn" parent="." unique_id=1023083244 instance=ExtResource("1_46e8e")]
