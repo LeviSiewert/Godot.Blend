@@ -104,26 +104,40 @@ class _GenericBinItem(bpy.types.PropertyGroup):
             pass
 
 class GdReference(_GenericBinItem):
+    ''' Reference that should work somewhat anagous to PyReference, via a cached address and local pointers w/a
+    Information location is an interesting subject;
+    standard coll.gd.sub_resources will be ignored in ptrs since they are scoped.
+    TODO: behavior maintance of coll.gd.sub_resources stored subresources.
+    '''
+
     _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
     _caster = lambda x: x.cached_addr
     _cast_types = {"ExtResourceRef":_caster, "SubResourceRef":_caster, "RID":_caster, "ResourceRef":_caster}
 
     typing : bpy.props.StringProperty() #type:ignore
 
-    val_str : bpy.props.StringProperty() #type:ignore
+    ## Use as cached val addr:
+    cached_addr : bpy.props.StringProperty() #type:ignore
+
+    ## Use as cached val ref, takes priority over cached_addr:
+    ptr_type : bpy.props.StringProperty() #type:ignore
+    ptr_node : bpy.props.PointerProperty(type=bpy.types.Object) #type:ignore
+    ptr_mesh : bpy.props.PointerProperty(type=bpy.types.Mesh) #type:ignore
+    ptr_coll : bpy.props.PointerProperty(type=bpy.types.Collection )#type:ignore
+    
 
     @property
     def value(self,):
         if (self.subtype == "None"):
             return None
-        return getattr(self, "val_str")
+        return getattr(self, "cached_addr")
     
     @value.setter
     def value(self, v):
         if v is None:
             self.subtype = "None"
             return
-        self["val_str"] = self._cast(v)
+        self["cached_addr"] = self._cast(v)
 
 
 class GdPrimitive(_GenericBinItem):

@@ -1,5 +1,7 @@
 import bpy
 
+from typing import Any
+
 from ._transformer import (
     PyToBlContext, 
     PyToBlRuleset, 
@@ -72,38 +74,64 @@ class PyToBl_SubResource(PyToBlModule):
         #return target
         # Mutated in place!
 
+from ._transformer import DependencyInterface
+
+class Deps_ResourceTres(DependencyInterface):
+    obj_map : dict[str,bpy.type.Object]
+    declared : list
 
 
 class BlToPy_ResourceTres(BlToPyModule):
     _keys = (BlGdResource,)
 
     def transform(self, c, node:BlGdResource):
+        
+        res = PyResourceTres.construct(
+            uid=node.uid,
+            format=node.format,
+            type=node.type,  
+            file=node.file,
+            script_class=node.script_class
+        )
+
+        deps = Deps_ResourceTres(self,res)
+        t0 = c.dependencies.set(deps)
 
         t = c.existing_object.set(node.properties)
         yield (node.properties,)
         c.existing_object.reset(t)
         props = c.children.get()[0]
 
-        t = c.collection.set(node.ext_resources)
-        yield tuple(node.ext_resources.values())
-        c.collection.reset(t)
-        ext_res = c.children.get()
+        deps.resolve(c)
 
-        t = c.collection.set(node.sub_resources)
-        yield tuple(node.sub_resources.values())
-        c.collection.reset(t)
-        sub_res = c.children.get()
+        sub_res : tuple[str, Any] = deps.get(deps.Scope.SUB_RES)
+        ext_res : tuple[str, Any] = deps.get(deps.Scope.EXT_RES)
 
-        return PyResourceTres.construct(
-            uid=node.uid,
-            format=node.format,
-            type=node.type,  
-            file=node.file,
-            script_class=node.script_class,
-            properties=props,
-            sub_resources=sub_res,
-            ext_resources=ext_res,
-        )
+        # t = c.collection.set(node.ext_resources)
+        # yield tuple(node.ext_resources.values())
+        # c.collection.reset(t)
+        # ext_res = c.children.get()
+        ## Data store of previously needed!
+        ## Dependency resolution is required first.
+        
+        # t = c.collection.set(node.sub_resources)
+        # yield tuple(node.sub_resources.values())
+        # c.collection.reset(t)
+        # sub_res = c.children.get()
+        ## Data store of previously needed!
+        ## Dependency resolution is required first.
+
+        ## Construct/join ext res as required here.
+        ## Trim local?
+
+        res.properties.update(props)
+        res.sub_resources.extend(sub_res)
+        res.ext_resources.extend(ext_res)
+        
+        c.dependencies.reset(t0)
+
+        return res
+        
     
 
 class PyToBl_ResourceTres(PyToBlModule):
