@@ -4,7 +4,7 @@
 Godot.Blend is a project for supporting a useful majority of Godot's project and data format within blender!
 
 ## End Goal
-An artist should be able to create a rigged character with animations & constraints, place them in an env generated with geometry nodes and export everything to a cconsistent
+An artist should be able to create a rigged character with animations & constraints, place them in an env generated with geometry nodes and export everything to a consistent tscn structure that godot can read and can be diffed by VCS, with custom conversion developed by TDs being called as required.
 
 ## Extrensic Goals
 1. Import and Export of godot's text file formats (`.Tscn`,`.Tres`,`.Import`,`.Godot`) to support artists in generating and maintaining 3d art assets within Blender.
