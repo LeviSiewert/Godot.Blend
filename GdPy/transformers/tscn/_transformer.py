@@ -60,7 +60,7 @@ GdToPyTransformer = Transformer
 class GdToPyRuleset(TransformerRuleset):
     ''' Extraction of keys from a lark-tree to Python object tree '''
 
-    def _extract_keys(self, node):
+    def _extract_keys(self, c, node):
             
         if isinstance(node, LarkToken):
             return (str(node.type),)

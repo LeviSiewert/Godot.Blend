@@ -130,7 +130,7 @@ class TransformerRuleset():
     def __repr__(self,):
         return f"Ruleset({self.identifier})"
 
-    def _extract_keys(self, node:Any)->tuple[Any]:
+    def _extract_keys(self, c:Context|None, node:Any)->tuple[Any]:
         if node is None:
             return (None,)
         if isclass(node):
@@ -148,8 +148,8 @@ class TransformerRuleset():
             raise KeyError(self, keys)
         return default, DEFAULT
     
-    def get(self, key:Any, default:Any=_UNSET):
-        keys = self._extract_keys(key)
+    def get(self, key:Any, c:Context=None, default:Any=_UNSET):
+        keys = self._extract_keys(key, c)
         return self._match_module(keys, default)
 
 
@@ -172,7 +172,7 @@ class Transformer():
 
         mod = None
         for r in c.rulesets.get():
-            mod,key = r.get(node, None)
+            mod,key = r.get(c, node, None)
             if mod:
                 t0 = c.module.set(mod)
                 t1 = c.ruleset.set(r)
