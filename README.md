@@ -25,13 +25,15 @@ The core of this addon is a modular tree transformer within the context of a god
 Files are imported to an intermediary structure, then transformed into the blender environemnt.
 
 file.tscn <-> GdPy.core... <-> BlendFile (GdBl.Structure...)
+
 This is for future allowences with dif trees, dif integration and non-uniform Tree Transformation (See Transformer:NonUniform)
 
 Thus uniformity between `GdPy`, `GdBl` and all tests is highly desired for simplifying development. 
 
 ### GdBl
 Blender Collections w/ TSCN export == Godot File
-Collection instance w/ Lib Override == Editable file instance
+
+Collection instance w/ TSCN export & Lib Override == Editable file instance
 
 Most data is stored on `BlObject.gd`
 
@@ -59,13 +61,15 @@ Additionally a context object is passed in for "escaping" yielded children back 
 - Dif and dif integration
 
 ## Contributions
-Contributions are currently closed due to a focus on architecture and clean code.
+Contributions are currently closed due to a focus on architecture and maintainable code.
 
-After milestones of `architecture verification` and `plugin transformer support` are passed the repo will be moved to a public open source repo and contributions will be opened.
+After milestones of `architecture verification` and `plugin transformer support` are passed the repo will be moved to a public open source repo and contributions will be opened*.
 
 Most non-major version contributions should focus on 
 - Bugs
 - Internal conversions
+
+*see AI Policy
 
 ## Licenses:
 The blender addon is licensed under GPL-3.0 as required by blender's addon TOS
