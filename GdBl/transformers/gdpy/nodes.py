@@ -1,4 +1,5 @@
 import bpy
+from typing import Generator, Any
 
 from ._transformer import (
     PyToBlContext, 
@@ -14,41 +15,29 @@ from ...core.structure import (
     ExtResource as BlExtResource
 )
 
+from ....GdPy.core.structure import (
+    _Resource as Py_Resource
+)
+
 from ....GdPy.core.nodes import (
     Node as PyNode, 
     ResourceScene as PyResourceScene,
 )
 
 from ....GdPy.core.resources import (
+    ResourceTres as PyResourceTres,
+    SubResourceRef as PySubResourceRef,
+    SubResource as PySubResource,
     ExtResourceRef as PyExtResourceRef,
     ExtResource as PyExtResource,
 )
 
 _bl_node_subtypes = (
     bpy.types.Object,
-    # bpy.types.Armature,
-    # bpy.types.Curve,
-    # bpy.types.Light,
-    # bpy.types.LightProbe,
-    # bpy.types.Camera,
+    # bpy.types.Material,
+    # bpy.types.Mesh,
 ) 
 
-from typing import Generator, Any
-
-def store_dependency(c:BlToPyContext, node:Any, defer_transform:bool=True, try_embed:bool=None, force_embed:bool=None, try_file:bool=None, force_file=None, override_uid:str=None, override_filepath:str=None)->tuple[PySubResourceRef|PyExtResourceRef, PySubResource|PyResource]:
-    ''' Determine if subres OR extres is already created and resolved as required. 
-    defer transform should resolve subres or extres 
-    '''
-    c.defered_dependencies.append()
-
-def as_dependencies(c:BlToPyContext, *nodes, **kwargs)->Generator:
-    file = c.resource.get()
-    assert file
-    for x in nodes:
-        yield store_dependency(x, **kwargs)
-
-def fetch_dependency():
-    pass
 
 class BlToPyRuleset_Objects(BlToPyRuleset):
     ''' Ruleset for extracting nodes from blender objects '''
@@ -111,3 +100,13 @@ class PyToBlRuleset_Objects(PyToBlRuleset):
         if keys is None: 
             return default
         return super()._match_module(keys, default)
+    
+py_to_bl_ruleset = PyToBlRuleset_Objects("Nodes :: STD",(
+    # PyToBl_ResourceScene,
+    # PyToBl_Node,
+))
+
+bl_to_py_ruleset = BlToPyRuleset_Objects("Nodes :: STD",(
+    # BlToPy_ResourceScene,
+    # BlToPy_Node,
+))

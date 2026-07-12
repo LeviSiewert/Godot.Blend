@@ -1,6 +1,6 @@
 import bpy 
 
-from typing import Any
+from typing import Any, Generator
 from contextvars import ContextVar
 from enum import Enum as _Enum
 from abc import (
@@ -12,64 +12,165 @@ from ....GdPy.core.transformer import Transformer, TransformerRuleset, Transform
 from ....GdPy.core.property_collection import PropertyCollection as _PropertyCollection
 from ....GdPy.core.structure import _Resource
 
-class _Dependency():
+from ....GdPy.core.nodes import (
+    ResourceScene,
+    Node,
+)
+from ....GdPy.core.resources import (
+    ResourceTres,
+    ExtResource,
+    ExtResourceRef,
+    SubResource,
+    SubResourceRef,
+)
+from ....GdPy.core.structure import (
+    ResourceRef,
+    RID,
+)
+
+
+class Scope(_Enum):
+    ANY = 0
+    SUB_RES = 1 # SubResource() : Resource scope
+    EXT_RES = 2 # ExtResource() : Resource routed-Project scope 
+    DIR_RES = 3 # RID() | ResourceRef() : Project scope
+
+class _Dependency(_ABC):
+    resulting_obj : Any = None
+
+    @_abstractmethod
+    def fetch(self,)->None|Any:
+        pass
+
+    @_abstractmethod
+    def make_reference(self,):
+        pass
+
+    @_abstractmethod
+    def resolve(self,):
+        pass
+
+class DirResDependency(_Dependency):
     pass
+
+class ExtResDependency(_Dependency):
+    pass
+
+class SubResDependency(_Dependency):
+    pass
+
+    # source : Any
+
+    # scope : Scope
+
+    # id : str|int
+    # uid : str|None = None
+    # path : str|None = None
+
+    # def __init__(self, source:Any=None, id:str=None, uid:str=None, path:str=None):
+    #     pass
 
 class DependencyInterface(_ABC):
     ''' Standard interface for declaring and resolving deps during transformation
     Deps are assumed to be resolved at *latest* allowence.
     '''
-    class Scope(_Enum):
-        ANY = 0
-        SUB_RES = 1 # SubResource() : Resource scope
-        EXT_RES = 2 # ExtResource() : Resource routed-Project scope 
-        DIR_RES = 3 # RID() | ResourceRef() : Project scope
 
     resource : _Resource
-    dependencies : dict[Scope, list[_Dependency]]
 
-    def __init__(self, resource:_Resource):
+    def __init__(self, c, resource:_Resource):
         self.resource = resource
-        self.dependencies = {
-            self.Scope.SUB_RES : [],
-            self.Scope.EXT_RES : [],
-            self.Scope.DIR_RES : [],
+        self.data = {
+            Scope.SUB_RES : [],
+            Scope.EXT_RES : [],
+            Scope.DIR_RES : [],
         }
 
     @_abstractmethod
-    def resolve(self, *args):
+    def resolve_subres(self)->Generator:
+        ## Call and resolve iterativly, with new objects populating the lists.
         pass
 
     @_abstractmethod
-    def fetch(self, scope:Scope=Scope.ANY, id:str=None, uid:str=None, path:str=None, now:bool=False, default:Any=None)->tuple[Any,Any|None]|None:
-        ''' Same settings as declare, but fetching. '''
+    def resolve_extres(self)->Generator:
+        ## Call and resolve iterativly, with new objects populating the lists.
+        pass
 
     @_abstractmethod
-    def declare(self, scope:Scope=Scope.ANY, id:str=None, uid:str=None, path:str=None, now:bool=False)->tuple[Any,Any|None]:
-        ''' Declare and optionally resolve a dependency
+    def resolve_dirres(self)->Generator:
+        ## Call and resolve iterativly, with new objects populating the lists.
+        pass
 
-        scope: 
-            determines required scope. `ANY` allows `( c.settings | object | Type[object] ` to determine this.
-            Otherwise it's considered to be required.
 
-        uid :
-            Overrides to this variable in the scope.
-        path: 
-            Overrides to this variable in the scope.
-        id:
-            force `sub_res.id` or `ext_res.id`
-        now:
-            require that this object is transformed NOW and returned
+    def declare(self, c, src:Any, scope:Scope=Scope.ANY, resolve_now=False, **kwargs)->tuple[Any,_Resource|None] | None:
+        ## TODO: Force new within scope, force context.
+        ## TODO ISSUE:
+        # if context *could* affect the result, discovery order *would* affect object generation results
+        # The only ways to fix would be to:
+        #   - Not have context matter
+        #   - Re-export each time context is different and merge w/a
 
-        returns:
-            a tuple[ref,obj|None]
-            [obj|None] : 
-                depends on if the object has already been transformed  
-            [ref] : 
-                can be str or reference object depending on system needs.
-                # into blender may require a string to attach to props 
-        '''
+        # determines required scope. `ANY` allows `( c.settings | object | Type[object] ` to determine this.
+        if scope is Scope.ANY:
+            scope, def_data = self.get_depdata_from_obj(src)
+        else:
+            _, def_data = self.get_dep_data_from_obj(src)
+
+        kwargs = def_data | kwargs
         
+        dep : _Dependency = None
+        
+        match scope:
+            case Scope.EXT_RES:
+                dep = self.declare_subresource(c, src, **kwargs)
+            case Scope.SUB_RES:
+                dep = self.declare_extresource(src, **kwargs)
+            case Scope.DIR_RES:
+                dep = self.declare_resource(src, **kwargs)
+            case _:
+                raise Exception()
+        
+        assert dep
+
+        if resolve_now:
+            dep.resolve()
+
+        return (dep.make_reference(), dep.resulting_obj)
+
+
+    def declare_subresource(self, c, src:Any, id:str):
+        existing = filter(lambda x: any((x.src is src), ((x.id == id) and id)), self.data[Scope.SUB_RES])
+        assert len(existing) <= 1
+        if existing: 
+            return existing[0]
+
+        dep = SubResDependency(c, src, id:str)
+        self.data[Scope.SUBRES].append(dep)
+        return dep 
+
+    def declare_extresource(self, src:Any, id:str, uid:str, path:str):
+        existing = filter(lambda x: any((x.src is src), ((x.id == id) and id), ((x.uid == uid) and uid), ((x.path == path) and path)), self.data[Scope.EXT_RES])
+        assert len(existing) <= 1
+        if existing: 
+            return existing[0]
+        
+        res_dep = self.declare_resource(src, uid, path)
+        
+        dep = ExtResDependency(res_dep)
+        self.data[Scope.EXT_RES].append(dep)
+        return dep 
+
+
+    def declare_resource(self, src:Any, uid:str, path:str):
+        existing = filter(lambda x: any((x.src is src), ((x.uid == uid) and uid), ((x.path == path) and path)), self.data[Scope.DIR_RES])
+        assert len(existing) <= 1
+        if existing: 
+            return existing[0]
+
+        dep = DirResDependency(src, )
+        self.data[Scope.DIR_RES].append(dep)
+        return dep 
+    
+
 
 class PyToBlContext(Context):
     def __init__(self):

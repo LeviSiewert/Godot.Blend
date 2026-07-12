@@ -9,6 +9,9 @@ from ._transformer import (
     BlToPyContext, 
     BlToPyRuleset,
     BlToPyModule,
+    DependencyInterface, 
+    Dependency,
+    Scope,
 )
 
 from ...core.structure import (
@@ -74,10 +77,9 @@ class PyToBl_SubResource(PyToBlModule):
         #return target
         # Mutated in place!
 
-from ._transformer import DependencyInterface
 
 class Deps_ResourceTres(DependencyInterface):
-    obj_map : dict[str,bpy.type.Object]
+    obj_map : dict[str, bpy.types.Object]
     declared : list
 
 
