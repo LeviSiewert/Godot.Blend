@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import Any, Type
+from weakref import ReferenceType as _WeakReferenceType
 
 from .context import StructContext as _StructContext
 from .collections import Collection, CollectionKey, CollectionRef
-from .property_collection import PropertyCollection, GdValue
-
-from weakref import ReferenceType as _WeakReferenceType
+from .property_collection import PropertyCollection
+from .gdtype import GdType
 
 class StructContext(_StructContext):
     _slots_ = ("project","file","resource","subresource")
@@ -14,15 +14,6 @@ class StructContext(_StructContext):
     file : File
     resource : Resource
     subresource : Resource
-
-class _ScopeRef(CollectionRef):
-    _container : str
-    _collection : str
-
-
-class GdType():
-    ...
-
 
 class Project():
     file_system : Any
