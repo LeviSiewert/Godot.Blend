@@ -4,4 +4,4 @@ watchdog
 lark
 bpy
 pygltflib
-fs
+ffspec

@@ -4,8 +4,16 @@ from typing import Any
 
 from collections import UserDict
 
+from .signals import Signal
+
 class GdValue():
     ''' Base class for all writeable atomic values, prim for isinstance checking '''
+
+def DelayedReference[T:Any]():
+    ''' Delayed load of this type '''
+    replace: Signal[T]
+    def __init__(self):
+        self.replace = Signal(self,)
 
 class PropertyCollection(UserDict):
     context : StructContext
@@ -29,6 +37,8 @@ class PropertyCollection(UserDict):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
         if hasattr(value, "context"):
             value.context.set_extends(self.context)
+        if isinstance(value, DelayedReference):
+            value.replace.connect(lambda x: self.__setitem__(key,x), once=True)
         return res
         
     def __repr__(self):

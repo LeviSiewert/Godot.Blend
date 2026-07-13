@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import Any, Type
-from weakref import ReferenceType as _WeakReferenceType
+from weakref import ReferenceType as _WeakReferenceType, ref as weakref
+
+from fsspec import AbstractFileSystem
 
 from .context import StructContext as _StructContext
 from .collections import Collection, CollectionKey, CollectionRef
@@ -16,7 +18,7 @@ class StructContext(_StructContext):
     subresource : Resource
 
 class Project():
-    file_system : Any
+    file_system : AbstractFileSystem
     
     file_types : list[Type[File]]
 
@@ -46,7 +48,8 @@ class GdTypeRef(CollectionRef):
 class File():
     ''' Grouping/Ownership for Resources in memory. '''
     _extensions_ : tuple[str]
-    
+    context : StructContext    
+
     is_loaded : bool = False
     
     filepath : CollectionKey[str]
@@ -56,12 +59,19 @@ class File():
     
     resource : ResourceRef
 
-    # Cached only for dif/file consistancy, otherwise not used.
-    _cached_sub_resource_map : dict[str, _WeakReferenceType[Resource]]
-    _cached_ext_resource_map : dict[str, _WeakReferenceType[Resource]]
+    # Cached only during import on context object, then deleted
+    # _cached_sub_resource_map : dict[str, DeferedReference[Resource]]
+    # _cached_ext_resource_map : dict[str, DeferedReference[Resource]]
+    
+    def __setup__(self):
+        self.filepath=CollectionKey()
+        self.context = StructContext(file=self)
+        self.resource = ResourceRef(context=self.context)
+        self.meta_properties = PropertyCollection(context=self.context)
 
-    def __setup__(self,):
-        pass
+    def __init__(self, filepath:str):
+        self.__setup__()
+        self.filepath.set(filepath)
 
 class Resource():
     ''' Any object that *can* be converted to and from disk '''
@@ -89,7 +99,7 @@ class Resource():
     def set_overlay(self, overlay:Resource|None, thin:bool=True):
         raise NotImplementedError()
 
-    def set_instance(self, file:ResourceRef, editable:bool=False):
+    def set_instance(self, file:FileRef, editable:bool=False):
         raise NotImplementedError()
     
     def set_type(self, type:GdTypeRef):
