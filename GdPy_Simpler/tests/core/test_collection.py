@@ -30,7 +30,6 @@ class Test_Collections():
         raise NotImplementedError()
 
 
-
     def test_read_reference(self):
         raise NotImplementedError()
 
@@ -42,6 +41,3 @@ class Test_Collections():
 
     def test_remove_reference(self):
         raise NotImplementedError()
-
-    
-
