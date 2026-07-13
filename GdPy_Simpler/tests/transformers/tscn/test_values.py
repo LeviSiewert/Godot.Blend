@@ -32,7 +32,7 @@ from ....core.values import (
     PackedByteArray,
 )
 
-from ._utils import _StructureTest
+from .._utils import _StructureTest
 
 class Test_NodePath(_StructureTest):
     _type = NodePath

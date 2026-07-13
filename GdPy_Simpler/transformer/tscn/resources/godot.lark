@@ -1,0 +1,174 @@
+start : file_resource
+      | file_tscn
+      | file_settings
+
+file_settings :  properties cat_resources [prim_resource] 
+file_resource : "[gd_resource" properties "]" ext_resources sub_resources [prim_resource]
+file_tscn : "[gd_scene" properties "]" ext_resources sub_resources node_resources signals edit_flags 
+
+ext_resources : [ext_resource]*
+sub_resources : [sub_resource]*
+node_resources : [node_resource]*
+cat_resources : [cat_resource]*
+signals : [signal]*
+edit_flags : [edit_flag]*
+
+ext_resource : "[ext_resource" properties "]" properties
+sub_resource : "[sub_resource" properties "]" properties
+node_resource : "[node" properties "]" properties
+cat_resource : "[" WORD "]" properties //[COMMENT|property]*
+prim_resource : "[resource]" properties
+signal : "[connection" properties "]"
+edit_flag : "[editable" properties "]" properties
+
+
+
+properties : [property]*
+property : WORD "=" value
+
+value : NULL
+      | INF
+      | array
+      | dictionary
+      | object
+      | nodepath
+      | dictionary_explicit
+      | array_explicit
+      | rid
+      | subresourceref
+      | extresourceref
+      | vector2
+      | vector3
+      | vector4
+      | vector2i
+      | vector3i
+      | vector4i
+      | rect2
+      | rect2i
+      | plane
+      | aabb
+      | color
+      | quaternion
+      | basis
+      | transform2d
+      | transform3d
+      | packedbytearray
+      | packedint32array
+      | packedint64array
+      | packedfloat32array
+      | packedfloat64array
+      | packedstringarray
+      | packedvector2array
+      | packedvector3array
+      | packedvector4array
+      | packedcolorarray
+      | BOOL
+      | NUMBER
+      | FLOAT
+      | stringname
+      | STRING
+
+
+
+// Primitives:
+
+COMMENT : /;.*/
+
+INF_NEG : "-inf"
+INF : "inf"
+NULL : "null"
+
+BOOL : "true" | "false"
+
+type_anno : "[" type_anno_item + ("," type_anno_item)* "]"
+type_anno_item : WORD|subresourceref|extresourceref|rid
+
+array_explicit : "Array" [type_anno] "(" [array] ")"
+// _array : "[" [value+ ("," value)*] "]"
+array : "[" [value+ ("," value)*] "]"
+
+dictionary_explicit : "Dictionary" [type_anno] "(" [dictionary] ")"
+dictionary : "{" [pair+ ("," pair)*] "}"
+pair : value ":" value
+
+stringname : "&" STRING
+
+// Generics:
+object : "Object(" WORD object_args ")"
+object_args : ["," pair+ ("," pair)* ]
+// Defered References:
+
+nodepath : "NodePath" [type_anno] "(" [STRING] ")"
+subresourceref : "SubResource" [type_anno] "(" [STRING] ")"
+extresourceref : "ExtResource" [type_anno] "(" [STRING] ")"
+rid : "RID" [type_anno] "(" [STRING] ")"
+
+// Vector types:
+
+vector2i : "Vector2i(" [NUMBER ("," NUMBER)~1] ")"
+vector3i : "Vector3i(" [NUMBER ("," NUMBER)~2] ")"
+vector4i : "Vector4i(" [NUMBER ("," NUMBER)~3] ")"
+
+vector2 : "Vector2(" [FLOAT ("," FLOAT)~1] ")"
+vector3 : "Vector3(" [FLOAT ("," FLOAT)~2] ")"
+vector4 : "Vector4(" [FLOAT ("," FLOAT)~3] ")"
+
+
+rect2 : "Rect2(" [FLOAT ("," FLOAT)~3] ")"
+rect2i : "Rect2i(" [NUMBER ("," NUMBER)~3] ")"
+
+plane : "Plane(" [FLOAT ("," FLOAT)~3] ")"
+
+
+color : "Color(" [FLOAT ("," FLOAT)~3] ")"
+aabb : "AABB(" [FLOAT ("," FLOAT)~5] ")"
+
+
+quaternion : "Quaternion(" [FLOAT ("," FLOAT)~3] ")"
+
+
+transform2d : "Transform2D(" [FLOAT ("," FLOAT)~5] ")"
+transform3d : "Transform3D(" [FLOAT ("," FLOAT)~11] ")"
+basis : "Basis(" [FLOAT ("," FLOAT)~8] ")"
+
+// Packed types:
+
+packedbytearray : "PackedByteArray(" [STRING] ")"
+
+packedint32array : "PackedInt32Array(" ( [NUMBER+ ("," NUMBER)*] )* ")" 
+packedint64array : "PackedInt64Array(" ( [NUMBER+ ("," NUMBER)*] )* ")" 
+
+packedfloat32array : "PackedFloat32Array(" ( [FLOAT+ ("," FLOAT)*] )* ")" 
+packedfloat64array : "PackedFloat64Array(" ( [FLOAT+ ("," FLOAT)*] )* ")" 
+
+packedstringarray : "PackedStringArray(" ( [STRING+ ("," STRING)*] )* ")"
+
+packedvector2array : "PackedVector2Array(" [ [packed_2+ ("," packed_2)*] ] ")"
+packedvector3array : "PackedVector3Array(" [ [packed_3+ ("," packed_3)*] ] ")"
+packedvector4array : "PackedVector4Array(" [ [packed_4+ ("," packed_4)*] ] ")"
+packedcolorarray : "PackedColorArray(" [packed_4+ ("," packed_4)*] ")"
+
+// Uniform Fixed Len:
+packed_2 : FLOAT ("," FLOAT)~1
+packed_3 : FLOAT ("," FLOAT)~2
+packed_4 : FLOAT ("," FLOAT)~3
+
+// packed_2i : NUMBER ("," NUMBER)~1
+// packed_3i : NUMBER ("," NUMBER)~2
+// packed_4i : NUMBER ("," NUMBER)~3
+
+// packed_6 : FLOAT ("," FLOAT)~5
+// packed_9 : FLOAT ("," FLOAT)~8
+// packed_12 : FLOAT ("," FLOAT)~11
+
+WORD : (LETTER | "_" | NUMBER | "/" | ".")+
+
+FLOAT : SIGNED_FLOAT | NUMBER
+
+%import common.ESCAPED_STRING   -> STRING
+%import common.LETTER    -> LETTER
+%import common.SIGNED_INT    -> NUMBER
+%import common.SIGNED_FLOAT     
+%import common.WS
+%ignore WS
+%ignore COMMENT
