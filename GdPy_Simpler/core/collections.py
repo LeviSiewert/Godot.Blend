@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from weakref import ref, ReferenceType as WeakRef
-from string import ascii_letters
+from string import ascii_letters, digits
 from typing import Any, Iterable
 
 from .context import StructContext
@@ -29,14 +29,6 @@ class CollectionRef[T:Any]():
     col : Collection[T]|None = None
     key : str|None = None
     _cached : WeakRef = ref(_UNSET())
-
-    # is_free_ref : 
-    #   col[key] == None. 
-    #   _cached has no match 
-    
-    # is_sub_ref : 
-    #   matching key->val in collection. 
-    #   _cached is val
 
     def __init__(self, key:str|None=None, col:Collection[T]|None=None, cache:T=None):
         self.set_key(key)
@@ -81,11 +73,13 @@ class CollectionRef[T:Any]():
         if self.col is None:
             return
         self.col.refs.append(self)
+        self.col.kv_updated.connect(self._on_collection_kv_updated)
 
     def detach_collection(self):
         if self.col is None:
             return
         self.col.refs.remove(self)
+        self.col.kv_updated.disconnect(self._on_collection_kv_updated)
         
     def get[D](self, default:D=None)->T|D:
         if self.key is None:
@@ -100,6 +94,31 @@ class CollectionRef[T:Any]():
 
         return res
     
+    def _on_collection_kv_updated(self, k:str, v:T|None, affect_free:bool, affect_sub:bool):
+        ''' Goal is to update self to match k,v if criteria, state and affect by state is correct
+        IE: be able to 
+        - switch keys of objects in a collection w/out dragging references to new keys
+        - attach an object with specific key w/out activating key on refs.
+        '''
+        if k is None: 
+            return
+
+        cache = self._cached()
+        
+        affects_me = (self.key == k) or ((cache is v) and not (cache is None))
+        if not affects_me:
+            return
+
+        is_free = ((cache is None) and (self.key)) or ((cache) and (self.key is None))
+        is_sub = not is_free
+
+        if is_free and affect_free:
+            self.key = k
+            self._cached = ref(v)
+
+        if is_sub and affect_sub:
+            self.key = k
+            self._cached = ref(v)
 
 class Collection[T:Any]():
     ## TODO: switch functionality to dict && appended loose items list (better performance)
@@ -109,6 +128,8 @@ class Collection[T:Any]():
     refs : list[CollectionRef]
     
     key_attr : str = "key"
+
+    kv_updated : Signal[str,T, bool, bool]
 
     def keys(self, yield_keyobj=False):
         if not yield_keyobj:
@@ -152,20 +173,24 @@ class Collection[T:Any]():
             key.key = self.generate_key()
 
         if key.key in data.keys():
-            self.handle_key_collision(key.key, data[key.key], item)
+            self.handle_key_collision(key.key, data[key.key], item, update_free_refs)
         
         item.context.set_extends(self.context)
         self.data.append(item)
-            
+
+    def extend(self, items:Iterable[T], update_free_refs:bool=True):
+        for item in items:
+            self.append(item, update_free_refs)
+
     def remove(self, item:T, update_sub_refs:bool=True):
+        k = self.find(item, None)
+        if k is None: 
+            return
         self.data.remove(item)
         item.context.set_extends(None)
-
-    def generate_key(self,)->str:
-        raise NotImplementedError()
-
-    def handle_key_collision(self, key:str, l_item:T, r_item:T, update_sub_refs:bool=True, update_free_refs:bool=True):
-        raise NotImplementedError()
+        _key = getattr(item, self.key_attr) 
+        _key.col = None
+        self.kv_updated(k, None, False, update_sub_refs)
     
     def get[D](self, key:str, default:D=_UNSET)->T|D:
         for k,i in self.data():
@@ -182,140 +207,52 @@ class Collection[T:Any]():
             l_item = data.get(key, None)
 
             if not (l_item is None):
-                self.handle_key_collision(key, l_item, item)
+                self.handle_key_collision(key, l_item, item, update_sub_refs, update_free_refs)
             else:
                 getattr(item, self.key_attr).key = key
+                self.kv_updated(key, item, update_free_refs, update_sub_refs)
 
             return
+
+        self.data.append(item)
+        item.context.set_extends(self.context)
+        _key = getattr(item, self.key_attr) 
+        _key.col = self
+        _key.key = key
+        self.kv_updated(key, item, update_free_refs, update_sub_refs)
+
+    def generate_key(self)->str:
+        keys = tuple(self.keys())
+        n_key = self._generate_key()
+        while n_key in self.keys:
+            n_key = self._generate_key()
+        return n_key
+    def _generate_key(self,)->str:
+        return "".join(random.sample(9, ascii_letters))
     
-    # def set(self, key:str, item:T):
-    #     data = dict(self.data.items())
-    #     l_item = data.get(key, None)
-    #     if l_item is item:
-    #         return
-    #     if not (l_item is None):
-    #         self.handle_key_collision(key, l_item, item)
-    #         return
+    def index_key(self, key:str):
+        keys = tuple(self.keys())
+        n_key = key.rstrip(digits)
+        i = 1
+        while n_key in keys:
+            n_key = f"{key}{i}"
+            i = i+1
+        return n_key
+
+    _keep_left = True
+    _random_key = True
+
+    def handle_key_collision(self, key:str, l_item:T, r_item:T, update_sub_refs:bool=True, update_free_refs:bool=True):
         
-
-# class CollectionKey():
-#     collection : Collection
-    
-#     src : Any
-#     key : str|_UNSET
-#     key_updated : Signal[str]
-
-#     def __setup__(self,):
-#         self.key_updated = Signal()
-
-#     def __init__(self, src, key:str=_UNSET):
-#         pass
-
-#     def set(self, key):
-#         if self.collection:
-#             return self.collection.set(key=key, value=self.source)
-#         self.key = key
-#         self.key_updated(key)
-
-#     def get(self):
-#         return self.key
-    
-#     def __eq__(self, value:Any):
-#         if isinstance(value,str):
-#             return value == self.key
+        if self._random_key:
+            n_key = self.generate_key()
+        else: 
+            n_key = self.index_key(key)
         
-#         if isinstance(value, CollectionKey):
-#             return all((
-#                 self.key == value.key
-#             ))
+        if self._keep_left:
+            getattr(r_item,self.key_attr).key = n_key
+            self.kv_updated(n_key, r_item, update_free_refs, update_sub_refs)
 
-#         return super().__eq__(value)
-    
-#     def __repr__(self):
-#         return f"{self.__class__.__name__}({self.key})"
-
-# class CollectionRef[T:Any]():
-#     ''' Weak Caching Reference, context is used to find the collection. '''
-
-#     collection : Collection
-#     context : StructContext
-    
-#     cached_key : str = None
-#     cached_object : _RefType[Any] = None
-
-#     def __setup__(self,):
-#         self.context = StructContext()
-#         self.context.callback('...', lambda x: self.set_collection(x))
-#         ## Override calback with scope & collection reference
-
-#     def __init__(self, key:str|None=None, obj:T|None=None, context:StructContext|None=None):
-#         self.__setup__()
-#         self.store_key(key)
-#         self.store_obj(obj)
-#         self.context.set_extends(context)
-
-
-#     def get[D](self, default:D=_UNSET)->T|D:
-#         ...
-
-#     def search(self):
-#         ...
-
-
-#     def set_collection(self, col:Collection[T]|None):
-#         ...
-
-
-#     def store_key(self, key:str|None):
-#         ...
-
-#     def store_obj(self, obj:T|None):
-#         ...
-
-
-#     def is_valid(self,)->bool:
-#         ...
-
-
-# class Collection[T:Any]():
-#     ''' A collection of objects that are self-keyed, and through context can be soft-referenced by a CollectionRef 
-#     Self keying done through a CollectionRef.
-#     argued key_attr is what is used to request the CollectionKey from the object
-#     '''
-
-#     context : StructContext
-#     data : list[T]
-#     refs : list[CollectionRef]
-
-#     def __setup__(self,):
-#         self.context = StructContext()
-
-#     def __init__(self, key_attr:str, context:StructContext):
-#         self.__setup__()
-#         self.context.set_extends(context)
-#         self.key_attr = key_attr
-
-
-#     def append(self, val:T):
-#         ...
-
-#     def remove(self, val:T):
-#         ...
-
-#     def duplicate(self, val:T)->T:
-#         ...
-
-#     def resolve_key_collision(self, k, l:T, r:T):
-#         ...
-
-#     def append_reference(self, ref:CollectionRef):
-#         ref.set_collection(self)
-#     def _append_reference(self, ref:CollectionRef):
-#         ...
-
-
-#     def remove_reference(self, ref:CollectionRef):
-#         ref.set_collection(None)
-#     def _remove_reference(self, ref:CollectionRef):
-#         ...
-
+        else: 
+            getattr(l_item,self.key_attr).key = n_key
+            self.kv_updated(n_key, l_item, update_free_refs, update_sub_refs)
