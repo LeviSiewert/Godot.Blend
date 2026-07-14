@@ -96,7 +96,7 @@ class Test_Resource():
         assert res.properties["b"] == "c"
         assert res.properties["c"] == "c"
 
-    def test_construction_instance_delayed():
+    def test_construction_instance_delayed(self,):
         ''' Construct resources, attach to project and fullfill at that time '''
         inst_res = Resource.construct(
             uid="uid://inst_src",

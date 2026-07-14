@@ -201,12 +201,14 @@ class Resource():
         self.type = GdTypeRef(context=self.context)
         self.script_type = GdTypeRef(context=self.context)
 
-
         def _callback(k, file:File|None):
             if (file is None):
                 try: del self.context.file
                 except: pass
+                try: del self.context.resource
+                except: pass
             else:
+                self.context.resource = self
                 self.context.file = file
         self.file.updated.connect(_callback)
 
@@ -228,7 +230,7 @@ class Resource():
             self.file.set_key(file)
         elif isinstance(file, File):
             self.file.set_cached(file)
-        else:
+        elif not (file is None):
             raise Exception()
 
         if type:
@@ -241,7 +243,7 @@ class Resource():
             assert not (inst_editable is None)
             self.set_instance(instance, inst_editable)
         elif overlay:
-            self.set_overlay(overaly)
+            self.set_overlay(overlay)
 
         if properties:
             self.properties.update(properties)
