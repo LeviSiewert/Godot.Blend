@@ -14,7 +14,16 @@ class _UNSET:...
 class CollectionKey[T:Any]():
     src : T
     col : Collection[T]|None = None
-    key : str|None = None
+    _key : str|None = None
+    key_updated : Signal[str]
+
+    @property
+    def key(self,):
+        return self._key
+    @key.setter
+    def key(self, new):
+        self._key = new
+        self.key_updated(new)
 
     def set_key(self, key, update_sub_refs:bool=True, update_free_refs:bool=True):
         if self.col:
@@ -22,7 +31,11 @@ class CollectionKey[T:Any]():
             return 
         self.key = key
 
+    def __setup__(self):
+        self.key_updated = Signal(self,)
+
     def __init__(self, src, /, key:str|None=None, col:Collection[T]|None=None):
+        self.__setup__()
         self.src = src
         self.col = col
         self.set_key(key)
