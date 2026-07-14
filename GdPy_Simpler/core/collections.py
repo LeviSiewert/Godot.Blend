@@ -16,10 +16,16 @@ class CollectionKey[T:Any]():
     col : Collection[T]|None = None
     key : str|None = None
 
-    def set_key(self, key):
+    def set_key(self, key, update_sub_refs:bool=True, update_free_refs:bool=True):
         if self.col:
-            return self.col.set(self.src, key)
+            self.col.set(self.src, key, update_sub_refs=update_sub_refs, update_free_refs=update_free_refs)
+            return 
         self.key = key
+
+    def __init__(self, src, /, key:str|None=None, col:Collection[T]|None=None):
+        self.src = src
+        self.col = col
+        self.set_key(key)
 
 class CollectionRef[T:Any]():
     ''' Weak reference based on collection & key.
@@ -52,7 +58,7 @@ class CollectionRef[T:Any]():
         Otherwise, search new collection and set cached
         '''
 
-        self.set_cached(self.get(self, default=self._cached())) 
+        self.set_cached(self.get(default=self._cached())) 
         self.detach_collection() 
 
         self.col = col
@@ -152,13 +158,20 @@ class Collection[T:Any]():
 
     def __setup__(self):
         self.context = StructContext()
-        self.data = {}
+        self.kv_updated = Signal(self,)
+        self.data = []
+        self.refs = []
         
     def __init__(self, key_attr:str, context:StructContext):
         self.__setup__()
         self.key_attr = key_attr
         self.context.set_extends(context)
     
+    def find[D](self, item:T, default:D=None)->str|D:
+        if item in self.data:
+            return getattr(item, self.key_attr).key
+        return None
+
     def append(self, item:T, update_free_refs:bool=True):
         data = dict(self.items())
 
@@ -172,11 +185,15 @@ class Collection[T:Any]():
         if (key.key is None):
             key.key = self.generate_key()
 
-        if key.key in data.keys():
-            self.handle_key_collision(key.key, data[key.key], item, update_free_refs)
-        
+        key.col = self
         item.context.set_extends(self.context)
         self.data.append(item)
+        
+        if key.key in data.keys():
+            self.handle_key_collision(key.key, data[key.key], item, update_free_refs)
+            return
+        self.kv_updated(key.key, item, update_free_refs, False)
+    
 
     def extend(self, items:Iterable[T], update_free_refs:bool=True):
         for item in items:
@@ -188,12 +205,12 @@ class Collection[T:Any]():
             return
         self.data.remove(item)
         item.context.set_extends(None)
-        _key = getattr(item, self.key_attr) 
-        _key.col = None
+        key = getattr(item, self.key_attr) 
+        key.col = None
         self.kv_updated(k, None, False, update_sub_refs)
     
     def get[D](self, key:str, default:D=_UNSET)->T|D:
-        for k,i in self.data():
+        for k,i in self.items():
             if key == k:
                 return i
         if default is _UNSET:
@@ -201,25 +218,25 @@ class Collection[T:Any]():
         return default
     
     def set(self, item:T, key:str, update_sub_refs:bool=True,  update_free_refs:bool=True):
-        data = dict(self.data.items())
+        data = dict(self.items())
         
         if item in data.values():
             l_item = data.get(key, None)
 
             if not (l_item is None):
                 self.handle_key_collision(key, l_item, item, update_sub_refs, update_free_refs)
-            else:
-                getattr(item, self.key_attr).key = key
-                self.kv_updated(key, item, update_free_refs, update_sub_refs)
-
+                return     
+            
+            getattr(item, self.key_attr).key = key
+            self.kv_updated(key, item, update_free_refs, update_sub_refs)
             return
 
         self.data.append(item)
-        item.context.set_extends(self.context)
-        _key = getattr(item, self.key_attr) 
-        _key.col = self
-        _key.key = key
-        self.kv_updated(key, item, update_free_refs, update_sub_refs)
+        # item.context.set_extends(self.context)
+        # _key = getattr(item, self.key_attr) 
+        # _key.col = self
+        # _key.key = key
+        # self.kv_updated(key, item, update_free_refs, update_sub_refs)
 
     def generate_key(self)->str:
         keys = tuple(self.keys())
@@ -256,3 +273,9 @@ class Collection[T:Any]():
         else: 
             getattr(l_item,self.key_attr).key = n_key
             self.kv_updated(n_key, l_item, update_free_refs, update_sub_refs)
+
+    def __getitem__(self, key)->T:
+        return self.get(key)
+    
+    def __len__(self):
+        return len(self.data)
