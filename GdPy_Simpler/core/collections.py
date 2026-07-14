@@ -48,22 +48,29 @@ class CollectionRef[T:Any]():
     col : Collection[T]|None = None
     key : str|None = None
     _cached : WeakRef = ref(_UNSET())
+    
+    updated : Signal[str,T]
 
     def __init__(self, key:str|None=None, col:Collection[T]|None=None, cache:T=None):
-        self.set_key(key)
-        self.set_cached(cache)
+        self.updated = Signal(self)
+        self.set_key(key, update=False)
+        self.set_cached(cache, update=False)
         self.set_col(col, rekey=True)
 
-    def set_key(self, key, search=True):
+    def set_key(self, key, search=True, update=True):
         self.key = key
         if (not (self.col is None)) and search:
             self.set_cached(self.get())
+        if update:
+            self.updated(self.key, self.get())
     
-    def set_cached(self, cache:T|None):
+    def set_cached(self, cache:T|None, update=True):
         if cache is None:
             self._cached = ref(_UNSET())
             return
         self._cached = ref(cache)
+        if update:
+            self.updated(self.key, self.get())
 
     def set_col(self, col, rekey=True):
         ''' if (rekey) or (self.key is None): if an _cached() exists and is in the collection, set local key to it

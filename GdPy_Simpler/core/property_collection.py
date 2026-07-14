@@ -9,7 +9,7 @@ from .signals import Signal
 class GdValue():
     ''' Base class for all writeable atomic values, prim for isinstance checking '''
 
-def DelayedReference[T:Any]():
+class DelayedReference[T:Any]():
     ''' Delayed load of this type '''
     replace: Signal[T]
     def __init__(self):

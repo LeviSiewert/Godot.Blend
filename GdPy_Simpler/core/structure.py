@@ -26,23 +26,62 @@ class Project():
     files : Collection[File]
     resources : Collection[Resource]
 
-    def __init__(self, file_system, file_types):
-        pass
+    def __setup__(self):
+        self.context = StructContext(project=self)
+        self.types = Collection("typeid", context=self.context)
+        self.files = Collection("filepath", context=self.context)
+        self.resources = Collection("uid", context=self.context) 
+        self.settings = FileRef("res://project.godot", context=self.context)
+
+    def __init__(self, file_system:AbstractFileSystem, file_types:list[Type[File]]):
+        self.__setup__()
+        self.file_system = file_system
+        self.file_types = file_types
 
 class ResourceRef(CollectionRef): #Key is UID
     def __setup__(self):
         self.context = _StructContext()
-        self.context.callback("project", lambda x: self.set_collection(x.resources))
+        def _callback(x: Project):
+            if x is None: 
+                self.set_col(None)
+            else:
+                self.set_col(x.resources)
+        self.context.callback("project", callback=_callback)
+    def __init__(self, key = None, col = None, cache = None, context = None):
+        self.__setup__()
+        super().__init__(key, col, cache)
+        if context:
+            self.context.set_extends(context)
 
 class FileRef(CollectionRef):
     def __setup__(self):
         self.context = _StructContext()
-        self.context.callback("project", lambda x: self.set_collection(x.files))
+        def _callback(x: Project):
+            if x is None: 
+                self.set_col(None)
+            else:
+                self.set_col(x.files)
+        self.context.callback("project", callback=_callback)
+    def __init__(self, key = None, col = None, cache = None, context = None):
+        self.__setup__()
+        super().__init__(key, col, cache)
+        if context:
+            self.context.set_extends(context)
 
 class GdTypeRef(CollectionRef):
     def __setup__(self):
         self.context = _StructContext()
-        self.context.callback("project", lambda x: self.set_collection(x.types))
+        def _callback(x: Project):
+            if x is None: 
+                self.set_col(None)
+            else:
+                self.set_col(x.types)
+        self.context.callback("project", callback=_callback)
+    def __init__(self, key = None, col = None, cache = None, context = None):
+        self.__setup__()
+        super().__init__(key, col, cache)
+        if context:
+            self.context.set_extends(context)
 
 
 class File():
@@ -64,14 +103,60 @@ class File():
     # _cached_ext_resource_map : dict[str, DeferedReference[Resource]]
     
     def __setup__(self):
-        self.filepath=CollectionKey()
+        self.filepath=CollectionKey(self)
         self.context = StructContext(file=self)
         self.resource = ResourceRef(context=self.context)
         self.meta_properties = PropertyCollection(context=self.context)
 
     def __init__(self, filepath:str):
         self.__setup__()
-        self.filepath.set(filepath)
+        self.filepath.set_key(filepath)
+
+    @classmethod
+    def construct(cls, filepath, /, cached_uid:str|None=None, resource:str|Resource=None, properties:dict|None=None, _resource_defer_add:bool=False)->File:
+        self = cls(filepath)
+
+        if cached_uid:
+            self.cached_uid = cached_uid
+
+        if isinstance(resource,Resource):
+            self.resource.set_cached(resource)
+            if _resource_defer_add:
+                def _callback(project:Project):
+                    if not (resource in project.resources):
+                        project.resources.append(resource)
+                self.context.callback("project", _callback, once=True)
+        elif isinstance(resource,str):
+            self.resource.set_key(resource)
+        elif (resource is None) and cached_uid:
+            self.resource.set_key(cached_uid)
+
+        if properties:
+            self.meta_properties.update(properties)
+        
+        return self
+    
+    def create(self,):
+        raise NotImplementedError()
+    def read(self,):
+        raise NotImplementedError()
+    def update(self,):
+        raise NotImplementedError()
+    def delete(self,):
+        raise NotImplementedError()
+    def move(self,):
+        raise NotImplementedError()
+    
+    def _on_created(self,):
+        raise NotImplementedError()
+    def _on_readed(self,):
+        raise NotImplementedError()
+    def _on_updated(self,):
+        raise NotImplementedError()
+    def _on_deleted(self,):
+        raise NotImplementedError()
+    def _on_moved(self,):
+        raise NotImplementedError()
 
 class Resource():
     ''' Any object that *can* be converted to and from disk '''
@@ -109,11 +194,21 @@ class Resource():
         raise NotImplementedError()
 
     def __setup__(self,):
-        self.context = StructContext()
+        self.context = StructContext(subresource=self)
         self.uid = CollectionKey(self)
+        self.file = FileRef(context=self.context)
         self.properties = PropertyCollection(context=self.context)
         self.type = GdTypeRef(context=self.context)
         self.script_type = GdTypeRef(context=self.context)
+
+
+        def _callback(k, file:File|None):
+            if (file is None):
+                try: del self.context.file
+                except: pass
+            else:
+                self.context.file = file
+        self.file.updated.connect(_callback)
 
     def __init__(self):
         self.__setup__()
@@ -127,12 +222,12 @@ class Resource():
             self.id = id
         
         if uid:
-            self.uid.set(uid)
+            self.uid.set_key(uid)
         
         if isinstance(file, str):
-            self.file.store_key(file)
+            self.file.set_key(file)
         elif isinstance(file, File):
-            self.file.store_obj(file)
+            self.file.set_cached(file)
         else:
             raise Exception()
 
@@ -152,7 +247,6 @@ class Resource():
             self.properties.update(properties)
         
         return self
-
 
 class Node(Resource):
     owner : Node|None
