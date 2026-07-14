@@ -2,7 +2,7 @@ from array import array
 from typing import Any
 from collections import OrderedDict, UserString, UserList
 
-from .property_collection import GdValue
+from .property_collection import GdValue, _SetContextMixin
 from .gdtype import GdType
 
 class NodePath(UserString, GdValue):
@@ -40,7 +40,7 @@ class Object(GdValue):
     def __repr__(self,):
         return f"{self.__class__.__name__}({self.type,} ...{len(self.kwargs)})"
 
-class Dictionary(OrderedDict, GdValue):
+class Dictionary(OrderedDict, GdValue, _SetContextMixin):
     typing : GdType
     def __init__(self, map=tuple(), /, typing:tuple[GdType|Any]=None):
         self.typing = typing
@@ -49,12 +49,13 @@ class Dictionary(OrderedDict, GdValue):
     def __setitem__(self, key, value):
         if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        self._set_item_context(key, value)
         return super().__setitem__(key, value)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("{}")})"
 
-class Array(UserList, GdValue):
+class Array(UserList, GdValue, _SetContextMixin):
     typing : GdType
 
     def __init__(self, *values, typing:tuple[GdType|Any]=None):
@@ -64,11 +65,13 @@ class Array(UserList, GdValue):
     def append(self, value):        
         if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        self._set_item_context(len(self)+1, value)
         return super().append(object)
     
     def __setitem__(self, key, value):
         if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
             raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
+        self._set_item_context(key, value)
         return super().__setitem__(key, value)
     
     def __repr__(self):

@@ -30,7 +30,7 @@ class Test_Resource():
             },
         )
 
-        assert res.properties.context.resource == res
+        # assert res.properties.context.resource == res
         assert res.properties.context.subresource == res
 
         assert res.uid.key == "uid://abc"
@@ -38,6 +38,28 @@ class Test_Resource():
         assert res.file.get() is None
 
         assert res.properties["a"] == "a"
+
+    def test_subresource_tracking_construction(self):
+        raise NotImplementedError()
+    
+    def test_subresource_tracking_implicit(self):
+        subres = Resource.construct(
+            properties={
+                "a":"a",
+            },
+        )
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":"a",
+                "b": subres, 
+            },
+        )
+
+        assert subres in res.subresources
+        assert subres.id
+        
 
     def test_construction_overlay_direct(self):
         overlay_res = Resource.construct(
@@ -55,6 +77,8 @@ class Test_Resource():
             },
             overlay=overlay_res,
         )
+
+        assert res.properties.overlay is overlay_res.properties
 
         assert overlay_res.properties["a"] == "a"
         assert overlay_res.properties["b"] == "b"

@@ -10,6 +10,15 @@ from .collections import Collection, CollectionKey, CollectionRef
 from .property_collection import PropertyCollection
 from .gdtype import GdType
 
+from .transformer import (
+    Transformer as _Transformer, 
+    TransformerRuleset as _TransformerRuleset, 
+    TransformerModule as _TransformerModule, 
+    Context as _TransformerContext,
+    TERMINAL as _TERMINAL,
+    DEFAULT as _DEFAULT
+)
+
 class StructContext(_StructContext):
     _slots_ = ("project","file","resource","subresource")
     project : Project
@@ -164,6 +173,7 @@ class Resource():
 
     uid : CollectionKey[str]
     file : FileRef|None = None
+    subresources : Collection[Resource]
     ## Resource id, None if SubResource (Ie without file) or removed from resources
 
     ## Subresource id *only* for r/w dif stability & instance overlays. Changed on duplication
@@ -182,11 +192,39 @@ class Resource():
 
 
     def set_overlay(self, overlay:Resource|None, thin:bool=True):
-        raise NotImplementedError()
+        if overlay is None:
+            self.overlay = overlay
+            self.properties.set_overlay(None)
+        else:
+            self.overlay = overlay
+            self.properties.set_overlay(overlay.properties)
 
-    def set_instance(self, file:FileRef, editable:bool=False):
-        raise NotImplementedError()
-    
+    def set_instance(self, file:File|str|None, editable:bool=False):
+        if isinstance(file, str):
+            self.instance.set_key(file)
+        elif isinstance(file, File):
+            self.instance.set_cached(file)
+        self.instance_is_editable = editable
+        # self.construct_instance()
+
+    def construct_instance(self):
+        file = self.instance.get()
+        if file is None:
+            raise FileNotFoundError(self.instance.key)
+        res = file.resource.get()
+        if res is None:
+            raise ResourceWarning("resource was not found!")
+        self.set_overlay(res)
+
+        c = _InstanceCopyContext()
+        c.cached_local.set(...)
+        ## As in cached transfomrations/matches??
+        ## What about the subresources local that arnt known yet that should be the overlay source ??
+        ## Use cache from file import, otherwise discover?
+        ## Reconsider use of notating subresources in collection on parent resource.
+        instance_copy.transform_tree(c, (self,res))
+
+
     def set_type(self, type:GdTypeRef):
         raise NotImplementedError()
 
@@ -196,6 +234,7 @@ class Resource():
     def __setup__(self,):
         self.context = StructContext(subresource=self)
         self.uid = CollectionKey(self)
+        self.instance = FileRef(context=self.context)
         self.file = FileRef(context=self.context)
         self.properties = PropertyCollection(context=self.context)
         self.type = GdTypeRef(context=self.context)
@@ -216,7 +255,7 @@ class Resource():
         self.__setup__()
 
     @classmethod
-    def construct(cls, /, id:str=None, uid:str=None, file:File=None, type:str|GdType=None, script_type:str|GdType=None, properties:dict|None=None, instance:ResourceRef=None, inst_editable:bool=None, overlay:Resource=None):
+    def construct(cls, /, id:str=None, uid:str=None, file:File=None, type:str|GdType=None, script_type:str|GdType=None, properties:dict|None=None, instance:str|File|Resource=None, inst_editable:bool=None, _instance_direct:bool=False, overlay:Resource=None):
         self = cls()
         self.context.callback("resource", lambda x: setattr(self, "owner", x) )
 
@@ -239,9 +278,14 @@ class Resource():
         if script_type:
             self.set_script_type(script_type)
         
-        if instance:
-            assert not (inst_editable is None)
-            self.set_instance(instance, inst_editable)
+
+        if isinstance(instance, str) or isinstance(instance, File):
+            self.set_instance(instance)
+        elif isinstance(instance, Resource) and _instance_direct:
+            self.set_overlay(instance)
+        elif not (file is None):
+            raise Exception()
+
         elif overlay:
             self.set_overlay(overlay)
 
@@ -291,3 +335,13 @@ class Node(Resource):
                 self.extend_children(_children)
 
         return self
+    
+
+class _InstanceCopyContext(_TransformerContext):
+    pass
+class InstanceCopy(_TransformerModule):
+    _keys = (_DEFAULT,)
+    def transform(self, c, node):
+        raise NotImplementedError()
+
+instance_copy = _Transformer((_TransformerRuleset("InstanceCopy", (InstanceCopy,)),),identifier="InstanceCopy")
