@@ -267,12 +267,17 @@ class Resource(_ResourceFlag):
     def __init__(self):
         self.__setup__()
 
+    def _file_set_callback(self, k,v):
+        self.context.file = v
+
     def setup_as_file(self, uid:str=None, file:str|File=None):
 
         self.subresources = Collection("id", context=self.context, propigate_context=False)
         self.context.resource = self
 
         self.uid.set_key(uid)
+
+        self.file.updated.connect(self._file_set_callback) 
 
         if isinstance(file, File):
             self.file.set_cached(file)
@@ -288,18 +293,25 @@ class Resource(_ResourceFlag):
 
     def remove_as_file(self):
         self.is_file = False
+        
         self.context.project.resources.remove(self)
 
         items = tuple(self.subresources.data)
         self.subresources.clear()
-        del self.context.resource
+
+        try: del self.context.resource
+        except: pass
 
         if self.context.resource:
             for i in items:
                 i.context.set_extends(self.context.resources.context)
 
+        self.file.updated.disconnect(self._file_set_callback)
+        try: self.context.file
+        except: pass
         self.uid.set_key(None)
         self.file.set_key(None)
+
 
     @classmethod
     def construct(cls, /, id:str=None, uid:str=None, file:File=None, type:str|GdType=None, script_type:str|GdType=None, properties:dict|None=None, instance:str|File|Resource=None, inst_editable:bool=None, _instance_direct:bool=False, overlay:Resource=None, subresources:list[Resource]=None):
@@ -338,8 +350,6 @@ class Resource(_ResourceFlag):
 
         if properties:
             self.properties.update(properties)
-
-
         
         return self
 
