@@ -217,7 +217,7 @@ class Resource(_ResourceFlag):
             raise ResourceWarning("resource was not found!")
         self.set_overlay(res)
 
-        c = _InstanceCopyContext()
+        c = _InstanceOverlayContext()
         c.cached_local.set(...)
         ## As in cached transfomrations/matches??
         ## What about the subresources local that arnt known yet that should be the overlay source ??
@@ -396,11 +396,98 @@ class Node(Resource):
         return self
     
 
-class _InstanceCopyContext(_TransformerContext):
-    pass
-class InstanceCopy(_TransformerModule):
+# from contextvars import ContextVar
+# from collections import UserDict, UserList
+
+# class _InstanceOverlayContext(_TransformerContext):
+#     existing_targets : ContextVar[dict]
+#     def __init__(self):
+#         super().__init__()
+#         self.existing_targets = ContextVar("existing_targets")
+
+from .transformer import IGNORE as _IGNORE
+
+class InstanceOverlay_Default(_TransformerModule):
     _keys = (_DEFAULT,)
     def transform(self, c, node):
-        raise NotImplementedError()
+        return _IGNORE
 
-instance_copy = _Transformer((_TransformerRuleset("InstanceCopy", (InstanceCopy,)),),identifier="InstanceCopy")
+class InstanceOverlay_Array():
+    _keys = (UserList,)
+
+    def transform(self, c, node):
+        ''' If has any converted children, return copy w/ all items and updated index '''
+
+class InstanceOverlay_Dictionary():
+    _keys = (UserDict,)
+
+    def transform(self, c, node):
+        ''' If has any converted children, return copy w/ all items and updated index '''
+        
+
+class InstanceOverlay_Resource(_TransformerModule):
+    _keys = (Resource,)
+    def transform(self, c, node):
+        
+        if node.is_file:
+            ## Reference to a resource-file
+            ## Structural delimiter
+            return _IGNORE
+        
+        if converted := c.converted.get(node, None):
+            return converted
+
+        if existing := c.existing.get(node.id,None):
+            new_node = existing.set_overlay(existing)
+            # new_node = Resource.construct_overlay(existing)
+        else:
+            new_node = Resource()
+
+        _existing_props_keys = new_node.properties.keys()
+        yield {k:v for k,v in node.properties.items() if not (k in _existing_props_keys)}
+        updated_ref_props : dict = c.children.get()
+        ## Also filtered implicitly via InstanceOverlay_Default!
+
+        new_node.properties.update(updated_ref_props)
+
+        c.converted.get()[node] = new_node
+
+        return new_node
+
+
+
+
+# class InstanceOverlay(_TransformerModule):
+#     _keys = (_DEFAULT,)
+#     def transform(self, c, node):
+#         if isinstance(node, Resource):
+#             res = yield from self.transform_resource(c, node)
+#             return res
+#         elif isinstance(node, File):
+#             res = yield from self.transform_file(c, node)
+#             return res
+#         elif isinstance(node, PropertyCollection):
+#             res = yield from self.transform_propcol(c, node)
+#             return res
+#         elif isinstance(node, UserDict):
+#             res = yield from self.transform_dictionary(c, node)
+#             return res
+#         elif isinstance(node, UserList):
+#             res = yield from self.transform_array(c, node)
+#             return res
+
+#     def transform_resource(self, c, node:Resource):
+#         if node.is_file:
+#             pass
+
+#     def transform_file(self, c, node:File):
+#         return node
+#     def transform_propcol(self, c, node):
+#         pass
+#     def transform_dictionary(self, c, node):
+#         pass
+#     def transform_array(self, c, node):
+#         pass
+    
+
+# instance_copy = _Transformer((_TransformerRuleset("InstanceOverlay", (InstanceOverlay,)),),identifier="InstanceOverlay")
