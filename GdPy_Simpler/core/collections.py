@@ -150,6 +150,8 @@ class Collection[T:Any]():
     ## TODO: switch functionality to dict && appended loose items list (better performance)
 
     context : StructContext
+    propigate_context : bool = True
+
     data : list[T]
     refs : list[CollectionRef]
     
@@ -182,11 +184,12 @@ class Collection[T:Any]():
         self.data = []
         self.refs = []
         
-    def __init__(self, key_attr:str, context:StructContext):
+    def __init__(self, key_attr:str, context:StructContext, propigate_context:bool=False):
         self.__setup__()
         self.key_attr = key_attr
         self.context.set_extends(context)
-    
+        self.propigate_context = propigate_context
+
     def find[D](self, item:T, default:D=None)->str|D:
         if item in self.data:
             return getattr(item, self.key_attr).key
@@ -206,7 +209,8 @@ class Collection[T:Any]():
             key.key = self.generate_key()
 
         key.col = self
-        item.context.set_extends(self.context)
+        if self.propigate_context:
+            item.context.set_extends(self.context)
         self.data.append(item)
         
         if key.key in data.keys():
@@ -224,7 +228,8 @@ class Collection[T:Any]():
         if k is None: 
             return
         self.data.remove(item)
-        item.context.set_extends(None)
+        if self.propigate_context:
+            item.context.set_extends(None)
         key = getattr(item, self.key_attr) 
         key.col = None
         self.kv_updated(k, None, False, update_sub_refs)

@@ -7,7 +7,7 @@ from fsspec import AbstractFileSystem
 
 from .context import StructContext as _StructContext
 from .collections import Collection, CollectionKey, CollectionRef
-from .property_collection import PropertyCollection
+from .property_collection import PropertyCollection, _ResourceFlag, _FileFlag
 from .gdtype import GdType
 
 from .transformer import (
@@ -93,7 +93,7 @@ class GdTypeRef(CollectionRef):
             self.context.set_extends(context)
 
 
-class File():
+class File(_FileFlag):
     ''' Grouping/Ownership for Resources in memory. '''
     _extensions_ : tuple[str]
     context : StructContext    
@@ -167,7 +167,7 @@ class File():
     def _on_moved(self,):
         raise NotImplementedError()
 
-class Resource():
+class Resource(_ResourceFlag):
     ''' Any object that *can* be converted to and from disk '''
     context : StructContext
 
@@ -242,24 +242,35 @@ class Resource():
         self.type = GdTypeRef(context=self.context)
         self.script_type = GdTypeRef(context=self.context)
 
-        def _callback(k, file:File|None):
-            if (file is None):
-                try: del self.context.file
-                except: pass
-                try: del self.context.resource
-                except: pass
-            else:
-                self.context.resource = self
-                self.context.file = file
-        self.file.updated.connect(_callback)
+        def _callback(resource:Resource|None):
+            ''' Attach to current resource subresources
+            Assumption: Resource ownership should be enforced behaviorally in 
+                - PropertyCollection s
+                - values.Dictionarys
+                - values.Arrays
+            '''
+
+            if not (resource is None):
+                if not (self.id.col is resource.subresources) and not (self.id.col is None):
+                    self.id.col.remove(self)
+                    ## Can happen in normal operation... but isn't advisable?
+                    ## push warning? To determine.
+                if not self in resource.subresources: 
+                    resource.subresources.append(self)                    
+
+            elif not (self.id.col is None):
+                ## Possible Failure state here? 
+                self.id.col.remove(self)
+
+        self.context.callback("resource", _callback)
 
     def __init__(self):
         self.__setup__()
 
     def setup_as_file(self, uid:str=None, file:str|File=None):
 
+        self.subresources = Collection("id", context=self.context, propigate_context=False)
         self.context.resource = self
-        self.subresources = Collection("id", context=self.context)
 
         self.uid.set_key(uid)
 
@@ -308,6 +319,10 @@ class Resource():
             self.setup_as_file(uid=uid, file=file)
             if subresources:
                 self.subresources.extend(subresources)
+                for r in subresources:
+                    ## subresources no longer provides context
+                    ## later context is swapped on use, such as via properties
+                    r.context.set_extends(self.context)
         else:
             assert subresources is None
 
