@@ -40,7 +40,24 @@ class Test_Resource():
         assert res.properties["a"] == "a"
 
     def test_subresource_tracking_construction(self):
-        raise NotImplementedError()
+        subres = Resource.construct(
+            properties={
+                "a":"a",
+            },
+        )
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":"a", 
+            },
+            subresources = [ ## Should error if not file!
+                subres,
+            ]
+        )
+
+        assert subres in res.subresources
+        assert subres.id
     
     def test_subresource_tracking_implicit(self):
         subres = Resource.construct(
@@ -59,6 +76,83 @@ class Test_Resource():
 
         assert subres in res.subresources
         assert subres.id
+    
+    def test_overlay_clean(self):
+        subres = Resource.construct(
+            properties={
+                "a":"a",
+            },
+        )
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":"a",
+                "b": subres, 
+            },
+        )
+        new_res = res.copy_overlay()
+        assert new_res.overlay is res
+        assert new_res.properties["b"].overlay is subres
+
+
+    def test_overlay_dirty(self):
+        ''' Matching ids and overlay is applied to existing, else create new overlay and place in existing cache. Final Tree shape should be maintained. 
+        Delimited by file/abstaract references in properties, instance notation, ie anything not structural. '''
+        
+        origin_subres = Resource.construct(id="subres_id",)
+        res = Resource.construct(
+            properties={
+                "b": origin_subres, 
+            },
+        )
+        overlay_subres = Resource.construct(id="subres_id")
+        
+        new_res = res.copy_overlay()
+        assert overlay_subres.overlay is origin_subres
+
+    def test_overlay_clone(self):
+        ''' Clone should collapse all overlays into a new fully mutable instance w/out overlays, essentially an embedd. '''
+        
+        subres = Resource.construct(id="subres_id")
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":"a",
+                "b": subres, 
+            },
+        )
+
+        res_overlay = res.copy_overlay()
+        new_clone = res_overlay.clone(deep=True)
+
+        assert new_clone.overlay is None
+        assert new_clone.origin() is res_overlay
+        assert new_clone.properties["a"] == "a"
+        assert not new_clone.properties["b"] is subres
+
+
+    def test_clone(self):
+        ''' Clone should collapse all overlays into a new fully mutable instance w/out overlays, essentially an embedd. '''
+        
+        subres = Resource.construct(id="subres_id")
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":"a",
+                "b": subres, 
+            },
+        )
+
+        new_clone = res.clone(deep=True)
+
+        assert not (new_clone is res)
+        assert new_clone.overlay is None
+        assert new_clone.origin() is res
+        assert new_clone.properties["a"] == "a"
+        assert not (new_clone.properties["b"] is subres)
         
 
     def test_construction_overlay_direct(self):
@@ -86,6 +180,7 @@ class Test_Resource():
         assert res.properties["a"] == "a"
         assert res.properties["b"] == "c"
         assert res.properties["c"] == "c"
+
 
     def test_construction_instance_direct(self):
         ''' Test direct instance construction'''
