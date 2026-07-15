@@ -5,6 +5,9 @@ from collections import OrderedDict, UserString, UserList
 from .property_collection import GdValue, _SetContextMixin
 from .gdtype import GdType
 
+from .structure import (Resource as _Resource, File as _File)
+
+
 class NodePath(UserString, GdValue):
     _typing : GdType
 
@@ -54,6 +57,16 @@ class Dictionary(OrderedDict, GdValue, _SetContextMixin):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("{}")})"
+    
+    def contains_subresource(self):
+        for k,v in self.items():
+            if isinstance(v, (Array,Dictionary)):
+                if v.contains_subresource():
+                    return True
+            elif isinstance(v, _Resource):
+                if not v.is_file:
+                    return True
+        return False
 
 class Array(UserList, GdValue, _SetContextMixin):
     typing : GdType
@@ -76,7 +89,17 @@ class Array(UserList, GdValue, _SetContextMixin):
     
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
-    
+
+    def contains_subresource(self):
+        for v in self.data:
+            if isinstance(v, (Array,Dictionary)):
+                if v.contains_subresource():
+                    return True
+            elif isinstance(v, _Resource):
+                if not v.is_file:
+                    return True
+        return False
+
 
 class _FixedLenArray(GdValue):
     val : array = None

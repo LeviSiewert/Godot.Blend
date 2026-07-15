@@ -394,68 +394,104 @@ class Node(Resource):
                 self.extend_children(_children)
 
         return self
-    
 
-# from contextvars import ContextVar
-# from collections import UserDict, UserList
 
-# class _InstanceOverlayContext(_TransformerContext):
-#     existing_targets : ContextVar[dict]
-#     def __init__(self):
-#         super().__init__()
-#         self.existing_targets = ContextVar("existing_targets")
+### INSTANCE-OVERLAY TRANSFORMER ###
 
-from .transformer import IGNORE as _IGNORE
+from contextvars import ContextVar
+from collections import UserDict, UserList
+from copy import copy
+
+class _InstanceOverlayContext(_TransformerContext):
+    existing : ContextVar[dict[str|int,Resource]]
+    converted : ContextVar[dict[Resource,Resource]]
+    def __init__(self):
+        super().__init__()
+        self.existing_targets = ContextVar("existing_targets")
 
 class InstanceOverlay_Default(_TransformerModule):
     _keys = (_DEFAULT,)
     def transform(self, c, node):
-        return _IGNORE
+        return copy(node)
 
-class InstanceOverlay_Array():
+class InstanceOverlay_Refs(_TransformerModule):
+    _keys = (CollectionRef,)
+    def transform(self, c, node):
+        return copy(node)
+
+class InstanceOverlay_Array(_TransformerModule):
     _keys = (UserList,)
 
     def transform(self, c, node):
         ''' If has any converted children, return copy w/ all items and updated index '''
+        yield node
+        new = node.__class__()
+        new.extend(c.children.get())
+        return new
 
-class InstanceOverlay_Dictionary():
+class InstanceOverlay_Dictionary(_TransformerModule):
     _keys = (UserDict,)
 
     def transform(self, c, node):
         ''' If has any converted children, return copy w/ all items and updated index '''
+        yield node
+        new = node.__class__()
+        new.update(c.children.get())
+        return new
         
-
 class InstanceOverlay_Resource(_TransformerModule):
     _keys = (Resource,)
-    def transform(self, c, node):
-        
+    def transform(self, c, node:Resource):
+        ''' Find return already converted w/a, overlay existing w/a, create thin overlay otherwise'''
+
         if node.is_file:
-            ## Reference to a resource-file
+            ## Fullfilled reference to a resource-file
             ## Structural delimiter
-            return _IGNORE
+            return node
         
-        if converted := c.converted.get(node, None):
+        if not (converted := c.converted.get(node, None) is None):
             return converted
 
-        if existing := c.existing.get(node.id,None):
-            new_node = existing.set_overlay(existing)
-            # new_node = Resource.construct_overlay(existing)
+        if not (existing := c.existing.get(node.id, None) is None):
+            new_node = existing.set_overlay(node)
         else:
-            new_node = Resource()
+            new_node = Resource.construct(
+                id = node.id.key,
+                type=node.type.key,
+                script_type=node.script_type.key,
+                overlay=node,
+            )
 
         _existing_props_keys = new_node.properties.keys()
-        yield {k:v for k,v in node.properties.items() if not (k in _existing_props_keys)}
-        updated_ref_props : dict = c.children.get()
-        ## Also filtered implicitly via InstanceOverlay_Default!
 
-        new_node.properties.update(updated_ref_props)
+        def filter(k, v)->bool:
+            if k in _existing_props_keys:
+                return False 
+            if isinstance(v, (UserDict, UserList)):
+                return v.contains_subresource()
+            if isinstance(v, Resource):
+                return not v.is_file
+            return False
+
+        yield {k:v for k,v in node.properties.items() if filter(k,v)}
+        new_node.properties.update(c.children.get())
 
         c.converted.get()[node] = new_node
 
         return new_node
 
-
-
+instance_copy = _Transformer(
+    (
+        _TransformerRuleset("InstanceOverlay", (
+            InstanceOverlay_Default, 
+            InstanceOverlay_Refs, 
+            InstanceOverlay_Array, 
+            InstanceOverlay_Dictionary, 
+            InstanceOverlay_Resource,
+        )),
+    ), 
+    identifier="InstanceOverlay"
+)
 
 # class InstanceOverlay(_TransformerModule):
 #     _keys = (_DEFAULT,)
@@ -490,4 +526,3 @@ class InstanceOverlay_Resource(_TransformerModule):
 #         pass
     
 
-# instance_copy = _Transformer((_TransformerRuleset("InstanceOverlay", (InstanceOverlay,)),),identifier="InstanceOverlay")
