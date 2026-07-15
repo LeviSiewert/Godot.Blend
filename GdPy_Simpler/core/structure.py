@@ -171,13 +171,14 @@ class Resource():
     ''' Any object that *can* be converted to and from disk '''
     context : StructContext
 
+    is_file : bool = False
     uid : CollectionKey[str]
     file : FileRef|None = None
     subresources : Collection[Resource]
     ## Resource id, None if SubResource (Ie without file) or removed from resources
 
     ## Subresource id *only* for r/w dif stability & instance overlays. Changed on duplication
-    id : str|int = None
+    id : CollectionKey[str|int] = None
     
     type : GdTypeRef
     script_type : GdTypeRef
@@ -234,6 +235,7 @@ class Resource():
     def __setup__(self,):
         self.context = StructContext(subresource=self)
         self.uid = CollectionKey(self)
+        self.id = CollectionKey(self)
         self.instance = FileRef(context=self.context)
         self.file = FileRef(context=self.context)
         self.properties = PropertyCollection(context=self.context)
@@ -254,43 +256,75 @@ class Resource():
     def __init__(self):
         self.__setup__()
 
+    def setup_as_file(self, uid:str=None, file:str|File=None):
+
+        self.context.resource = self
+        self.subresources = Collection("id", context=self.context)
+
+        self.uid.set_key(uid)
+
+        if isinstance(file, File):
+            self.file.set_cached(file)
+        else:
+            self.file.set_key(file)
+
+        if (self.context.project is None):
+            self.context.callback("project", lambda x: x.project.resources.append(self))
+        else:
+            self.context.project.resources.append(self)
+
+        self.is_file = True
+
+    def remove_as_file(self):
+        self.is_file = False
+        self.context.project.resources.remove(self)
+
+        items = tuple(self.subresources.data)
+        self.subresources.clear()
+        del self.context.resource
+
+        if self.context.resource:
+            for i in items:
+                i.context.set_extends(self.context.resources.context)
+
+        self.uid.set_key(None)
+        self.file.set_key(None)
+
     @classmethod
-    def construct(cls, /, id:str=None, uid:str=None, file:File=None, type:str|GdType=None, script_type:str|GdType=None, properties:dict|None=None, instance:str|File|Resource=None, inst_editable:bool=None, _instance_direct:bool=False, overlay:Resource=None):
+    def construct(cls, /, id:str=None, uid:str=None, file:File=None, type:str|GdType=None, script_type:str|GdType=None, properties:dict|None=None, instance:str|File|Resource=None, inst_editable:bool=None, _instance_direct:bool=False, overlay:Resource=None, subresources:list[Resource]=None):
         self = cls()
         self.context.callback("resource", lambda x: setattr(self, "owner", x) )
 
         if id:
-            self.id = id
-        
-        if uid:
-            self.uid.set_key(uid)
-        
-        if isinstance(file, str):
-            self.file.set_key(file)
-        elif isinstance(file, File):
-            self.file.set_cached(file)
-        elif not (file is None):
-            raise Exception()
+            self.id.set_key(id)
 
         if type:
             self.set_type(type)
 
         if script_type:
             self.set_script_type(script_type)
-        
+
+        if uid or file:
+            self.setup_as_file(uid=uid, file=file)
+            if subresources:
+                self.subresources.extend(subresources)
+        else:
+            assert subresources is None
 
         if isinstance(instance, str) or isinstance(instance, File):
             self.set_instance(instance)
         elif isinstance(instance, Resource) and _instance_direct:
             self.set_overlay(instance)
-        elif not (file is None):
-            raise Exception()
+        elif not (instance is None):
+            raise Exception(instance)
 
         elif overlay:
             self.set_overlay(overlay)
 
         if properties:
             self.properties.update(properties)
+
+
         
         return self
 

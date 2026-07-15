@@ -261,11 +261,11 @@ class Collection[T:Any]():
     def generate_key(self)->str:
         keys = tuple(self.keys())
         n_key = self._generate_key()
-        while n_key in self.keys:
+        while n_key in keys:
             n_key = self._generate_key()
         return n_key
     def _generate_key(self,)->str:
-        return "".join(random.sample(9, ascii_letters))
+        return "".join(random.sample(ascii_letters,9))
     
     def index_key(self, key:str):
         keys = tuple(self.keys())
@@ -299,3 +299,6 @@ class Collection[T:Any]():
     
     def __len__(self):
         return len(self.data)
+    
+    def __iter__(self):
+        yield from self.data.__iter__()

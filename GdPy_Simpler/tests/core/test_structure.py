@@ -51,13 +51,21 @@ class Test_Resource():
             properties={
                 "a":"a", 
             },
-            subresources = [ ## Should error if not file!
+            subresources = [
                 subres,
             ]
         )
 
         assert subres in res.subresources
         assert subres.id
+        
+        assert res.context.resource is res
+
+        assert res.context in tuple(subres.context._iter_extends())
+
+        assert subres.context.resource is res
+        assert subres.context.subresource is subres
+
     
     def test_subresource_tracking_implicit(self):
         subres = Resource.construct(
