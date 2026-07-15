@@ -218,13 +218,20 @@ class Resource(_ResourceFlag):
         self.set_overlay(res)
 
         c = _InstanceOverlayContext()
-        c.cached_local.set(...)
-        ## As in cached transfomrations/matches??
-        ## What about the subresources local that arnt known yet that should be the overlay source ??
-        ## Use cache from file import, otherwise discover?
-        ## Reconsider use of notating subresources in collection on parent resource.
-        instance_copy.transform_tree(c, (self,res))
+        c.existing.set({res.id.key:res for res in self.subresources})
+        instance_copy.transform_tree(c, res)
 
+    def copy_overlay(self, existing:dict|None=None):
+        c = _InstanceOverlayContext()
+        if not (existing is None):
+            c.existing.set(existing)
+        c.root.set(self)
+        return instance_copy.transform_tree(c, self)
+
+    def clone(self, deep=True)->Resource:
+        ## Duplicate-collapse entire tree & overlays into simple nodes while localizing references.
+        ## Deep: uncertain desired traversal change. Clone all instances would be under default.
+        raise NotImplementedError()
 
     def set_type(self, type:GdTypeRef):
         raise NotImplementedError()
@@ -405,9 +412,12 @@ from copy import copy
 class _InstanceOverlayContext(_TransformerContext):
     existing : ContextVar[dict[str|int,Resource]]
     converted : ContextVar[dict[Resource,Resource]]
+    root : ContextVar[Resource|None]
     def __init__(self):
         super().__init__()
-        self.existing_targets = ContextVar("existing_targets")
+        self.converted = ContextVar("converted", default={})
+        self.existing = ContextVar("existing", default={})
+        self.root = ContextVar("root", default=None)
 
 class InstanceOverlay_Default(_TransformerModule):
     _keys = (_DEFAULT,)
@@ -444,16 +454,17 @@ class InstanceOverlay_Resource(_TransformerModule):
     def transform(self, c, node:Resource):
         ''' Find return already converted w/a, overlay existing w/a, create thin overlay otherwise'''
 
-        if node.is_file:
+        if node.is_file and (not (node is c.root.get())):
             ## Fullfilled reference to a resource-file
             ## Structural delimiter
             return node
         
-        if not (converted := c.converted.get(node, None) is None):
+        if not ((converted := c.converted.get().get(node, None)) is None):
             return converted
 
-        if not (existing := c.existing.get(node.id, None) is None):
-            new_node = existing.set_overlay(node)
+        if not ((existing := c.existing.get().get(node.id.key, None)) is None):
+            existing.set_overlay(node)
+            new_node = existing
         else:
             new_node = Resource.construct(
                 id = node.id.key,
@@ -470,7 +481,7 @@ class InstanceOverlay_Resource(_TransformerModule):
             if isinstance(v, (UserDict, UserList)):
                 return v.contains_subresource()
             if isinstance(v, Resource):
-                return not v.is_file
+                return (not v.is_file)
             return False
 
         yield {k:v for k,v in node.properties.items() if filter(k,v)}
@@ -481,15 +492,13 @@ class InstanceOverlay_Resource(_TransformerModule):
         return new_node
 
 instance_copy = _Transformer(
-    (
-        _TransformerRuleset("InstanceOverlay", (
-            InstanceOverlay_Default, 
-            InstanceOverlay_Refs, 
-            InstanceOverlay_Array, 
-            InstanceOverlay_Dictionary, 
-            InstanceOverlay_Resource,
-        )),
-    ), 
+    _TransformerRuleset("InstanceOverlay", (
+        InstanceOverlay_Default, 
+        InstanceOverlay_Refs, 
+        InstanceOverlay_Array, 
+        InstanceOverlay_Dictionary, 
+        InstanceOverlay_Resource,
+    )), 
     identifier="InstanceOverlay"
 )
 

@@ -115,8 +115,8 @@ class Test_Resource():
             },
         )
         overlay_subres = Resource.construct(id="subres_id")
-        
-        new_res = res.copy_overlay()
+
+        new_res = res.copy_overlay(existing={overlay_subres.id.key : overlay_subres})
         assert overlay_subres.overlay is origin_subres
 
     def test_overlay_clone(self):
