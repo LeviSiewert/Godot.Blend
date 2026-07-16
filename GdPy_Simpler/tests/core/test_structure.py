@@ -374,6 +374,7 @@ class Test_Node():
             ],
             properties={
                 "c":"c"
+                "d": Resource.construct(),
             },
         )
 
@@ -389,8 +390,12 @@ class Test_Node():
             ]
         )
         assert len(node_a2.children) == 2
+        assert len(node_a2.nodes) == 2
+        assert len(node_a2.resources) == 0
         node_a2.construct_instance()
         assert len(node_a2.children) == 3
+        assert len(node_a2.nodes) == 3
+        assert len(node_a2.resources) == 1
         assert node_c2.overlay is node_c1
         assert node_a2["B"].overlay is node_b1
         assert node_d2.overlay is None
