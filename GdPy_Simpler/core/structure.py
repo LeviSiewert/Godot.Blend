@@ -10,6 +10,8 @@ from .collections import Collection, CollectionKey, CollectionRef
 from .property_collection import PropertyCollection, _ResourceFlag, _FileFlag
 from .gdtype import GdType
 
+from .signals import Signal
+
 from .transformer import (
     Transformer as _Transformer, 
     TransformerRuleset as _TransformerRuleset, 
@@ -26,9 +28,27 @@ class StructContext(_StructContext):
     resource : Resource
     subresource : Resource
 
+class FileSystemSignalProvider():
+    created : Signal[str]
+    removed : Signal[str]
+    updated : Signal[str]
+    deleted : Signal[str]
+    moved : Signal[str, str]
+
+    def __setup__(self):
+        self.created = Signal(self)
+        self.removed = Signal(self)
+        self.updated = Signal(self)
+        self.deleted = Signal(self)
+        self.moved = Signal(self)
+
+    def __init__(self):
+        self.__setup__()
+
 class Project():
-    file_system : AbstractFileSystem
-    
+    file_system : AbstractFileSystem|None
+    file_system_signals : FileSystemSignalProvider|None
+
     file_types : list[Type[File]]
 
     types : Collection[GdType] #GdType
@@ -42,10 +62,39 @@ class Project():
         self.resources = Collection("uid", context=self.context) 
         self.settings = FileRef("res://project.godot", context=self.context)
 
-    def __init__(self, file_system:AbstractFileSystem, file_types:list[Type[File]]):
+    def __init__(self, file_system:AbstractFileSystem|None=None, signals:FileSystemSignalProvider|None=None, file_types:list[Type[File]]=None, search=True):
         self.__setup__()
         self.file_system = file_system
         self.file_types = file_types
+        
+        if search:
+            assert not (file_system is None)
+            self.search()
+
+        if signals:
+            assert not (file_system is None)
+            self.file_system_signals = signals
+
+    def search(self):
+        assert not (self.file_system is None)
+        ''' Find all files on disc relevent and populate self.files w/ '''
+        raise NotImplementedError()
+        
+
+    @classmethod
+    def construct(cls, file_system:AbstractFileSystem|None=None, signals:FileSystemSignalProvider|None=None, file_types:list[Type[File]]=tuple(), resources:tuple[Resource]=None, files:tuple[File]=None, search=False):
+        self = cls(file_system=file_system, signals=signals, file_types=file_types, search=False)
+
+        if files:
+            self.files.extend(files)
+
+        if resources:
+            self.resources.extend(filter(lambda x: (x.uid.key or x.file.key or x.file._cached()),  resources))
+
+        if search:
+            self.search()
+
+        return self
 
 class ResourceRef(CollectionRef): #Key is UID
     def __setup__(self):

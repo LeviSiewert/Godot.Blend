@@ -3,6 +3,8 @@ import pytest
 from fsspec import AbstractFileSystem
 
 from ...core.structure import Project, File, Resource, ResourceRef, FileRef
+from fsspec.implementations.memory import MemoryFileSystem
+from ...core.structure import FileSystemSignalProvider
 
 class Test_File():
 
@@ -276,12 +278,6 @@ class Test_Resource():
 #     def test_instance_editability(self):
 #         raise NotImplementedError()
 
-#     def test_overlay(self):
-#         raise NotImplementedError()
-
-#     def test_overlay_properties(self):
-#         raise NotImplementedError()
-
 #     def test_overlay_editability(self):
 #         raise NotImplementedError()
 
@@ -295,11 +291,67 @@ class Test_Resource():
 #         raise NotImplementedError()
 
 
-# @pytest.mark.dependency(name="Test_Project", depends=["test_signals.py::Test_Signals", "test_context.py::Test_Context", "test_collection.py::Test_Collection", "Test_Resource", "Test_File"] )
-# class Test_Project():
 
-#     def test_construction(self):
-#         raise NotImplementedError()
+# @pytest.mark.dependency(name="Test_Project", depends=["test_signals.py::Test_Signals", "test_context.py::Test_Context", "test_collection.py::Test_Collection", "Test_Resource", "Test_File"] )
+class Test_Project():
+
+    def test_construction(self):
+        prj = Project.construct()
+
+    def test_construction_mem_fs(self):
+        prj = Project.construct(
+            file_system=MemoryFileSystem(),
+            signals=FileSystemSignalProvider(),
+        )
+
+    def test_construction_res_only(self):
+        inst_res = Resource.construct(
+            uid="uid://inst_src",
+            properties={
+                "a":"a",
+                "b":"b"
+            },
+        )
+        inst_file = File.construct(
+            "res://inst_src.txt",
+            resource=inst_res,
+        )
+
+        subres = Resource.construct(
+            id="subres_id"
+        )
+        res = Resource.construct(
+            uid="uid://abc",
+            properties={
+                "b":"c",
+                "c":subres,
+            },
+            instance=inst_file,
+        )
+        res_file = File.construct(
+            "res://abc.txt",
+            resource=res,
+        )
+
+        prj = Project.construct(
+            files = [
+                inst_file,
+                res_file,
+            ], 
+            resources=[
+                inst_res,
+                subres,
+                res,
+            ],
+        )
+
+        assert len(prj.resources) == 2
+        assert inst_res in prj.resources
+        assert res in prj.resources
+        
+        assert res.file.get() is res_file
+        assert inst_res.file.get() is inst_file
+        
 
 #     def test_construction_file_resource_refs(self):
 #         raise NotImplementedError()
