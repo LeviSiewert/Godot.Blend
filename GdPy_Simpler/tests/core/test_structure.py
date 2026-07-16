@@ -378,7 +378,67 @@ class Test_Project():
         file_xyz = prj.files["subfolder/xyz.txt"]
         file_xyz.load()
         assert file_xyz.data == "xyz_contents"
+
+    def test_construction_instance_construction(self):
+        ''' Desired structure is `res[b] is res[c] is subres` and  `subres.overlay is inst_subres` 
+        Done through ref match + loading
+        - inst_file
+            - res.props:
+                - subres
+        - res_file
+            - res.props:
+                - subres
+        '''
+
+        inst_subres = Resource.construct(
+            id="subres_id"
+        )
+        inst_res = Resource.construct(
+            uid="uid://inst_src",
+            properties={
+                "a":"a",
+                "b":inst_subres,
+            },
+        )
+        inst_file = File.construct(
+            "res://inst_src.txt",
+            resource=inst_res,
+        )
+
+        subres = Resource.construct(
+            id="subres_id"
+        )
+        res = Resource.construct(
+            uid="uid://abc",
+            properties={
+                "b":"c",
+                "c":subres,
+            },
+            instance="res://inst_src.txt", ## constructs defered reference, should be found
+        )
+        res_file = File.construct(
+            "res://abc.txt",
+            resource=res,
+        )
+
+        prj = Project.construct(
+            files = [
+                inst_file,
+                res_file,
+            ], 
+            resources=[
+                inst_res,
+                subres,     ## Subresources should be filtered out, as they do *not* have a UID.
+                res,
+            ],
+        )
         
+        res.construct_instance()
+        assert res.are_instances_constructed()
+        assert res.overlay is inst_res
+        assert subres.overlay is inst_subres
+        assert (res["b"] is res["c"]) and res["b"] is subres 
+
 
 #     def test_construction_file_resource_refs(self):
 #         raise NotImplementedError()
