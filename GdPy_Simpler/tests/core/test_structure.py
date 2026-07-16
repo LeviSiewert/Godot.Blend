@@ -373,7 +373,7 @@ class Test_Node():
                 node_c1,
             ],
             properties={
-                "c":"c"
+                "c":"c",
                 "d": Resource.construct(),
             },
         )
