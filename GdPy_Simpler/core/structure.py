@@ -422,34 +422,43 @@ class Node(Resource):
         self.children = Collection("name", context=self.context)
 
     @classmethod
-    def construct(cls, /, name:str=None, id:int = None, uid = None, file = None, type = None, script_type = None, properties = None, instance = None, inst_editable = None, overlay = None, _parent:str|Node=None, _index:int|None=None, _children:list[Node]=None, _defer_nodetree=True):
-        self = super().construct(id, uid, file, type, script_type, properties, instance, inst_editable, overlay)
-
-        self.context.callback("resource", lambda x: setattr(self,"owner",x) )
-
-        if not(name is None):
-            self.name.set(name)
-        elif not(type is None):
-            self.name.set(type.name)
-        else:
-            self.name.set("Node")
-
-        if _defer_nodetree:
-            if not(_parent is None):
-                if isinstance(_parent, str):
-                    self.context.callback("resource", lambda x: x.get_node(_parent).append(self,_index) )
-                else:
-                    self.context.callback("resource", lambda x: _parent.append_child(self, _index) )
-            if not(_children is None):
-                    self.context.callback("resource", lambda x: self.extend_children(_children) )
-        else:
-            if not(_parent is None):
-                assert not isinstance(_parent,str)
-                _parent.append_child(self, _index)
-            if not(_children is None):
-                self.extend_children(_children)
-
+    def construct(cls, /, name:str=None, children:tuple[Node]=None, defer_children:bool=True, id = None, uid = None, file = None, type = None, script_type = None, properties = None, instance = None, inst_editable = None, _instance_direct = False, overlay = None, subresources = None):
+        self = super().construct(id, uid, file, type, script_type, properties, instance, inst_editable, _instance_direct, overlay, subresources)
+        ## Order of operations:
+        ## Name, children (or attach callback)
+        ## everthing else in construct?
+        ## if not file, assert no subresources? 
         return self
+
+    # @classmethod
+    # def construct(cls, /, name:str=None, id:int = None, uid = None, file = None, type = None, script_type = None, properties = None, instance = None, inst_editable = None, overlay = None, _parent:str|Node=None, _index:int|None=None, _children:list[Node]=None, _defer_nodetree=True):
+    #     self = super().construct(id, uid, file, type, script_type, properties, instance, inst_editable, overlay)
+
+    #     self.context.callback("resource", lambda x: setattr(self,"owner",x) )
+
+    #     if not(name is None):
+    #         self.name.set(name)
+    #     elif not(type is None):
+    #         self.name.set(type.name)
+    #     else:
+    #         self.name.set("Node")
+
+    #     if _defer_nodetree:
+    #         if not(_parent is None):
+    #             if isinstance(_parent, str):
+    #                 self.context.callback("resource", lambda x: x.get_node(_parent).append(self,_index) )
+    #             else:
+    #                 self.context.callback("resource", lambda x: _parent.append_child(self, _index) )
+    #         if not(_children is None):
+    #                 self.context.callback("resource", lambda x: self.extend_children(_children) )
+    #     else:
+    #         if not(_parent is None):
+    #             assert not isinstance(_parent,str)
+    #             _parent.append_child(self, _index)
+    #         if not(_children is None):
+    #             self.extend_children(_children)
+
+    #     return self
 
 
 ### INSTANCE-OVERLAY TRANSFORMER ###

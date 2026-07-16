@@ -2,7 +2,7 @@ import pytest
 
 from fsspec import AbstractFileSystem
 
-from ...core.structure import Project, File, Resource, ResourceRef, FileRef
+from ...core.structure import Project, File, Node, Resource, ResourceRef, FileRef
 from fsspec.implementations.memory import MemoryFileSystem
 from ...core.structure import FileSystemSignalProvider
 from ...files import FileText
@@ -292,6 +292,108 @@ class Test_Resource():
 #         raise NotImplementedError()
 
 
+
+class Test_Node():
+    def test_construction_basic():
+        Node.construct()
+    
+    def test_construction_tree():
+        subres = Resource.construct()
+        node_e = Node.construct(name="E",
+            properties={
+                "a":"a",
+                "b":subres,
+            }
+        )
+        node_d = Node.construct(name="D", 
+            children=[
+                node_e,
+            ],
+        )
+        node_c = Node.construct(name="C")
+        node_b = Node.construct(name="B")
+        node_a = Node.construct(name="A",
+            uid="uid:abc",
+            children = [
+                node_b,
+                node_c,
+                node_d,
+            ],
+        )
+        assert len(node_a.children) == 3
+        assert len(node_a.nodes) == 4
+        assert len(node_a.subresources) == 1
+        assert node_a.subresources[0] is subres
+
+    def test_tree_nodepath(self):
+        node_e = Node.construct(name="E")
+        node_d = Node.construct(name="D", 
+            children=[
+                node_e,
+            ],
+        )
+        node_c = Node.construct(name="C")
+        node_b = Node.construct(name="B")
+        node_a = Node.construct(name="A",
+            uid="uid:abc",
+            children = [
+                node_b,
+                node_c,
+                node_d,
+            ],
+            properties={
+                "c":"c"
+            },
+        )
+
+        assert node_e["."] is node_e
+        assert node_b[".."] is node_a
+        assert node_d["E"] is node_e
+        assert node_a["D/E"] is node_e
+        assert node_e["../.."] is node_a
+        
+        assert node_e[".:a"] is "a"
+        assert node_e["../..:c"] is "c"
+        assert node_e[":owner"] is node_a
+
+        assert node_e["/"] is None
+
+    def test_tree_instances():
+        ''' A(B,C) -> A(B,~C,+D)
+        Where + means new
+        where ~ means changed
+        '''
+        
+        node_c1 = Node.construct(name="C")
+        node_b1 = Node.construct(name="B")
+        node_a1 = Node.construct(name="A",
+            uid="uid:abc",
+            children = [
+                node_b1,
+                node_c1,
+            ],
+            properties={
+                "c":"c"
+            },
+        )
+
+        node_d2 = Node.construct(name="D")
+        node_c2 = Node.construct(name="C")
+        # node_b2 = Node.construct(name="B")
+        node_a2 = Node.construct(name="A2",
+            instance = node_a1,
+            children=[
+                # node_b2 # Inherit !
+                node_c2,  # Change !
+                node_d2,  # New !
+            ]
+        )
+        assert len(node_a2.children) == 2
+        node_a2.construct_instance()
+        assert len(node_a2.children) == 3
+        assert node_c2.overlay is node_c1
+        assert node_a2["B"].overlay is node_c1
+        assert node_d2.overlay is None
 
 # @pytest.mark.dependency(name="Test_Project", depends=["test_signals.py::Test_Signals", "test_context.py::Test_Context", "test_collection.py::Test_Collection", "Test_Resource", "Test_File"] )
 class Test_Project():
