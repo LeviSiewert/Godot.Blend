@@ -351,6 +351,12 @@ class Test_Project():
         
         assert res.file.get() is res_file
         assert inst_res.file.get() is inst_file
+    
+    def test_construction_search(self):
+        raise NotImplementedError()
+
+    def test_construction_search_load(self):
+        raise NotImplementedError()
         
 
 #     def test_construction_file_resource_refs(self):
