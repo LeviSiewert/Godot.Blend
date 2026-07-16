@@ -5,6 +5,7 @@ from fsspec import AbstractFileSystem
 from ...core.structure import Project, File, Resource, ResourceRef, FileRef
 from fsspec.implementations.memory import MemoryFileSystem
 from ...core.structure import FileSystemSignalProvider
+from ...files import FileText
 
 class Test_File():
 
@@ -340,7 +341,7 @@ class Test_Project():
             ], 
             resources=[
                 inst_res,
-                subres,
+                subres,     ## Subresources should be filtered out, as they do *not* have a UID.
                 res,
             ],
         )
@@ -353,10 +354,30 @@ class Test_Project():
         assert inst_res.file.get() is inst_file
     
     def test_construction_search(self):
-        raise NotImplementedError()
+        fs = MemoryFileSystem()
+        fs.write_text("abc.txt", "abc_contents")
+        fs.write_text("subfolder/xyz.txt", "xyz_contents")
+        
+        prj = Project.construct(file_system=fs, file_types=[FileText], search=True)
+
+        assert len(prj.files) == 2
+        assert prj.files["abc.txt"]
+        assert prj.files["subfolder/xyz.txt"]
 
     def test_construction_search_load(self):
-        raise NotImplementedError()
+        fs = MemoryFileSystem()
+        fs.write_text("abc.txt", "abc_contents")
+        fs.write_text("subfolder/xyz.txt", "xyz_contents")
+        
+        prj = Project.construct(file_system=fs, file_types=[FileText], search=True)
+
+        file_abc = prj.files["abc.txt"]
+        file_abc.load()
+        assert file_abc.data == "abc_contents"
+        
+        file_xyz = prj.files["subfolder/xyz.txt"]
+        file_xyz.load()
+        assert file_xyz.data == "xyz_contents"
         
 
 #     def test_construction_file_resource_refs(self):
