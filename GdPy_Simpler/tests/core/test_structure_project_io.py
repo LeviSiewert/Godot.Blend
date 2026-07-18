@@ -1,7 +1,7 @@
 from fsspec.implementations.memory import MemoryFileSystem
 
-from ..core.structure import Project, File, Resource
-from ..files import file_types
+from ...core.structure import Project, File, Resource
+from ...files import file_types
 
 
 def test_construct():
