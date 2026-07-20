@@ -6,6 +6,7 @@ from ...core.structure import Project, File, Node, Resource, ResourceRef, FileRe
 from fsspec.implementations.memory import MemoryFileSystem
 from ...core.structure import FileSystemSignalProvider
 from ...files import FileText
+from...core.promises import SubResource, ExtResource
 
 class Test_File():
 
@@ -41,6 +42,44 @@ class Test_Resource():
         assert res.file.get() is None
 
         assert res.properties["a"] == "a"
+
+    def test_construction_promises(self):
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":ExtResource("extresource_id"),
+                "b":SubResource("subresource_id")
+            },
+        )
+
+        assert len(res._ext_promises) == 1
+        assert len(res._sub_promises) == 1
+        assert len(res._ext_promises["extresource_id"]) == 1
+        assert len(res._sub_promises["subresource_id"]) == 1
+
+    def test_construction_promises_subres(self):
+        from...core.promises import SubResource, ExtResource
+        subres = Resource.construct(
+            id=1,
+            properties={
+                "a":ExtResource("extresource_id"),
+                "b":SubResource("subresource_id")
+            }
+        )
+
+        res = Resource.construct(
+            uid="uid://abc",
+            file="res://abc.txt",
+            properties={
+                "a":subres,
+            },
+        )
+
+        assert len(res._ext_promises) == 1
+        assert len(res._sub_promises) == 1
+        assert len(res._ext_promises["extresource_id"]) == 1
+        assert len(res._sub_promises["subresource_id"]) == 1
 
     def test_subresource_tracking_construction(self):
         subres = Resource.construct(
