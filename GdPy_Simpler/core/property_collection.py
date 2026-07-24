@@ -15,8 +15,11 @@ class _FileFlag:...
 class DelayedReference[T:Any]():
     ''' Delayed load of this type '''
     replace: Signal[T]
-    def __init__(self):
+    def __setup__(self):
         self.replace = Signal(self,)
+
+    def __init__(self):
+        self.__setup__()
 
 class _SetContextMixin():
     def _set_item_context(self, key, value):

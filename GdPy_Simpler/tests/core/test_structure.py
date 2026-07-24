@@ -53,19 +53,22 @@ class Test_Resource():
             },
         )
 
-        assert len(res._ext_promises) == 1
-        assert len(res._sub_promises) == 1
-        assert len(res._ext_promises["extresource_id"]) == 1
-        assert len(res._sub_promises["subresource_id"]) == 1
+        assert isinstance(res.properties["a"], ExtResource)
+        assert isinstance(res.properties["b"], SubResource)
+
 
     def test_construction_promises_subres(self):
-        from...core.promises import SubResource, ExtResource
+
         subres = Resource.construct(
-            id=1,
+            id="abc",
             properties={
-                "a":ExtResource("extresource_id"),
-                "b":SubResource("subresource_id")
+                "a":SubResource("subresource_id"),
+                "b":ExtResource("extresource_id"),
             }
+        )
+
+        subres_target = Resource.construct(
+            id="subresource_id",
         )
 
         res = Resource.construct(
@@ -73,13 +76,13 @@ class Test_Resource():
             file="res://abc.txt",
             properties={
                 "a":subres,
+                "b":subres_target,
             },
         )
 
-        assert len(res._ext_promises) == 1
-        assert len(res._sub_promises) == 1
-        assert len(res._ext_promises["extresource_id"]) == 1
-        assert len(res._sub_promises["subresource_id"]) == 1
+        assert subres.properties["a"] is subres_target
+        assert isinstance(subres.properties["b"], SubResource)
+        assert isinstance(subres.properties["b"].get(), None)
 
     def test_subresource_tracking_construction(self):
         subres = Resource.construct(

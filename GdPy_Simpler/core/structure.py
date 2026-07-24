@@ -7,7 +7,7 @@ from fsspec import AbstractFileSystem
 
 from .context import StructContext as _StructContext
 from .collections import Collection, CollectionKey, CollectionRef
-from .property_collection import PropertyCollection, _ResourceFlag, _FileFlag
+from .property_collection import PropertyCollection, _ResourceFlag, _FileFlag, DelayedReference
 from .gdtype import GdType
 
 from .signals import Signal
@@ -125,6 +125,18 @@ class FileRef(CollectionRef):
         super().__init__(key, col, cache)
         if context:
             self.context.set_extends(context)
+
+class ExtResource():
+    ''' Meta-promise object? '''
+    
+    updated : Signal[None, Resource]
+
+    def __setup__(self):
+        self.context = _StructContext()
+
+    def __init__(self, /, res_id:str, file_id:str, id:str):
+        self.__setup__()
+
 
 class GdTypeRef(CollectionRef):
     def __setup__(self):
