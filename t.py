@@ -10,6 +10,7 @@ class DifAction(Enum):
     ADD = 2 ## New child
     REM = 3 ## Rem child
     RE_KEY = 4 ## Reordered/Rekeyed children. Rekey, append/set new, reorder, finally sub-tree updates.
+    # REF_IMPLIED = 5 ## Reference that remains the same, but was implied in changes elsewhere? 
 
 class DifNode[T:Any]():
     ''' Reminder: This will be generated & integrated via tree transformers. '''
