@@ -227,10 +227,9 @@ class Node(Resource):
     node_context : Context 
 
     ## As a file:
-    ... #Stuff Inherited fr Resource
-    nodes : None|Collection[int,Node]
+    sub_nodes : None|Collection[int,Node]
 
     ## as all:
-    ... #Stuff Inherited fr Resource
+    name : CollectionKeyContextual[str]
     overlay : None|Node = None
     children : Collection[str,Node]
