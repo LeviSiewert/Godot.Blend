@@ -725,8 +725,26 @@ class ExtResource[F:File,R:Resource]():
         self.file_ref.match_found.connect(self.match_found)
         self.resource_ref.match_found.connect(self.match_found)
 
+        self.context.callback("resource", self._on_resource_set)
+
     def __init__(self, file:str, resource:str, id:None|str=None):
         self.__setup__()
+
+    def _on_resource_set(self, resource:None|Resource):
+        if self._resource() is resource: 
+            return
+        
+        if not (self._resource() is None):
+            self._resource.ext_resources.remove(self)
+
+        if not (resource is None):
+            self.context.set_extends(resource.context)
+            resource.ext_resources.append(self)
+            self._resource = _wref(resource)
+            
+        elif not (self._resource() is None):
+            self._resource = _wref(object())
+
 
     def get(self, load_as_required:bool=True)->R|None:
         r = self.resource_ref.get(default=None)
@@ -757,71 +775,86 @@ class ResourceDef():
     extends : None|ResourceDef = None
     properties : dict[str,PropertyDef]
     signals : dict[str,SignalDef]
-    
 
 class Resource():
-    context : Context ## Basic context, handles sub-resource
-    _context : Context ## Priority context, attached to project or base context depending on is_file_resource
+    context : Context
 
-    ## As a file:
-    is_file_resource = False
-    file : None|FileRef[File] = None
+    ## File Resource:
+    is_file_resource : bool = False
+    file : None|FileRef = None
     uid : None|CollectionKey[str] = None
     sub_resources : None|Collection[str,Resource] = None
     ext_resources : None|Collection[str,ExtResource] = None
 
-    _resource : ReferenceType[Resource]
-
-    ## As a subresource:
-    id : CollectionKey[str]|None
-
-    ## As all:
+    ## Base Resource:
+    id : CollectionKey[str]
     properties : Properties
-    instance : None|ExtResourceRef = None
-    overlay : None|Resource = None
+
+    ## File Instance:
+    instance : None|ExtResourceRef
+    overlay : None|Resource
+    def is_shallow()->bool:... #return if this overlay-instance has any changes compared to overlay's source
+
+    def set_instance(self, file : None|File|ExtResourceRef):...
+    def set_overlay(self, resource : Resource):...
+
+    def setup_resource_state():... ## Setup FileRef, ect
+    def break_resource_state():... ## Breakdown Filesetate, ect. Requires context for where it's being inserted into.
+
+    def convert_to_resource():... ## Convert an object into a resource with it's own file. Optionally return an instance
+    def copy_to_subresource():... ## Embedd a copy of this resource into a sub-resource.
+
+    def _iter_dependencies():...
+
+    def duplicate(self, regen_id:bool=True, deep:bool=False, file_depth:int=1, filename_solver:None|LambdaType=None, memo:None|dict=None)->Resource: ... ## Duplicate, copying deep or shallow. Re-generates ID, keeps in parent-resource collection
+    def collapse(self, deep:bool=False, file_depth:int=1, memo:None|dict=None)->Resource:...
+    def sublimate(self, deep:bool=False)->Resource:... ## Copy-clear internal data and set_overlay to Source, return Source. Used for moving subresource to instance.
+
+    # def clone(self, deep:bool=False, depth:int=1)->Resource:...
 
     def __setup__(self):
         self.context = Context(sub_resource = self)
-        self._context = Context()
-        self._context.set_extends(self.context)
 
         self.id = CollectionKey(self)
-        self.properties = Properties(context=self._context)
-        self.instance = ExtResourceRef(context=self._context)
+        self.properties = Properties(context=self.context)
+        self.instance = ExtResourceRef(context=self.context)
         
-        self.context.callback("project", self._as_file_set_project, filter= lambda: getattr(self, "is_file_resource"))
+        self.context.callback("project", self._on_project_set_as_file, filter= lambda: getattr(self, "is_file_resource"))
         self.context.callback("resource", self._on_resource_set, filter=lambda: not getattr(self, "is_file_resource"))
 
-    def _as_file_set_project(self, project:None|Project):
-        self._context.set_extends(self.context.project.context)
+    _resource : ReferenceType[Resource]
+    _project : ReferenceType[Project]
 
     def _on_resource_set(self, resource:None|Resource):
-        raise NotImplementedError()
-        ...
-        # if not (self._resource() is None):
-        #     resource.sub_resources.remove(self)
-
-    def save_as_resource(self, /, file:str, uid:str|None=None, return_instance:bool=False):
-        ''' Setup and as a resource '''
-        assert not self.is_file_resource
-
-        self.is_file_resource = True
-        self.file = FileRef(self._context, key=file)
-        self.uid = CollectionKey(self._context, key=uid)
-        self.sub_resources = Collection(self._context, child_key_attr="id", child_type=None, set_child_context=True)
-        self.ext_resources = Collection(self._context, child_key_attr="id", child_type=None, set_child_context=True)
-
-        if return_instance:
-            return self.create_instance()
+        if self._resource() is resource: 
+            return
         
+        if not (self._resource() is None):
+            self._resource.sub_resources.remove(self)
 
-    def breakdown_as_resource(self,):
-        assert self.is_file_resource
-        self.is_file_resource = False
-        raise NotImplementedError() ## TODO: create and embed an instance
+        if not (resource is None):
+            self.context.set_extends(resource.context)
+            resource.sub_resources.append(self)
+            self._resource = _wref(resource)
+            
+        elif not (self._resource() is None):
+            self._resource = _wref(object())
 
-    def set_overlay(self, overlay:None|Type[Self]):...
-    def set_definition(self, definition:None|ResourceDef):...
+
+    def _on_project_set_as_file(self, project:None|Project):
+        if self._project() is project: 
+            return
+        
+        if not (self._project() is None):
+            self._project.resources.remove(self)
+
+        if not (project is None):
+            self.context.set_extends(project.context)
+            project.resources.append(self)
+            self._project = _wref(project)
+            
+        elif not (self._project() is None):
+            self._project = _wref(object())
 
     @classmethod
     def __collection_new__(cls, subtype:str)->Resource:
@@ -847,3 +880,28 @@ class Node(Resource):
     @classmethod
     def __collection_new__(cls, subtype:str)->Node:
         ...
+
+    def _on_resource_set(self, resource:None|Node):
+        assert isinstance(resource, Node)
+
+        if self._resource() is resource: 
+            return
+        
+        if not (self._resource() is None):
+            self._resource.nodes.remove(self)
+
+        if not (resource is None):
+            self.context.set_extends(resource.context)
+            resource.nodes.append(self)
+            self._resource = _wref(resource)
+            
+        elif not (self._resource() is None):
+            self._resource = _wref(object())
+
+    ## Alternations to accomidate tree - children:
+
+    def _iter_dependencies():...
+
+    def duplicate(self, regen_id:bool=True, deep:bool=False, file_depth:int=1, filename_solver:None|LambdaType=None, memo:None|dict=None)->Resource: ... ## Duplicate, copying deep or shallow. Re-generates ID, keeps in parent-resource collection
+    def collapse(self, deep:bool=False, file_depth:int=1, memo:None|dict=None)->Resource:...
+    def sublimate(self, deep:bool=False)->Resource:... ## Copy-clear internal data and set_overlay to Source, return Source. Used for moving subresource to instance.
