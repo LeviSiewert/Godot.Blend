@@ -1,8 +1,12 @@
 from __future__ import annotations
 from collections import UserDict
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Generator, Type, Self
+from types import LambdaType
 from weakref import ReferenceType, ref as _wref
 from enum import Enum
+from copy import copy
+from fsspec import AbstractFileSystem
+
 
 class DifAction(Enum):
     DIF = 0 ## Identical local scope, changed children
@@ -19,152 +23,638 @@ class DifNode[T:Any]():
     action : DifAction
     children : dict[str,DifNode] | list[DifNode]
     
-    
+
+class DISCONNECT():...
+
+class _SignalSubscriber():
+    callback : ReferenceType[Callable]
+    call_filter : LambdaType
+    parent_signal : Signal
+    prepend_source : bool
+    once_only : bool
+
+    def __init__(self, signal:Signal, callable:Callable, once_only:bool=False, prepend_source:bool=False, prepend_signal:bool=False, filter:LambdaType=None):
+        self.parent_signal = signal
+        self.callback = _wref(callable)
+        self.once_only = once_only
+        self.prepend_source = prepend_source
+        self.prepend_signal = prepend_signal
+        self.call_filter = filter
+
+    def __call__(self, *args, **kwargs):
+        func = self.callback()
+        if func is None:
+            self.disconnect()
+
+        if self.prepend_source:
+            args = tuple(self.parent_signal.source, *args)
+
+        if not (self.call_filter is None):
+            if not self.call_filter(*args,**kwargs):
+                return
+
+        res = self.callback(*args, **kwargs)
+        if (res is DISCONNECT) or self.once_only:
+            self.disconnect()
+
+    def disconnect(self):
+        self.parent_signal._remove_subscriber(self)
+
 
 class Signal[T:Any]():
     ''' On call, fwd call to all connected subscribers, disconnect or append arguments based on options'''
-    subscribers : list[ReferenceType[Callable]]
-    def connect(self, c:Callable, **options)->None:...
-    def disconnect(self, c:Callable, **options)->None:...
-    def __call__(self, *args, **kwargs):...
+    source : Any
+    subscribers : dict[int, _SignalSubscriber]
+
+    def __init__(self, source):
+        self.source = source
+        self.subscribers = {}
+
+    def connect(self, c:Callable, /, once_only=False, prepend_source=False, prepend_signal:bool=False, filter:LambdaType=None)->int:
+        ''' Returns an optional "token" that can be used if the callable is a lambda. "token" is subscriber object's id '''
+        sub = _SignalSubscriber(self, callable, once_only=once_only, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter)
+        return self._append_subscriber(sub)
+        
+    def disconnect(self, c:Callable, /, not_exist_ok:bool=True)->None:
+        to_remove = []
+        found = False
+        for k,v in self.subscribers.items():
+            if v.callback() is c:
+                to_remove.append(k)
+                found = True
+            elif v.callback() is None:
+                to_remove.append(k)
+        if (found is False) and (not not_exist_ok):
+            raise KeyError()
+        for k in to_remove:
+            self.t_disconnect(k)
+
+    def t_disconnect(self, t:int)->None:
+        del self.subscribers[t]
+
+    def _append_subscriber(self,sub:_SignalSubscriber):
+        self.subscribers[id(sub)] = sub
+        return id(sub)
+    
+    def _remove_subscriber(self,sub):
+        del self.subscribers[id(sub)]
+        
+    def __call__(self, *args, **kwargs):
+        for v in self.subscribers.values():
+            v(*args,**kwargs)
 
 class Context():
     ''' Context object, attribute fallback through extends chain. Values set/changed along chain propigate to children. (including removed as None) '''
     _extends : Context
     _slots_ : tuple[str]
-    def extend(self, c:Context|None)->None:...
-    def callback(self, id:str, c:Callable, **options)->None:...
+    _default = None
+    element_changed : Signal
+
+    def __getattr__(self,attr):
+        ''' Called when attr is missing from local object '''
+        if not (self._extends is None):
+            return getattr(self._extends, attr, None)
+        elif attr in self._slots_:
+            return self._default
+        
+    def __setattr__(self,attr,value):
+        if not (attr in self._slots_):
+            raise AttributeError("Context attribute must exist in local slots to be assigned!", obj=self, name=attr)
+        res = super(object).__setattr__(attr, value)
+        self.element_changed(attr,value)
+
+    def __delattr__(self, attr):
+        super(object).__delattr__(attr)
+        self.element_changed(attr, getattr(self, attr))
+
+    def _iter_extends(self):
+        if self._extends:
+            yield from self._extends._iter_extends()
+            yield self._extends
+
+    def _get_local_elements(self,)->dict[str,Any]:
+        ''' Return a dict that only contains slots fullfilled locally '''
+        res = {}
+        for attr in self._slots_:
+            if not hasattr(attr):
+                continue
+            res[attr] = getattr(self, attr)
+        return res
+
+    def _get_all_elements(self,)->dict[str,Any]:
+        ''' Return a dict that contains all slots fullfilled in extends chain '''
+        res = self._get_local_elements()
+        for c in reversed(tuple(self._iter_extends)):
+            search = filter(lambda x: not (x in res.keys()), c._slots_)
+            for attr in search:
+                if not hasattr(c, attr):
+                    continue
+                res[attr] = getattr(c, attr)
+        return res
+
+    def set_extends(self, extends:Context|None, supress_changes:bool=False):
+        ''' Set or clear extends, manage signal forwarding, and signal diffed values '''
+        old = self._get_all_elements()
+        new = self._get_local_elements()
+        if not(extends is None):
+            _new = extends._get_all_elements()
+            _new.update(new)
+            new = _new
+
+        if not (self._extends is None):
+            self._extends.element_changed.disconnect(self.element_changed)
+        self._extends = extends
+        if not (self._extends is None):
+            self._extends.element_changed.connect(self.element_changed)
+
+        if supress_changes:
+            return
+
+        _old_keys = old.keys()
+        _new_keys = new.keys()
+
+        rem = {k:None for k,v in old.items() if k not in _new_keys}
+        add = {k:v for k,v in new.items() if k not in _old_keys}
+        changed = {k:v for k,v in new.items() if (not (v is old.get(k, None)))}
+
+
+        for k,v in {**rem, **add, **changed}:
+            self.element_changed(k, v)
+
+    def callback(self, attribute:str, c:Callable)->None:
+        ''' Shortcut to filtered signal '''
+        def callback(source:Context, attr:str, val:Any):
+            if attribute != attr:
+                return
+            else:
+                return c(attr, val)
+
+        self.element_changed.connect(callback, prepend_source=True, )
 
 
 class Collection[K,V](UserDict):
-    ''' Bidirectional dictionary, with allowence of key on object itself '''
+    ''' Bidirectional dictionary, with allowence of key on object itself. '''
+    _inverse : dict[V,K]
+
     context : Context
-    _inverse : dict
-    _refs : list[ReferenceType[CollectionRef]] ## References asc with this collection
+    set_child_context : bool
+
+    child_type : Type
+    child_key_attr : str
     
-    kv_updated : Signal[K,V]
-    
-    overlay : Collection
+    item_created : Signal[K,V]
+    item_removed : Signal[K,V]
+    item_changed : Signal[K,V]
+
+    _update_ref_bykey : Signal[K,V] ## References to this collection, matching key, should set cached to value
+    _update_ref_byitem : Signal[V,K] ## References to this collection, matching item via cached, should set key to key
 
     def __setup__(self):
         self.context = Context()
-    def __init__(self, context:Context, object_key_attr:str|None=None, set_context:bool=False, new:Callable|None=None ):
+        self._inverse = {}
+        self._update_ref_bykey = Signal(self)
+        self._update_ref_byitem = Signal(self)
+        self.item_created = Signal(self)
+        self.item_removed = Signal(self)
+        self.item_changed = Signal(self)
+        self.item_created.connect(self._on_item_created)
+        self.item_removed.connect(self._on_item_removed)
+        self.item_changed.connect(self._on_item_changed)
+
+    def __init__(self, context:Context, child_type:Type, child_key_attr:str, set_child_context:bool=False):
         self.__setup__()
         self.context.extend(context)
-        ...
+        self.child_type = child_type
+        self.child_key_attr = child_key_attr
+        self.set_child_context = set_child_context
 
-    def __setitem__(self, key:K, item:V)->None:...
-    def __getitem__(self, key:K|V)->V|K:...
-    def __delitem__(self, key:K|V):...
+    def _resolve(self, item_or_key:V|K)->tuple[K,V]:
+        if isinstance(item_or_key, str):
+            return self.data[item_or_key], item_or_key
+        return item_or_key, self._inverse[item_or_key]
 
-    def _generate_key(self, obj:V)->K:...
-    def _resolve_key_collision(self, key:K, l_obj:V, r_obj:V)->K:...
+    def __setitem__(self, key:K, item:V)->None:
+        ''' Acts as `append` with input key priority and left-key-change '''
 
-    def append(self, obj:V):...
-    def remove(self, obj:V|K):...
-    def replace(self, old:V|K, new:V|K):...
+        if key is None:
+            key = self._generate_key(item)
+            getattr(l_item, self.child_key_attr).key = key
 
-    def new(self, *args, **kwargs)->V:...
+        assert (getattr(item, self.child_key_attr).col is None)
 
-    def get(self, key:K, include_overlay:bool=True):...
-    def items(self, include_overlay:bool=True)->Generator[tuple[K,V]]:...
-    def values(self, include_overlay:bool=True)->Generator[V]:...
-    def keys(self, include_overlay:bool=True)->Generator[K]:...
+        if key in self.data.keys():
+            ## Resolve collision with right-priority
+            ## Recurses to 
+            l_item = self.data[key]
+            if l_item is item: 
+                return ## key-value already correctly asc
+            
+            l_key = self._generate_left_key_on_collision(key, l_item, item)
+            getattr(l_item, self.child_key_attr).key = l_key
+            ## Will call self.__setitem__ again, which should set l_item.[key].key = l_key correctly
 
-    def set_overlay(self, overlay:Collection|None):...
+        if item in self._inverse.keys():
+            r = self._inverse[item]
+            if r == key:
+                return ## key-value already correctly asc
+
+            ## Within: Change
+            del self._inverse[item]
+            del self.data[r]
+            self._inverse[item] = key
+            self.data[key] = item
+
+            getattr(item, self.child_key_attr).col = self
+            getattr(item, self.child_key_attr).key = key
+
+            self.item_changed(key,item)
+
+        else:
+            ## Not within: Create
+            self._inverse[item] = key
+            self.data[key] = item
+
+            getattr(item, self.child_key_attr).set_col(self)
+            getattr(item, self.child_key_attr).key = key
+
+            if self.set_child_context:
+                item.context.set_extends(self.context)
+            self.item_created(key,item)
+
+    def __getitem__[D](self, key:K|V, default:D=None)->V|K|D:
+        if isinstance(key, str):
+            return self.data.get(key,default)
+        return self._inverse.get(key,default)
+        
+    def __delitem__(self, key:K|V):
+        key, item = self._resolve(key)
+
+        del self._inverse[item]
+        del self.data[key]
+
+        getattr(item, self.child_key_attr).set_col(None)
+        if self.set_child_context:
+            item.context.set_extends(None)
+        self.item_changed(key, None)
+
+    def append(self, item:V, /, right_key_priority:bool=True):
+        ''' fetch or assign key, ensure unique w/ priority. piggyback on __setitem__ '''
+        key = getattr(item,self.child_key_attr).key 
+        self.set_pair(key, item, right_key_priority=right_key_priority)
+
+    def set_pair(self, key:K|None, item:V,  right_key_priority:bool=True):
+        if (not right_key_priority) or (not (key in self.data.keys())):
+            self.__setitem__(key,item)
+        else:
+            key = self._generate_left_key_on_collision(key, item, self.data[key])
+            getattr(item,self.child_key_attr).key = key
+            self.__setitem__(key,item)
+
+    def remove(self, item:V|K):
+        del self[item]
+
+    def new(self, *args, **kwargs)->V:
+        r = self.child_type._collection_new_(*args, **kwargs)
+        self.append(r)
+        return r 
+
+
+    def _generate_key(self, item:V)->K:
+        raise NotImplementedError("Child classes must implement!")
+    def _generate_left_key_on_collision(self, key:K, l_item:V, r_item:V)->K:
+        raise NotImplementedError("Child classes must implement!")
+
+    ## BEHAVIOR ##
+    ## How things are made "sticky" I supppose
+
+    def _on_item_created(self, key:K, item:V):
+        self.update_ref_byitem(key, item) ##Asc key w/ item
+        self.update_ref_bykey(key, item) ##Asc item w/ key
+
+    def _on_item_removed(self, key:K, item:V):
+        self.update_ref_bykey(key, None) ## Update cached to None by matching key
+        ## Keep key on ref
+
+    def _on_item_changed(self, key:K, item:V):
+        self.update_ref_byitem(key, item) ##Drak key by cached!
+        self.update_ref_bykey(key, item) ##Incorperate new refs by matching keys
+        
+
+    def update_ref_bykey(self, key:K, item:V):
+        ''' Set references w/key to item, via signals that affect refs'''
+        self._update_ref_bykey(key, item)
+
+    def update_ref_byitem(self, item:V, key:K):
+        ''' Set references w/item to key, via signals that affect refs'''
+        self._update_ref_byitem(item, key)
 
 
 class CollectionRef[K:str,V:Any]():
     ''' Reference to a collection, collection can be Null.
-    Once attached, references are "sticky" by default, switching internal key to match object.
-    Otherwise if a cached object is provided and not a key, the key will be found from cached object.
-    Behavior such as swapping references must be done on the collection itself.
-    TODO:Cases for `key`&`cached` where `self.cached()`!=`self.col[self.key]` and similar must be explored
+    Once attached, references are "sticky" by collecton behacior, switching internal key to match object.
+    This can be manually changed via col utilizing `update_ref_bykey` & `update_ref_byitem`
     '''
-    updated : Signal[K,V]
-    replace : Signal[V]
     col : Collection
     key : K
     cached : ReferenceType[V] = _wref(object())
+    match_found : Signal[V]
 
-    def __init__(self, key, cached:T=None, replace:bool=False):...
-    def set_col(self,col:Collection):...
-    def set_key(self,key:K):...
-    def set_cache(self,cached:V):...
-    def get(self,)->V|None:...
+    def __setup__(self,):
+        self.match_found = Signal(self)
 
-class CollectionKeyContextual[K:str]():
+    def __init__(self, /, key:str=None, cached:V=None, col:Collection=None):
+        self.__setup__()
+        self.key = key
+        self.set_cached(cached)
+        if col:
+            self.set_col(col)
+
+    def set_cached(self, val):
+        if not (val is None):
+            self.cached = _wref(val)
+        else:
+            self.cached = _wref(object())
+
+    def set_col(self,col:Collection[K,V]):
+        if not (self.col is None):
+            self.col._update_ref_bykey.disconnect(self._on_update_ref_bykey)
+            self.col._update_ref_byitem.disconnect(self._on_update_ref_byitem)
+        self.col = col
+        if not (self.col is None):
+            self.col._update_ref_bykey.connect(self._on_update_ref_bykey)
+            self.col._update_ref_byitem.connect(self._on_update_ref_byitem)
+        if not ((res:=self.get()) is None):
+            self.set_cached(res)
+            self.match_found(res)
+
+    def get[D:Any](self, default:D=None)->V|D:
+        if self.col is None:
+            return default
+        return self.col.get(self.key, None)
+
+    def _on_update_ref_bykey(self, key:K, item:V):
+        if key == self.key:
+            self.set_cached(item)
+            self.match_found(item)
+    def _on_update_ref_byitem(self, key:K, item:V):
+        if self.cached() is item:
+            self.key = key
+            self.match_found(item)
+
+class CollectionKey[K:str]():
     ''' Collection key that can be used by an object to "hold" it's key '''
+    source : Any
     updated : Signal[K]
-    col : Collection
-    def set(self, k:K)->K:...
+    col : None|Collection = None
+    key : None|str
+
+
+    def __init__(self, source, key:str|None=None):
+        self.__setup__()
+        self.source = source
+        self.key = key
+
+    def set(self, k:K)->K:
+        if not self.col:
+            self.key = k
+        else:
+            self.key = self.col.set_pair(k, self.source)
+
+    def get(self,)->K:
+        if self.col:
+            return self.col._inverse[self.source]
+        return self.key
 
 class _CollectionRefContextual(CollectionRef):
     ''' Collection reference that supports context, with a callback doing `self.set_col(getattr(_scope, _scope_attr, None))` '''
     context : Context
     _scope : str #IE Resource
     _scope_attr : str #IE .subresources
-    _replace : bool #IE call signal self.replace
+    
+    def __setup__(self,):
+        super().__setup__()
+
+        self.context = Context()
+        def _update_col(self,scope:Any):
+            if scope is None:
+                self.set_col(None)
+                return
+            col : Collection = getattr(scope, self._scope_attr)
+            self.set_col(col)
+        self.context.callback(self._scope, _update_col)
+
+    def __init__(self, /, context:Context, key = None, cached = None, col = None,):
+        self.__setup__()
+        super().__init__(key, cached, col)
+        self.context._extends(context)
+
+    def get_with_custom_context(self, context, default):
+        scope = getattr(context, self._scope)
+        if scope is None:
+            return default            
+        col : Collection = getattr(scope, self._scope_attr)
+        return col.get(self.key, default=default)
 
 class FileRef(_CollectionRefContextual):
     _scope = "project"
     _scope_attr = "files"
-    _replace = False
 
 class ResourceRef(_CollectionRefContextual):
     _scope = "project"
     _scope_attr = "resources"
-    _replace = False
 
 class SubResourceRef(_CollectionRefContextual):
     ''' Construction helper, should be replaced when load is successfull '''
     _scope = "resource"
     _scope_attr = "sub_resources"
-    _replace = True ### TODO: Calls self.replace(val) when found
 
 class ExtResourceRef(_CollectionRefContextual):
     ''' Construction helper, should be replaced when load is successfull '''
     _scope = "resource"
     _scope_attr = "ext_resources"
-    _replace = False ### TODO: forward update of src to replace signal! 
 
+class _UNSET():
+    pass
 
-class Properties[K:str,V](UserDict):
+class Properties[K:str,V:Any](UserDict):
+    ## Properties can keep refs or the original object, on call the item ref should collapse to the original item
+    ## If ref cannot be found in context, return the ref object or raise an error
+    ## Refs are contextual to a property collecton's view, so consider func to localize ref on teh _collectionRefContextual object itself.
+    ## also func on get 
+
     context : Context
-    overlay : Properties
+    _overlay : Properties
+    definitions : Properties
+
+    element_changed : Signal[K,V]
 
     def __setup__(self):
         self.context = Context()
+        self.element_changed = Signal()
 
-    def __setitem__(self, key:K, item:V)->None:...
-    def __getitem__(self, key:K)->V:...
-    def __delitem__(self, key:K):...
+    def __setitem__(self, key:K, item:V)->None:
+        super().__setitem__(key,item)
+        if hasattr(item,"context") and (not isinstance(item, Resource)):
+            item.context.set_extends(self.context)
+    def __delitem__(self, key:K):
+        item = self.data[key]
+        if hasattr(item,"context") and (not isinstance(item, Resource)):
+            item.context.set_extends(self.context)
+        super().__delitem__(key)
+    def __getitem__(self, key:K)->V:
+        res = self.get(key, default=_UNSET)
+        if res is _UNSET:
+            raise KeyError(key)
+        return res
     
-    def get(self, key:K, include_overlay:bool=True):...
-    def items(self, include_overlay:bool=True)->Generator[tuple[K,V]]:...
-    def values(self, include_overlay:bool=True)->Generator[V]:...
-    def keys(self, include_overlay:bool=True)->Generator[K]:...
+    def get(self, key:K, default:Any=_UNSET, include_overlay:bool=True, include_defaults:bool=False):
+        res = self.data.get(key, _UNSET)
 
-    def _replace_callback(self, k, v)->None:...
+        if include_overlay:
+            for c in reversed(tuple(self._iter_overlays())):
+                res = c.data.get(key, _UNSET)
+                if not (res is _UNSET):
+                    break
+        if (res is _UNSET) and include_defaults:
+            res = self.definitions.defaults.get(key, default=_UNSET)
 
-    def set_overlay(self, overlay:Collection|None):...
+        if (res is _UNSET) and (default is _UNSET):
+            raise KeyError()
+        elif (res is _UNSET):
+            return default
+        
+        if isinstance(res, _CollectionRefContextual):
+            return res.get_with_custom_context(context=self.context, default=res)
 
+        return res
+
+    def _iter_overlays(self):
+        if not (self._overlay is None):
+            yield from self._overlay._iter_extends()
+            yield self._overlay
+
+    def items(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[tuple[K,V]]:
+        di = copy(self.data)
+        if include_overlay:
+            for p in reversed(tuple(self._iter_overlays())):
+                for k,v in filter(lambda k,v:  not (k in di.keys()), p.data):
+                    di[k] = v
+
+        yield from di.items()
+
+        if include_defaults:
+            for k,v in self.definitions.items():
+                if not (k in di.keys()):
+                    yield k,v
+
+    def values(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[V]:
+        for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
+            yield v
+
+    def keys(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[K]:
+        for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
+            yield k
+
+    def set_overlay(self, overlay:Collection|None, supress_changes:bool=False):
+        old = dict(self.items(include_overlay=True))
+        new = dict(self.items(include_overlay=False))
+        if not(overlay is None):
+            _new = dict(overlay.items())
+            _new.update(new)
+            new = _new
+
+        if not (self._overlay is None):
+            self._overlay.element_changed.disconnect(self.element_changed)
+        self._overlay = overlay
+        if not (self._overlay is None):
+            self._overlay.element_changed.connect(self.element_changed)
+
+        if supress_changes:
+            return
+
+        _old_keys = old.keys()
+        _new_keys = new.keys()
+
+        if not(self.definitions is None):
+            rem = {k:self.definitions.defaults.get(k,default=None) for k,v in old.items() if k not in _new_keys}
+        else:
+            rem = {k:None for k,v in old.items() if k not in _new_keys}
+        add = {k:v for k,v in new.items() if k not in _old_keys}
+        changed = {k:v for k,v in new.items() if (not (v is old.get(k, None)))}
+
+        for k,v in {**rem, **add, **changed}:
+            self.element_changed(k, v)
+
+class FileSystemSignals():
+    file_created : Signal[str]
+    file_removed : Signal[str]
+    file_updated : Signal[str]
+    file_deleted : Signal[str]
+    file_moved : Signal[str,str]
+
+    def __setup__(self):
+        self.file_created = Signal(self)
+        self.file_removed = Signal(self)
+        self.file_updated = Signal(self)
+        self.file_deleted = Signal(self)
+        self.file_moved = Signal(self)
+
+    def __init__(self):
+        self.__setup__()
 
 class Project():
     context : Context
     files : Collection[str|File,File|str]
     resources : Collection[str|Resource,Resource|str]  
+
+    fs : None|AbstractFileSystem
+    fs_signals: None|FileSystemSignals
+
+    file_created : Signal[str]
+    file_removed : Signal[str]
+    file_updated : Signal[str]
+    file_deleted : Signal[str]
+    file_moved : Signal[str,str]
+
     def __setup__(self):
-        self.context = Context()
-        self.files = Collection(self.context, set_context=True)
-        self.resources = Collection(self.context, set_context=True)
+        self.context = Context(project=self)
+        self.files = Collection(self.context, child_key_attr="path",  child_type=File, set_child_context=True)
+        self.resources = Collection(self.context, child_key_attr="uid",  child_type=None, set_child_context=True)
+
+        self.file_created = Signal(self)
+        self.file_removed = Signal(self)
+        self.file_updated = Signal(self)
+        self.file_deleted = Signal(self)
+        self.file_moved = Signal(self)
+
+    def __init__(self, fs:None|AbstractFileSystem, fs_signals:None|FileSystemSignals,):
+        self.__setup__()
+        self.fs = fs
+        self.set_fs_signals(fs_signals)
+
+    def set_fs_signals(self, fs_signals:None|FileSystemSignals):
+        if not (self.fs_signals is None):
+            self.fs_signals.file_created.disconnect(self.file_created)
+            self.fs_signals.file_removed.disconnect(self.file_removed)
+            self.fs_signals.file_updated.disconnect(self.file_updated)
+            self.fs_signals.file_deleted.disconnect(self.file_deleted)
+            self.fs_signals.file_moved.disconnect(self.file_moved)
+        self.fs_signals = fs_signals
+        if not (self.fs_signals is None):
+            self.fs_signals.file_created.connect(self.file_created)
+            self.fs_signals.file_removed.connect(self.file_removed)
+            self.fs_signals.file_updated.connect(self.file_updated)
+            self.fs_signals.file_deleted.connect(self.file_deleted)
+            self.fs_signals.file_moved.connect(self.file_moved)
 
 class File():
     context : Context
-    path : CollectionKeyContextual[str]
-    res : ResourceRef
+    path : CollectionKey[str]
+    resource : ResourceRef
     
-    last_updated : int
+    last_updated : int = -0
+
+    _project : None|Project = None
 
     def get_disc_uid()->str|None:...
 
@@ -180,56 +670,180 @@ class File():
     def remove():...
     def update():...
     def delete():...
-    def move():...
+    def move(self, new_path:str):
+        ...
 
-    def on_fs_created():...
-    def on_fs_removed():...
-    def on_fs_updated():...
-    def on_fs_deleted():...
-    def on_fs_moved():...
+    def on_fs_created(self, _:str):...
+    def on_fs_removed(self, _:str):...
+    def on_fs_updated(self, _:str):...
+    def on_fs_deleted(self, _:str):...
+    def on_fs_moved(self, new_path:str):
+        if self.path.key != new_path:
+            self.path.set(new_path)
+
+    def __setup__(self,):
+        self.context = Context(file=self)
+        self.path = CollectionKey(self)
+        self.resource = ResourceRef(context=self.context)
+
+        def _on_project_set(self, project:None|Project):
+            if not (self._project is None):
+                self.project.file_created.disconnect(self.on_file_created)
+                self.project.file_removed.disconnect(self.on_file_removed)
+                self.project.file_updated.disconnect(self.on_file_updated)
+                self.project.file_deleted.disconnect(self.on_file_deleted)
+                self.project.file_moved.disconnect(self.on_file_moved)
+            self._project = project
+            if not (self._project is None):
+                self.project.file_created.connect(self.on_file_created, filter=lambda x: x==self.path.key)
+                self.project.file_removed.connect(self.on_file_removed, filter=lambda x: x==self.path.key)
+                self.project.file_updated.connect(self.on_file_updated, filter=lambda x: x==self.path.key)
+                self.project.file_deleted.connect(self.on_file_deleted, filter=lambda x: x==self.path.key)
+                self.project.file_moved.connect(self.on_file_moved, filter=lambda o,n: o==self.path.key)
+        self.context.callback("project", _on_project_set)
 
     @classmethod
-    def __collection_new__(cls)->File:...
+    def __collection_new__(cls, filepath:str)->File:
+        ...
 
-class ExtResource[T:Resource]():
+class ExtResource[F:File,R:Resource]():
     context : Context
 
-    id : CollectionKeyContextual[str]
-    file_ref : FileRef
-    res_ref : ResourceRef
-    
-    def get(self,)->T|None:...
+    file_ref : FileRef[str,F]
+    resource_ref : ResourceRef[str,R]
+    id : CollectionKey[str]
 
+    match_found : Signal[R]
+
+    def __setup__(self,):
+        self.context = Context(ext_resource = self)
+        self.id = CollectionKey(self)
+        self.file_ref = FileRef(context=self.context)
+        self.resource_ref = ResourceRef(context=self.context)
+        self.match_found = Signal(self)
+
+        self.file_ref.match_found.connect(self.match_found)
+        self.resource_ref.match_found.connect(self.match_found)
+
+    def __init__(self, file:str, resource:str, id:None|str=None):
+        self.__setup__()
+
+    def get(self, load_as_required:bool=True)->R|None:
+        r = self.resource_ref.get(default=None)
+
+        if not (r is None):
+             return r
+        if not load_as_required:
+            return None
+        
+        f = self.file_ref.get(default=None)
+        if (f is None):
+            return None
+        f.load()
+        return f.resource.get()
+        
     @classmethod
-    def __collection_new__(cls)->ExtResource:...
+    def __collection_new__(cls, path:str, uid:str, id:str)->ExtResource:
+        ...
+
+
+class SignalDef():
+    ...
+
+class PropertyDef():
+    ...
+
+class ResourceDef():
+    extends : None|ResourceDef = None
+    properties : dict[str,PropertyDef]
+    signals : dict[str,SignalDef]
+    
 
 class Resource():
-    context : Context
+    context : Context ## Basic context, handles sub-resource
+    _context : Context ## Priority context, attached to project or base context depending on is_file_resource
 
     ## As a file:
+    is_file_resource = False
     file : None|FileRef[File] = None
-    uid : None|CollectionKeyContextual[str] = None
+    uid : None|CollectionKey[str] = None
     sub_resources : None|Collection[str,Resource] = None
     ext_resources : None|Collection[str,ExtResource] = None
 
+    _resource : ReferenceType[Resource]
+
     ## As a subresource:
-    id : CollectionKeyContextual[str]|None
+    id : CollectionKey[str]|None
 
     ## As all:
     properties : Properties
     instance : None|ExtResourceRef = None
     overlay : None|Resource = None
 
+    def __setup__(self):
+        self.context = Context(sub_resource = self)
+        self._context = Context()
+        self._context.set_extends(self.context)
+
+        self.id = CollectionKey(self)
+        self.properties = Properties(context=self._context)
+        self.instance = ExtResourceRef(context=self._context)
+        
+        self.context.callback("project", self._as_file_set_project, filter= lambda: getattr(self, "is_file_resource"))
+        self.context.callback("resource", self._on_resource_set, filter=lambda: not getattr(self, "is_file_resource"))
+
+    def _as_file_set_project(self, project:None|Project):
+        self._context.set_extends(self.context.project.context)
+
+    def _on_resource_set(self, resource:None|Resource):
+        raise NotImplementedError()
+        ...
+        # if not (self._resource() is None):
+        #     resource.sub_resources.remove(self)
+
+    def save_as_resource(self, /, file:str, uid:str|None=None, return_instance:bool=False):
+        ''' Setup and as a resource '''
+        assert not self.is_file_resource
+
+        self.is_file_resource = True
+        self.file = FileRef(self._context, key=file)
+        self.uid = CollectionKey(self._context, key=uid)
+        self.sub_resources = Collection(self._context, child_key_attr="id", child_type=None, set_child_context=True)
+        self.ext_resources = Collection(self._context, child_key_attr="id", child_type=None, set_child_context=True)
+
+        if return_instance:
+            return self.create_instance()
+        
+
+    def breakdown_as_resource(self,):
+        assert self.is_file_resource
+        self.is_file_resource = False
+        raise NotImplementedError() ## TODO: create and embed an instance
+
+    def set_overlay(self, overlay:None|Type[Self]):...
+    def set_definition(self, definition:None|ResourceDef):...
+
     @classmethod
-    def __collection_new__(cls)->Resource:...
+    def __collection_new__(cls, subtype:str)->Resource:
+        ...
+
+class GodotSignal():
+    fr : Node
+    to : Node
+    ...
 
 class Node(Resource):
     node_context : Context 
 
     ## As a file:
     sub_nodes : None|Collection[int,Node]
+    signals : dict[str,GodotSignal]
 
     ## as all:
-    name : CollectionKeyContextual[str]
+    name : CollectionKey[str]
     overlay : None|Node = None
     children : Collection[str,Node]
+
+    @classmethod
+    def __collection_new__(cls, subtype:str)->Node:
+        ...
