@@ -810,7 +810,7 @@ class Resource():
     def collapse(self, deep:bool=False, file_depth:int=1, memo:None|dict=None)->Resource:...
     def sublimate(self, deep:bool=False)->Resource:... ## Copy-clear internal data and set_overlay to Source, return Source. Used for moving subresource to instance.
 
-    # def clone(self, deep:bool=False, depth:int=1)->Resource:...
+    # def clone(self, context:Context, deep:bool=True)->Resource:... ## FUTURE: runtime resource object for emulating behavior?
 
     def __setup__(self):
         self.context = Context(sub_resource = self)
@@ -861,16 +861,20 @@ class Resource():
         ...
 
 class GodotSignal():
+    signal : str
     fr : Node
     to : Node
-    ...
+    method : str
+    unbind : None|int
+    flags : None|list[int]
+    binds : None|list[Any]
 
 class Node(Resource):
     node_context : Context 
 
     ## As a file:
-    sub_nodes : None|Collection[int,Node]
-    signals : dict[str,GodotSignal]
+    nodes : None|Collection[int,Node] = None
+    signals : None|list[GodotSignal] = None
 
     ## as all:
     name : CollectionKey[str]
@@ -905,3 +909,8 @@ class Node(Resource):
     def duplicate(self, regen_id:bool=True, deep:bool=False, file_depth:int=1, filename_solver:None|LambdaType=None, memo:None|dict=None)->Resource: ... ## Duplicate, copying deep or shallow. Re-generates ID, keeps in parent-resource collection
     def collapse(self, deep:bool=False, file_depth:int=1, memo:None|dict=None)->Resource:...
     def sublimate(self, deep:bool=False)->Resource:... ## Copy-clear internal data and set_overlay to Source, return Source. Used for moving subresource to instance.
+
+    def setup_resource_state():... ## Alter for nodes & signals
+    def break_resource_state():... ## Alter for nodes & signals
+
+    # def clone(self, context:Context, deep:bool=True)->Resource:... ## FUTURE: runtime resource object for emulating behavior?
