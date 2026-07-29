@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dccwn3i12e0lk"]
+
+[ext_resource type="Script" uid="uid://dwor117wy4fse" path="res://split_test.gd" id="1_7i1j0"]
+[ext_resource type="Script" uid="uid://cjkvk7qbv5oby" path="res://test_res.gd" id="2_8oio5"]
+[ext_resource type="Resource" uid="uid://cv48ucqeyh6ag" path="res://t_b.tres" id="3_8oio5"]
+
+[sub_resource type="Resource" id="Resource_88bq2"]
+resource_name = "C"
+script = ExtResource("2_8oio5")
+metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
+
+[sub_resource type="Resource" id="Resource_0ixfh"]
+resource_name = "A"
+script = ExtResource("2_8oio5")
+r = SubResource("Resource_88bq2")
+metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
+
+[node name="Node" type="Node" unique_id=116493720]
+script = ExtResource("1_7i1j0")
+r = Array[ExtResource("2_8oio5")]([SubResource("Resource_0ixfh"), ExtResource("3_8oio5"), ExtResource("3_8oio5")])
+
+[connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedByteArray(0, 0)]]

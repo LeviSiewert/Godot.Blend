@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+
+[node name="A" type="Node" unique_id=1936822026]
+
+[node name="B" type="Node" parent="." unique_id=805633638]
+
+[node name="C" type="Node" parent="." unique_id=1360691913]
+
+[node name="D" type="Control" parent="C" unique_id=2075458515]
+layout_mode = 3
+anchors_preset = 0

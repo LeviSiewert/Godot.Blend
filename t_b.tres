@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MyResource" format=3 uid="uid://cv48ucqeyh6ag"]
+
+[ext_resource type="Script" uid="uid://cjkvk7qbv5oby" path="res://test_res.gd" id="1_rg4uy"]
+
+[sub_resource type="Resource" id="Resource_88bq2"]
+resource_name = "C"
+script = ExtResource("1_rg4uy")
+metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
+
+[resource]
+resource_name = "B"
+script = ExtResource("1_rg4uy")
+r = SubResource("Resource_88bq2")
+metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
