@@ -6,6 +6,9 @@ from weakref import ReferenceType, ref as _wref
 from enum import Enum
 from copy import copy
 from fsspec import AbstractFileSystem
+from string import ascii_letters
+import random
+
 
 
 class _UNSET():...
@@ -222,10 +225,70 @@ class Context():
         return self.element_changed.connect(func, prepend_source=True)
 
 class _Wrapper[T:Any]():
-    ...
+    def __init__(self, col, key, item, ):
+        self._w_dict = self.__dict__
+        self._w_replace(item)
 
-class CollectionKey():
-    ...
+    _w_obj : T = None
+    _w_dict: Any = None
+    _w_filled : Signal[T] = None
+
+    def _w_replace(self, item:Any|None):
+        self._w_obj = item
+        if item is None:
+            self.__class__ = _Wrapper
+            self.__dict__ = self._w_dict
+            return
+        self.__class__ = type(item.__class__.__name__, (_Wrapper, item.__class__), {})
+        self.__dict__ = item.__dict__
+        self._w_filled(item)
+
+_nullref = _wref(_UNSET())
+
+class CollectionKey[K:str|int]():
+    _key : K|None = None
+    _col : ReferenceType[Collection]|None = _nullref
+    _src : Any
+
+    key_changed : Signal[K|None]
+    col_changed : Signal[Collection|None]
+
+    def __setup__(self):
+        self.key_changed = Signal(self)
+        self.col_changed = Signal(self)
+
+    def __init__(self, src, key:K|None):
+        self.__setup__()
+        self._src = src
+        self.key = key
+
+    @property
+    def key(self):
+        return self._key
+    @key.setter
+    def key(self,val):
+        if not (self.col is None):
+            self.col.rename(self._src, val)
+            self.key_changed(self._key)
+            return
+        self._key = val
+        self.key_changed(val)
+
+    @property
+    def col(self)->Collection|None:
+        ''' Reactionary property, collections will fullfill this when the object is appended to them'''
+        return self._col()
+    @col.setter
+    def col(self, col:Collection|None):
+        if (not (self.col() is None)) and (not (col is None)):
+            ##Avoiding implicit behavior. Dont want to just swap structure bc I accidently didnt copy an object.
+            raise Exception("Collection already set with this key!")
+        if col is None:
+            self._col = _nullref
+            self.col_changed(col)
+            return
+        self.col = _wref(col)
+        self.col_changed(col)
 
 class Collection[K:str|int,T:Any](UserDict):
     context : None|Context = None
@@ -274,8 +337,35 @@ class Collection[K:str|int,T:Any](UserDict):
     def _rem_key_collection(self, item):
         getattr(item,self._key_attr).col = None
 
-    def append(self, item:T|_Wrapper[T], key:None|K=None, key_priority:bool=False, resolve_collisions:bool=True):
-        if self.find(item) is None:
+    def find[D:Any](self, target:K|T|_Wrapper[T], default:D=_UNSET)->T|_Wrapper[T]|K: 
+        if isinstance(target, (str,int)):
+            res = self.data.get(target, _UNSET)
+        elif isinstance(target,_Wrapper):
+            res = self._inverse.get(target, _UNSET)
+        else:
+            res = _UNSET
+            for v in self.data.values():
+                if v._w_obj is target:
+                    res = target
+                    break
+
+        if (res is _UNSET):
+            if default is _UNSET:
+                raise KeyError()
+            return default
+        return res
+
+    def _resolve_find(self, item:K|T|_Wrapper[T])->tuple[K,_Wrapper[T]]|tuple[None,None]:
+        ''' Internal Utility, resolving a generic to known (key,wrapped(item)) or (None,None)'''
+        key = self.find(item, None)
+        if (key is None):
+            return None,None
+        if isinstance(key,_Wrapper):
+            item,key = key,item
+        return key,item
+
+    def append(self, item:T|_Wrapper[T], key:None|K=None, key_priority:bool=False, resolve_collisions:bool=True)->tuple[K,_Wrapper[T]]:
+        if not(self.find(item) is None):
             raise Exception("cannot append one item multiple times!")
 
         if (key is None):
@@ -304,34 +394,72 @@ class Collection[K:str|int,T:Any](UserDict):
         self.data[key] = item
         self._inverse[item] = key
 
+        self.appended(key,item)
+
+        return key, item
+        
+
     def remove(self, item:T|_Wrapper[T]|K, missing_is_ok:bool=False):
-        key = self.find(item, None)
+        key,item = self._resolve_find(item)
 
-        if missing_is_ok and (key is None):
-            return
-        elif (not missing_is_ok) and (key is None):
+        if (key is None):
+            if missing_is_ok: 
+                return
             raise KeyError()
-
-        if isinstance(key,_Wrapper):
-            item,key = key,item 
 
         del self.data[key]
         del self._inverse[item]
 
         self._rem_context(item)
         self._rem_key_collection(item)
-        
-    def find[D:Any](self, target:K|T|_Wrapper[T], default:D=_UNSET)->T|_Wrapper[T]|K: ...
-    def generate_key(self)->K:pass
-    def resolve_collision(self, key:K, left:T|_Wrapper[T], right:T|_Wrapper[T], right_key_priority:bool)->tuple[K,K]: ...
+        self.removed(key,item)
 
-        
-            
-        
+    def rename(self, target:K|T|_Wrapper[T], target_key:K, key_priority:bool=True, resolve_collision:bool=False): 
+        c_key, c_item = self._resolve_find(target) 
+        _, e_item = self._resolve_find(target_key)
 
-    
+        if c_key is None:
+            raise Exception("item doesnt exist in collection yet!") 
 
-    
+        if not (e_item is None):
+            # assert (e_key == target_key)
+            if (e_item is c_item):
+                return
+            if not resolve_collision:
+                raise KeyError()
+            self.resolve_collision(target_key, e_item, c_item, key_priority) 
+            return
+
+        getattr(c_item, self._key_attr)._key = target_key
+
+        del self.data[c_key]
+        self._inverse[c_item] = target_key
+        self.data[target_key] = c_item
+
+        self.renamed(c_key, target_key, c_item)
+
+    def generate_key(self, item:Any|None=None, old_key:str|None=None)->K: 
+        return "".join(random.sample(ascii_letters, 9))
+
+    def _generate_unique_key(self, *args,**kwargs):
+        ks = tuple(self.data.keys())
+        k = self.generate_key(*args, **kwargs)
+        while k in ks:
+            k = self.generate_key(*args,**kwargs)
+        return k
+
+    def resolve_collision(self, key:K, left:T|_Wrapper[T], right:T|_Wrapper[T], right_key_priority:bool)->tuple[K,K]: 
+        l_k = getattr(left,self._key_attr)
+        r_k = getattr(right,self._key_attr)
+
+        if right_key_priority:
+            l_k.key = self._generate_unique_key(item=left, old_key=key)
+            ## Warning:: Will call back through rename to resolve!
+        else:
+            r_k.key = self._generate_unique_key(item=right, old_key=key)
+            ## Warning:: Will call back through rename to resolve!
+
+        assert l_k.key != r_k.key
 
 # class FileRef(_CollectionRefContextual):
 #     _scope = "project"
