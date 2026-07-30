@@ -523,15 +523,25 @@ class Properties[K:str,V:Any](UserDict):
         self.element_changed = Signal()
 
     def __setitem__(self, key:K, item:V)->None:
+        raise Exception("CONVERT TO REF OR DEFERED REF W/A?!")
         super().__setitem__(key,item)
-        if hasattr(item,"context") and (not isinstance(item, Resource)):
-            item.context.set_extends(self.context)
+        if hasattr(item,"context"):
+            if not isinstance(item, Resource):
+                item.context.set_extends(self.context)
+            elif not hasattr(item, "uid"):
+                item.context.set_extends(self.context)
+
     def __delitem__(self, key:K):
         item = self.data[key]
-        if hasattr(item,"context") and (not isinstance(item, Resource)):
-            item.context.set_extends(self.context)
+        if hasattr(item,"context"):
+            if not isinstance(item, Resource):
+                item.context.set_extends(None)
+            elif not hasattr(item, "uid"):
+                item.context.set_extends(None)
+
         super().__delitem__(key)
     def __getitem__(self, key:K)->V:
+        raise Exception("CONVERT FR REF/ DEFERED REF!")
         res = self.get(key, default=_UNSET)
         if res is _UNSET:
             raise KeyError(key)
