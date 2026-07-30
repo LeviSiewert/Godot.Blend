@@ -86,9 +86,9 @@ class Signal[T:Any]():
         self.source = source
         self.subscribers = {}
 
-    def connect(self, c:Callable, /, once_only=False, prepend_source=False, prepend_signal:bool=False, filter:LambdaType=None)->int:
+    def connect(self, c:Callable, /, once_only=False, prepend_source=False, prepend_signal:bool=False, filter:LambdaType=None, weak=False)->int:
         ''' Returns an optional "token" that can be used if the callable is a lambda. "token" is subscriber object's id '''
-        sub = _SignalSubscriber(self, callable=c, once_only=once_only, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter)
+        sub = _SignalSubscriber(self, callable=c, once_only=once_only, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter, weak=False)
         return self._append_subscriber(sub)
         
     def disconnect(self, c:Callable, /, not_exist_ok:bool=False)->None:
@@ -461,26 +461,149 @@ class Collection[K:str|int,T:Any](UserDict):
 
         assert l_k.key != r_k.key
 
-# class FileRef(_CollectionRefContextual):
-#     _scope = "project"
-#     _scope_attr = "files"
+    def valid(self,)->bool:
+        for k,v in self.data.items():
+            if v._w_obj is None:
+                return False
+        return True
 
-# class ResourceRef(_CollectionRefContextual):
-#     _scope = "project"
-#     _scope_attr = "resources"
+class _Promise():
+    replace : Signal[Any]
+    def __setup__(self,):
+        self.replace = Signal(self)
 
-# class SubResourceRef(_CollectionRefContextual):
-#     ''' Construction helper, should be replaced when load is successfull '''
-#     _scope = "resource"
-#     _scope_attr = "sub_resources"
+class _ConstructionPromise(_Promise):
+    context : Context 
+    _scope : str # "project"
+    _scope_attr : str # "files"
+    address : str|int
 
-# class ExtResourceRef(_CollectionRefContextual):
-#     ''' Construction helper, should be replaced when load is successfull '''
-#     _scope = "resource"
-#     _scope_attr = "ext_resources"
+    def __setup__(self):
+        super().__setup__()
+        self.context = Context()
+        self.context.element_changed.connect(self._on_context_fullfilled, once_only=True, weak=True, filter=lambda x,y: (x == self._scope) and (not (y is None)))
 
-# class _UNSET():
-#     pass
+    def _on_context_fullfilled(self, scope):
+        self.replace(getattr(scope, self._scope_attr).append_promise(self.address))
+
+    def __init__(self, scope, scope_attr, address):
+        self.__setup__()
+        self._scope = scope
+        self._scope_attr
+        self.address = address
+
+def FileRef(addr)->_ConstructionPromise:
+    return _ConstructionPromise("project", "files", addr)
+
+def Rid(addr):
+    return _ConstructionPromise("project", "resources", addr)
+
+def SubResource(addr):
+    return _ConstructionPromise("project", "sub_resources", addr)
+    
+def ExtResource(addr):
+    return _ConstructionPromise("resource", "ext_resources", addr)
+
+
+class Properties[K:str, V:Any](UserDict):
+    overlay : Properties
+    defaults : Properties 
+
+    context : None|Context = None
+    context_filter : None|Callable = None
+
+    data : dict[K,V]
+    _inverse : dict[V, K]
+
+    appended : Signal[K,V]
+    removed : Signal[K,V]
+    swapped : Signal[K,V,V]
+    renamed : Signal[K,K,V]
+
+    def __setup__(self, context:bool):
+        self.appended = Signal(self)
+        self.removed = Signal(self)
+        self.swapped = Signal(self)
+        self.renamed = Signal(self)
+        
+        if context:
+            self.context = Context(self)
+
+    def __init__(self, key_attr:str, context:None|Context=None, context_apply_filter:None|Callable=None):
+        self.__setup__(not (context is None))
+        self._key_attr = key_attr
+        if context:
+            self.context_filter = context_apply_filter
+            self.context.set_extends(context)
+            self.apply_context = True
+
+    def _add_context(self, item):
+        if (self.context is None) or (not hasattr(item, "context")): return
+        if not self.context_filter(item): return
+        item.context.set_extends(self.context)
+
+    def _rem_context(self, item):
+        if (self.context is None) or (not hasattr(item, "context")): return
+        if item.context._extends is self.context:
+            item.context.set_extends(None)
+
+    def _replace(self, key, item):
+        self.__setitem__(key,item)
+
+    def __setitem__(self, key, item):
+        if not (self.data.get(key, _UNSET) is _UNSET):
+            del self[key]
+
+        if isinstance(item, _Promise) and (not isinstance(item, _Wrapper)):
+            item.replace.connect(self._replace, weak=True, once_only=True)
+
+        res = super().__setitem__(key, item)
+        self._add_context(item)
+
+        return res
+
+    def __getitem__(self, key):
+        return super().__getitem__(key)
+
+    def __delitem__(self, key):
+        res = self[key]
+        self._rem_context(res)
+        super().__delitem__(key)
+
+    def get[D](self, key:str, default:D=_UNSET, include_overlays:bool=True, include_defaults:bool=False, _ret_unset:bool=False)->Any|D:
+
+        res = self.data.get(key, _UNSET)
+        if not (res is _UNSET):
+            return res
+
+        if include_overlays and self.overlay:
+            res = self.overlay.get(key, _ret_unset=True, include_defaults=False)
+            if not (res is _UNSET):
+                return res
+            
+        if include_defaults and self.defaults:
+            res = self.overlay.get(key, _ret_unset=True)
+            if not (res is _UNSET):
+                return res
+
+        res = default
+        if not (res is _UNSET):
+            return res
+        
+        if _ret_unset:
+            return res
+        raise KeyError(key)
+
+    def set_overlay(): 
+        ...
+        ## Set overlay, emit dif, localize changes (notate as thin too!)
+
+    def validate(): ...
+        ## validate that all contents that shold be localized have correct structure???
+
+class Resource(_Promise):
+    replace : Signal[_Wrapper[Resource]]
+    
 
 # class Properties[K:str,V:Any](UserDict):
 #     ## Properties can keep refs or the original object, on call the item ref should collapse to the original item

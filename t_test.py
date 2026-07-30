@@ -254,6 +254,10 @@ class Test_Collections():
     def test_append(self):
         c = Collection("key", None)
         i = _Item("key")
+
+        t_var = ContextVar("", default=None)
+        c.appended.connect(lambda k,v: t_var.set((k,v)))
+
         c.append(i)
         r = c["key"]
 
@@ -263,14 +267,21 @@ class Test_Collections():
         assert c[r] == c[i]
         assert c[r] == "key"
 
+        assert not (t_var.get() is None)
+
     def test_remove(self):
         c = Collection("key", None)
         i = _Item("key")
         c.append(i)
         r = c["key"]
 
+        t_var = ContextVar("", default=None)
+        c.removed.connect(lambda k,v: t_var.set((k,v)))
+
         del c["key"]
         assert len(c) == 0
+
+        assert not (t_var.get() is None)
 
     def test_promise(self):
         c = Collection("key", None)
@@ -281,13 +292,22 @@ class Test_Collections():
         assert isinstance(r, _Wrapper)
         assert r._w_obj is None
 
+        t_var = ContextVar("", default=None)
+        c.appended.connect(lambda k,v: t_var.set((k,v)))
+
         c.append(i)
         assert r._w_obj is i
+
+        assert not (t_var.get() is None)
 
     def test_collision_rightprio(self):
         c = Collection("key", None)
         i1 = _Item("key")
         i2 = _Item("key")
+
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+
         c.append(i1)
         c.append(i2, key_priority=True)
 
@@ -297,10 +317,19 @@ class Test_Collections():
         assert i2.key.key == "key"
         assert c[i2.key.key] is i2
 
+        assert not (t_var.get() is None)
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] != "key"
+        assert t_var.get()[2] is i1
+
     def test_collision_leftprio(self):
         c = Collection("key", None)
         i1 = _Item("key")
         i2 = _Item("key")
+
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+
         c.append(i1)
         c.append(i2, key_priority=False)
 
@@ -310,10 +339,17 @@ class Test_Collections():
         assert i2.key.key != "key"
         assert c[i2.key.key] is i2
 
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] != "key"
+        assert t_var.get()[2] is i2
+
     def test_rename_via_col(self):
         c = Collection("key", None)
         i = _Item("key")
         c.append(i)
+
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
         c.rename("key", "yek")
 
@@ -321,10 +357,17 @@ class Test_Collections():
         assert c["yek"] is i
         assert c.get("yek", None) is None
 
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] == "yek"
+        assert t_var.get()[2] is i
+
     def test_rename_via_key(self):
         c = Collection("key", None)
         i = _Item("key")
         c.append(i)
+
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
         i.key.key = "yek"
 
@@ -332,165 +375,12 @@ class Test_Collections():
         assert c["yek"] is i
         assert c.get("yek", None) is None
 
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] == "yek"
+        assert t_var.get()[2] is i
 
-
-
-# from .t import Collection, CollectionKey, CollectionRef
-# class _Item():
-#     context : Context
-#     key : CollectionKey[str]
-#     def __init__(self, key):
-#         self.context = Context()
-#         self.key = CollectionKey()
-
-# class Test_Collection():
-#     def test_construction(self):
-#         c = Collection(None, _Item, "key", False)
-
-#     def test_add_rem(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         c.append(i)
-
-#         assert c._inverse[i] == "key"
-#         assert c.data["key"] is i
-
-#         assert len(c) == 1
-#         assert c["key"] is i
-#         assert c.get("key") is i
-#         assert i.key.col is c
-
-#         c.remove(i)
-#         assert c.get("key",None) is None
-#         assert i.key.col is None
-#         assert len(c) == 0
-
-#     def test_key_change(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         c.append(i)
-#         i.key.set("yek")
-#         assert i.key.key == "yek"
-#         assert c["yek"] is i
-#         assert c.get("key",None) is None
-
-#     def test_add_signal(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         t_var = ContextVar("", default=None)
-
-#         c.item_created.connect(func)
-#         def func(k,v):
-#             t_var.set((k,v))
-#         c.append(i)
-#         assert t_var.get() == ("key", i)
-
-#     def test_rem_signal(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         t_var = ContextVar("", default=None)
-
-#         c.item_removed.connect(func)
-#         def func(k,v):
-#             t_var.set((k,v))
-#         c.append(i)
-#         assert t_var.get() is None
-#         c.remove(i)
-#         assert t_var.get() == ("key", i)
-
-#     def test_key_change_signals(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         t_var = ContextVar("", default=None)
-
-#         c.item_changed.connect(func)
-#         def func(k,v):
-#             t_var.set((k,v))
-#         c.append(i)
-#         assert t_var.get() is None
-#         i.key.set("yek")
-#         assert t_var.get() == ("yek", i)
-
-#     def test_add_rem_context(self):
-#         c = Collection(None, _Item, "key", True)
-#         i = _Item("key")
-
-#         c.append(i)
-#         assert i.context._extends is c.context
-
-#         c.remove(i)
-#         assert i.context._extends is c.context
-
-#     def test_set_item_unique_id(self):
-#         c = Collection(None, _Item, "key", False)
-#         i1 = _Item("key_1")
-#         i2 = _Item("key_2")
-#         c.append(i1)
-#         c.append(i2)
-#         assert c["key_1"] is i1
-#         assert c["key_2"] is i2
-
-#     def test_append_item_shared_id(self):
-#         c = Collection(None, _Item, "key", False)
-#         i1 = _Item("key_1")
-#         i2 = _Item("key_1")
-#         i3 = _Item("key_1")
-
-#         c.append(i1)
-#         c.append(i2, right_key_priority=True)
-#         assert i1.key != "key_1"
-#         assert i2.key == "key_1"
-
-#         c.append(i3, right_key_priority=False)
-#         assert i2.key == "key_1"
-#         assert i3.key != "key_1"
-        
-
-#     def test_add_change_rem_refs(self):
-#         c = Collection(None, _Item, "key", False)
-#         i = _Item("key")
-#         c.append(i)
-
-#         ## Loose ref, no collection
-#         ref = CollectionRef("key")
-#         assert ref() is None
-
-#         ## Tied ref, collection set and find by key
-#         ref.set_col(c)
-#         assert ref() is i
-#         assert ref.key is "key"
-
-#         ## Key of target object changes, reflect in reference
-#         i.key.set("yek")
-#         assert ref.key is "yek"
-#         assert ref() is i
-
-#         ## Itme removed from collection, keep in cached, keep key
-#         c.remove(i)
-#         assert ref() is None
-#         assert ref.key is "yek"
-#         assert ref.cached() is i
-
-#         ## Change key of item, re-append, reattach reference from cached:
-#         i.key.set("key_2")
-#         c.append(i)
-#         assert ref() is i
-#         assert ref.key is "key_2"
-
-
-#     def test_replace_refs(self):
-#         ''' Wack ass reference system '''
-#         c = Collection(None, _Item, "key", False)
-#         i1 = _Item("key_1")
-#         i2 = _Item("key_2")
-#         c.append(i1)
-#         c.append(i2)
-
-#         ref = CollectionRef("key_1", col = c)
-#         assert ref() is i1
-
-#         c.update_ref_byitem(i1, "key_2")
-#         assert ref() is i2
-
-#         c.update_ref_bykey("key_2", i1)
-#         assert ref() is i1
+    def test_valid(self,):
+        c = Collection("key", None)
+        c.append_promise("yek")
+        res = c.valid()
+        assert (res is False)
