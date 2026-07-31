@@ -506,8 +506,11 @@ def ExtResource(addr):
 
 
 class Properties[K:str, V:Any](UserDict):
-    overlay : Properties
-    defaults : Properties 
+    ''' Dict w/ the ability to overlay, replace promises, remove subresources as a reaction w/a, localize wrappers
+    Wrappers are non-local when context doesnt match, and onyl applied to swap context scope w/a 
+    '''
+    overlay : None|Properties = None
+    definitions : ... 
 
     context : None|Context = None
     context_filter : None|Callable = None
@@ -519,13 +522,21 @@ class Properties[K:str, V:Any](UserDict):
     removed : Signal[K,V]
     swapped : Signal[K,V,V]
     renamed : Signal[K,K,V]
+    element_changed : Signal[K,V]
 
     def __setup__(self, context:bool):
         self.appended = Signal(self)
         self.removed = Signal(self)
         self.swapped = Signal(self)
         self.renamed = Signal(self)
-        
+
+        self.element_changed = Signal(self)
+        ## Forward local changes:
+        self.appended.connect(lambda k,v: self.element_changed(k,v))
+        self.removed.connect(lambda k,v: self.element_changed(k,v))
+        self.swapped.connect(lambda k,v0,v: self.element_changed(k,v))
+        self.renamed.connect(lambda k0,k,v: self.element_changed(k,v))
+
         if context:
             self.context = Context(self)
 
@@ -547,15 +558,26 @@ class Properties[K:str, V:Any](UserDict):
         if item.context._extends is self.context:
             item.context.set_extends(None)
 
-    def _replace(self, key, item):
-        self.__setitem__(key,item)
+    _replace_callbacks : list[LambdaType]
 
     def __setitem__(self, key, item):
+        if not (self.definitions is None):
+            if not (reason:=self.definitions.valid(key,item)):
+                raise ValueError(reason)
+
         if not (self.data.get(key, _UNSET) is _UNSET):
             del self[key]
 
         if isinstance(item, _Promise) and (not isinstance(item, _Wrapper)):
-            item.replace.connect(self._replace, weak=True, once_only=True)
+            l = lambda x: self.__setitem__(key,x); self._replace_callbacks.remove(l)
+            self._replace_callbacks.append(l)
+            item.replace.connect(l, weak=True, once_only=True)
+        if isinstance(item, Resource):
+            # l = lambda x: self.__delitem__(key); self._replace_callbacks.remove(l)
+            ##FUCK! there has got to be a better way to do this.......
+            ## Perhaps item.context.resource update?
+            # self.context.resource.sub_resource.removed(filter=lambda k,v: v is item)
+            
 
         res = super().__setitem__(key, item)
         self._add_context(item)
@@ -563,230 +585,191 @@ class Properties[K:str, V:Any](UserDict):
         return res
 
     def __getitem__(self, key):
-        return super().__getitem__(key)
+        return self.get(key, include_overlays=True)
 
     def __delitem__(self, key):
         res = self[key]
         self._rem_context(res)
         super().__delitem__(key)
 
+    def _as_local(self, item:_Wrapper)->V:
+        if not isinstance(item, Resource):
+            return item
+        if not item.uid is None:
+            return item
+        if not (item.context.sub_resource is self.context.sub_resource):
+            return self.context.resource.sub_resources.append_promise(item.id)
+        return item
+
     def get[D](self, key:str, default:D=_UNSET, include_overlays:bool=True, include_defaults:bool=False, _ret_unset:bool=False)->Any|D:
 
         res = self.data.get(key, _UNSET)
         if not (res is _UNSET):
-            return res
+            return self._as_local(res)
 
         if include_overlays and self.overlay:
             res = self.overlay.get(key, _ret_unset=True, include_defaults=False)
             if not (res is _UNSET):
-                return res
+                return self._as_local(res)
             
-        if include_defaults and self.defaults:
-            res = self.overlay.get(key, _ret_unset=True)
+        if include_defaults and not (self.definitions is None):
+            res = self.definitions.defaults.get(key, _ret_unset=True)
             if not (res is _UNSET):
-                return res
+                return self._as_local(res)
 
         res = default
         if not (res is _UNSET):
-            return res
+            return self._as_local(res)
         
         if _ret_unset:
-            return res
+            return self._as_local(res)
         raise KeyError(key)
 
-    def set_overlay(): 
-        ...
-        ## Set overlay, emit dif, localize changes (notate as thin too!)
+    def set_overlay(self, overlay:Collection|None, supress_changes:bool=False):
+        old = dict(self.items(include_overlay=True))
+        new = dict(self.items(include_overlay=False))
+        if not(overlay is None):
+            _new = dict(overlay.items())
+            _new.update(new)
+            new = _new
 
-    def validate(): ...
-        ## validate that all contents that shold be localized have correct structure???
+        if not (self._overlay is None):
+            self._overlay.element_changed.disconnect(self.element_changed)
+        self._overlay = overlay
+        if not (self._overlay is None):
+            self._overlay.element_changed.connect(self.element_changed)
+
+        if supress_changes:
+            return
+
+        _old_keys = old.keys()
+        _new_keys = new.keys()
+
+        if not(self.definitions is None):
+            rem = {k:self.definitions.defaults.get(k,default=None) for k,v in old.items() if k not in _new_keys}
+        else:
+            rem = {k:None for k,v in old.items() if k not in _new_keys}
+        add = {k:v for k,v in new.items() if k not in _old_keys}
+        changed = {k:v for k,v in new.items() if (not (v is old.get(k, None)))}
+
+        for k,v in {**rem, **add, **changed}:
+            self.element_changed(k, v)
+
+    def _iter_overlays(self):
+        if not (self._overlay is None):
+            yield from self._overlay._iter_extends()
+            yield self._overlay
+
+    def items(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[tuple[K,V]]:
+        di = copy(self.data)
+
+        for k,v in di.items():
+            yield k,v
+
+        if include_overlay:
+            for p in reversed(tuple(self._iter_overlays())):
+                for k,v in filter(lambda k,v:  not (k in di.keys()), p.data.items()):
+                    di[k] = self._as_local(v)
+
+        if include_defaults:
+            for k,v in self.definitions.items():
+                if not (k in di.keys()):
+                    yield k, self._as_local(v)
+
+    def values(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[V]:
+        for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
+            yield v
+
+    def keys(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[K]:
+        for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
+            yield k
+
+    def validate(self,)->list[Any]:
+        ''' Return list of errors '''
+        res = []
+        for k,v in self.items(include_overlay=True):
+            if not (self.definitions is None):
+                if not (reason:=self.definitions.valid(k,v)):
+                    res.append(ValueError(reason))
+            if isinstance(v, _Wrapper):
+                if v._w_obj is None:
+                    res.append(ReferenceError(""))
+        return res
+
+    def _on_overlay_element_changed(self, k,v):
+        if (k in self.data.keys()):
+            if self.data.get(k,_UNSET) == v: ## Eqa value, get rid of (local object only stores dif)
+                del self.data[k]
+                # Direct, bypasses signals
+        self.element_changed(k,v)
+
+class FileSystemSignals():
+    file_created : Signal[str]
+    file_removed : Signal[str]
+    file_updated : Signal[str]
+    file_deleted : Signal[str]
+    file_moved : Signal[str,str]
+
+    def __setup__(self):
+        self.file_created = Signal(self)
+        self.file_removed = Signal(self)
+        self.file_updated = Signal(self)
+        self.file_deleted = Signal(self)
+        self.file_moved = Signal(self)
+
+    def __init__(self):
+        self.__setup__()
+
+class Project():
+    context : Context
+    files : Collection[str|File,File|str]
+    resources : Collection[str|Resource,Resource|str]  
+
+    fs : None|AbstractFileSystem
+    fs_signals: None|FileSystemSignals
+
+    file_created : Signal[str]
+    file_removed : Signal[str]
+    file_updated : Signal[str]
+    file_deleted : Signal[str]
+    file_moved : Signal[str,str]
+
+    def __setup__(self):
+        self.context = Context(project=self)
+        self.files = Collection(self.context, child_key_attr="path",  child_type=File, set_child_context=True)
+        self.resources = Collection(self.context, child_key_attr="uid",  child_type=None, set_child_context=True)
+
+        self.file_created = Signal(self)
+        self.file_removed = Signal(self)
+        self.file_updated = Signal(self)
+        self.file_deleted = Signal(self)
+        self.file_moved = Signal(self)
+
+    def __init__(self, fs:None|AbstractFileSystem, fs_signals:None|FileSystemSignals,):
+        self.__setup__()
+        self.fs = fs
+        self.set_fs_signals(fs_signals)
+
+    def set_fs_signals(self, fs_signals:None|FileSystemSignals):
+        if not (self.fs_signals is None):
+            self.fs_signals.file_created.disconnect(self.file_created)
+            self.fs_signals.file_removed.disconnect(self.file_removed)
+            self.fs_signals.file_updated.disconnect(self.file_updated)
+            self.fs_signals.file_deleted.disconnect(self.file_deleted)
+            self.fs_signals.file_moved.disconnect(self.file_moved)
+        self.fs_signals = fs_signals
+        if not (self.fs_signals is None):
+            self.fs_signals.file_created.connect(self.file_created)
+            self.fs_signals.file_removed.connect(self.file_removed)
+            self.fs_signals.file_updated.connect(self.file_updated)
+            self.fs_signals.file_deleted.connect(self.file_deleted)
+            self.fs_signals.file_moved.connect(self.file_moved)
 
 class Resource(_Promise):
     replace : Signal[_Wrapper[Resource]]
-    
 
-# class Properties[K:str,V:Any](UserDict):
-#     ## Properties can keep refs or the original object, on call the item ref should collapse to the original item
-#     ## If ref cannot be found in context, return the ref object or raise an error
-#     ## Refs are contextual to a property collecton's view, so consider func to localize ref on teh _collectionRefContextual object itself.
-#     ## also func on get 
-
-#     context : Context
-#     _overlay : Properties
-#     definitions : Properties
-
-#     element_changed : Signal[K,V]
-
-#     def __setup__(self):
-#         self.context = Context()
-#         self.element_changed = Signal()
-
-#     def __setitem__(self, key:K, item:V)->None:
-#         raise Exception("CONVERT TO REF OR DEFERED REF W/A?!")
-#         super().__setitem__(key,item)
-#         if hasattr(item,"context"):
-#             if not isinstance(item, Resource):
-#                 item.context.set_extends(self.context)
-#             elif not hasattr(item, "uid"):
-#                 item.context.set_extends(self.context)
-
-#     def __delitem__(self, key:K):
-#         item = self.data[key]
-#         if hasattr(item,"context"):
-#             if not isinstance(item, Resource):
-#                 item.context.set_extends(None)
-#             elif not hasattr(item, "uid"):
-#                 item.context.set_extends(None)
-
-#         super().__delitem__(key)
-#     def __getitem__(self, key:K)->V:
-#         raise Exception("CONVERT FR REF/ DEFERED REF!")
-#         res = self.get(key, default=_UNSET)
-#         if res is _UNSET:
-#             raise KeyError(key)
-#         return res
-    
-#     def get(self, key:K, default:Any=_UNSET, include_overlay:bool=True, include_defaults:bool=False):
-#         res = self.data.get(key, _UNSET)
-
-#         if include_overlay:
-#             for c in reversed(tuple(self._iter_overlays())):
-#                 res = c.data.get(key, _UNSET)
-#                 if not (res is _UNSET):
-#                     break
-#         if (res is _UNSET) and include_defaults:
-#             res = self.definitions.defaults.get(key, default=_UNSET)
-
-#         if (res is _UNSET) and (default is _UNSET):
-#             raise KeyError()
-#         elif (res is _UNSET):
-#             return default
-        
-#         if isinstance(res, _CollectionRefContextual):
-#             return res.get_with_custom_context(context=self.context, default=res)
-
-#         return res
-
-#     def _iter_overlays(self):
-#         if not (self._overlay is None):
-#             yield from self._overlay._iter_extends()
-#             yield self._overlay
-
-#     def items(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[tuple[K,V]]:
-#         di = copy(self.data)
-#         if include_overlay:
-#             for p in reversed(tuple(self._iter_overlays())):
-#                 for k,v in filter(lambda k,v:  not (k in di.keys()), p.data):
-#                     di[k] = v
-
-#         yield from di.items()
-
-#         if include_defaults:
-#             for k,v in self.definitions.items():
-#                 if not (k in di.keys()):
-#                     yield k,v
-
-#     def values(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[V]:
-#         for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
-#             yield v
-
-#     def keys(self, include_overlay:bool=True, include_defaults:bool=False)->Generator[K]:
-#         for k,v in self.items(include_overlay=include_overlay, include_defaults=include_defaults):
-#             yield k
-
-#     def set_overlay(self, overlay:Collection|None, supress_changes:bool=False):
-#         old = dict(self.items(include_overlay=True))
-#         new = dict(self.items(include_overlay=False))
-#         if not(overlay is None):
-#             _new = dict(overlay.items())
-#             _new.update(new)
-#             new = _new
-
-#         if not (self._overlay is None):
-#             self._overlay.element_changed.disconnect(self.element_changed)
-#         self._overlay = overlay
-#         if not (self._overlay is None):
-#             self._overlay.element_changed.connect(self.element_changed)
-
-#         if supress_changes:
-#             return
-
-#         _old_keys = old.keys()
-#         _new_keys = new.keys()
-
-#         if not(self.definitions is None):
-#             rem = {k:self.definitions.defaults.get(k,default=None) for k,v in old.items() if k not in _new_keys}
-#         else:
-#             rem = {k:None for k,v in old.items() if k not in _new_keys}
-#         add = {k:v for k,v in new.items() if k not in _old_keys}
-#         changed = {k:v for k,v in new.items() if (not (v is old.get(k, None)))}
-
-#         for k,v in {**rem, **add, **changed}:
-#             self.element_changed(k, v)
-
-# class FileSystemSignals():
-#     file_created : Signal[str]
-#     file_removed : Signal[str]
-#     file_updated : Signal[str]
-#     file_deleted : Signal[str]
-#     file_moved : Signal[str,str]
-
-#     def __setup__(self):
-#         self.file_created = Signal(self)
-#         self.file_removed = Signal(self)
-#         self.file_updated = Signal(self)
-#         self.file_deleted = Signal(self)
-#         self.file_moved = Signal(self)
-
-#     def __init__(self):
-#         self.__setup__()
-
-# class Project():
-#     context : Context
-#     files : Collection[str|File,File|str]
-#     resources : Collection[str|Resource,Resource|str]  
-
-#     fs : None|AbstractFileSystem
-#     fs_signals: None|FileSystemSignals
-
-#     file_created : Signal[str]
-#     file_removed : Signal[str]
-#     file_updated : Signal[str]
-#     file_deleted : Signal[str]
-#     file_moved : Signal[str,str]
-
-#     def __setup__(self):
-#         self.context = Context(project=self)
-#         self.files = Collection(self.context, child_key_attr="path",  child_type=File, set_child_context=True)
-#         self.resources = Collection(self.context, child_key_attr="uid",  child_type=None, set_child_context=True)
-
-#         self.file_created = Signal(self)
-#         self.file_removed = Signal(self)
-#         self.file_updated = Signal(self)
-#         self.file_deleted = Signal(self)
-#         self.file_moved = Signal(self)
-
-#     def __init__(self, fs:None|AbstractFileSystem, fs_signals:None|FileSystemSignals,):
-#         self.__setup__()
-#         self.fs = fs
-#         self.set_fs_signals(fs_signals)
-
-#     def set_fs_signals(self, fs_signals:None|FileSystemSignals):
-#         if not (self.fs_signals is None):
-#             self.fs_signals.file_created.disconnect(self.file_created)
-#             self.fs_signals.file_removed.disconnect(self.file_removed)
-#             self.fs_signals.file_updated.disconnect(self.file_updated)
-#             self.fs_signals.file_deleted.disconnect(self.file_deleted)
-#             self.fs_signals.file_moved.disconnect(self.file_moved)
-#         self.fs_signals = fs_signals
-#         if not (self.fs_signals is None):
-#             self.fs_signals.file_created.connect(self.file_created)
-#             self.fs_signals.file_removed.connect(self.file_removed)
-#             self.fs_signals.file_updated.connect(self.file_updated)
-#             self.fs_signals.file_deleted.connect(self.file_deleted)
-#             self.fs_signals.file_moved.connect(self.file_moved)
-
-# class File():
+class File():
+    ...
 #     context : Context
 #     path : CollectionKey[str]
 #     resource : ResourceRef
