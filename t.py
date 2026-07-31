@@ -573,6 +573,7 @@ class Properties[K:str, V:Any](UserDict):
             self._replace_callbacks.append(l)
             item.replace.connect(l, weak=True, once_only=True)
         if isinstance(item, Resource):
+            raise NotImplementedError("Removal upon scope's object removal, ie Implicit cleanup")
             # l = lambda x: self.__delitem__(key); self._replace_callbacks.remove(l)
             ##FUCK! there has got to be a better way to do this.......
             ## Perhaps item.context.resource update?
