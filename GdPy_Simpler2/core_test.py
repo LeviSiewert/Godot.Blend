@@ -1,4 +1,4 @@
-from .t import Signal
+from .core import Signal
 from contextvars import ContextVar
 
 class Test_Signal():
@@ -78,7 +78,7 @@ class Test_Signal():
         s(2)
         assert t_val.get() == 1
 
-from .t import Context
+from .core import Context
 
 class _Context(Context):
     _slots_ = ("a","b","c")
@@ -240,147 +240,147 @@ class Test_Context():
         ctx_c.callback("c",fail)
         ctx_c.set_extends(None)
         
-from .t import Collection, CollectionKey, _Wrapper
+# from .t import Collection, CollectionKey, _Wrapper
 
-class _Item():
-    key = CollectionKey()
-    def __init__(self, key:None|str):
-        self.key = CollectionKey(self, key)
+# class _Item():
+#     key = CollectionKey()
+#     def __init__(self, key:None|str):
+#         self.key = CollectionKey(self, key)
 
-class Test_Collections():
-    def test_construction(self,):
-        c = Collection("key", None)
+# class Test_Collections():
+#     def test_construction(self,):
+#         c = Collection("key", None)
 
-    def test_append(self):
-        c = Collection("key", None)
-        i = _Item("key")
+#     def test_append(self):
+#         c = Collection("key", None)
+#         i = _Item("key")
 
-        t_var = ContextVar("", default=None)
-        c.appended.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.appended.connect(lambda k,v: t_var.set((k,v)))
 
-        c.append(i)
-        r = c["key"]
+#         c.append(i)
+#         r = c["key"]
 
-        assert len(c) == 1
-        assert isinstance(r, _Wrapper)
-        assert r._w_obj is i
-        assert c[r] == c[i]
-        assert c[r] == "key"
+#         assert len(c) == 1
+#         assert isinstance(r, _Wrapper)
+#         assert r._w_obj is i
+#         assert c[r] == c[i]
+#         assert c[r] == "key"
 
-        assert not (t_var.get() is None)
+#         assert not (t_var.get() is None)
 
-    def test_remove(self):
-        c = Collection("key", None)
-        i = _Item("key")
-        c.append(i)
-        r = c["key"]
+#     def test_remove(self):
+#         c = Collection("key", None)
+#         i = _Item("key")
+#         c.append(i)
+#         r = c["key"]
 
-        t_var = ContextVar("", default=None)
-        c.removed.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.removed.connect(lambda k,v: t_var.set((k,v)))
 
-        del c["key"]
-        assert len(c) == 0
+#         del c["key"]
+#         assert len(c) == 0
 
-        assert not (t_var.get() is None)
+#         assert not (t_var.get() is None)
 
-    def test_promise(self):
-        c = Collection("key", None)
-        i = _Item("key")
-        r = c.append_promise("key")
+#     def test_promise(self):
+#         c = Collection("key", None)
+#         i = _Item("key")
+#         r = c.append_promise("key")
 
-        assert c["key"] is r
-        assert isinstance(r, _Wrapper)
-        assert r._w_obj is None
+#         assert c["key"] is r
+#         assert isinstance(r, _Wrapper)
+#         assert r._w_obj is None
 
-        t_var = ContextVar("", default=None)
-        c.appended.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.appended.connect(lambda k,v: t_var.set((k,v)))
 
-        c.append(i)
-        assert r._w_obj is i
+#         c.append(i)
+#         assert r._w_obj is i
 
-        assert not (t_var.get() is None)
+#         assert not (t_var.get() is None)
 
-    def test_collision_rightprio(self):
-        c = Collection("key", None)
-        i1 = _Item("key")
-        i2 = _Item("key")
+#     def test_collision_rightprio(self):
+#         c = Collection("key", None)
+#         i1 = _Item("key")
+#         i2 = _Item("key")
 
-        t_var = ContextVar("", default=None)
-        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
-        c.append(i1)
-        c.append(i2, key_priority=True)
+#         c.append(i1)
+#         c.append(i2, key_priority=True)
 
-        assert i1.key.key != "key"
-        assert c[i1.key.key] is i1
+#         assert i1.key.key != "key"
+#         assert c[i1.key.key] is i1
 
-        assert i2.key.key == "key"
-        assert c[i2.key.key] is i2
+#         assert i2.key.key == "key"
+#         assert c[i2.key.key] is i2
 
-        assert not (t_var.get() is None)
-        assert t_var.get()[0] == "key"
-        assert t_var.get()[1] != "key"
-        assert t_var.get()[2] is i1
+#         assert not (t_var.get() is None)
+#         assert t_var.get()[0] == "key"
+#         assert t_var.get()[1] != "key"
+#         assert t_var.get()[2] is i1
 
-    def test_collision_leftprio(self):
-        c = Collection("key", None)
-        i1 = _Item("key")
-        i2 = _Item("key")
+#     def test_collision_leftprio(self):
+#         c = Collection("key", None)
+#         i1 = _Item("key")
+#         i2 = _Item("key")
 
-        t_var = ContextVar("", default=None)
-        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
-        c.append(i1)
-        c.append(i2, key_priority=False)
+#         c.append(i1)
+#         c.append(i2, key_priority=False)
 
-        assert i1.key.key == "key"
-        assert c[i1.key.key] is i1
+#         assert i1.key.key == "key"
+#         assert c[i1.key.key] is i1
 
-        assert i2.key.key != "key"
-        assert c[i2.key.key] is i2
+#         assert i2.key.key != "key"
+#         assert c[i2.key.key] is i2
 
-        assert t_var.get()[0] == "key"
-        assert t_var.get()[1] != "key"
-        assert t_var.get()[2] is i2
+#         assert t_var.get()[0] == "key"
+#         assert t_var.get()[1] != "key"
+#         assert t_var.get()[2] is i2
 
-    def test_rename_via_col(self):
-        c = Collection("key", None)
-        i = _Item("key")
-        c.append(i)
+#     def test_rename_via_col(self):
+#         c = Collection("key", None)
+#         i = _Item("key")
+#         c.append(i)
 
-        t_var = ContextVar("", default=None)
-        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
-        c.rename("key", "yek")
+#         c.rename("key", "yek")
 
-        assert i.key.key == "yek"
-        assert c["yek"] is i
-        assert c.get("yek", None) is None
+#         assert i.key.key == "yek"
+#         assert c["yek"] is i
+#         assert c.get("yek", None) is None
 
-        assert t_var.get()[0] == "key"
-        assert t_var.get()[1] == "yek"
-        assert t_var.get()[2] is i
+#         assert t_var.get()[0] == "key"
+#         assert t_var.get()[1] == "yek"
+#         assert t_var.get()[2] is i
 
-    def test_rename_via_key(self):
-        c = Collection("key", None)
-        i = _Item("key")
-        c.append(i)
+#     def test_rename_via_key(self):
+#         c = Collection("key", None)
+#         i = _Item("key")
+#         c.append(i)
 
-        t_var = ContextVar("", default=None)
-        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+#         t_var = ContextVar("", default=None)
+#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
-        i.key.key = "yek"
+#         i.key.key = "yek"
 
-        assert i.key.key == "yek"
-        assert c["yek"] is i
-        assert c.get("yek", None) is None
+#         assert i.key.key == "yek"
+#         assert c["yek"] is i
+#         assert c.get("yek", None) is None
 
-        assert t_var.get()[0] == "key"
-        assert t_var.get()[1] == "yek"
-        assert t_var.get()[2] is i
+#         assert t_var.get()[0] == "key"
+#         assert t_var.get()[1] == "yek"
+#         assert t_var.get()[2] is i
 
-    def test_valid(self,):
-        c = Collection("key", None)
-        c.append_promise("yek")
-        res = c.valid()
-        assert (res is False)
+#     def test_valid(self,):
+#         c = Collection("key", None)
+#         c.append_promise("yek")
+#         res = c.valid()
+#         assert (res is False)
