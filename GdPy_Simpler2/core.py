@@ -109,12 +109,15 @@ class Signal[T:Any]():
 from contextvars import ContextVar
 
 class Context():
-    ''' Context object, attribute fallback through extends chain. Values set/changed along chain propigate to children. (including removed as None) '''
+    ''' Context object, attribute fallback through extends chain. Values set/changed along chain propigate to children. (including removed as None) 
+    sub to self.verify_structure w/ any behavior that is disallowed.
+    '''
     _extends : Context = None
     _slots_ : tuple[str]
     _default = None
     element_changed : Signal
     default_null = ContextVar("", default=None)
+    verify_structure : Signal[dict] 
     
     def __init__(self, **kwargs):
         self.element_changed = Signal(self)
@@ -132,9 +135,17 @@ class Context():
     def __setattr__(self,attr,value):
         # if not (attr in self._slots_):
         #     raise AttributeError("Context attribute must exist in local slots to be assigned!", obj=self, name=attr)
+        self.verify_structure({attr:value})
         super().__setattr__(attr, value)
         if attr in self._slots_:
             self.element_changed(attr,value)
+
+    def __setitem__(self, key, value):
+        self.__setattr__(key,value)
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+    def __delitem__(self, key):
+        self.__delattr__(key)
 
     def __delattr__(self, attr):
         super().__delattr__(attr)
