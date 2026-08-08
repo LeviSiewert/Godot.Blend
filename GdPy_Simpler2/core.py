@@ -4,7 +4,7 @@ from types import LambdaType
 from weakref import ReferenceType, ref as _wref
 from copy import copy
 from inspect import getmembers
-
+from collections import UserDict
 
 class _UNSET():...
 
@@ -220,6 +220,7 @@ def make_proxy_func(_proxy_obj, attr):
     return func
 
 class Proxy[T:Any]():
+    ''' Structural Proxy, for replacing objects in a collection in runtime w/out '''
     _proxy_obj : None|T = None
     _proxy_orig_dict : dict
 
@@ -230,7 +231,7 @@ class Proxy[T:Any]():
         self._proxy_orig_dict = copy(self.__dict__)
         if not (obj is None):
             self._proxy_set_obj(obj)
-            
+
     def __getattr__(self, name):
         if self._proxy_obj:
             return getattr(self._proxy_obj, name)
@@ -260,3 +261,46 @@ class Proxy[T:Any]():
         self.__class__ = type("PROXY_"+obj.__class__.__name__, (Proxy, obj.__class__), {})
 
         self._proxy_obj_changed(obj)
+
+class _C_Proxy(Proxy):
+    __name__ = "Proxy"
+    _proxy_owner : Collection
+    def __init__(self, owner:Any|None=None, obj = None):
+        self._proxy_owner = owner
+        super().__init__(obj)
+
+class CollectionKey():
+    value : None|str = None
+
+
+class Collection[K:str|int,V:object](UserDict):
+    ''' Dict wrapper that holds proxies of children objects.  
+    Objects set keys in collection 
+    '''
+
+    data : dict[K, _C_Proxy[V]]
+    _key_attr : str
+
+    def get_pair[D:Any](self, value:V|_C_Proxy[V]|K, default:D)->tuple[K,V]|D:...
+    def get_key[D:Any](self, item:V, default:D)->K|D:...
+
+    def append(self, item:V, r_key_priority:bool=True):...
+    def remove(self, item:V):...
+
+    def promise(self, key:K):...
+    def promises_missing(self)->tuple[K]:...
+
+    def replace(self, key:K, new_item:V|_C_Proxy[V]):...
+    def merge(self, key_a:K, key_b:K):...
+        # ''' effectivly 'Merge' keys by setting (obj_b._proxy_obj = obj_a), and forwarding the update signal and deleting key_b '''
+        ## perhaps instead use replace signal, since most proxy users will be Properties objects 
+        
+
+    def resolve_key_collision(self, key:K, l_obj:V|_C_Proxy[V], r_obj:V|_C_Proxy[V]):pass
+
+    def __setitem__(self, key:K, item:V|_C_Proxy[V]):...
+    def __delitem__(self, key:K):...
+    def __getitem__(self, key:K)->V:... #->_C_Proxy[V]
+
+    def __contains__(self, item:V|_C_Proxy[V]):...
+
