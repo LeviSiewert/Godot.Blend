@@ -1,5 +1,13 @@
 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
 
+[ext_resource type="Script" uid="uid://cjkvk7qbv5oby" path="res://test_res.gd" id="1_2f6dx"]
+[ext_resource type="PackedScene" uid="uid://dccwn3i12e0lk" path="res://t.tscn" id="2_m7sm5"]
+
+[sub_resource type="Resource" id="Resource_88bq2"]
+resource_name = "A"
+script = ExtResource("1_2f6dx")
+metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
+
 [node name="A" type="Node" unique_id=1936822026]
 
 [node name="B" type="Node" parent="." unique_id=805633638]
@@ -9,3 +17,9 @@
 [node name="D" type="Control" parent="C" unique_id=2075458515]
 layout_mode = 3
 anchors_preset = 0
+script = ExtResource("1_2f6dx")
+r = SubResource("Resource_88bq2")
+
+[node name="Node" parent="C" unique_id=116493720 instance=ExtResource("2_m7sm5")]
+
+[editable path="C/Node"]

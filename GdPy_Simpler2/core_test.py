@@ -384,3 +384,42 @@ class Test_Context():
 #         c.append_promise("yek")
 #         res = c.valid()
 #         assert (res is False)
+from .core import Proxy
+
+class _BaseA:
+    name:str
+    def __init__(self,name:str):
+        self.name = name
+    def __hash__(self):
+        return hash(self.name)
+
+class Test_Proxy():
+    def test_base(self):
+        p = Proxy()
+        c = ContextVar("")
+        p._proxy_obj_changed.connect(lambda a: c.set(a))
+        obj = _BaseA("name")
+
+        assert isinstance(p, Proxy)
+        assert not isinstance(p, _BaseA)
+
+        p._proxy_set_obj(obj)
+        assert isinstance(p, Proxy)
+        assert isinstance(p, _BaseA)
+        assert c.get() is obj
+        assert p.name == obj.name
+        assert p.__hash__() == obj.__hash__()
+        assert p.__class__.__name__ == "PROXY__BaseA"
+
+        p._proxy_set_obj(None)
+        assert isinstance(p, Proxy)
+        assert not isinstance(p, _BaseA)
+        assert c.get() is None
+        assert getattr(p, "name", None) is None
+        assert p.__hash__() != obj.__hash__()
+        assert p.__class__.__name__ == "Proxy"
+        assert p.__class__ is Proxy
+
+
+
+

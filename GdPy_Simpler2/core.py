@@ -1,15 +1,10 @@
 from __future__ import annotations
-from collections import UserDict
-from typing import Any, Callable, Generator, Type, Self
+from typing import Any, Callable
 from types import LambdaType
 from weakref import ReferenceType, ref as _wref
-from enum import Enum
 from copy import copy
-from fsspec import AbstractFileSystem
-from string import ascii_letters
-import random
+from inspect import getmembers
 
-from .core import Signal
 
 class _UNSET():...
 
@@ -219,26 +214,49 @@ class Context():
             
         return self.element_changed.connect(func, prepend_source=True)
 
-class Users():
-    users : list[ReferenceType[Any]]
+def make_proxy_func(_proxy_obj, attr):
+    def func (*args,**kwargs): 
+        return getattr(_proxy_obj, attr)(*args, **kwargs)
+    return func
 
-    def __init__(self):
-        pass
+class Proxy[T:Any]():
+    _proxy_obj : None|T = None
+    _proxy_orig_dict : dict
 
-    def append_user(self, user:Any):
-        if not (user in tuple(self)):
-            self.users.append(_wref(user))
+    _proxy_obj_changed : Signal[None|T]
 
-    def remove_user(self, user:Any):
-        to_rem : list[int] = []
-        for i,r in enumerate(self.users):
-            if (r() is user) or (r() is None):
-                to_rem.append(i)
-        for i in reversed(to_rem):
-            self.users.remove(i)
+    def __init__(self, obj:Any|None=None):
+        self._proxy_obj_changed = Signal(self)
+        self._proxy_orig_dict = copy(self.__dict__)
+        if not (obj is None):
+            self._proxy_set_obj(obj)
+            
+    def __getattr__(self, name):
+        if self._proxy_obj:
+            return getattr(self._proxy_obj, name)
+        raise AttributeError()
+    
+    def _proxy_set_obj(self, obj:None|T):
+        if self._proxy_obj is obj:
+            return
+
+        if not (self._proxy_obj is None):
+            self.__dict__ = copy(self._proxy_orig_dict) #Reset object state
+            self.__class__ = Proxy
+
+        if obj is None:
+            self._proxy_obj = obj
+            self._proxy_obj_changed(obj)
+            return
         
-    def __iter__(self,):
-        for x in self.users:
-            r = x()
-            if not (r is None):
-                yield r
+        self._proxy_obj = obj
+
+        exclude = list(set(dir(self)))
+        exclude.append("__class__")
+        for attr, _ in getmembers(obj, callable):
+            if attr not in exclude:
+                setattr(self, attr, make_proxy_func(self._proxy_obj, attr))
+
+        self.__class__ = type("PROXY_"+obj.__class__.__name__, (Proxy, obj.__class__), {})
+
+        self._proxy_obj_changed(obj)

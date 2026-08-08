@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cjkvk7qbv5oby" path="res://test_res.gd" id="1_rg4uy"]
 
 [sub_resource type="Resource" id="Resource_88bq2"]
-resource_name = "C"
+resource_name = "E"
 script = ExtResource("1_rg4uy")
 metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
 
