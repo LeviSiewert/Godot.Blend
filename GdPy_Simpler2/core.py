@@ -265,13 +265,38 @@ class Proxy[T:Any]():
 class _C_Proxy(Proxy):
     __name__ = "Proxy"
     _proxy_owner : Collection
-    def __init__(self, owner:Any|None=None, obj = None):
+    _proxy_key_updated : Signal
+    _proxy_key_attr : str
+
+    def __init__(self, owner:Any|None, key_attr:str, obj = None):
+        self._proxy_key_attr = key_attr
         self._proxy_owner = owner
         super().__init__(obj)
 
-class CollectionKey():
-    value : None|str = None
+    def _proxy_set_obj(self, obj):
+        if not (obj is None):
+            self._proxy_key_updated.connect(getattr(obj, self._proxy_key_attr))
+        if not (self._proxy_obj is None):
+            self._proxy_key_updated.disconnect(getattr(obj, self._proxy_key_attr))
+        return super()._proxy_set_obj(obj)
 
+class CollectionKey[K:str|int]():
+    _key : None|K = None
+    key_updated : Signal[K]
+
+    @property
+    def key(self):
+        return self._key
+    @key.setter
+    def key(self,val):
+        o_val = self._key
+        try:
+            self._key = val
+            self.key_updated(val)
+        except:
+            self._key = o_val
+            self.key_updated(o_val)
+            raise
 
 class Collection[K:str|int,V:object](UserDict):
     ''' Dict wrapper that holds proxies of children objects.  
