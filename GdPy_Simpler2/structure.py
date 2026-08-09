@@ -57,7 +57,7 @@ def ExtResource(id:str): return _StructuralPromise("Resource", "ext_resources", 
 def RID(id:str): return _StructuralPromise("Project", "resources", id, f"RID({id})")
 
 class Properties(UserDict):
-    ''' Attach context w/a '''
+    ''' Attach context w/a ?? '''
     ...
 
 class ExtResource():
