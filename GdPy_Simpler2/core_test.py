@@ -325,7 +325,7 @@ class Test_Collection():
         r = c.append_promise("key")
 
         assert c["key"] is r
-        assert isinstance(r, _Wrapper)
+        assert isinstance(r, Proxy)
         assert r._w_obj is None
 
         t_var = ContextVar("", default=None)
