@@ -336,7 +336,7 @@ class Test_Collection():
 
         assert len(c) == 1
         assert isinstance(r, Proxy)
-        assert r._w_obj is i
+        assert r._proxy_obj is i
         # assert c[r] == c[i]
         assert c[r] == "key"
 
@@ -346,14 +346,13 @@ class Test_Collection():
         c = Collection("key")
         i = _Item("key")
         c.append(i)
-        r = c["key"]
 
         t_var = ContextVar("", default=None)
         c.removed.connect(lambda k,v: t_var.set((k,v)))
 
         del c["key"]
-        assert len(c) == 0
 
+        assert len(c) == 0
         assert not (t_var.get() is None)
 
     def test_promise(self):
@@ -363,58 +362,43 @@ class Test_Collection():
 
         assert c["key"] is r
         assert isinstance(r, Proxy)
-        assert r._w_obj is None
+        assert r._proxy_obj is None
 
         t_var = ContextVar("", default=None)
         c.appended.connect(lambda k,v: t_var.set((k,v)))
 
         c.append(i)
-        assert r._w_obj is i
+        assert r._proxy_obj is i
 
         assert not (t_var.get() is None)
 
-#     def test_collision_rightprio(self):
-#         c = Collection("key")
-#         i1 = _Item("key")
-#         i2 = _Item("key")
+    def test_collision_rightprio(self):
+        c = Collection("key")
+        i1 = _Item("key")
+        i2 = _Item("key")
 
-#         t_var = ContextVar("", default=None)
-#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
+        c.append(i1)
+        c.append(i2, r_key_priority=True)
 
-#         c.append(i1)
-#         c.append(i2, key_priority=True)
+        assert i1.key.key != "key"
+        assert c[i1.key.key]._proxy_obj is i1
 
-#         assert i1.key.key != "key"
-#         assert c[i1.key.key] is i1
+        assert i2.key.key == "key"
+        assert c[i2.key.key]._proxy_obj is i2
 
-#         assert i2.key.key == "key"
-#         assert c[i2.key.key] is i2
+    def test_collision_leftprio(self):
+        c = Collection("key", None)
+        i1 = _Item("key")
+        i2 = _Item("key")
 
-#         assert not (t_var.get() is None)
-#         assert t_var.get()[0] == "key"
-#         assert t_var.get()[1] != "key"
-#         assert t_var.get()[2] is i1
+        c.append(i1)
+        c.append(i2, r_key_priority=False)
 
-#     def test_collision_leftprio(self):
-#         c = Collection("key", None)
-#         i1 = _Item("key")
-#         i2 = _Item("key")
+        assert i1.key.key == "key"
+        assert c[i1.key.key]._proxy_obj is i1
 
-#         t_var = ContextVar("", default=None)
-#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
-
-#         c.append(i1)
-#         c.append(i2, key_priority=False)
-
-#         assert i1.key.key == "key"
-#         assert c[i1.key.key] is i1
-
-#         assert i2.key.key != "key"
-#         assert c[i2.key.key] is i2
-
-#         assert t_var.get()[0] == "key"
-#         assert t_var.get()[1] != "key"
-#         assert t_var.get()[2] is i2
+        assert i2.key.key != "key"
+        assert c[i2.key.key]._proxy_obj is i2
 
 #     def test_rename_via_col(self):
 #         c = Collection("key", None)

@@ -90,7 +90,7 @@ class Signal[T:Any]():
         to_remove = []
         found = False
         for k,v in self.subscribers.items():
-            if v.callback() is c:
+            if (v.callback() is c) or (hash(c) == hash(v.callback())):
                 to_remove.append(k)
                 found = True
             elif v.callback() is None:
@@ -369,12 +369,14 @@ class Collection[K:str|int, V:object](UserDict):
         item._proxy_key_updated.connect(self.rename, weak=True, prepend_source=True)
 
     def _disconnect(self, item:_C_Proxy):
+        # assert len(item._proxy_key_updated.subscribers) == 1
+        # raise Exception(tuple(item._proxy_key_updated.subscribers.values())[0].callback())
         item._proxy_key_updated.disconnect(self.rename)
 
     def rename(self, item:V|_C_Proxy[V]|K, new_key:K, r_key_priority:bool=True):
         ''' Rename, merge if target namespace is a promise. '''
-        c_k,c_v = self.get_pair(item, (None,None))
-        n_k,n_v = self.get_pair(new_key, (None, None))
+        c_k,c_v = self.resolve_pair(item, (None,None))
+        n_k,n_v = self.resolve_pair(new_key, (None, None))
 
         if c_v is None:
             raise KeyError()
@@ -399,11 +401,36 @@ class Collection[K:str|int, V:object](UserDict):
 
         self.renamed(c_k, new_key, item)
 
+    def append_promise(self, key:K)->_C_Proxy[None|V]:
+        assert isinstance(key, (str,int))
+        if not ((res:=self.data.get(key,None)) is None):
+            return res
+        return self.append(None, key=key)
+
     def append(self, item:V|_C_Proxy[V], nested_ok:bool=False, key:None|K=None, r_key_priority:bool=True):
 
         if item in self:
             raise ValueError("Item Already exists in collection!", item)
 
+        if key is None:
+            key = getattr(item, self._key_attr).key
+
+        if key is None:
+            key = self.generate_key(item)
+
+        if not ((obj:=self.data.get(key,None)) is None) and (obj._proxy_obj is None):
+            if isinstance(item,_C_Proxy):
+                if item._proxy_owner is self:
+                    obj._proxy_set_obj(item._proxy_obj)
+                elif not nested_ok:
+                    obj._proxy_set_obj(item._proxy_obj)
+                elif nested_ok:
+                    obj._proxy_set_obj(item)
+            else:
+                obj._proxy_set_obj(item)
+            self.appended(key, obj)
+            return obj
+        
         if isinstance(item,_C_Proxy):
             if item._proxy_owner is self:
                 item = item
@@ -414,14 +441,8 @@ class Collection[K:str|int, V:object](UserDict):
         else:
             item = _C_Proxy(self, self._key_attr, item)
 
-        if key is None:
-            key = getattr(item, self._key_attr).key
-
-        if key is None:
-            key = self.generate_key(item)
-
         if not ((obj:=self.data.get(key,None)) is None):
-            self.handle_key_collision(key,obj,item,r_key_priority)
+            self.resolve_key_collision(key,obj,item,r_key_priority)
             key = getattr(item, self._key_attr).key
 
         assert not (key is None)
@@ -429,14 +450,15 @@ class Collection[K:str|int, V:object](UserDict):
         self._connect(item)
         self.data[key] = item
 
-        self.appended(key, item)
+        if not (item._proxy_obj is None):
+            self.appended(key, item)
 
         return item
 
     def __contains__(self, key:K|V|_C_Proxy[V]):
-        if not isinstance(key, object):
-            return (key in self.keys())
-        for v in self.values():
+        if isinstance(key, (str,int)):
+            return (key in self.data.keys())
+        for v in self.data.values():
             if (key is v) or (key is v._proxy_obj):
                 return True
         return False
@@ -462,19 +484,54 @@ class Collection[K:str|int, V:object](UserDict):
 
     def resolve_key_collision(self, key:str, l_item:V|_C_Proxy[V], r_item:V|_C_Proxy[V], r_key_priority:bool=True):
         
-        if self._random_key:
-            n_key = self.generate_key()
-        else: 
-            n_key = self.index_key(key)
-        
         if not r_key_priority:
-            getattr(r_item,self.key_attr).key = n_key
+            if self._random_key:
+                n_key = self.generate_key(r_item)
+            else: 
+                n_key = self.index_key(key)
+            getattr(r_item,self._key_attr).key = n_key
         else: 
-            getattr(l_item,self.key_attr).key = n_key
+            if self._random_key:
+                n_key = self.generate_key(l_item)
+            else: 
+                n_key = self.index_key(key)
+            getattr(l_item,self._key_attr).key = n_key
+        
 
+    def __getitem__(self, key:K|V|_C_Proxy[V])->V|_C_Proxy[V]|K:
+        if key is None:
+            raise KeyError(key)
+        if isinstance(key, (str,int)):
+            return self.data[key]
+        for k,v in self.data.items():
+            if (v is key) or (v._proxy_obj is v):
+                return k
+        raise KeyError(key)
+        
+    def remove(self, key:K|V|_C_Proxy[V]):
+        k,v = self.resolve_pair(key)
+        if k is None:
+            raise KeyError(key)
+        self._disconnect(v)
+        del self.data[k]
+        self.removed(k,v)
 
+    def resolve_pair[D:Any](self, key:K|V|_C_Proxy[V], default:D=(None,None))->tuple[K,_C_Proxy[V]]|D:
+        if not isinstance(key, (str,int)):
+            value = key
+            key = self.get(key, None)
+            if key is None:
+                return default
+        else:
+            value = self.get(key, None)
+            if value is None:
+                return default
+        return key,value
 
-    
+    def __delitem__(self, key):
+        return self.remove(key)
+
+        
 
 # class Collection[K:str|int,V:object](UserDict):
 #     ''' Dict wrapper that holds proxies of children objects.  
