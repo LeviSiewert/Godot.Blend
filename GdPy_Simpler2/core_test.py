@@ -240,65 +240,101 @@ class Test_Context():
         ctx_c.callback("c",fail)
         ctx_c.set_extends(None)
         
-# from .t import Collection, CollectionKey, _Wrapper
+from .core import Proxy
 
-# class _Item():
-#     key = CollectionKey()
-#     def __init__(self, key:None|str):
-#         self.key = CollectionKey(self, key)
+class _BaseA:
+    name:str
+    def __init__(self,name:str):
+        self.name = name
+    def __hash__(self):
+        return hash(self.name)
 
-# class Test_Collections():
-#     def test_construction(self,):
-#         c = Collection("key", None)
+class Test_Proxy():
+    def test_base(self):
+        p = Proxy()
+        c = ContextVar("")
+        p._proxy_obj_changed.connect(lambda a: c.set(a))
+        obj = _BaseA("name")
 
-#     def test_append(self):
-#         c = Collection("key", None)
-#         i = _Item("key")
+        assert isinstance(p, Proxy)
+        assert not isinstance(p, _BaseA)
 
-#         t_var = ContextVar("", default=None)
-#         c.appended.connect(lambda k,v: t_var.set((k,v)))
+        p._proxy_set_obj(obj)
+        assert isinstance(p, Proxy)
+        assert isinstance(p, _BaseA)
+        assert c.get() is obj
+        assert p.name == obj.name
+        assert p.__hash__() == obj.__hash__()
+        assert p.__class__.__name__ == "PROXY__BaseA"
 
-#         c.append(i)
-#         r = c["key"]
+        p._proxy_set_obj(None)
+        assert isinstance(p, Proxy)
+        assert not isinstance(p, _BaseA)
+        assert c.get() is None
+        assert getattr(p, "name", None) is None
+        assert p.__hash__() != obj.__hash__()
+        assert p.__class__.__name__ == "Proxy"
+        assert p.__class__ is Proxy
 
-#         assert len(c) == 1
-#         assert isinstance(r, _Wrapper)
-#         assert r._w_obj is i
-#         assert c[r] == c[i]
-#         assert c[r] == "key"
+from .core import Collection, CollectionKey
 
-#         assert not (t_var.get() is None)
+class _Item():
+    key = CollectionKey()
+    def __init__(self, key:None|str):
+        self.key = CollectionKey(self, key)
 
-#     def test_remove(self):
-#         c = Collection("key", None)
-#         i = _Item("key")
-#         c.append(i)
-#         r = c["key"]
+class Test_Collection():
+    def test_construction(self,):
+        c = Collection("key", None)
 
-#         t_var = ContextVar("", default=None)
-#         c.removed.connect(lambda k,v: t_var.set((k,v)))
+    def test_append(self):
+        c = Collection("key", None)
+        i = _Item("key")
 
-#         del c["key"]
-#         assert len(c) == 0
+        t_var = ContextVar("", default=None)
+        c.appended.connect(lambda k,v: t_var.set((k,v)))
 
-#         assert not (t_var.get() is None)
+        c.append(i)
+        r = c["key"]
 
-#     def test_promise(self):
-#         c = Collection("key", None)
-#         i = _Item("key")
-#         r = c.append_promise("key")
+        assert len(c) == 1
+        assert isinstance(r, Proxy)
+        assert r._w_obj is i
+        assert c[r] == c[i]
+        assert c[r] == "key"
 
-#         assert c["key"] is r
-#         assert isinstance(r, _Wrapper)
-#         assert r._w_obj is None
+        assert not (t_var.get() is None)
 
-#         t_var = ContextVar("", default=None)
-#         c.appended.connect(lambda k,v: t_var.set((k,v)))
+    def test_remove(self):
+        c = Collection("key", None)
+        i = _Item("key")
+        c.append(i)
+        r = c["key"]
 
-#         c.append(i)
-#         assert r._w_obj is i
+        t_var = ContextVar("", default=None)
+        c.removed.connect(lambda k,v: t_var.set((k,v)))
 
-#         assert not (t_var.get() is None)
+        del c["key"]
+        assert len(c) == 0
+
+        assert not (t_var.get() is None)
+
+    def test_promise(self):
+        c = Collection("key", None)
+        i = _Item("key")
+        r = c.append_promise("key")
+
+        assert c["key"] is r
+        assert isinstance(r, _Wrapper)
+        assert r._w_obj is None
+
+        t_var = ContextVar("", default=None)
+        c.appended.connect(lambda k,v: t_var.set((k,v)))
+
+        c.append(i)
+        assert r._w_obj is i
+
+        assert not (t_var.get() is None)
 
 #     def test_collision_rightprio(self):
 #         c = Collection("key", None)
@@ -384,42 +420,3 @@ class Test_Context():
 #         c.append_promise("yek")
 #         res = c.valid()
 #         assert (res is False)
-from .core import Proxy
-
-class _BaseA:
-    name:str
-    def __init__(self,name:str):
-        self.name = name
-    def __hash__(self):
-        return hash(self.name)
-
-class Test_Proxy():
-    def test_base(self):
-        p = Proxy()
-        c = ContextVar("")
-        p._proxy_obj_changed.connect(lambda a: c.set(a))
-        obj = _BaseA("name")
-
-        assert isinstance(p, Proxy)
-        assert not isinstance(p, _BaseA)
-
-        p._proxy_set_obj(obj)
-        assert isinstance(p, Proxy)
-        assert isinstance(p, _BaseA)
-        assert c.get() is obj
-        assert p.name == obj.name
-        assert p.__hash__() == obj.__hash__()
-        assert p.__class__.__name__ == "PROXY__BaseA"
-
-        p._proxy_set_obj(None)
-        assert isinstance(p, Proxy)
-        assert not isinstance(p, _BaseA)
-        assert c.get() is None
-        assert getattr(p, "name", None) is None
-        assert p.__hash__() != obj.__hash__()
-        assert p.__class__.__name__ == "Proxy"
-        assert p.__class__ is Proxy
-
-class Test_Collections():
-    def test_base():
-        raise NotImplementedError()
