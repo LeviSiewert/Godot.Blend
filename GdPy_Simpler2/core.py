@@ -219,14 +219,10 @@ class Context():
             self.element_changed(k, v)
         return add, rem, changed
 
-    def callback(self, attribute:str, c:Callable)->None:
+    def callback(self, attribute:str, c:Callable, **kwargs)->None:
         ''' Shortcut to filtered signal '''
-        def func(source:Context, attr:str, val:Any):
-            if attr != attribute:
-                return
-            return c(attr, val)
+        return self.element_changed.connect(c, **kwargs, filter=lambda attr,*args: attr == "attribute")
             
-        return self.element_changed.connect(func, prepend_source=True)
 
 def make_proxy_func(_proxy_obj, attr):
     def func (*args,**kwargs): 
@@ -401,37 +397,6 @@ class Collection[K:str|int, V:object](UserDict):
         if ckey:=getattr(item, self._key_attr, None):
             ckey._key = new_key
         self.renamed(c_key, new_key, item)
-                
-
-        # ''' Rename, merge if target namespace is a promise. '''
-        # c_k,c_v = self.resolve_pair(item, (None,None))
-        # n_k,n_v = self.resolve_pair(new_key, (None, None))
-
-        # if c_v is None:
-        #     raise KeyError()
-        # if (c_v is n_v):
-        #     raise KeyError(new_key, c_k, "already fullfilled")
-            
-
-        # if not (n_v is None):
-        #     if not (n_v._proxy_obj is None):
-        #         self.resolve_key_collision(new_key, n_v, c_v, r_key_priority)
-        #         return
-        #     else:
-        #         n_v._proxy_set_obj(c_v)
-        #         getattr(item, self._key_attr)._key = new_key 
-        #         return
-
-        # if not (c_k is None):
-        #     del self.data[c_k]
-
-        # self.data[new_key] = c_v
-
-        # ckey = getattr(c_v, self._key_attr)
-        # if ckey.key != new_key:
-        #     ckey.key = new_key 
-
-        # self.renamed(c_k, new_key, c_v)
 
     def append_promise(self, key:K)->_C_Proxy[None|V]:
         assert isinstance(key, (str,int))
@@ -439,7 +404,7 @@ class Collection[K:str|int, V:object](UserDict):
             return res
         return self.append(None, key=key)
 
-    def append(self, item:V|_C_Proxy[V], nested_ok:bool=False, key:None|K=None, r_key_priority:bool=True):
+    def append(self, item:V|_C_Proxy[V], nested_ok:bool=False, key:None|K=None, r_key_priority:bool=True)->V|_C_Proxy[V]:
 
         if item in self:
             raise ValueError("Item Already exists in collection!", item)
