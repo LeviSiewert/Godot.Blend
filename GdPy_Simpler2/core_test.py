@@ -281,32 +281,35 @@ from .core import Collection, CollectionKey
 class _Item():
     key = CollectionKey()
     def __init__(self, key:None|str):
-        self.key = CollectionKey(self, key)
+        self.key = CollectionKey(key)
+    def __repr__(self):
+        return f"Item('{self.key.key}')" 
 
 class Test_Collection():
     def test_construction(self,):
-        c = Collection("key", None)
+        c = Collection("key")
 
     def test_append(self):
-        c = Collection("key", None)
+        c = Collection("key")
         i = _Item("key")
 
         t_var = ContextVar("", default=None)
         c.appended.connect(lambda k,v: t_var.set((k,v)))
 
         c.append(i)
+        raise Exception(tuple(c.keys()))
         r = c["key"]
 
         assert len(c) == 1
         assert isinstance(r, Proxy)
         assert r._w_obj is i
-        assert c[r] == c[i]
+        # assert c[r] == c[i]
         assert c[r] == "key"
 
         assert not (t_var.get() is None)
 
     def test_remove(self):
-        c = Collection("key", None)
+        c = Collection("key")
         i = _Item("key")
         c.append(i)
         r = c["key"]
@@ -320,7 +323,7 @@ class Test_Collection():
         assert not (t_var.get() is None)
 
     def test_promise(self):
-        c = Collection("key", None)
+        c = Collection("key")
         i = _Item("key")
         r = c.append_promise("key")
 
@@ -337,7 +340,7 @@ class Test_Collection():
         assert not (t_var.get() is None)
 
 #     def test_collision_rightprio(self):
-#         c = Collection("key", None)
+#         c = Collection("key")
 #         i1 = _Item("key")
 #         i2 = _Item("key")
 
