@@ -400,23 +400,23 @@ class Test_Collection():
         assert i2.key.key != "key"
         assert c[i2.key.key]._proxy_obj is i2
 
-#     def test_rename_via_col(self):
-#         c = Collection("key", None)
-#         i = _Item("key")
-#         c.append(i)
+    def test_rename_via_col(self):
+        c = Collection("key", None)
+        i = _Item("key")
+        c.append(i)
 
-#         t_var = ContextVar("", default=None)
-#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k,v: t_var.set((k,v)))
 
-#         c.rename("key", "yek")
+        c.rename("key", "yek")
 
-#         assert i.key.key == "yek"
-#         assert c["yek"] is i
-#         assert c.get("yek", None) is None
+        assert i.key.key == "yek"
+        assert c["yek"] is i
+        assert c.get("yek", None) is None
 
-#         assert t_var.get()[0] == "key"
-#         assert t_var.get()[1] == "yek"
-#         assert t_var.get()[2] is i
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] == "yek"
+        assert t_var.get()[2] is i
 
 #     def test_rename_via_key(self):
 #         c = Collection("key", None)
