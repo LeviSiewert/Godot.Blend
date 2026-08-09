@@ -276,10 +276,38 @@ class Test_Proxy():
         assert p.__class__.__name__ == "Proxy"
         assert p.__class__ is Proxy
 
-from .core import Collection, CollectionKey
+        
+
+from .core import Collection, CollectionKey, _C_Proxy
+
+class _BaseB():
+    key : CollectionKey[str]
+    def __init__(self, key:str ):
+        self.key = CollectionKey(key)
+
+class Test_C_Proxy():
+    def test_collection_key_case(self,):
+        ''' Tracing bug with CollectionKey duplication'''
+        obj = _BaseB("key")
+        c = Collection("key")
+        proxy = _C_Proxy(c, "key", obj)
+
+        assert proxy._proxy_obj is obj
+        assert proxy.key is obj.key
+        assert proxy.key is proxy._proxy_obj.key
+        assert getattr(proxy,"key") is obj.key
+
+        assert proxy._proxy_key_updated in obj.key.key_updated
+
+        ctx = ContextVar("")
+        proxy._proxy_key_updated.connect(lambda x: ctx.set(x))
+
+        obj.key.key = "yek"
+        assert ctx.get() == "yek"
+    
 
 class _Item():
-    key = CollectionKey()
+    key : CollectionKey
     def __init__(self, key:None|str):
         self.key = CollectionKey(key)
     def __repr__(self):
@@ -289,6 +317,13 @@ class Test_Collection():
     def test_construction(self,):
         c = Collection("key")
 
+    def test_append_manual(self):
+        c = Collection("key")
+        i = _Item("key")
+        p = _C_Proxy(c, "key", i)
+        assert p.key is i.key
+
+
     def test_append(self):
         c = Collection("key")
         i = _Item("key")
@@ -297,7 +332,6 @@ class Test_Collection():
         c.appended.connect(lambda k,v: t_var.set((k,v)))
 
         c.append(i)
-        raise Exception(tuple(c.keys()))
         r = c["key"]
 
         assert len(c) == 1

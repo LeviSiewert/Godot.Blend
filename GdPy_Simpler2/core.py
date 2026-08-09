@@ -73,6 +73,18 @@ class Signal[T:Any]():
         ''' Returns an optional "token" that can be used if the callable is a lambda. "token" is subscriber object's id '''
         sub = _SignalSubscriber(self, callable=c, once_only=once_only, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter, weak=False)
         return self._append_subscriber(sub)
+
+    def __contains__(self, obj:int|Callable|_SignalSubscriber):
+        if obj is None:
+            raise ValueError()
+        if isinstance(obj,int):
+            return obj in self.subscribers.keys()
+        if isinstance(obj, _SignalSubscriber):
+            return obj in self.subscribers.values()
+        for k,v in self.subscribers.items():
+            if v.callback() is obj:
+                return True
+        return False
         
     def disconnect(self, c:Callable, /, not_exist_ok:bool=False)->None:
         to_remove = []
@@ -222,7 +234,10 @@ def make_proxy_func(_proxy_obj, attr):
     return func
 
 class Proxy[T:Any]():
-    ''' Structural Proxy, for replacing objects in a collection in runtime w/out '''
+    ''' Structural Proxy, for replacing objects in a collection in runtime w/out 
+    good article to read fully later:
+    https://www.pythontutorials.net/blog/how-to-fake-proxy-a-class-in-python/#ensuring-isinstance-compatibility
+    '''
     _proxy_obj : None|T = None
     _proxy_orig_dict : dict
 
@@ -234,10 +249,19 @@ class Proxy[T:Any]():
         if not (obj is None):
             self._proxy_set_obj(obj)
 
-    def __getattr__(self, name):
-        if self._proxy_obj:
-            return getattr(self._proxy_obj, name)
-        return super().__getattr__(name)
+    def __getattribute__(self, name:str):
+        if name.startswith("_proxy_") or (name == "__class__"):
+            return super().__getattribute__(name)
+        p = self._proxy_obj
+        if not (p is None):
+            return getattr(p,name)
+        return super().__getattribute__(name)
+
+
+    # def __getattr__(self, name):
+    #     if self._proxy_obj:
+    #         return getattr(self._proxy_obj, name)
+    #     return super().__getattr__(name)
 
     # def __setattr__(self, name, value):
     #     if self._proxy_obj:
@@ -286,9 +310,9 @@ class _C_Proxy(Proxy):
 
     def _proxy_set_obj(self, obj):
         if not (obj is None):
-            self._proxy_key_updated.connect(getattr(obj, self._proxy_key_attr).key_updated)
+            getattr(obj, self._proxy_key_attr).key_updated.connect(self._proxy_key_updated)
         if not (self._proxy_obj is None):
-            self._proxy_key_updated.disconnect(getattr(obj, self._proxy_key_attr).key_updated)
+            getattr(obj, self._proxy_key_attr).key_updated.connect(self._proxy_key_updated)
         return super()._proxy_set_obj(obj)
 
 class CollectionKey[K:str|int]():
@@ -388,13 +412,10 @@ class Collection[K:str|int, V:object](UserDict):
             elif nested_ok:
                 item = _C_Proxy(self, self._key_attr, item)
         else:
-            ## HERE: Proxy duplicating CollectionKey object??
             item = _C_Proxy(self, self._key_attr, item)
 
         if key is None:
             key = getattr(item, self._key_attr).key
-            assert item.key is item._proxy_obj.key
-            raise Exception(item, item.key, key)
 
         if key is None:
             key = self.generate_key(item)
