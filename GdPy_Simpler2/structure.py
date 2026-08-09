@@ -126,7 +126,7 @@ class Resource():
         resource.sub_resources.append(self)
 
     def is_sub_resource(self):
-        return not (self.uid is None)
+        return (self.uid is None)
         
 # class Promise[T:Any]():
 #     ''' Replace this object with what is passed out
