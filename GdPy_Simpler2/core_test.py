@@ -420,6 +420,6 @@ class Test_Proxy():
         assert p.__class__.__name__ == "Proxy"
         assert p.__class__ is Proxy
 
-
-
-
+class Test_Collections():
+    def test_base():
+        raise NotImplementedError()
