@@ -307,9 +307,17 @@ class Test_C_Proxy():
     
 
 class _Item():
-    key : CollectionKey
+
+    _key : CollectionKey
+    @property
+    def key(self,):
+        return self._key
+    @key.setter
+    def key(self,val):
+        raise Exception()
+    
     def __init__(self, key:None|str):
-        self.key = CollectionKey(key)
+        self._key = CollectionKey(key)
     def __repr__(self):
         return f"Item('{self.key.key}')" 
 
@@ -406,38 +414,40 @@ class Test_Collection():
         c.append(i)
 
         t_var = ContextVar("", default=None)
-        c.renamed.connect(lambda k,v: t_var.set((k,v)))
+        c.renamed.connect(lambda k0,k,v: t_var.set((k0,k,v)))
 
         c.rename("key", "yek")
 
         assert i.key.key == "yek"
-        assert c["yek"] is i
-        assert c.get("yek", None) is None
+        assert c["yek"]._proxy_obj is i
+        assert c.get("key", None) is None
 
         assert t_var.get()[0] == "key"
         assert t_var.get()[1] == "yek"
-        assert t_var.get()[2] is i
+        assert t_var.get()[2]._proxy_obj is i
 
-#     def test_rename_via_key(self):
-#         c = Collection("key", None)
-#         i = _Item("key")
-#         c.append(i)
+    def test_rename_via_key(self):
+        c = Collection("key", None)
+        i = _Item("key")
+        c.append(i)
 
-#         t_var = ContextVar("", default=None)
-#         c.renamed.connect(lambda k,v: t_var.set((k,v)))
+        t_var = ContextVar("", default=None)
+        c.renamed.connect(lambda k0,k,v: t_var.set((k0,k,v)))
 
-#         i.key.key = "yek"
+        i.key.key = "yek"
 
-#         assert i.key.key == "yek"
-#         assert c["yek"] is i
-#         assert c.get("yek", None) is None
+        assert i.key.key == "yek"
+        assert c["yek"]._proxy_obj is i
+        assert c.get("key", None) is None
 
-#         assert t_var.get()[0] == "key"
-#         assert t_var.get()[1] == "yek"
-#         assert t_var.get()[2] is i
+        assert t_var.get()[0] == "key"
+        assert t_var.get()[1] == "yek"
+        assert t_var.get()[2]._proxy_obj is i
 
-#     def test_valid(self,):
-#         c = Collection("key", None)
-#         c.append_promise("yek")
-#         res = c.valid()
-#         assert (res is False)
+    def test_valid(self,):
+        c = Collection("key", None)
+        c.append_promise("yek")
+        res = c.promises_missing()
+        assert len(res) == 1
+    #     res = c.valid()
+    #     assert (res is False)

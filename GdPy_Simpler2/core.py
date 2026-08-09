@@ -374,32 +374,64 @@ class Collection[K:str|int, V:object](UserDict):
         item._proxy_key_updated.disconnect(self.rename)
 
     def rename(self, item:V|_C_Proxy[V]|K, new_key:K, r_key_priority:bool=True):
-        ''' Rename, merge if target namespace is a promise. '''
-        c_k,c_v = self.resolve_pair(item, (None,None))
-        n_k,n_v = self.resolve_pair(new_key, (None, None))
+        c_key, item = self.resolve_pair(item, (None,None))
+        e_key, e_item = self.resolve_pair(new_key, (None,None))
 
-        if c_v is None:
-            raise KeyError()
 
-        if not (n_v is None):
-            if not (n_v._proxy_obj is None):
-                self.handle_key_collision(new_key, n_v, item, r_key_priority)
+        if item is None:
+            raise ValueError("Item not in collection!")
+        if c_key == new_key:
+            raise KeyError("Key is already fullfilled!", c_key, item)
+        if e_item is item:
+            raise KeyError("Key is already fullfilled!", c_key, item)
+
+        if not (e_item is None):
+            if e_item._proxy_obj is None:
+                e_item._proxy_obj = item
+                self.renamed(e_key, new_key, item)
                 return
             else:
-                n_v._proxy_set_obj(c_v)
-                getattr(item, self._key_attr)._key = new_key 
+                self.resolve_key_collision(new_key, e_item, item, r_key_priority=r_key_priority)
                 return
 
-        if not (c_k is None):
-            del self.data[c_k]
-
+        if not c_key is None:
+            del self.data[c_key]
         self.data[new_key] = item
 
-        ckey = getattr(item, self._key_attr)
-        if ckey.key != new_key:
-            ckey.key = new_key 
+        if ckey:=getattr(item, self._key_attr, None):
+            ckey._key = new_key
+        self.renamed(c_key, new_key, item)
+                
 
-        self.renamed(c_k, new_key, item)
+        # ''' Rename, merge if target namespace is a promise. '''
+        # c_k,c_v = self.resolve_pair(item, (None,None))
+        # n_k,n_v = self.resolve_pair(new_key, (None, None))
+
+        # if c_v is None:
+        #     raise KeyError()
+        # if (c_v is n_v):
+        #     raise KeyError(new_key, c_k, "already fullfilled")
+            
+
+        # if not (n_v is None):
+        #     if not (n_v._proxy_obj is None):
+        #         self.resolve_key_collision(new_key, n_v, c_v, r_key_priority)
+        #         return
+        #     else:
+        #         n_v._proxy_set_obj(c_v)
+        #         getattr(item, self._key_attr)._key = new_key 
+        #         return
+
+        # if not (c_k is None):
+        #     del self.data[c_k]
+
+        # self.data[new_key] = c_v
+
+        # ckey = getattr(c_v, self._key_attr)
+        # if ckey.key != new_key:
+        #     ckey.key = new_key 
+
+        # self.renamed(c_k, new_key, c_v)
 
     def append_promise(self, key:K)->_C_Proxy[None|V]:
         assert isinstance(key, (str,int))
@@ -530,6 +562,14 @@ class Collection[K:str|int, V:object](UserDict):
 
     def __delitem__(self, key):
         return self.remove(key)
+    
+    def promises_missing(self)->dict[K,_C_Proxy[None]]:
+        res = {}
+        for k,v in self.data.items():
+            if v._proxy_obj is None:
+                res[k] = v
+        return res
+
 
         
 
@@ -652,13 +692,6 @@ class Collection[K:str|int, V:object](UserDict):
 #         self[key] = res
 #         return res
         
-#     def promises_missing(self)->dict[K,_C_Proxy[None]]:
-#         res = {}
-#         for k,v in self.data.items():
-#             if v._proxy_obj is None:
-#                 res[k] = v
-#         return res
-
 #     def replace(self, key:K, new_item:V|_C_Proxy[V]):
 #         assert not (new_item in self)
 #         if not (key in self):
