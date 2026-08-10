@@ -21,17 +21,17 @@ class _SignalSubscriber():
     call_filter : LambdaType
     parent_signal : Signal
     prepend_source : bool
-    once_only : bool
+    once : bool
 
     def __repr__(self):
         return f"SignalSubscriber({str(id(self.callback()))})"
 
-    def __init__(self, signal:Signal, callable:Callable, once_only:bool=False, prepend_source:bool=False, prepend_signal:bool=False, filter:LambdaType=None, weak=False):
+    def __init__(self, signal:Signal, callable:Callable, once:bool=False, prepend_source:bool=False, prepend_signal:bool=False, filter:LambdaType=None, weak=False):
         self.parent_signal = signal
         if not weak:
             self._callback = callable 
         self.callback = _wref(callable)
-        self.once_only = once_only
+        self.once = once
         self.prepend_source = prepend_source
         self.prepend_signal = prepend_signal
         self.call_filter = filter
@@ -53,7 +53,7 @@ class _SignalSubscriber():
                 return
 
         res = func(*args, **kwargs)
-        if (res is DISCONNECT) or self.once_only:
+        if (res is DISCONNECT) or self.once:
             self.disconnect()
 
     def disconnect(self):
@@ -69,9 +69,9 @@ class Signal[T:Any]():
         self.source = source
         self.subscribers = {}
 
-    def connect(self, c:Callable, /, once_only=False, prepend_source=False, prepend_signal:bool=False, filter:LambdaType=None, weak=False)->int:
+    def connect(self, c:Callable, /, once=False, prepend_source=False, prepend_signal:bool=False, filter:LambdaType=None, weak=False)->int:
         ''' Returns an optional "token" that can be used if the callable is a lambda. "token" is subscriber object's id '''
-        sub = _SignalSubscriber(self, callable=c, once_only=once_only, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter, weak=False)
+        sub = _SignalSubscriber(self, callable=c, once=once, prepend_source=prepend_source, prepend_signal=prepend_signal, filter=filter, weak=False)
         return self._append_subscriber(sub)
 
     def __contains__(self, obj:int|Callable|_SignalSubscriber):
@@ -221,7 +221,7 @@ class Context():
 
     def callback(self, attribute:str, c:Callable, **kwargs)->None:
         ''' Shortcut to filtered signal '''
-        return self.element_changed.connect(c, **kwargs, filter=lambda attr,*args: attr == "attribute")
+        return self.element_changed.connect(c, **kwargs, filter=lambda attr,*args: attr == attribute)
             
 
 def make_proxy_func(_proxy_obj, attr):

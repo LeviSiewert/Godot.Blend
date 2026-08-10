@@ -3,43 +3,55 @@ from __future__ import annotations
 from collections import UserDict
 from typing import Any
 
-from .core import Users, Signal, Context as _Context, CollectionKey, Collection, _C_Proxy
+from .core import Signal, Context as _Context, CollectionKey, Collection, _C_Proxy
 
 class Context(_Context):
     project : Project
     resource : Resource
     sub_resource : Resource
+    properties : Properties
     _slots_ = ("project", "resource", "sub_resource")
 
 class Properties(UserDict):
     context : Context
+    def __init__(self, context:Context=None, iterable=tuple()):
+        self.context = Context(properties = self)
+        if not (context is None):
+            self.context.set_extends(context)
+
+        super().__init__(iterable)
+
     def __setitem__(self, key, item):
         r =  super().__setitem__(key, item)
-        if (not isinstance(item, _C_Proxy)) and isinstance(item, Resource):
+        if isinstance(item, Resource):
             item._referenced_callback(self.context)
         return r
 
 class Project():
+    context : Context
     resources : Collection[Resource]
     files : Collection[File]
 
     def __init__(self):
+        self.context = Context(project=self)
+
         self.resources = Collection("uid")
         self.resources.appended.connect(self._on_resource_appended, weak=True)
         self.resources.removed.connect(self._on_resource_removed, weak=True)
+
         self.files = Collection("path") 
-        self.file.appended.connect(self._on_file_appended, weak=True)
-        self.file.removed.connect(self._on_file_removed, weak=True)
+        self.files.appended.connect(self._on_file_appended, weak=True)
+        self.files.removed.connect(self._on_file_removed, weak=True)
     
     def _on_resource_appended(self, key:str, resource:Resource):
-        resource.set_extends(self.context)
+        resource.context.set_extends(self.context)
     def _on_resource_removed(self, key:str, resource:Resource):
-        resource.set_extends(None)
+        resource.context.set_extends(None)
 
     def _on_file_appended(self, key:str, file:File):
-        file.set_extends(self.context)
+        file.context.set_extends(self.context)
     def _on_file_removed(self, key:str, file:File):
-        file.set_extends(None)
+        file.context.set_extends(None)
 
 class File():
     context : Context
@@ -51,11 +63,11 @@ class File():
 
     def _referenced_callback(self, ref_context:Context):
         if ref_context.project is None:
-            ref_context.callback("project",self._on_project_set, weak=True, once=True)
+            ref_context.callback("project", self._on_project_set, weak=True, once=True)
         else:
-            self._on_project_set(ref_context.project)
+            self._on_project_set("", ref_context.project)
 
-    def _on_project_set(self, project:Project|None):
+    def _on_project_set(self, _attr:str, project:Project|None):
         if self in project.files:
             return
         if project is None:
@@ -64,6 +76,8 @@ class File():
         project.files.append(self)
         
 class Resource():
+    context : Context
+
     properties : Properties
     sub_resources : Collection[str,Resource]
 
@@ -76,7 +90,7 @@ class Resource():
         if (not(uid is None) or not(file is None)):
             self.context.resource = self
 
-        self.properties = Properties()
+        self.properties = Properties(context=self.context)
 
         self.sub_resources = Collection("id")
         self.sub_resources.appended.connect(self._on_subresource_appended, weak=True)        
@@ -85,6 +99,9 @@ class Resource():
         self.id = CollectionKey(id)
         self.uid = CollectionKey(uid)
         self.file = file
+
+        if (not (uid is None)) or (not (file is None)):
+            self.context.resource = self
 
         if not (file is None):
             file._referenced_callback(self.context)
@@ -98,27 +115,29 @@ class Resource():
         if ref_context.project is None:
             ref_context.callback("project",self._on_project_set, weak=True, once=True)
         else:
-            self._on_project_set(ref_context.project)
+            self._on_project_set("", ref_context.project)
 
         if ref_context.resource is None:
-            ref_context.callback("resource",self._on_project_set, weak=True, once=True)
+            ref_context.callback("resource",self._on_resource_set, weak=True, once=True)
         else:
-            self._on_project_set(ref_context.resource)
+            self._on_resource_set("", ref_context.resource)
 
-    def _on_project_set(self, project:Project|None):
+    def _on_project_set(self, _attr:str, project:Project|None):
+        assert (project is None) or (isinstance(project, Project))
         if self.is_sub_resource():
             return
-        if self in project.resource:
+        if self in project.resources:
             return
         if project is None:
             raise NotImplementedError() #Unknown desired behavior, as driven by referencers
         assert (self.context.project is None) or (self.context.project is project)
         project.resources.append(self)
         
-    def _on_resource_set(self, resource:Resource|None):
+    def _on_resource_set(self, _attr:str, resource:Resource|None):
+        assert (resource is None) or (isinstance(resource, Resource))
         if not self.is_sub_resource():
             return
-        if self in resource.resource:
+        if self in resource.sub_resources:
             return
         if resource is None:
             raise NotImplementedError() #Unknown desired behavior, as driven by referencers
@@ -126,7 +145,7 @@ class Resource():
         resource.sub_resources.append(self)
 
     def is_sub_resource(self):
-        return (self.uid is None)
+        return (self.uid.key is None)
         
 # class Promise[T:Any]():
 #     ''' Replace this object with what is passed out

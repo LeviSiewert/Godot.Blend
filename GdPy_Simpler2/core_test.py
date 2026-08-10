@@ -66,13 +66,13 @@ class Test_Signal():
         s.connect(func, prepend_signal=True)
         s(True)
         
-    def test_once_only(self,):
+    def test_once(self,):
         s = Signal(self)
         t_val = ContextVar("", default=None)
         def func(res): 
             t_val.set(res)
         t_val = ContextVar("", default=None)
-        s.connect(func, once_only=True)
+        s.connect(func, once=True)
         s(1)
         assert t_val.get() == 1
         s(2)
@@ -120,7 +120,7 @@ class Test_Context():
         ctx_b = _Context(b="B")
 
         ctx_b.callback("a", func)
-        ctx_b.set_extends(ctx_a)
+        r = ctx_b.set_extends(ctx_a)
         assert c_var.get() == "A"
 
         ctx_a.a = "A1"

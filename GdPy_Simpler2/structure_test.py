@@ -6,7 +6,7 @@ def make_project():
 class Test_Properties_ContextualAttachment():
     ''' test contextual-sticky attachment '''
 
-    def test_resource_ordered():
+    def test_resource_ordered(self):
         ''' r1.context is set, fetch immediatly '''
         project = make_project()
         r1 = Resource(id="r1", uid="r1")
@@ -16,10 +16,10 @@ class Test_Properties_ContextualAttachment():
         r1.properties["reference"] = r2
 
         assert r2 in project.resources  
-        assert project.resources[r2] == "r2"
+        assert project.resources["r2"]._proxy_obj is r2 
         assert r2.context._extends is project.context
 
-    def test_resource_delayed():
+    def test_resource_delayed(self):
         ''' r1.context is not set, fetch via signal '''
         project = make_project()
         r1 = Resource(id="r1", uid="r1")
@@ -29,10 +29,10 @@ class Test_Properties_ContextualAttachment():
         project.resources.append(r1)
 
         assert r2 in project.resources  
-        assert project.resources[r2] == "r2"
+        assert project.resources["r2"]._proxy_obj is r2 
         assert r2.context._extends is project.context
 
-    def test_subresource_ordered():
+    def test_subresource_ordered(self):
         ''' r1.context is set, set immediatly '''
         r1 = Resource(id="r1", uid="r1")
         sr1 = Resource(id="sr1")
@@ -41,14 +41,14 @@ class Test_Properties_ContextualAttachment():
         r1.properties["reference"] = sr1
         assert sr1 in r1.sub_resources
         assert sr1.context._extends is r1.context
-        assert r1[sr1] == "sr1"
+        assert r1.sub_resources["sr1"]._proxy_obj is sr1
 
         sr1.properties["reference"] = sr2
         assert sr2 in r1.sub_resources
         assert sr2.context._extends is r1.context
-        assert r1[sr2] == "sr2"
+        assert r1.sub_resources["sr2"]._proxy_obj is sr2 
 
-    def test_subresource_inverse():
+    def test_subresource_inverse(self):
         ''' r1.context is set, set immediatly '''
         r1 = Resource(id="r1", uid="r1")
         sr1 = Resource(id="sr1")
@@ -58,17 +58,17 @@ class Test_Properties_ContextualAttachment():
 
         assert not sr1 in r1.sub_resources
         assert not sr1.context._extends is r1.context
-        assert not r1[sr2] == "sr2"
+        assert not "sr2" in r1.sub_resources
 
         r1.properties["reference"] = sr1
 
         assert sr1 in r1.sub_resources
         assert sr1.context._extends is r1.context
-        assert r1[sr1] == "sr1"
+        assert r1.sub_resources["sr1"]._proxy_obj is sr1
 
         assert sr2 in r1.sub_resources
         assert sr2.context._extends is r1.context
-        assert r1[sr2] == "sr2"
+        assert r1.sub_resources["sr2"]._proxy_obj is sr2
 
-    def test_resource_conversion():
+    def test_resource_conversion(self):
         raise NotImplementedError()
