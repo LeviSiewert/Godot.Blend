@@ -196,6 +196,8 @@ class _StructuralPromise(Promise):
         val : _C_Proxy = col.append_promise(self.id)
         if (val._proxy_obj is None):
             val._proxy_obj_changed.connect(self._defered_replace, prepend_source=True, weak=True)
+            ## Note: Connection here is retained even if the scope has been changed
+            ## TODO: change to active scope-promise and sub to appended (which is called when promise is fullfilled)
         else:
             self._promise_replace(val)
 
