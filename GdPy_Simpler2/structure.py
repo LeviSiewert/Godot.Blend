@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections import UserDict
-from typing import Any
+from collections import UserDict, UserList
+from typing import Any, Self
 
 from .core import Signal, Context as _Context, CollectionKey, Collection, _C_Proxy
 
@@ -12,14 +12,136 @@ class Context(_Context):
     properties : Properties
     _slots_ = ("project", "resource", "sub_resource")
 
-class Properties(UserDict):
+class GdValue:...
+class GdValueOverlayable(GdValue):
+    overlay : None|Self = None
+    overlay_updated : Signal
+
+    def __setup__(self):
+        self.overlay_updated = Signal(self)
+        self.value_updated = Signal(self)
+        self.value_removed = Signal(self)
+        self.value_added = Signal(self)
+
+    value_updated : Signal[str|int, Any]
+    value_removed : Signal[str|int, Any]
+    value_added : Signal[str|int, Any]
+
+    def set_overlay(self, overlay:Self|None, supress_changes:bool=False):
+
+        if not (self.overlay is None): ## Disconnect
+            self.overlay.value_updated.disconnect(self._on_overlay_value_updated)
+            self.overlay.value_removed.disconnect(self._on_overlay_value_removed)
+            self.overlay.value_added.disconnect(self._on_overlay_value_added)
+
+        self.overlay = overlay
+
+        if not (self.overlay is None): ## Connect
+            self.overlay.value_updated.connect(self._on_overlay_value_updated)
+            self.overlay.value_removed.connect(self._on_overlay_value_removed)
+            self.overlay.value_added.connect(self._on_overlay_value_added)
+
+        self.overlay_updated()
+
+        if supress_changes:
+            return
+
+        add, rem, changed = self._generate_overlay_dif()
+
+        for k,v in add.items():
+            self._on_overlay_value_updated(k,v)
+        for k,v in rem.items():
+            self._on_overlay_value_removed(k,v)
+        for k,v in changed.items():
+            self._on_overlay_value_added(k,v)
+
+    def _generate_overlay_dif(self)->tuple[dict, dict, dict]:
+        '''Return (add, rem, changed), anything returned will go into `_on_overlay_value_...` functions 
+        Generally: Allow any items inside w/ overlay as upstream value to handle themselves.
+        Generally: All Arrays/Dicts w/out overlays are local only and should not be updated.            
+        '''
+        raise NotImplementedError()
+
+    def _on_overlay_value_updated(self, key, value):
+        ...
+    def _on_overlay_value_removed(self, key, value):
+        ...
+    def _on_overlay_value_added(self, key, value):
+        ... 
+
+class GdArray(UserList, GdValueOverlayable):
+
+    def __init__(self, initlist):
+        self.__setup__()
+        super().__init__(initlist)
+
+    def set_overlay(self, overlay:Properties|None, supress_changes:bool=False):
+        raise NotImplementedError()
+    
+    ... #TODO #Value change propigation, similar.
+
+class GdDictionary(UserDict, GdValueOverlayable):
+
+    def __init__(self, iterable):
+        self.__setup__()
+        super().__init__(iterable)
+
+    def set_overlay(self, overlay:Properties|None, supress_changes:bool=False):
+        raise NotImplementedError()
+    
+    ... #TODO #Value change propigation, similar.
+
+class Properties(UserDict, GdValueOverlayable):
     context : Context
-    def __init__(self, context:Context=None, iterable=tuple()):
+
+    value_updated : Signal[str, Any]
+    value_removed : Signal[str, Any]
+    value_added : Signal[str, Any]
+
+    def __setup__(self):
         self.context = Context(properties = self)
+        return super().__setup__()
+
+    def __init__(self, context:Context=None, iterable=tuple(), overlay:Properties|None=None):
+        self.__setup__()
         if not (context is None):
             self.context.set_extends(context)
-
+        if not (overlay is None):
+            self.set_overlay(overlay)
         super().__init__(iterable)
+
+
+
+        # ''' Set or clear extends, manage signal forwarding, and signal diffed values '''
+        # old = self._get_all_elements()
+        # cur = self._get_local_elements()
+
+        # if not(extends is None):
+        #     _cur = extends._get_all_elements()
+        #     _cur.update(cur)
+        #     cur = _cur
+
+        # if not (self._extends is None):
+        #     self._extends.element_changed.disconnect(self.element_changed)
+        # self._extends = extends
+        # if not (self._extends is None):
+        #     self._extends.element_changed.connect(self.element_changed)
+
+        # if supress_changes:
+        #     return
+
+        # _old_keys = tuple(old.keys())
+        # _cur_keys = tuple(cur.keys())
+
+        # rem = {k:None for k,v in old.items() if not (k in _cur_keys)}
+        # add = {k:v for k,v in cur.items() if not (k in _old_keys)}
+        # # set(_old_keys) & set(_cur_keys)
+        # changed = {k:cur.get(k) for k in (set(_old_keys) & set(_cur_keys)) }
+        # # changed = {k:v for k,v in cur.items() if (not (v is old.get(k, None)))}
+
+        # for k,v in {**rem, **add, **changed}.items():
+        #     self.element_changed(k, v)
+        # return add, rem, changed
 
     def __setitem__(self, key, item):
         self.data[key] = item
@@ -207,50 +329,3 @@ class _StructuralPromise(Promise):
 def SubResource(id:str): return _StructuralPromise("Resource", "sub_resources", id, f"SubResource({id})")
 def ExtResource(id:str): return _StructuralPromise("Resource", "ext_resources", id, f"ExtResource({id})")
 def RID(id:str): return _StructuralPromise("Project", "resources", id, f"RID({id})")
-
-# class Properties(UserDict):
-#     ''' Attach context w/a ?? '''
-#     ...
-
-# class ExtResource():
-#     id : CollectionKey[str]
-#     file : File
-#     resource : Resource
-
-# class Resource():
-#     ''' When context is set,'''
-#     context : Context
-#     owner : Resource|Project|None
-#     users : Users
-
-#     id : CollectionKey[str]
-#     properties: Properties
-
-#     instance : None|ExtResource = None
-#     overlay : None|Resource = None
-
-#     ## as File
-#     uid : None|CollectionKey[str] = None
-#     file : None|File = None
-#     ext_resources : None|Collection[str,'ExtResource'] = None
-#     sub_resources : None|Collection[str,'Resource'] = None
-
-# class Node():
-#     owner : Project|Node|None
-
-#     ## As File
-#     nodes : Collection[int,'Node']
-
-#     ## As all:
-#     unique_id : CollectionKey[int]
-#     name : CollectionKey[str]
-#     children : Collection['Node']
-
-# class File():
-#     owner : Project
-#     users : Users
-#     path : CollectionKey[str]
-#     resource : None|Resource
-
-# class Project():
-#     pass
