@@ -1,4 +1,5 @@
 from .structure import Project, Resource, File
+from contextvars import ContextVar
 
 def make_project():
     return Project()
@@ -49,7 +50,7 @@ class Test_Properties_ContextualAttachment():
         assert r1.sub_resources["sr2"]._proxy_obj is sr2 
 
     def test_subresource_inverse(self):
-        ''' r1.context is set, set immediatly '''
+        ''' r1.context is not set yet, defered via signals '''
         r1 = Resource(id="r1", uid="r1")
         sr1 = Resource(id="sr1")
         sr2 = Resource(id="sr2")
@@ -70,5 +71,54 @@ class Test_Properties_ContextualAttachment():
         assert sr2.context._extends is r1.context
         assert r1.sub_resources["sr2"]._proxy_obj is sr2
 
-    def test_resource_conversion(self):
-        raise NotImplementedError()
+    # def test_resource_conversion(self):
+    #     raise NotImplementedError()\
+from .structure import Properties, Promise, _StructuralPromise
+from .core import _C_Proxy
+
+class Test_Properties_Promises():
+    def test_promise_base(self):
+
+        props = Properties()
+        promise = Promise()
+        props["t"] = promise
+
+        assert len(promise._promise_replace.subscribers) == 1
+        
+        promise._promise_replace("value")
+
+        assert props["t"] == "value"
+        assert len(promise._promise_replace.subscribers) == 0
+
+    def test_promise_contextual_proxy_fullfilled(self):
+        project = make_project()
+        r1 = Resource(uid="r1")
+        r2 = Resource(uid="r2")
+        project.resources.append(r1)
+        project.resources.append(r2)
+
+        c = ContextVar("")
+        promise = _StructuralPromise("project","resources","r2", "RID(r2)")
+        promise._promise_replace.connect(lambda x: c.set(x))
+        r1.properties["reference"] = promise
+
+        assert c.get()._proxy_obj is r2
+        assert isinstance(r1.properties["reference"], Resource)
+        assert r1.properties["reference"]._proxy_obj is r2
+
+    def test_promise_contextual_proxy_defered(self):
+        project = make_project()
+        r1 = Resource(uid="r1")
+        r2 = Resource(uid="r2")
+        project.resources.append(r1)
+
+        c = ContextVar("")
+        promise = _StructuralPromise("project","resources","r2", "RID(r2)")
+        promise._promise_replace.connect(lambda x: c.set(x))
+        r1.properties["reference"] = promise
+
+        project.resources.append(r2)
+
+        assert c.get()._proxy_obj is r2
+        assert isinstance(r1.properties["reference"], Resource)
+        assert r1.properties["reference"]._proxy_obj is r2

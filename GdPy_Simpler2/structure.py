@@ -22,10 +22,20 @@ class Properties(UserDict):
         super().__init__(iterable)
 
     def __setitem__(self, key, item):
-        r =  super().__setitem__(key, item)
-        if isinstance(item, Resource):
+        self.data[key] = item
+        # r =  super().__setitem__(key, item)
+        if hasattr(item, "_promise_replace"):
+            if not (self._replace_promise in item._promise_replace):
+                item._promise_replace.connect(self._replace_promise, prepend_source=True, weak=True, once=True)
+        if hasattr(item, "_referenced_callback"):
             item._referenced_callback(self.context)
-        return r
+        return
+
+    def _replace_promise(self, item, new_item):
+        for k,v in self.items():
+            if (v is item) or (hash(v) == hash(item)):
+                self[k] = new_item
+    
 
 class Project():
     context : Context
@@ -147,44 +157,54 @@ class Resource():
     def is_sub_resource(self):
         return (self.uid.key is None)
         
-# class Promise[T:Any]():
-#     ''' Replace this object with what is passed out
-#     Noteable: Inherited by Resource to replace Resource w/ CollectionWrapper[Resource]
-#     '''
-#     _promise_replace : Signal[T]
-#     def __setup__(self,):
-#         self._promise_replace = Signal(self)
-#     def __init__(self):
-#         self.__setup__()
-# class _StructuralPromise(Promise):
-#     ''' Collection promise with default representation '''
-#     context : Context
-#     scope : str 
-#     attr : str 
-#     id : int|str
-#     default_rep : str
+class Promise[T:Any]():
+    ''' Replace this object with what is passed out
+    Noteable: Inherited by Resource to replace Resource w/ CollectionWrapper[Resource]
+    '''
+    _promise_replace : Signal[T]
+    def __setup__(self,):
+        self._promise_replace = Signal(self)
+    def __init__(self):
+        self.__setup__()
+class _StructuralPromise(Promise):
+    ''' Collection promise with default representation '''
+    context : Context
+    scope : str 
+    attr : str 
+    id : int|str
+    default_rep : str
 
-#     def __init__(self, scope, attr, id, default_rep:str):
-#         self.__setup__() 
-#         self.scope = scope
-#         self.attr = attr
-#         self.id = id
-#         self.default_rep = default_rep
-#         self.context = self.context()
-#         self.context.callback(scope, self._test_replace, weak=True)
+    def __setup__(self):
+        self._promise_replace = Signal(self)
+        self.context = Context()
 
-#     def _test_replace(self, obj:Any|None):
-#         if obj is None:
-#             return
-#         col : Collection = getattr(obj, self.attr)
-#         val : _C_Proxy = col.append_promise(id)
-#         if (val._w_obj is None):
-#             val.replace.connect(self.replace, weak=True)
-#         else:
-#             self.replace(val)
-# def SubResource(id:str): return _StructuralPromise("Resource", "sub_resources", id, f"SubResource({id})")
-# def ExtResource(id:str): return _StructuralPromise("Resource", "ext_resources", id, f"ExtResource({id})")
-# def RID(id:str): return _StructuralPromise("Project", "resources", id, f"RID({id})")
+    def __init__(self, scope, attr, id, default_rep:str):
+        self.__setup__() 
+        self.scope = scope
+        self.attr = attr
+        self.id = id
+        self.default_rep = default_rep
+        self.context.callback(scope, self._test_replace, weak=True)
+
+    def _referenced_callback(self, context:Context):
+        self.context.set_extends(context)
+
+    def _test_replace(self, _attr:str, obj:Any|None):
+        if obj is None:
+            return
+        col : Collection = getattr(obj, self.attr)
+        val : _C_Proxy = col.append_promise(self.id)
+        if (val._proxy_obj is None):
+            val._proxy_obj_changed.connect(self._defered_replace, prepend_source=True, weak=True)
+        else:
+            self._promise_replace(val)
+
+    def _defered_replace(self, src, wrapped):
+        self._promise_replace(src)
+
+def SubResource(id:str): return _StructuralPromise("Resource", "sub_resources", id, f"SubResource({id})")
+def ExtResource(id:str): return _StructuralPromise("Resource", "ext_resources", id, f"ExtResource({id})")
+def RID(id:str): return _StructuralPromise("Project", "resources", id, f"RID({id})")
 
 # class Properties(UserDict):
 #     ''' Attach context w/a ?? '''
