@@ -39,13 +39,22 @@ class Properties(UserDict):
         super().__init__(iterable)
 
     def __setitem__(self, key, item):
-        self.data[key] = item
+        if (key in self.data.keys()):
+            self.data[key] = item
+            self.value_updated(key, item)
+        else:
+            self.data[key] = item
         if hasattr(item, "_promise_replace"):
             if not (self._replace_promise in item._promise_replace):
                 item._promise_replace.connect(self._replace_promise, prepend_source=True, weak=True, once=True)
         if hasattr(item, "_referenced_callback"):
             item._referenced_callback(self.context)
         return
+
+    def __delitem__(self, key):
+        v = self.get(key, default=_UNSET, include_overlays=False, _unset_ok=True)
+        super().__delitem__(key)
+        self.value_removed(key, v)
 
     def __getitem__(self, key):
         return self.get(key, include_overlays=True)
@@ -62,8 +71,13 @@ class Properties(UserDict):
             elif isinstance(res, (list,dict)) and (not _bypass_viewstruct):
                 return ViewStruct(res, self.context)
         
-        if res is _UNSET and (default is _UNSET) and (not _unset_ok):
-            raise KeyError(key)
+        if (res is _UNSET) and (default is _UNSET):
+            if (not _unset_ok):
+                raise KeyError(key)
+            return _UNSET
+
+        elif (res is _UNSET):
+            return default
 
         return res
 

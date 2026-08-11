@@ -1,8 +1,32 @@
-from .structure import Project, Resource, File
+from .structure import Project, Resource, File, Properties
 from contextvars import ContextVar
 
 def make_project():
     return Project()
+
+class Test_Properties_Signals():
+    def test_add(self):
+        properties = Properties(None)
+        c = ContextVar("")
+        properties.value_added.connect(lambda k,v: c.set((k,v)))
+        properties["a"] = "a"
+        assert c.get() == ("a","a")
+
+    def test_rem(self):
+        properties = Properties(None)
+        c = ContextVar("")
+        properties.value_removed.connect(lambda k,v: c.set((k,v)))
+        properties["a"] = "a"
+        del properties["a"]
+        assert c.get() == ("a","a")
+
+    def test_update(self):
+        properties = Properties(None)
+        c = ContextVar("")
+        properties.value_updated.connect(lambda k,v: c.set((k,v)))
+        properties["a"] = "a"
+        properties["a"] = "b"
+        assert c.get() == ("a","b")
 
 class Test_Properties_ContextualAttachment():
     ''' test contextual-sticky attachment '''

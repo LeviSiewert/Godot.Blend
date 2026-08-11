@@ -536,7 +536,7 @@ class Collection[K:str|int, V:object](UserDict):
         return res
 
 from types import MappingProxyType
-class ViewStruct[T:list|dict](MappingProxyType):
+class ViewStruct[T:list|dict]():
     ''' Frozen view of a structure, all contents are localized via context, (weak) memoized child viewstructs as well 
     forkable/freeable to T
     '''
