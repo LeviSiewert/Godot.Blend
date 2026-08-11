@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections import UserDict, UserList
 from typing import Any, Self
+from types import MappingProxyType 
 
-from .core import Signal, Context as _Context, CollectionKey, Collection, _C_Proxy
+from .core import Signal, Context as _Context, CollectionKey, Collection, _C_Proxy, ViewStruct
 
 class Context(_Context):
     project : Project
@@ -12,86 +13,11 @@ class Context(_Context):
     properties : Properties
     _slots_ = ("project", "resource", "sub_resource")
 
-class GdValue:...
-class GdValueOverlayable(GdValue):
-    overlay : None|Self = None
-    overlay_updated : Signal
+class _UNSET:...
 
-    def __setup__(self):
-        self.overlay_updated = Signal(self)
-        self.value_updated = Signal(self)
-        self.value_removed = Signal(self)
-        self.value_added = Signal(self)
+class Properties(UserDict):
+    overlay : None|Properties = None
 
-    value_updated : Signal[str|int, Any]
-    value_removed : Signal[str|int, Any]
-    value_added : Signal[str|int, Any]
-
-    def set_overlay(self, overlay:Self|None, supress_changes:bool=False):
-
-        if not (self.overlay is None): ## Disconnect
-            self.overlay.value_updated.disconnect(self._on_overlay_value_updated)
-            self.overlay.value_removed.disconnect(self._on_overlay_value_removed)
-            self.overlay.value_added.disconnect(self._on_overlay_value_added)
-
-        self.overlay = overlay
-
-        if not (self.overlay is None): ## Connect
-            self.overlay.value_updated.connect(self._on_overlay_value_updated)
-            self.overlay.value_removed.connect(self._on_overlay_value_removed)
-            self.overlay.value_added.connect(self._on_overlay_value_added)
-
-        self.overlay_updated()
-
-        if supress_changes:
-            return
-
-        add, rem, changed = self._generate_overlay_dif()
-
-        for k,v in add.items():
-            self._on_overlay_value_updated(k,v)
-        for k,v in rem.items():
-            self._on_overlay_value_removed(k,v)
-        for k,v in changed.items():
-            self._on_overlay_value_added(k,v)
-
-    def _generate_overlay_dif(self)->tuple[dict, dict, dict]:
-        '''Return (add, rem, changed), anything returned will go into `_on_overlay_value_...` functions 
-        Generally: Allow any items inside w/ overlay as upstream value to handle themselves.
-        Generally: All Arrays/Dicts w/out overlays are local only and should not be updated.            
-        '''
-        raise NotImplementedError()
-
-    def _on_overlay_value_updated(self, key, value):
-        ...
-    def _on_overlay_value_removed(self, key, value):
-        ...
-    def _on_overlay_value_added(self, key, value):
-        ... 
-
-class GdArray(UserList, GdValueOverlayable):
-
-    def __init__(self, initlist):
-        self.__setup__()
-        super().__init__(initlist)
-
-    def set_overlay(self, overlay:Properties|None, supress_changes:bool=False):
-        raise NotImplementedError()
-    
-    ... #TODO #Value change propigation, similar.
-
-class GdDictionary(UserDict, GdValueOverlayable):
-
-    def __init__(self, iterable):
-        self.__setup__()
-        super().__init__(iterable)
-
-    def set_overlay(self, overlay:Properties|None, supress_changes:bool=False):
-        raise NotImplementedError()
-    
-    ... #TODO #Value change propigation, similar.
-
-class Properties(UserDict, GdValueOverlayable):
     context : Context
 
     value_updated : Signal[str, Any]
@@ -100,7 +26,9 @@ class Properties(UserDict, GdValueOverlayable):
 
     def __setup__(self):
         self.context = Context(properties = self)
-        return super().__setup__()
+        self.value_updated = Signal(self)
+        self.value_removed = Signal(self)
+        self.value_added = Signal(self)
 
     def __init__(self, context:Context=None, iterable=tuple(), overlay:Properties|None=None):
         self.__setup__()
@@ -110,48 +38,34 @@ class Properties(UserDict, GdValueOverlayable):
             self.set_overlay(overlay)
         super().__init__(iterable)
 
-
-
-        # ''' Set or clear extends, manage signal forwarding, and signal diffed values '''
-        # old = self._get_all_elements()
-        # cur = self._get_local_elements()
-
-        # if not(extends is None):
-        #     _cur = extends._get_all_elements()
-        #     _cur.update(cur)
-        #     cur = _cur
-
-        # if not (self._extends is None):
-        #     self._extends.element_changed.disconnect(self.element_changed)
-        # self._extends = extends
-        # if not (self._extends is None):
-        #     self._extends.element_changed.connect(self.element_changed)
-
-        # if supress_changes:
-        #     return
-
-        # _old_keys = tuple(old.keys())
-        # _cur_keys = tuple(cur.keys())
-
-        # rem = {k:None for k,v in old.items() if not (k in _cur_keys)}
-        # add = {k:v for k,v in cur.items() if not (k in _old_keys)}
-        # # set(_old_keys) & set(_cur_keys)
-        # changed = {k:cur.get(k) for k in (set(_old_keys) & set(_cur_keys)) }
-        # # changed = {k:v for k,v in cur.items() if (not (v is old.get(k, None)))}
-
-        # for k,v in {**rem, **add, **changed}.items():
-        #     self.element_changed(k, v)
-        # return add, rem, changed
-
     def __setitem__(self, key, item):
         self.data[key] = item
-        # r =  super().__setitem__(key, item)
         if hasattr(item, "_promise_replace"):
             if not (self._replace_promise in item._promise_replace):
                 item._promise_replace.connect(self._replace_promise, prepend_source=True, weak=True, once=True)
         if hasattr(item, "_referenced_callback"):
             item._referenced_callback(self.context)
         return
+
+    def __getitem__(self, key):
+        return self.get(key, include_overlays=True)
+
+    def get[D](self, key:str, default:D=_UNSET, include_overlays:bool=True, _unset_ok:bool=False, _bypass_viewstruct:bool=False)->Any|ViewStruct[list|dict]:
+        res = self.data.get(key, _UNSET)
+
+        if (res is _UNSET) and (not (self.overlay is None)) and include_overlays:
+            res = self.overlay.get(key, default = _UNSET, include_overlays = True, _unset_ok=True, _bypass_viewstruct=True)
+
+            if isinstance(res, Resource) and (res.is_sub_resource()):
+                return self.context.resource.sub_resources.append_promise(res.id)
+
+            elif isinstance(res, (list,dict)) and (not _bypass_viewstruct):
+                return ViewStruct(res, self.context)
+        
+        if res is _UNSET and (default is _UNSET) and (not _unset_ok):
+            raise KeyError(key)
+
+        return res
 
     def _replace_promise(self, item, new_item):
         for k,v in self.items():

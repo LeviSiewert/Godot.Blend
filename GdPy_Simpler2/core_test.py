@@ -276,7 +276,6 @@ class Test_Proxy():
         assert p.__class__.__name__ == "Proxy"
         assert p.__class__ is Proxy
 
-        
 
 from .core import Collection, CollectionKey, _C_Proxy
 
@@ -451,3 +450,5 @@ class Test_Collection():
         assert len(res) == 1
     #     res = c.valid()
     #     assert (res is False)
+
+

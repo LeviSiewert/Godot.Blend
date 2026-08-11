@@ -534,3 +534,15 @@ class Collection[K:str|int, V:object](UserDict):
             if v._proxy_obj is None:
                 res[k] = v
         return res
+
+from types import MappingProxyType
+class ViewStruct[T:list|dict](MappingProxyType):
+    ''' Frozen view of a structure, all contents are localized via context, (weak) memoized child viewstructs as well 
+    forkable/freeable to T
+    '''
+    context:Context
+    data : T
+def make_viewstruct[T:list|dict](obj:T, context)->ViewStruct[T]:
+    raise NotImplementedError()
+def free_viewstruct(obj:ViewStruct)->list|dict:
+    raise NotImplementedError()
