@@ -17,33 +17,129 @@ class _UNSET:...
 
 class Properties(UserDict):
     overlay : None|Properties = None
+    overlay_updated : Signal[None|Properties]
 
     context : Context
 
-    value_updated : Signal[str, Any]
-    value_removed : Signal[str, Any]
-    value_added : Signal[str, Any]
+    # data : dict[str,Any]
+
+    #TODO: Remove
+    value_updated : Signal[Properties, str, Any]
+    value_removed : Signal[Properties, str, Any]
+    value_added : Signal[Properties, str, Any]
+
+    local_value_updated : Signal[str, Any]
+    local_value_removed : Signal[str, Any]
+    local_value_added : Signal[str, Any]
+
+    overlay_value_updated : Signal[str, Any]
+    overlay_value_removed : Signal[str, Any]
+    overlay_value_added : Signal[str, Any]
 
     def __setup__(self):
         self.context = Context(properties = self)
+        self.overlay_updated = Signal(self)
+
         self.value_updated = Signal(self)
         self.value_removed = Signal(self)
         self.value_added = Signal(self)
+
+        _signal_is_local = lambda s_p, k, v : self is s_p
+        self.local_value_updated = Signal(self)
+        self.value_updated.connect(lambda s,k,v: self.local_value_updated(k,v), filter=_signal_is_local )
+        self.local_value_removed = Signal(self)
+        self.value_removed.connect(lambda s,k,v: self.local_value_removed(k,v), filter=_signal_is_local )
+        self.local_value_added = Signal(self)
+        self.value_added.connect(lambda s,k,v: self.local_value_added(k,v), filter=_signal_is_local )
+
+        _signal_is_overlay = lambda s_p, k, v : (not (self is s_p)) and (not (k in self.data.keys()))
+        self.overlay_value_updated = Signal(self)
+        self.value_updated.connect(lambda s,k,v: self.overlay_value_updated(k,v), filter=_signal_is_overlay)
+        self.overlay_value_removed = Signal(self)
+        self.value_removed.connect(lambda s,k,v: self.overlay_value_removed(k,v), filter=_signal_is_overlay)
+        self.overlay_value_added = Signal(self)
+        self.value_added.connect(lambda s,k,v: self.overlay_value_added(k,v), filter=_signal_is_overlay)
+
+    def set_overlay(self, overlay:None|Properties, supress_dif:bool=False):
+        o_items = dict(self.items(include_overlay=True))
+
+        if not (self.overlay is None):
+            self.overlay.local_value_added.disconnect(self.value_added)
+            self.overlay.local_value_removed.disconnect(self.value_removed)
+            self.overlay.local_value_updated.disconnect(self.value_updated)
+
+            self.overlay.overlay_value_added.disconnect(self.value_added)
+            self.overlay.overlay_value_removed.disconnect(self.value_removed)
+            self.overlay.overlay_value_updated.disconnect(self.value_updated)
+
+        self.overlay = overlay
+
+        n_items = dict(self.items(include_overlay=True))
+
+        if not (self.overlay is None):
+            self.overlay.local_value_added.connect(self.value_added)
+            self.overlay.local_value_removed.connect(self.value_removed)
+            self.overlay.local_value_updated.connect(self.value_updated)
+
+            #Note; these are only forwarded if parent doesn't have key!
+            self.overlay.overlay_value_added.connect(self.value_added)
+            self.overlay.overlay_value_removed.connect(self.value_removed)
+            self.overlay.overlay_value_updated.connect(self.value_updated)
+
+        self.overlay_updated(overlay)
+
+        if supress_dif:
+            return
+
+        added = {k:v for k,v in n_items.items() if (not (k in o_items.keys()))}
+        removed = {k:v for k,v in o_items.items() if (not (k in n_items.keys()))}
+        changed = {k:v for k,v in n_items.items() if (k not in added.keys()) and (o_items[k] != n_items[k])}
+
+        for k,v in added.items():
+            self.overlay_value_added(k, v)
+        for k,v in removed.items():
+            self.overlay_value_removed(k, v)
+        for k,v in changed.items():
+            self.overlay_value_updated(k, v)
+
+    def items(self, include_overlay:bool=True):
+        l_keys = tuple(self.data.keys())
+        if include_overlay and not (self.overlay is None):
+            for k,v in self.overlay.items(include_overlay=include_overlay):
+                if k in l_keys:
+                    continue
+                yield k,v 
+        for k in l_keys:
+            yield k, self.get(k)
+
+    def keys(self, include_overlay:bool=True):
+        l_keys = tuple(self.data.keys())
+        if include_overlay and not (self.overlay is None):
+            for k in self.overlay.keys(include_overlay=include_overlay):
+                if k in l_keys:
+                    continue
+                yield k
+        yield from l_keys
+
+    def values(self, include_overlay:bool=True):
+        for k,_ in self.items(include_overlay=include_overlay):
+            yield k
 
     def __init__(self, context:Context=None, iterable=tuple(), overlay:Properties|None=None):
         self.__setup__()
         if not (context is None):
             self.context.set_extends(context)
+        super().__init__(iterable)
         if not (overlay is None):
             self.set_overlay(overlay)
-        super().__init__(iterable)
 
     def __setitem__(self, key, item):
         if (key in self.data.keys()):
             self.data[key] = item
-            self.value_updated(key, item)
+            self.value_updated(self, key, item)
         else:
             self.data[key] = item
+            self.value_added(self, key, item)
         if hasattr(item, "_promise_replace"):
             if not (self._replace_promise in item._promise_replace):
                 item._promise_replace.connect(self._replace_promise, prepend_source=True, weak=True, once=True)
@@ -54,7 +150,7 @@ class Properties(UserDict):
     def __delitem__(self, key):
         v = self.get(key, default=_UNSET, include_overlays=False, _unset_ok=True)
         super().__delitem__(key)
-        self.value_removed(key, v)
+        self.value_removed(self, key, v)
 
     def __getitem__(self, key):
         return self.get(key, include_overlays=True)

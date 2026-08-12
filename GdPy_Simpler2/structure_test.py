@@ -8,14 +8,14 @@ class Test_Properties_Signals():
     def test_add(self):
         properties = Properties(None)
         c = ContextVar("")
-        properties.value_added.connect(lambda k,v: c.set((k,v)))
+        properties.local_value_added.connect(lambda k,v: c.set((k,v)))
         properties["a"] = "a"
         assert c.get() == ("a","a")
 
     def test_rem(self):
         properties = Properties(None)
         c = ContextVar("")
-        properties.value_removed.connect(lambda k,v: c.set((k,v)))
+        properties.local_value_removed.connect(lambda k,v: c.set((k,v)))
         properties["a"] = "a"
         del properties["a"]
         assert c.get() == ("a","a")
@@ -23,7 +23,7 @@ class Test_Properties_Signals():
     def test_update(self):
         properties = Properties(None)
         c = ContextVar("")
-        properties.value_updated.connect(lambda k,v: c.set((k,v)))
+        properties.local_value_updated.connect(lambda k,v: c.set((k,v)))
         properties["a"] = "a"
         properties["a"] = "b"
         assert c.get() == ("a","b")
@@ -148,4 +148,76 @@ class Test_Properties_Promises():
         assert r1.properties["reference"]._proxy_obj is r2
 
 class Test_Properties_Overlay():
-    pass
+    def test_basic(self):
+        c = ContextVar("")
+        p0 = Properties(None, {"a":"A", "b":"B", "c":"C"})
+        p1 = Properties(None, {"a":"A1"})
+        p1.overlay_updated.connect(lambda overlay: c.set(overlay))
+
+        assert p0["a"] == "A"
+        assert p0["b"] == "B"
+        assert p0["c"] == "C"
+
+        assert p1["a"] == "A1"
+        assert not ("b" in p1)
+        assert not ("c" in p1)
+
+        p1.set_overlay(p0)
+        assert c.get() is p0
+
+        assert p1["a"] == "A1"
+        assert p1["b"] == "B"
+        assert p1["c"] == "C"
+
+        p1.set_overlay(None)
+        assert c.get() is None
+        
+    def test_signals(self):
+        c = ContextVar("")
+        added = {}
+        removed = {}
+        updated = {}
+
+        p = Properties()
+        p0 = Properties(None, {"a":"A", "b":"B", "c":"C"}, overlay=p)
+        p1 = Properties(None, {"a":"A1"})
+
+        p1.overlay_updated.connect(lambda overlay: c.set(overlay))
+
+        p1.overlay_value_added.connect(lambda k,v: added.__setitem__(k,v))
+        p1.overlay_value_removed.connect(lambda k,v: removed.__setitem__(k,v))
+        p1.overlay_value_updated.connect(lambda k,v: updated.__setitem__(k,v))
+            
+        p1.set_overlay(p0, supress_dif = False)
+
+        assert c.get() is p0
+
+        assert added["b"] == "B" 
+        assert added["c"] == "C" 
+        assert not ("a" in added.keys()) ### Supressed update since it's 
+
+        del p0["b"]
+        assert removed["b"] == "B"
+
+        p0["c"] = "C1"
+        assert updated["c"] == "C1"
+
+        ## Forwarded signals:
+        p["d"] = "D"
+        assert added["d"] == "D"
+
+        p["d"] = "D1"
+        assert updated["d"] == "D1"
+
+        del p["d"]
+        assert removed["d"] == "D1"
+
+
+
+         
+
+    # def test_localize(self):
+    #     ...
+
+    # def test_viewstruct(self):
+    #     ...
