@@ -23,11 +23,6 @@ class Properties(UserDict):
 
     # data : dict[str,Any]
 
-    #TODO: Remove
-    value_updated : Signal[Properties, str, Any]
-    value_removed : Signal[Properties, str, Any]
-    value_added : Signal[Properties, str, Any]
-
     local_value_updated : Signal[str, Any]
     local_value_removed : Signal[str, Any]
     local_value_added : Signal[str, Any]
@@ -40,51 +35,38 @@ class Properties(UserDict):
         self.context = Context(properties = self)
         self.overlay_updated = Signal(self)
 
-        self.value_updated = Signal(self)
-        self.value_removed = Signal(self)
-        self.value_added = Signal(self)
-
-        _signal_is_local = lambda s_p, k, v : self is s_p
         self.local_value_updated = Signal(self)
-        self.value_updated.connect(lambda s,k,v: self.local_value_updated(k,v), filter=_signal_is_local )
         self.local_value_removed = Signal(self)
-        self.value_removed.connect(lambda s,k,v: self.local_value_removed(k,v), filter=_signal_is_local )
         self.local_value_added = Signal(self)
-        self.value_added.connect(lambda s,k,v: self.local_value_added(k,v), filter=_signal_is_local )
 
-        _signal_is_overlay = lambda s_p, k, v : (not (self is s_p)) and (not (k in self.data.keys()))
         self.overlay_value_updated = Signal(self)
-        self.value_updated.connect(lambda s,k,v: self.overlay_value_updated(k,v), filter=_signal_is_overlay)
         self.overlay_value_removed = Signal(self)
-        self.value_removed.connect(lambda s,k,v: self.overlay_value_removed(k,v), filter=_signal_is_overlay)
         self.overlay_value_added = Signal(self)
-        self.value_added.connect(lambda s,k,v: self.overlay_value_added(k,v), filter=_signal_is_overlay)
 
     def set_overlay(self, overlay:None|Properties, supress_dif:bool=False):
         o_items = dict(self.items(include_overlay=True))
 
         if not (self.overlay is None):
-            self.overlay.local_value_added.disconnect(self.value_added)
-            self.overlay.local_value_removed.disconnect(self.value_removed)
-            self.overlay.local_value_updated.disconnect(self.value_updated)
+            self.overlay.local_value_added.disconnect(self.overlay_value_added)
+            self.overlay.local_value_removed.disconnect(self.overlay_value_removed)
+            self.overlay.local_value_updated.disconnect(self.overlay_value_updated)
 
-            self.overlay.overlay_value_added.disconnect(self.value_added)
-            self.overlay.overlay_value_removed.disconnect(self.value_removed)
-            self.overlay.overlay_value_updated.disconnect(self.value_updated)
+            self.overlay.overlay_value_added.disconnect(self.overlay_value_added)
+            self.overlay.overlay_value_removed.disconnect(self.overlay_value_removed)
+            self.overlay.overlay_value_updated.disconnect(self.overlay_value_updated)
 
         self.overlay = overlay
 
         n_items = dict(self.items(include_overlay=True))
 
         if not (self.overlay is None):
-            self.overlay.local_value_added.connect(self.value_added)
-            self.overlay.local_value_removed.connect(self.value_removed)
-            self.overlay.local_value_updated.connect(self.value_updated)
+            self.overlay.local_value_added.connect(self.overlay_value_added, filter=lambda k,v: not (k in self.data.keys()))
+            self.overlay.local_value_removed.connect(self.overlay_value_removed, filter=lambda k,v: not (k in self.data.keys()))
+            self.overlay.local_value_updated.connect(self.overlay_value_updated, filter=lambda k,v: not (k in self.data.keys()))
 
-            #Note; these are only forwarded if parent doesn't have key!
-            self.overlay.overlay_value_added.connect(self.value_added)
-            self.overlay.overlay_value_removed.connect(self.value_removed)
-            self.overlay.overlay_value_updated.connect(self.value_updated)
+            self.overlay.overlay_value_added.connect(self.overlay_value_added, filter=lambda k,v: not (k in self.data.keys()))
+            self.overlay.overlay_value_removed.connect(self.overlay_value_removed, filter=lambda k,v: not (k in self.data.keys()))
+            self.overlay.overlay_value_updated.connect(self.overlay_value_updated, filter=lambda k,v: not (k in self.data.keys()))
 
         self.overlay_updated(overlay)
 
