@@ -97,7 +97,7 @@ class Properties(UserDict):
     def keys(self, include_overlay:bool=True):
         l_keys = tuple(self.data.keys())
         if include_overlay and not (self.overlay is None):
-            for k in self.overlay.keys(include_overlay=include_overlay):
+            for k in self.overlay.keys(include_overlay=True):
                 if k in l_keys:
                     continue
                 yield k
@@ -118,10 +118,10 @@ class Properties(UserDict):
     def __setitem__(self, key, item):
         if (key in self.data.keys()):
             self.data[key] = item
-            self.value_updated(self, key, item)
+            self.local_value_updated(key, item)
         else:
             self.data[key] = item
-            self.value_added(self, key, item)
+            self.local_value_added(key, item)
         if hasattr(item, "_promise_replace"):
             if not (self._replace_promise in item._promise_replace):
                 item._promise_replace.connect(self._replace_promise, prepend_source=True, weak=True, once=True)
@@ -132,7 +132,7 @@ class Properties(UserDict):
     def __delitem__(self, key):
         v = self.get(key, default=_UNSET, include_overlays=False, _unset_ok=True)
         super().__delitem__(key)
-        self.value_removed(self, key, v)
+        self.local_value_removed(key, v)
 
     def __getitem__(self, key):
         return self.get(key, include_overlays=True)
