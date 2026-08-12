@@ -21,8 +21,6 @@ class Properties(UserDict):
 
     context : Context
 
-    # data : dict[str,Any]
-
     local_value_updated : Signal[str, Any]
     local_value_removed : Signal[str, Any]
     local_value_added : Signal[str, Any]
@@ -30,6 +28,14 @@ class Properties(UserDict):
     overlay_value_updated : Signal[str, Any]
     overlay_value_removed : Signal[str, Any]
     overlay_value_added : Signal[str, Any]
+
+    def __init__(self, context:Context=None, iterable=tuple(), overlay:Properties|None=None):
+        self.__setup__()
+        if not (context is None):
+            self.context.set_extends(context)
+        super().__init__(iterable)
+        if not (overlay is None):
+            self.set_overlay(overlay)
 
     def __setup__(self):
         self.context = Context(properties = self)
@@ -42,6 +48,7 @@ class Properties(UserDict):
         self.overlay_value_updated = Signal(self)
         self.overlay_value_removed = Signal(self)
         self.overlay_value_added = Signal(self)
+
 
     def set_overlay(self, overlay:None|Properties, supress_dif:bool=False):
         o_items = dict(self.items(include_overlay=True))
@@ -84,36 +91,64 @@ class Properties(UserDict):
         for k,v in changed.items():
             self.overlay_value_updated(k, v)
 
+    def overlay_chain(self, reversed:bool=False):
+        if (not (self.overlay is None)) and reversed:
+            yield from self.overlay.overlay_chain(reversed=reversed)
+            yield self.overlay
+            return
+        elif (not (self.overlay is None)):
+            yield self.overlay
+            yield from self.overlay.overlay_chain(reversed=reversed)
+            return
+
+    def _overlay_fmt(self, res, bypass_viewstruct:bool=False, bypass_localization:bool=False):
+        ''' Returned values formatted via this function, for ViewStruct and similar'''
+
+        if isinstance(res, Resource) and (res.is_sub_resource()):
+            return self.context.resource.sub_resources.append_promise(res.id)
+
+        elif isinstance(res, (list,dict)) and (not bypass_viewstruct):
+            return ViewStruct(res, self.context)
+
+        return res
+        
+
     def items(self, include_overlay:bool=True):
         l_keys = tuple(self.data.keys())
-        if include_overlay and not (self.overlay is None):
-            for k,v in self.overlay.items(include_overlay=include_overlay):
-                if k in l_keys:
-                    continue
-                yield k,v 
-        for k in l_keys:
-            yield k, self.get(k)
+        for k,v in self.data.items():
+            yield k,v
 
+        if not include_overlay:
+            return
+
+        yielded : list[str] = list(l_keys)
+
+        for o in self.overlay_chain():
+            for k in o.data.keys():
+                if (k in yielded):
+                    continue
+                yield k, self._overlay_fmt(o.data[k])
+                yielded.append(k)
+        
     def keys(self, include_overlay:bool=True):
         l_keys = tuple(self.data.keys())
-        if include_overlay and not (self.overlay is None):
-            for k in self.overlay.keys(include_overlay=True):
-                if k in l_keys:
-                    continue
-                yield k
         yield from l_keys
 
-    def values(self, include_overlay:bool=True):
-        for k,_ in self.items(include_overlay=include_overlay):
-            yield k
+        if not include_overlay:
+            return 
 
-    def __init__(self, context:Context=None, iterable=tuple(), overlay:Properties|None=None):
-        self.__setup__()
-        if not (context is None):
-            self.context.set_extends(context)
-        super().__init__(iterable)
-        if not (overlay is None):
-            self.set_overlay(overlay)
+        yielded : list[str] = list(l_keys)
+
+        for o in self.overlay_chain():
+            for k in o.data.keys():
+                if (k in yielded):
+                    continue
+                yield k
+                yielded.append(k)
+
+    def values(self, include_overlay:bool=True):
+        for _,v in self.items(include_overlay=include_overlay):
+            yield v
 
     def __setitem__(self, key, item):
         if (key in self.data.keys()):
@@ -130,34 +165,26 @@ class Properties(UserDict):
         return
 
     def __delitem__(self, key):
-        v = self.get(key, default=_UNSET, include_overlays=False, _unset_ok=True)
+        v = self.data.get(key, _UNSET)
         super().__delitem__(key)
         self.local_value_removed(key, v)
 
     def __getitem__(self, key):
         return self.get(key, include_overlays=True)
 
-    def get[D](self, key:str, default:D=_UNSET, include_overlays:bool=True, _unset_ok:bool=False, _bypass_viewstruct:bool=False)->Any|ViewStruct[list|dict]:
+    def get[D](self, key:str, default:D=_UNSET, include_overlays:bool=True, bypass_viewstruct:bool=False, bypass_localization:bool=False)->Any|ViewStruct[list|dict]:
         res = self.data.get(key, _UNSET)
+        if not (res is _UNSET):
+            return res
 
-        if (res is _UNSET) and (not (self.overlay is None)) and include_overlays:
-            res = self.overlay.get(key, default = _UNSET, include_overlays = True, _unset_ok=True, _bypass_viewstruct=True)
-
-            if isinstance(res, Resource) and (res.is_sub_resource()):
-                return self.context.resource.sub_resources.append_promise(res.id)
-
-            elif isinstance(res, (list,dict)) and (not _bypass_viewstruct):
-                return ViewStruct(res, self.context)
-        
-        if (res is _UNSET) and (default is _UNSET):
-            if (not _unset_ok):
-                raise KeyError(key)
-            return _UNSET
-
-        elif (res is _UNSET):
-            return default
-
-        return res
+        if (res is _UNSET) and include_overlays:
+            for o in self.overlay_chain():
+                if key in o.data.keys():
+                     return self._overlay_fmt(o.data[key], bypass_viewstruct=bypass_viewstruct, bypass_localization=bypass_localization)
+                
+        if (default is _UNSET):
+            raise KeyError(key)
+        return default
 
     def _replace_promise(self, item, new_item):
         for k,v in self.items():

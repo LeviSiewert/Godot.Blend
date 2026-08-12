@@ -262,7 +262,7 @@ class Test_Properties_ViewStruct():
         ''' unset context is an odd edge case, but it's unknown how to do this otherwise ... 
         '''
         r0 = Resource(id="")
-        p0 = Properties(None, {"a":, })
+        p0 = Properties(None, {"a":r0})
         p1 = Properties(overlay=p0)
 
         res = p1["a"]["b"]
