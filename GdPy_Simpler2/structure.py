@@ -245,6 +245,7 @@ class Resource():
 
     properties : Properties
     sub_resources : Collection[str,Resource]
+    ext_resources : Collection[str,ExternalResource]
 
     id : CollectionKey[str]
     uid : CollectionKey[str]
@@ -261,6 +262,10 @@ class Resource():
         self.sub_resources.appended.connect(self._on_subresource_appended, weak=True)        
         self.sub_resources.removed.connect(self._on_subresource_removed, weak=True)        
 
+        self.ext_resources = Collection("id")
+        self.sub_resources.appended.connect(self._on_extresource_appended, weak=True)
+        self.sub_resources.removed.connect(self._on_extbresource_removed, weak=True)
+
         self.id = CollectionKey(id)
         self.uid = CollectionKey(uid)
         self.file = file
@@ -275,6 +280,11 @@ class Resource():
         resource.context.set_extends(self.context)
     def _on_subresource_removed(self, k, resource:Resource):
         resource.context.set_extends(None)
+
+    def _on_extresource_appended(self, k, extres:ExternalResource):
+        extres.context.set_extends(self.context)
+    def _on_extresource_removed(self, k, extres:ExternalResource):
+        extres.context.set_extends(None)
 
     def _referenced_callback(self, ref_context:Context):
         if ref_context.project is None:
@@ -311,6 +321,14 @@ class Resource():
 
     def is_sub_resource(self):
         return (self.uid.key is None)
+
+from .core import Proxy
+
+class ExternalResource(Proxy):
+    id : CollectionKey[str]
+    uid : str
+    path : str
+
         
 class Promise[T:Any]():
     ''' Replace this object with what is passed out

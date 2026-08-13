@@ -227,7 +227,8 @@ class Test_Properties_Localize():
         r1.properties.set_overlay(r0.properties)
 
         ## Expectation; returns Proxy(Promise-like) of r1.context.resource.sub_resources["sr"]
-        assert isinstance(r1["a"], Resource)
+        assert isinstance(r1.properties["a"], _C_Proxy)
+        assert not isinstance(r1.properties["a"], Resource)
         assert r1.properties["a"]._proxy_obj is None
 
         ## Proxy is fullfilled via appending
@@ -262,11 +263,11 @@ class Test_Properties_ViewStruct():
         ''' unset context is an odd edge case, but it's unknown how to do this otherwise ... 
         '''
         r0 = Resource(id="")
-        p0 = Properties(None, {"a":r0})
+        p0 = Properties(None, {"a":, })
         p1 = Properties(overlay=p0)
 
         res = p1["a"]["b"]
-        assert isinstance(res, _StructuralPromiseDefered)
+        assert isinstance(res, j)
             # Defered promise w/ ref to original (as context is unset)
 
     def test_promise(self):
@@ -290,8 +291,52 @@ class Test_Properties_ViewStruct():
         assert isinstance(r1["a"]["b"], _C_Proxy)
         assert r1["a"]["b"]._proxy_obj is sr1
 
-    # def test_localize(self):
-    #     ...
+# class Test_Properties_ExtResource():
+#     ''' Desired behavior: 
+#     - all resources that are accessed through properties must be routed through a local ext_resource 
+#     - these ext_resources are not included in the overlay system
+#     - Unfullfilled promises from another collection must transfer/merge (uid, path)
+#     '''
 
-    # def test_viewstruct(self):
-    #     ...
+#     def test_assign_wrap_no_context(self):
+#         pass
+
+#     def test_assign_wrap(self):
+#         ''' test assign a resource that is not a subresource ''' 
+#         raise NotImplementedError()
+
+    # def test_declare_assign_wrap(self):
+    #     ''' test assign a resource that is not a subresource '''
+    #     raise NotImplementedError()
+    
+    # def test_assign_convert(self):
+    #     ''' test assign a resource that is a subresource, then convert '''
+    #     raise NotImplementedError()
+
+
+    # def test_assign_foreign_filled(self):
+    #     ''' test assign a ext_resource that is from another resource, unwrap and localize. Return '''
+    #     raise NotImplementedError()
+
+    # def test_assign_foreign_empty(self):
+    #     ''' test assign a ext_resource that is from another resource and isnt fullfilled. Return new _C_Proxy '''
+    #     raise NotImplementedError()
+
+
+    # def test_embedd_resources_one(self):
+    #     ''' Asign resource, then localize 1 instance (not all) '''
+    #     raise NotImplementedError()
+
+    # def test_embedd_resources_all(self):
+    #     ''' Asign resource, then localize all refs '''
+    #     raise NotImplementedError()
+
+
+    # def test_embedd_nodes_one(self):
+    #     ''' Asign resource, then localize 1 instance '''
+    #     raise NotImplementedError()
+
+    # def test_embedd_nodes_all(self):
+    #     ''' Asign resource, then localize all instances '''
+    #     raise NotImplementedError()
+
