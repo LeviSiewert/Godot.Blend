@@ -451,4 +451,13 @@ class Test_Collection():
     #     res = c.valid()
     #     assert (res is False)
 
+class Test_Collection_NoKey():
+    def test_construction():
+        Collection("")
 
+    def test_assign_retrive():
+        c = Collection("")
+        c["var"] = "value"
+        res = c["var"]
+        assert isinstance(res, _C_Proxy)
+        assert res == "value"
