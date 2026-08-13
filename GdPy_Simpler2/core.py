@@ -306,9 +306,13 @@ class _C_Proxy(Proxy):
 
     def _proxy_set_obj(self, obj):
         if not (obj is None):
-            getattr(obj, self._proxy_key_attr).key_updated.connect(self._proxy_key_updated)
+            if ckey:=getattr(obj, self._proxy_key_attr, None):
+                ckey.key_updated.connect(self._proxy_key_updated)
+
         if not (self._proxy_obj is None):
-            getattr(obj, self._proxy_key_attr).key_updated.connect(self._proxy_key_updated)
+            if ckey:=getattr(self._proxy_obj, self._proxy_key_attr, None):
+                ckey.key_updated.disconnect(self._proxy_key_updated)
+
         return super()._proxy_set_obj(obj)
 
 class CollectionKey[K:str|int]():
