@@ -388,6 +388,7 @@ class Collection[K:str|int, V:object](UserDict):
                 return
             else:
                 self.resolve_key_collision(new_key, e_item, item, r_key_priority=r_key_priority)
+                ##TODO: Missing keyattr solution here!
                 return
 
         if not c_key is None:
@@ -410,7 +411,9 @@ class Collection[K:str|int, V:object](UserDict):
             raise ValueError("Item Already exists in collection!", item)
 
         if key is None:
-            key = getattr(item, self._key_attr).key
+            ckey = getattr(item, self._key_attr, None)
+            if not (ckey is None):
+                key = ckey.key
 
         if key is None:
             key = self.generate_key(item)
@@ -439,8 +442,8 @@ class Collection[K:str|int, V:object](UserDict):
             item = _C_Proxy(self, self._key_attr, item)
 
         if not ((obj:=self.data.get(key,None)) is None):
-            self.resolve_key_collision(key,obj,item,r_key_priority)
-            key = getattr(item, self._key_attr).key
+            _,r_key = self.resolve_key_collision(key,obj,item,r_key_priority)
+            key = r_key
 
         assert not (key is None)
 
@@ -479,20 +482,31 @@ class Collection[K:str|int, V:object](UserDict):
             i = i+1
         return n_key
 
-    def resolve_key_collision(self, key:str, l_item:V|_C_Proxy[V], r_item:V|_C_Proxy[V], r_key_priority:bool=True):
+    def resolve_key_collision(self, key:str, l_item:V|_C_Proxy[V], r_item:V|_C_Proxy[V], r_key_priority:bool=True)->tuple[str,str]:
         
         if not r_key_priority:
             if self._random_key:
                 n_key = self.generate_key(r_item)
             else: 
                 n_key = self.index_key(key)
-            getattr(r_item,self._key_attr).key = n_key
+
+            if (ckey := getattr(r_item,self._key_attrm,None)):
+                ckey.key = n_key
+            else:
+                self.rename(r_item, n_key)
+
+            return key, n_key
+
         else: 
             if self._random_key:
                 n_key = self.generate_key(l_item)
             else: 
                 n_key = self.index_key(key)
-            getattr(l_item,self._key_attr).key = n_key
+            if (ckey := getattr(l_item,self._key_attrm,None)):
+                ckey.key = n_key
+            else:
+                self.rename(l_item, n_key)
+            return n_key, key
         
 
     def __getitem__(self, key:K|V|_C_Proxy[V])->V|_C_Proxy[V]|K:

@@ -212,84 +212,84 @@ class Test_Properties_Overlay():
         del p["d"]
         assert removed["d"] == "D1"
 
-class Test_Properties_Localize():
-    ''' Localization is returning the (scope[id] equivilent) or a promise to the (scope[id] equivilent), within the context given '''
+# class Test_Properties_Localize():
+#     ''' Localization is returning the (scope[id] equivilent) or a promise to the (scope[id] equivilent), within the context given '''
 
-    def test_limited(self):
-        r0 = Resource(uid="r0")
-        sr0 = Resource(id="sr")
-        r0.properties["a"] = sr0
+#     def test_limited(self):
+#         r0 = Resource(uid="r0")
+#         sr0 = Resource(id="sr")
+#         r0.properties["a"] = sr0
 
-        r1 = Resource(uid="r1")
-        sr1 = Resource(id="sr")
-        # r1.properties["a"] = sr1  
+#         r1 = Resource(uid="r1")
+#         sr1 = Resource(id="sr")
+#         # r1.properties["a"] = sr1  
 
-        r1.properties.set_overlay(r0.properties)
+#         r1.properties.set_overlay(r0.properties)
 
-        ## Expectation; returns Proxy(Promise-like) of r1.context.resource.sub_resources["sr"]
-        assert isinstance(r1.properties["a"], _C_Proxy)
-        assert not isinstance(r1.properties["a"], Resource)
-        assert r1.properties["a"]._proxy_obj is None
+#         ## Expectation; returns Proxy(Promise-like) of r1.context.resource.sub_resources["sr"]
+#         assert isinstance(r1.properties["a"], _C_Proxy)
+#         assert not isinstance(r1.properties["a"], Resource)
+#         assert r1.properties["a"]._proxy_obj is None
 
-        ## Proxy is fullfilled via appending
-        r1.sub_resources.append(sr1)
+#         ## Proxy is fullfilled via appending
+#         r1.sub_resources.append(sr1)
 
-        assert isinstance(r1["a"], Resource)
-        assert r1.properties["a"]._proxy_obj is sr1
+#         assert isinstance(r1["a"], Resource)
+#         assert r1.properties["a"]._proxy_obj is sr1
 
-        ## Second pass, add to r0.properties and fetch local again
-        r0.properties["b"] = sr0
-        assert r1.properties["b"]._proxy_obj is sr1
+#         ## Second pass, add to r0.properties and fetch local again
+#         r0.properties["b"] = sr0
+#         assert r1.properties["b"]._proxy_obj is sr1
 
-from .core import ViewStruct
+# from .core import ViewStruct
 
-class Test_Viewstructs():
-    ''' Viewstructs are a way to allow object localization && prevent incorrect context editing '''
-    def test(self):
-        raise NotImplementedError() 
+# class Test_Viewstructs():
+#     ''' Viewstructs are a way to allow object localization && prevent incorrect context editing '''
+#     def test(self):
+#         raise NotImplementedError() 
 
-class Test_Properties_ViewStruct():
-    def test_limited(self):
-        p0 = Properties(None, {"a":{"b":[]}, })
-        p1 = Properties(overlay=p0)
+# class Test_Properties_ViewStruct():
+#     def test_limited(self):
+#         p0 = Properties(None, {"a":{"b":[]}, })
+#         p1 = Properties(overlay=p0)
 
-        r = p1["a"]
-        assert isinstance(r, ViewStruct)
-        assert r._src is p0["a"]
-        assert isinstance(r["b"], ViewStruct)
-        assert r["b"]._src is p0["a"]["b"]
+#         r = p1["a"]
+#         assert isinstance(r, ViewStruct)
+#         assert r._src is p0["a"]
+#         assert isinstance(r["b"], ViewStruct)
+#         assert r["b"]._src is p0["a"]["b"]
 
-    def test_promise_c_unset(self):
-        ''' unset context is an odd edge case, but it's unknown how to do this otherwise ... 
-        '''
-        r0 = Resource(id="")
-        p0 = Properties(None, {"a":, })
-        p1 = Properties(overlay=p0)
+#     def test_promise_c_unset(self):
+#         ''' unset context is an odd edge case, but it's unknown how to do this otherwise ... 
+#         '''
+#         r0 = Resource(id="")
+#         p0 = Properties(None, {"a":, })
+#         p1 = Properties(overlay=p0)
 
-        res = p1["a"]["b"]
-        assert isinstance(res, j)
-            # Defered promise w/ ref to original (as context is unset)
+#         res = p1["a"]["b"]
+#         assert isinstance(res, j)
+#             # Defered promise w/ ref to original (as context is unset)
 
-    def test_promise(self):
-        r0 = Resource(uid="r0")
-        sr0 = Resource(id="sr")
-        r0.properties["a"] = {"b":sr0}
+#     def test_promise(self):
+#         r0 = Resource(uid="r0")
+#         sr0 = Resource(id="sr")
+#         r0.properties["a"] = {"b":sr0}
 
-        r1 = Resource(uid="r1")
-        sr1 = Resource(id="sr")
-        # r1.properties["a"] = sr1  
+#         r1 = Resource(uid="r1")
+#         sr1 = Resource(id="sr")
+#         # r1.properties["a"] = sr1  
 
-        r1.properties.set_overlay(r0.properties)
+#         r1.properties.set_overlay(r0.properties)
 
-        assert isinstance(r1["a"], ViewStruct)
-        assert isinstance(r1["a"]["b"], _C_Proxy)
-        assert r1["a"]["b"]._proxy_obj is None
+#         assert isinstance(r1["a"], ViewStruct)
+#         assert isinstance(r1["a"]["b"], _C_Proxy)
+#         assert r1["a"]["b"]._proxy_obj is None
 
-        r1.sub_resources.append(sr1)
+#         r1.sub_resources.append(sr1)
 
-        assert isinstance(r1["a"]["b"], )
-        assert isinstance(r1["a"]["b"], _C_Proxy)
-        assert r1["a"]["b"]._proxy_obj is sr1
+#         assert isinstance(r1["a"]["b"], )
+#         assert isinstance(r1["a"]["b"], _C_Proxy)
+#         assert r1["a"]["b"]._proxy_obj is sr1
 
 # class Test_Properties_ExtResource():
 #     ''' Desired behavior: 

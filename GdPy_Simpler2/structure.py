@@ -264,7 +264,7 @@ class Resource():
 
         self.ext_resources = Collection("id")
         self.sub_resources.appended.connect(self._on_extresource_appended, weak=True)
-        self.sub_resources.removed.connect(self._on_extbresource_removed, weak=True)
+        self.sub_resources.removed.connect(self._on_extresource_removed, weak=True)
 
         self.id = CollectionKey(id)
         self.uid = CollectionKey(uid)
