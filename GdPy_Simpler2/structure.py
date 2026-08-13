@@ -310,12 +310,19 @@ class Resource():
         
     def _on_resource_set(self, _attr:str, resource:Resource|None):
         assert (resource is None) or (isinstance(resource, Resource))
+
         if not self.is_sub_resource():
-            return
+            in_extres = (self in resource.ext_resources)
+            pr_in_extres = any(x for x in resource.ext_resources if x.uid == self.uid)
+            if in_extres or pr_in_extres: return
+            resource.ext_resources.append(self)
+                
         if self in resource.sub_resources:
             return
+
         if resource is None:
             raise NotImplementedError() #Unknown desired behavior, as driven by referencers
+
         assert (self.context.resource is None) or (self.context.resource is resource)
         resource.sub_resources.append(self)
 
