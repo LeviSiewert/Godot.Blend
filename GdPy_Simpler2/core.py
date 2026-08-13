@@ -409,10 +409,14 @@ class Collection[K:str|int, V:object](UserDict):
             return res
         return self.append(None, key=key)
 
-    def append(self, item:V|_C_Proxy[V], nested_ok:bool=False, key:None|K=None, r_key_priority:bool=True)->V|_C_Proxy[V]:
+    def append(self, item:V|_C_Proxy[V], nested_ok:bool=False, key:None|K=None, r_key_priority:bool=True, rename_ok:bool=False)->V|_C_Proxy[V]:
 
-        if item in self:
+        if (c:=(item in self)) and rename_ok:
+            self.rename(item, key)
+            return
+        elif c:
             raise ValueError("Item Already exists in collection!", item)
+
 
         if key is None:
             ckey = getattr(item, self._key_attr, None)
@@ -494,7 +498,7 @@ class Collection[K:str|int, V:object](UserDict):
             else: 
                 n_key = self.index_key(key)
 
-            if (ckey := getattr(r_item,self._key_attrm,None)):
+            if (ckey := getattr(r_item,self._key_attr,None)):
                 ckey.key = n_key
             else:
                 self.rename(r_item, n_key)
@@ -506,7 +510,7 @@ class Collection[K:str|int, V:object](UserDict):
                 n_key = self.generate_key(l_item)
             else: 
                 n_key = self.index_key(key)
-            if (ckey := getattr(l_item,self._key_attrm,None)):
+            if (ckey := getattr(l_item,self._key_attr,None)):
                 ckey.key = n_key
             else:
                 self.rename(l_item, n_key)
@@ -530,6 +534,9 @@ class Collection[K:str|int, V:object](UserDict):
         self._disconnect(v)
         del self.data[k]
         self.removed(k,v)
+
+    def __setitem__(self, key, item):
+        self.append(item, key=key)
 
     def resolve_pair[D:Any](self, key:K|V|_C_Proxy[V], default:D=(None,None))->tuple[K,_C_Proxy[V]]|D:
         if not isinstance(key, (str,int)):

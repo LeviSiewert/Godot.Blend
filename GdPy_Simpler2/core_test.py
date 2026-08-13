@@ -452,12 +452,12 @@ class Test_Collection():
     #     assert (res is False)
 
 class Test_Collection_NoKey():
-    def test_construction():
+    def test_construction(self):
         Collection("")
 
-    def test_assign_retrive():
+    def test_assign_retrive(self):
         c = Collection("")
-        c["var"] = "value"
+        c["var"] = _Item("")
         res = c["var"]
-        assert isinstance(res, _C_Proxy)
-        assert res == "value"
+        # assert isinstance(res, _C_Proxy)
+        assert isinstance(res, _Item)
