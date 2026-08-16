@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, Self, Callable
-from weakref import ReferenceType
+from weakref import ReferenceType, ref as _wref
+from collections import UserDict
 
-from .signal import Signal
+from .signal import Signal, _UNSET
 from .context import Context as _Context
 from .collection import CollectionKey, Collection
 
@@ -20,6 +21,57 @@ class DynamicPromise[T:Any]():
     def resolve(self, context:Context)->Self|T:
         raise NotImplementedError()
 
+class _ScopeIO():
+    remap_ref : Signal[str,str,str|int, str,str,str|int]
+    
+
+class DynamicPromiseStructural[S:_ScopeIO|Any, K:str|int, I:Any](DynamicPromise):
+    context : Context
+
+    scope : str # make property to allow signal swapping via getattr(self.context, self.scope)
+    cached_scope : ReferenceType[S|None] = _wref(_UNSET())
+
+    col : str
+    key : K
+
+    def __setup__(self,):
+        self.context = Context()
+        self.context.element_changed.connect(self._on_context_element_changed)
+
+    def _reference_callback(self, context:Context):
+        self.context.set_extends(context)
+        
+    def _dereference_callback(self, context:Context):
+        pass
+
+    def _on_context_element_changed(self, elem:str, obj:I):
+
+        if (self.scope != elem): 
+            return
+        
+        c_scope = self.cached_scope()
+
+        if (obj is c_scope):
+            return
+
+        if not (c_scope is None):
+            c_scope.remap_ref.disconnect(self._on_remap_call)
+
+        if not (obj is None): 
+            obj.remap_ref.connect(self._on_remap_call)
+            self.cached_scope = _wref(obj)
+        else:
+            self.cached_scope = _wref(_UNSET)
+
+    def _on_remap_call(self, m_scope:str,m_col:str,m_key:str, scope:str, col:str, key:str):
+        if any((self.scope != m_scope, self.col != m_col, self.key != m_key,)):
+            return
+
+        self.col = col
+        self.key = key
+        self.scope = scope
+        self._on_context_element_changed(scope, getattr(self.context, scope))
+        
 ## Gd Type Definitions:
 
 class GdDefProperty:

@@ -159,7 +159,8 @@ class Test_Collection():
         assert i1.key.key == "key"
 
     def test_keycollision_via_rename(self):
-        ''' What is the desired dynamic ref-behavior here? How should references be rectified? '''
+        ''' Dynamic References must be rectified externally as no strong connection exists between dynamic refs and collections, this will be done via signals the ref subs to
+        The signals will not be on the collection itself, but rather the scope containing the collection '''
         c = Collection()
         i0 = _Item("key")
         i1 = _Item("key1")
@@ -172,13 +173,55 @@ class Test_Collection():
         assert i1.key.key == "key"
 
     def test_keycollision_via_rename_left_priority(self):
-        ''' What is the desired dynamic ref-behavior here? How should references be rectified? '''
+        ''' Dynamic References must be rectified externally as no strong connection exists between dynamic refs and collections, this will be done via signals the ref subs to
+        The signals will not be on the collection itself, but rather the scope containing the collection '''
         c = Collection()
         i0 = _Item("key")
         i1 = _Item("key1")
 
         c.append(i0)
         c.append(i1)
-        c.rename(i1, "key")
+        c.rename(i1, "key", r_key_priority=False)
 
         assert i0.key.key == "key"
+
+from .structure import DynamicPromise, DynamicPromiseStructural
+
+
+class _Item():
+    key : CollectionKey[str]
+    def __init__(self, key:str):
+        self.key = CollectionKey(str)
+
+class _Resource():
+    context : Context
+    col : Collection[str, _Item]
+    def __init__(self):
+        self.context = Context(resource=self)
+        self.col = Collection()
+
+class Test_DynamicPromise():
+
+    def test_construction():
+        r = _Resource()
+        i = _Item("key")
+
+        promise = DynamicPromise("resource", "col", "key")
+        assert promise.resolve(r.context) is promise
+
+        r.col.append(i)
+
+        assert promise.resolve(r.context) is i
+
+        r.remap_ref("resource", "col", "key", "resource", "col", "yek")
+        assert promise.key == "key"
+
+        promise.context.set_extends(r.context)
+
+        r.remap_ref("resource", "col", "key", "resource", "col", "yek")
+        assert promise.key == "yek"
+        assert promise.resolve(r.context) is promise
+
+
+        r.col.rename(i, "yek")
+        assert promise.resolve(r.context) is i
