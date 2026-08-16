@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from collections import UserDict
 from .signal import Signal
 from .context import Context
 
-from typing import Any, Self
+from typing import Any, Self, Iterable
 from weakref import ReferenceType
 
+class _UNSET:...
 
 class CollectionKey[K:str|int]():
     _key : None|K = None
@@ -31,20 +34,34 @@ class CollectionKey[K:str|int]():
             self.key_updated(o_val)
             raise
 
-class Collection[K:str|int, V:object](UserDict):
-    ''' Dict like that proposes context, allows overlays, and DynamicPromises reference these '''
+class _ItemIO():
+    overlay : None|Self = None
+    overlay_updated : Signal[Self]
+
+    key : CollectionKey[str]
+
+    def set_overlay(self, src:None|Self):...
+    
+
+class Collection[K:str|int,V:object](UserDict):
     context : Context
-    _key_attr : str|None = None
+    _key_attr : str
 
     overlay : None|Self = None
-    overlay_updated : Signal
-    _overlay_memo : dict[K,T] #Objects created from the overlay, but may or may not be saved/converted to local later
-
+    overlay_updated : Signal[Self]
 
     appended : Signal[K,V]
     removed : Signal[K,V]
     renamed : Signal[K,K,V]
-    updated : Signal[K,V]
+    updated : Signal[K,V,V]
+
+    def __init__(self, iterable:Iterable=None, /, context:Context=None, overlay:Self|None=None ):
+        self.__setup__()
+        self.context.set_extends(context)
+        self.set_overlay(overlay)
+
+        if not (iterable is None):
+            self.extend(iterable)
 
     def __setup__(self):
         self.context = Context()
@@ -56,168 +73,330 @@ class Collection[K:str|int, V:object](UserDict):
         self.renamed = Signal(self)
         self.updated = Signal(self)
 
-    def __init__(self, iterable, /, context:None|Context=None, context_self_as:None|str=None):
-        self.__setup__()
-        self.context.set_extends(context)
-        if not (context_self_as is None):
-            self.context.__setattr__(context_self_as, self)
-        super().__init__(iterable)
+    def append(self, item:V, replace=False, rename=False, right_priority=True):
+        if (item in self):
+            raise KeyError("Item is already in collection!")
 
-    def set_overlay(self, overlay:None|Self=None, supress_signals:bool=False):
-        o_items = dict(self.items())
-        if not (self.overlay is None):
-            self._disconnect_overlay(self.overlay)
-            self._overlay_disintegrate_all(supress_signals=supress_signals)
+        key = self._get_key(item, generate=True)
+        c_item = self.get(key, None)
 
-        self.overlay = overlay
-
-        if not (self.overlay is None):
-            self._connect_overlay(self.overlay)
-            self._overlay_integrate_all(supress_signals=supress_signals)
-
-        if supress_signals:
+        if (c_item is item): 
             return
-        
-        self.overlay_updated()
-        
-        n_items = dict(self.items())
 
-        added = {k:v for k,v in n_items.items() if (not (k in o_items.keys()))}
-        removed = {k:v for k,v in o_items.items() if (not (k in n_items.keys()))}
-        changed = {k:v for k,v in n_items.items() if (not (n_items.get(k,None) is o_items.get(k,None)))}
+        if (c_item is None):
+            self.data[key] = item
+            self._connect(item)
+            self.appended(key, item)
+        else:
+            self.resolve_key_colision(key, l_item=c_item, r_item=item, replace=replace, rename=rename, right_priority=right_priority, ensure_appended=True)
 
-        for k,v in added.items():
-            self._on_overlay_key_appended(k,v)
+    def rename(self, item:V, key:K, replace=False, rename=False, right_priority=True):
+        if not (item in self):
+            raise KeyError("Item isnt in collection!")
 
-        for k,v in removed.items():
-            self._on_overlay_key_removed(k,v)
+        c_key = self._get_key(item)
+        c_item = self.get(key, None)
 
-        for k,v in changed.items():
-            self._on_overlay_key_updated(k,v)
+        if (c_item is item): 
+            return
 
-    def _overlay_integrate_all(self, supress_signals:bool=False):
-        for k in {*self.overlay.keys(), *self.data.keys()}:
-            self._overlay_integrate_item(k, self.overlay.get(k, None), self.data.get(k,None))
-        
-    def _overlay_disintegrate_all(self, supress_signals:bool=False):
-        for k in {*self.overlay.keys(), *self.data.keys()}:
-            self._overlay_disintegrate_item(k, self.overlay.get(k, None), self.data.get(k,None))
+        if c_item is None:
+            del self.data[c_key]
+            self.data[key] = item
+            self.renamed(c_key, key, item)
+        else:
+            self.resolve_key_colision(key, l_item=c_item, r_item=item, replace=replace, rename=rename, right_priority=right_priority)
 
-    def _overlay_integrate_item(self, key:bool, o_item:V|None, l_item:V|None)->V:
-        ''' When overlay is set, this is called for every item in both collections matched by K '''
-        raise NotImplementedError() 
+    def remove(self, item:V):
+        if not (item in self):
+            raise KeyError("Item isnt in collection!")
 
-    def _overlay_disintegrate_item(self, key:bool, o_item:V|None, l_item:V|None)->V:
-        ''' when overlay is rem, this is called for every itme in both collections matched by K '''
-        raise NotImplementedError() 
+        key = self._get_key(item)
 
-    def _connect_overlay(self, overlay:Self):
-        self.overlay.appended.connect(self._on_overlay_key_appended, weak=True)
-        self.overlay.removed.connect(self._on_overlay_key_removed, weak=True)
-        self.overlay.renamed.connect(self._on_overlay_key_renamed, weak=True)
-        self.overlay.updated.connect(self._on_overlay_key_updated, weak=True)
+        del self.data[key]
+        self._disconnect(item)
+        self.removed(key, item)
 
-    def _disconnect_overlay(self, overlay:Self):
-        self.overlay.appended.disconnect(self._on_overlay_key_appended)
-        self.overlay.removed.disconnect(self._on_overlay_key_removed)
-        self.overlay.renamed.disconnect(self._on_overlay_key_renamed)
-        self.overlay.updated.disconnect(self._on_overlay_key_updated)
+    def replace(self, key:K, item:V):
+        if not (key in self.data.keys()):
+            raise KeyError(key)
+        l_item = self.data[key]
+        if l_item is item: 
+            return
+        self._disconnect(l_item)
+        self._set_key(key, item)
+        self.updated(key, l_item, item)
 
-    def _on_overlay_key_append(self, k:K, v:V): ...
-    def _on_overlay_key_remove(self, k:K, v:V): ...
-    def _on_overlay_key_rename(self, k0:K, k:K, v:V): ...
-    def _on_overlay_key_updated(self, k:K, v0:V|None, v:V): ...
+    def __setitem__(self, key, item):
+        self._set_key(key, item, append=True)
 
-    def embed_overlay(self,):... ## embbedd all values to localize all
+    def __delitem__(self, key):
+        item = self.get(key)
+        del self.data[key]
+        self.removed(key, item)
 
-    def append(self, item:V, rename_on_collision:bool=False, r_key_priority:bool=True):...
+    def resolve_key_colision(self,key, l_item, r_item, replace=False, rename=False, right_priority=True, ensure_appended=False)->tuple[K,K]:
+        ## Ensure both local, set keys on each. resolve. replace has priority over rename. error if both true?
 
-    def extend(self, iterable, rename_on_collision:bool=False, r_key_priority:bool=True):...
+        if replace:
+            assert not rename
+            del self[key]
+            self._set_key(r_item, append=ensure_appended)
+            return None, key
 
+        if right_priority:
+            r_key = self.generate_key(r_item)
+            self._set_key(l_item, key, append=ensure_appended)
+            self._set_key(r_item, r_key, append=ensure_appended)
+            self._set_key(r_item, append=ensure_appended)
+            return key, r_key
+        else:
+            l_key = self.generate_key(r_item)
+            self._set_key(r_item, key, append=ensure_appended)
+            self._set_key(l_item, self.generate_key(), append=ensure_appended)
+            self._set_key(l_item, append=ensure_appended)
+            return l_key, key
 
-    def get(self, key, resolve_promises:bool=True):...
+    def _get_key(self, item:V, generate:bool=False)->K:
+        ckey = getattr(item, self._key_attr, None)
 
+        if (ckey is None):
+            for k,v in self.data.items():
+                if v is item:
+                    return k
+            if generate:
+                return self.generate_key()
+            return None
+        return ckey.key
 
-    def set(self, key, item, replace=True, rename_on_collision:bool=False, r_key_priority:bool=True):...
+    def _set_key(self, item:V, key:K, append:bool=True):
+        ''' Set key, prereq that key is not already fullfilled! '''
 
-    def rename(self, item:V, key:K, rename_on_collision:bool=False, r_key_priority:bool=True): ...
+        c_item = self.data.get(key, None)
+        if (c_item is item):
+            return
+        elif not (c_item is None):
+            raise KeyError(key, "key is alreaady fillfilled!, use rename or similar!")
 
+        ckey = getattr(item, self._key_attr, None)
+        l_key = self._get_key(item, generate=False)
 
-    def remove(self, item:V|K):...
-
-
-    def _generate_key(self, obj:None|V=None)->K:...
-
-    def generate_key(self, obj:None|V=None)->K:...
-
-    def resolve_key_collision(self, key:K, l_item:V, r_item:V, r_key_priority:bool=True)->tuple[K,K]:...
-
-
-    def _connect(self, obj:V):
-        ''' Called whenever an object is added to this collection '''
-
-        if ckey := getattr(obj, self._key_attr):
-            ckey : CollectionKey
-            ckey.key_updated.connect(self.rename, prepend_source=True, weak=True)
-
-        if func:=getattr(obj,"_reference_callback",None):
-            func(self, self.context)
-
-    def _disconnect(self, obj:V):
-        ''' Called whenever an object is removed from this collection '''
-
-        if ckey := getattr(obj, self._key_attr):
-            ckey : CollectionKey
-            ckey.key_updated.disconnect(self.rename)
-
-        if hasattr(obj,"_dereference_callback"):
-            obj._dereference_callback(self, self.context)
-
-
-    def _find_key(self, item:V)->None|K: 
-        if ckey:=getattr(item, self._key_attr, None):
-            return ckey.key        
-        for k,v in self.data.items():
-            if v is item:
-                return k
-        return None
-
-    def _set_key(self,  key:K, item:V, r_key_priority:bool=True):
-        current_key = self._find_key(item)
-
-        if ckey:=getattr(item, self._key_attr, None):
+        if not (ckey is None):
             ckey._key = key
 
-        current_item = self.data.get(key, None)
-        assert (current_item is None)
-
-        if not (current_key is None):
-            del self.data[current_key]
+        if not (l_key is None):
+            del self.data[l_key]
             self.data[key] = item
-            self.renamed(current_key, key, item)
-            return
-
-        self.data[key] = item
-        self._connect(item)
-        self.appended(key, item)
-
-
-    def __setitem__(self, key:K, item:V):
-        if item in self:
-            self.rename(item, key, replace=True)
+            self.renamed(l_key, key, item)
         else:
-            self.set(key, item)
+            if not append:
+                raise ValueError("item must already be part of collection if append is false!") 
+            self.data[key] = item
+            self._connect(item)
+            self.appended(key, item)
 
-    def __getitem__(self, key:K):
-        self.get(key, include_overlays=True)
+    def _connect(self, item:V):
+        if not ((ckey := getattr(item, self._key_attr,None)) is None):
+            ckey : CollectionKey
+            ckey.key_updated.connect(self.rename)
 
-    def __delitem__(self, key:K):
-        return self.remove(key)
+    def _disconnect(self, item:V):
+        if not ((ckey := getattr(item, self._key_attr,None)) is None):
+            ckey : CollectionKey
+            ckey.key_updated.connect(self.rename)
 
-    def __contains__(self, key):
-        if isinstance(key, (str,int)):
-            return key in self.data.keys()
-        return (key in self.data.values())
+# class Collection[K:str|int, V:object](UserDict):
+#     ''' Dict like that proposes context, allows overlays, and DynamicPromises reference these '''
+#     context : Context
+#     _key_attr : str|None = None
+
+#     overlay : None|Self = None
+#     overlay_updated : Signal
+#     _overlay_memo : dict[K,T] #Objects created from the overlay, but may or may not be saved/converted to local later
+
+
+#     appended : Signal[K,V]
+#     removed : Signal[K,V]
+#     renamed : Signal[K,K,V]
+#     updated : Signal[K,V]
+
+#     def __setup__(self):
+#         self.context = Context()
+
+#         self.overlay_updated = Signal(self)
+
+#         self.appended = Signal(self)
+#         self.removed = Signal(self)
+#         self.renamed = Signal(self)
+#         self.updated = Signal(self)
+
+#     def __init__(self, iterable, /, context:None|Context=None, context_self_as:None|str=None):
+#         self.__setup__()
+#         self.context.set_extends(context)
+#         if not (context_self_as is None):
+#             self.context.__setattr__(context_self_as, self)
+#         super().__init__(iterable)
+
+#     def set_overlay(self, overlay:None|Self=None, supress_signals:bool=False):
+#         o_items = dict(self.items())
+#         if not (self.overlay is None):
+#             self._disconnect_overlay(self.overlay)
+#             self._overlay_disintegrate_all(supress_signals=supress_signals)
+
+#         self.overlay = overlay
+
+#         if not (self.overlay is None):
+#             self._connect_overlay(self.overlay)
+#             self._overlay_integrate_all(supress_signals=supress_signals)
+
+#         if supress_signals:
+#             return
+        
+#         self.overlay_updated()
+        
+#         n_items = dict(self.items())
+
+#         added = {k:v for k,v in n_items.items() if (not (k in o_items.keys()))}
+#         removed = {k:v for k,v in o_items.items() if (not (k in n_items.keys()))}
+#         changed = {k:v for k,v in n_items.items() if (not (n_items.get(k,None) is o_items.get(k,None)))}
+
+#         for k,v in added.items():
+#             self._on_overlay_key_appended(k,v)
+
+#         for k,v in removed.items():
+#             self._on_overlay_key_removed(k,v)
+
+#         for k,v in changed.items():
+#             self._on_overlay_key_updated(k,v)
+
+#     def _overlay_integrate_all(self, supress_signals:bool=False):
+#         for k in {*self.overlay.keys(), *self.data.keys()}:
+#             self._overlay_integrate_item(k, self.overlay.get(k, None), self.data.get(k,None))
+        
+#     def _overlay_disintegrate_all(self, supress_signals:bool=False):
+#         for k in {*self.overlay.keys(), *self.data.keys()}:
+#             self._overlay_disintegrate_item(k, self.overlay.get(k, None), self.data.get(k,None))
+
+#     def _overlay_integrate_item(self, key:bool, o_item:V|None, l_item:V|None)->V:
+#         ''' When overlay is set, this is called for every item in both collections matched by K '''
+#         raise NotImplementedError() 
+
+#     def _overlay_disintegrate_item(self, key:bool, o_item:V|None, l_item:V|None)->V:
+#         ''' when overlay is rem, this is called for every itme in both collections matched by K '''
+#         raise NotImplementedError() 
+
+#     def _connect_overlay(self, overlay:Self):
+#         self.overlay.appended.connect(self._on_overlay_key_appended, weak=True)
+#         self.overlay.removed.connect(self._on_overlay_key_removed, weak=True)
+#         self.overlay.renamed.connect(self._on_overlay_key_renamed, weak=True)
+#         self.overlay.updated.connect(self._on_overlay_key_updated, weak=True)
+
+#     def _disconnect_overlay(self, overlay:Self):
+#         self.overlay.appended.disconnect(self._on_overlay_key_appended)
+#         self.overlay.removed.disconnect(self._on_overlay_key_removed)
+#         self.overlay.renamed.disconnect(self._on_overlay_key_renamed)
+#         self.overlay.updated.disconnect(self._on_overlay_key_updated)
+
+#     def _on_overlay_key_append(self, k:K, v:V):  ... ## Itegrate or forward depending on purpose. Remaps may also have to be known. 
+#     def _on_overlay_key_remove(self, k:K, v:V):  ... ## Itegrate or forward depending on purpose. Remaps may also have to be known. 
+#     def _on_overlay_key_rename(self, k0:K, k:K, v:V):  ... ## Itegrate or forward depending on purpose. Remaps may also have to be known. 
+#     def _on_overlay_key_updated(self, k:K, v0:V|None, v:V):  ... ## Itegrate or forward depending on purpose. Remaps may also have to be known. 
+
+#     def embed_overlay(self,):... ## embbedd all values to localize all
+
+#     def _find_key(self, item:V)->None|K: 
+#         if ckey:=getattr(item, self._key_attr, None):
+#             return ckey.key        
+#         for k,v in self.data.items():
+#             if v is item:
+#                 return k
+#         return None
+
+#     def _set_key(self,  key:K, item:V, r_key_priority:bool=True):
+#         current_key = self._find_key(item)
+
+#         if ckey:=getattr(item, self._key_attr, None):
+#             ckey._key = key
+
+#         current_item = self.data.get(key, None)
+#         assert (current_item is None)
+
+#         if not (current_key is None):
+#             del self.data[current_key]
+#             self.data[key] = item
+#             self.renamed(current_key, key, item)
+#             return
+
+#         self.data[key] = item
+#         self._connect(item)
+#         self.appended(key, item)
+
+#     def append(self, item:V, rename_on_collision:bool=False, r_key_priority:bool=True):
+#         key = self._find_key(item)
+#         self._set_key(None, item, rename_on_collision=rename_on_collision, r_key_priority=r_key_priority )
+
+#     def extend(self, iterable, rename_on_collision:bool=False, r_key_priority:bool=True):
+#         for i in iterable:
+#             self.append(i, rename_on_collision=rename_on_collision, r_key_priority=r_key_priority)
+
+#     # def get(self, key, default:Any=_UNSET):
+#     #     r = self.data.get(key, _UNSET)
+        
+#     def set(self, key, item, replace=True, rename_on_collision:bool=False, r_key_priority:bool=True):...
+
+#     def rename(self, item:V, key:K, rename_on_collision:bool=False, r_key_priority:bool=True): ...
+
+
+#     def remove(self, item:V|K):...
+
+
+#     def _generate_key(self, obj:None|V=None)->K:...
+
+#     def generate_key(self, obj:None|V=None)->K:...
+
+#     def resolve_key_collision(self, key:K, l_item:V, r_item:V, r_key_priority:bool=True)->tuple[K,K]:...
+
+
+#     def _connect(self, obj:V):
+#         ''' Called whenever an object is added to this collection '''
+
+#         if ckey := getattr(obj, self._key_attr):
+#             ckey : CollectionKey
+#             ckey.key_updated.connect(self.rename, prepend_source=True, weak=True)
+
+#         if func:=getattr(obj,"_reference_callback",None):
+#             func(self, self.context)
+
+#     def _disconnect(self, obj:V):
+#         ''' Called whenever an object is removed from this collection '''
+
+#         if ckey := getattr(obj, self._key_attr):
+#             ckey : CollectionKey
+#             ckey.key_updated.disconnect(self.rename)
+
+#         if hasattr(obj,"_dereference_callback"):
+#             obj._dereference_callback(self, self.context)
+
+
+
+
+
+#     def __setitem__(self, key:K, item:V):
+#         if item in self:
+#             self.rename(item, key, replace=True)
+#         else:
+#             self.set(key, item)
+
+#     def __getitem__(self, key:K):
+#         self.get(key, include_overlays=True)
+
+#     def __delitem__(self, key:K):
+#         return self.remove(key)
+
+#     def __contains__(self, key):
+#         if isinstance(key, (str,int)):
+#             return key in self.data.keys()
+#         return (key in self.data.values())
 
 
 # class Collection[K:str|int, V:object](UserDict):
