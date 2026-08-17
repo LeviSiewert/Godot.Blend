@@ -55,7 +55,8 @@ class Collection[K:str|int,V:object](UserDict):
     renamed : Signal[K,K,V]
     updated : Signal[K,V,V]
 
-    def __init__(self, iterable:Iterable=None, /, context:Context=None ):
+    def __init__(self, iterable:Iterable=None, /, key_attr:str=None, context:Context=None):
+        self._key_attr = key_attr
         self.__setup__()
         self.context.set_extends(context)
 
@@ -72,7 +73,7 @@ class Collection[K:str|int,V:object](UserDict):
         self.renamed = Signal(self)
         self.updated = Signal(self)
 
-    def append(self, item:V, replace=False, rename=False, right_priority=True):
+    def append(self, item:V, replace=False, rename=False, right_priority=True, supress_callback:bool=False):
         if (item in self):
             raise KeyError("Item is already in collection!")
 
@@ -84,10 +85,10 @@ class Collection[K:str|int,V:object](UserDict):
 
         if (c_item is None):
             self.data[key] = item
-            self._connect(item)
+            self._connect(item, supress_callback=supress_callback)
             self.appended(key, item)
         else:
-            self.resolve_key_colision(key, l_item=c_item, r_item=item, replace=replace, rename=rename, right_priority=right_priority, ensure_appended=True)
+            self.resolve_key_colision(key, l_item=c_item, r_item=item, replace=replace, rename=rename, right_priority=right_priority, ensure_appended=True, supress_callback=supress_callback)
 
     def rename(self, item:V, key:K, replace=False, rename=False, right_priority=True):
         if not (item in self):
@@ -106,24 +107,24 @@ class Collection[K:str|int,V:object](UserDict):
         else:
             self.resolve_key_colision(key, l_item=c_item, r_item=item, replace=replace, rename=rename, right_priority=right_priority)
 
-    def remove(self, item:V):
+    def remove(self, item:V, supress_callback:bool=False):
         if not (item in self):
             raise KeyError("Item isnt in collection!")
 
         key = self._get_key(item)
 
         del self.data[key]
-        self._disconnect(item)
+        self._disconnect(item, supress_callback=supress_callback)
         self.removed(key, item)
 
-    def replace(self, key:K, item:V):
+    def replace(self, key:K, item:V, supress_reference_callback:bool=False, supress_dereference_callback:bool=False):
         if not (key in self.data.keys()):
             raise KeyError(key)
         l_item = self.data[key]
         if l_item is item: 
             return
-        self._disconnect(l_item)
-        self._set_key(key, item)
+        self._disconnect(l_item, supress_callback=supress_dereference_callback)
+        self._set_key(key, item, supress_callback=supress_reference_callback)
         self.updated(key, l_item, item)
 
     def __setitem__(self, key, item):
@@ -134,26 +135,24 @@ class Collection[K:str|int,V:object](UserDict):
         del self.data[key]
         self.removed(key, item)
 
-    def resolve_key_colision(self,key, l_item, r_item, replace=False, rename=False, right_priority=True, ensure_appended=False)->tuple[K,K]:
+    def resolve_key_colision(self,key, l_item, r_item, replace=False, rename=False, right_priority=True, ensure_appended=False, supress_callback:bool=False)->tuple[K,K]:
         ## Ensure both local, set keys on each. resolve. replace has priority over rename. error if both true?
 
         if replace:
             assert not rename
             del self[key]
-            self._set_key(r_item, append=ensure_appended)
+            self._set_key(r_item, append=ensure_appended, supress_callback=supress_callback)
             return None, key
 
         if right_priority:
             r_key = self.generate_key(r_item)
-            self._set_key(l_item, key, append=ensure_appended)
-            self._set_key(r_item, r_key, append=ensure_appended)
-            self._set_key(r_item, append=ensure_appended)
+            self._set_key(l_item, key, append=ensure_appended, supress_callback=supress_callback)
+            self._set_key(r_item, r_key, append=ensure_appended, supress_callback=supress_callback)
             return key, r_key
         else:
             l_key = self.generate_key(r_item)
-            self._set_key(r_item, key, append=ensure_appended)
-            self._set_key(l_item, self.generate_key(), append=ensure_appended)
-            self._set_key(l_item, append=ensure_appended)
+            self._set_key(r_item, key, append=ensure_appended, supress_callback=supress_callback)
+            self._set_key(l_item, self.generate_key(), append=ensure_appended, supress_callback=supress_callback)
             return l_key, key
 
     def _get_key(self, item:V, generate:bool=False)->K:
@@ -168,7 +167,7 @@ class Collection[K:str|int,V:object](UserDict):
             return None
         return ckey.key
 
-    def _set_key(self, item:V, key:K, append:bool=True):
+    def _set_key(self, item:V, key:K, append:bool=True, supress_callback:bool=False):
         ''' Set key, prereq that key is not already fullfilled! '''
 
         c_item = self.data.get(key, None)
@@ -191,18 +190,22 @@ class Collection[K:str|int,V:object](UserDict):
             if not append:
                 raise ValueError("item must already be part of collection if append is false!") 
             self.data[key] = item
-            self._connect(item)
+            self._connect(item, supress_callback=supress_callback)
             self.appended(key, item)
 
-    def _connect(self, item:V):
+    def _connect(self, item:V, supress_callback:bool=False):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
             ckey.key_updated.connect(self.rename)
+        if (not supress_callback) and (func:=getattr("_reference_callback", None)):
+            func(self.context)
 
-    def _disconnect(self, item:V):
+    def _disconnect(self, item:V, supress_callback:bool=False):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
             ckey.key_updated.connect(self.rename)
+        if (not supress_callback) and (func:=getattr("_dereference_callback", None)):
+            func(self.context)
 
 class _CollectionOverlayable(Collection):
     ''' Collection where overlayed collections actions are propogated upwards and items are integrated '''
