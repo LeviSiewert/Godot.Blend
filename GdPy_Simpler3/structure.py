@@ -40,7 +40,7 @@ class DynamicPromiseStructural[S:_ScopeIO|Any, K:str|int, I:Any](DynamicPromise)
 
     def _reference_callback(self, context:Context):
         self.context.set_extends(context)
-        
+
     def _dereference_callback(self, context:Context):
         pass
 
@@ -71,7 +71,7 @@ class DynamicPromiseStructural[S:_ScopeIO|Any, K:str|int, I:Any](DynamicPromise)
         self.key = key
         self.scope = scope
         self._on_context_element_changed(scope, getattr(self.context, scope))
-        
+
 ## Gd Type Definitions:
 
 class GdDefProperty:
@@ -103,6 +103,12 @@ class File():
     resource : DynamicPromise[Resource]|Resource
 
 class Properties[K:str,V:Any](UserDict):
+    ''' Get localizes dynamic promises, and defaults to overlay.get when allowable. 
+    if the overlay.get is a DynamicPromise[ExtResource], resolve foreign
+    if the overlay.get is a DynamicPromise[SubResource], try to resolve it locally first in chain, then resolve backwards.
+    if the overlay.get is a DynamicPromise[Node] or DynamicPromise_NodePath, get the relative path within it's context and localize to it's root's first instance up the node tree
+        - consider caching fullpath & root
+    '''
     context : Context
     overlay : None|Self = None
 
@@ -170,6 +176,8 @@ class Resource():
 
     instance : None|Self|DynamicPromise[Self] = None
     overlay : None|Self|DynamicPromise[Self] = None
+    # _users : list[ReferenceType[Resource|Node]]
+
     GdDefType : None|GdDefType|DynamicPromise[GdDefType] = None
 
     uid : CollectionKey[str]
