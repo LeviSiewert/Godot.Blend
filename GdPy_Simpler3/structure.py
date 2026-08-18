@@ -3,7 +3,7 @@ from weakref import ReferenceType as WeakReferenceType, ref as wref
 from typing import Self, Any, Iterable
 from collections import UserDict
 
-from .signal import Signal
+from .signals import Signal
 from .context import Context
 
 

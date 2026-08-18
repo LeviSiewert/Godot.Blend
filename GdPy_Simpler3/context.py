@@ -1,8 +1,10 @@
 from __future__ import annotations
 from typing import Any, Callable
-from .signal import Signal
+from .signals import Signal
 
 from contextvars import ContextVar
+
+class _UNSET:...
 
 class Context():
     ''' Context object, attribute fallback through extends chain. Values set/changed along chain propigate to children. (including removed as None) 

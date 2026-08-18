@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections import UserDict
-from .signal import Signal
+from .signals import Signal
 from .context import Context
 
 from typing import Any, Self, Iterable
-from weakref import ReferenceType
+from string import ascii_letters
+
+import random
+
 
 class _UNSET:...
 
@@ -55,13 +58,16 @@ class Collection[K:str|int,V:object](UserDict):
     renamed : Signal[K,K,V]
     updated : Signal[K,V,V]
 
-    def __init__(self, iterable:Iterable=None, /, key_attr:str=None, context:Context=None):
+    def __init__(self, iterable:Iterable=None, /, key_attr:str="", context:Context=None):
         self._key_attr = key_attr
         self.__setup__()
         self.context.set_extends(context)
 
+        self.data = {}
+
         if not (iterable is None):
             self.extend(iterable)
+
 
     def __setup__(self):
         self.context = Context()
@@ -127,6 +133,12 @@ class Collection[K:str|int,V:object](UserDict):
         self._set_key(key, item, supress_callback=supress_reference_callback)
         self.updated(key, l_item, item)
 
+    def __contains__(self, item:K|V):
+        if isinstance(item, (str,int)):
+            return item in self.data.keys()
+        else:
+            return item in self.data.values()
+
     def __setitem__(self, key, item):
         self._set_key(key, item, append=True)
 
@@ -150,9 +162,9 @@ class Collection[K:str|int,V:object](UserDict):
             self._set_key(r_item, r_key, append=ensure_appended, supress_callback=supress_callback)
             return key, r_key
         else:
-            l_key = self.generate_key(r_item)
+            l_key = self.generate_key(l_item)
             self._set_key(r_item, key, append=ensure_appended, supress_callback=supress_callback)
-            self._set_key(l_item, self.generate_key(), append=ensure_appended, supress_callback=supress_callback)
+            self._set_key(l_item, l_key, append=ensure_appended, supress_callback=supress_callback)
             return l_key, key
 
     def _get_key(self, item:V, generate:bool=False)->K:
@@ -163,7 +175,7 @@ class Collection[K:str|int,V:object](UserDict):
                 if v is item:
                     return k
             if generate:
-                return self.generate_key()
+                return self.generate_key(item)
             return None
         return ckey.key
 
@@ -197,15 +209,26 @@ class Collection[K:str|int,V:object](UserDict):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
             ckey.key_updated.connect(self.rename)
-        if (not supress_callback) and (func:=getattr("_reference_callback", None)):
+        if (not supress_callback) and (func:=getattr(item, "_reference_callback", None)):
             func(self.context)
 
     def _disconnect(self, item:V, supress_callback:bool=False):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
             ckey.key_updated.connect(self.rename)
-        if (not supress_callback) and (func:=getattr("_dereference_callback", None)):
+        if (not supress_callback) and (func:=getattr(item, "_dereference_callback", None)):
             func(self.context)
+
+    
+    def generate_key(self,obj:V)->str:
+        keys = tuple(self.keys())
+        n_key = self._generate_key(obj)
+        while n_key in keys:
+            n_key = self._generate_key(obj)
+        return n_key
+
+    def _generate_key(self, obj:V)->str:
+        return "".join(random.sample(ascii_letters,9))
 
 class _CollectionOverlayable(Collection):
     ''' Collection where overlayed collections actions are propogated upwards and items are integrated '''
