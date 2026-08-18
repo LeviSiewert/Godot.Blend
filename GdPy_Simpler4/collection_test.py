@@ -137,20 +137,69 @@ class Test_Collection():
         assert _renamed == [("i_l", "standin", i_l)]
         assert _replaced == [("i_l", i_l, i_r)]
 
-    def test_key_generation_str():
-        raise NotImplementedError()
+    def test_key_generation_str(self):
+        c = Collection(key_attr="key", key_is_string=True, key_resolve_incriment=False ,key_formatter=None)
+        i1 = _Item("key")
+        i2 = _Item("key")
+        c.append(i1)
+        c.append(i2, rename=True, right_key_priority=True)
 
-    def test_key_generation_int():
-        raise NotImplementedError()
+        assert i1.key.key != "key"
+        assert i1.key.key != "key1"
+        assert i2.key.key == "key"
 
-    def test_key_generation_str_index():
-        raise NotImplementedError()
 
-    def test_key_generation_int_index():
-        raise NotImplementedError()
 
-    def test_key_generation_custom():
-        raise NotImplementedError()
+    def test_key_generation_int(self):
+        c = Collection(key_attr="key", key_is_string=False, key_resolve_incriment=False, key_formatter=None)
+
+        i1 = _Item(1)
+        i2 = _Item(1)
+        c.append(i1)
+        c.append(i2, rename=True, right_key_priority=True)
+
+        assert i1.key.key != 1
+        assert i2.key.key == 1
+
+    def test_key_generation_str_incriment(self):
+        c = Collection(key_attr="key", key_is_string=True, key_resolve_incriment=True, key_formatter=None)
+
+        i1 = _Item("key")
+        i2 = _Item("key")
+        c.append(i1)
+        c.append(i2, rename=True, right_key_priority=True)
+
+        assert i1.key.key == "key1"
+        assert i2.key.key == "key"
+
+
+    def test_key_generation_int_incriment(self):
+        c = Collection(key_attr="key", key_is_string=False, key_resolve_incriment=True ,key_formatter=None)
+
+        i1 = _Item(1)
+        i2 = _Item(1)
+        c.append(i1)
+        c.append(i2, rename=True, right_key_priority=True)
+
+        assert i1.key.key == 2
+        assert i2.key.key == 1
+
+    def test_key_generation_formatter(self):
+        cvar = ContextVar("")
+        def formatter(col,obj,key): 
+            cvar.set((col,obj,key))
+            return key 
+        
+        c = Collection(key_attr="key", key_is_string=True, key_resolve_incriment=True, key_formatter=formatter)
+        i1 = _Item("key")
+        i2 = _Item("key")
+        c.append(i1)
+        c.append(i2, rename=True, right_key_priority=True)
+
+        assert cvar.get()[0] is c 
+        assert cvar.get()[1] == i1
+        assert cvar.get()[2] == "key1"
+
 
 
 

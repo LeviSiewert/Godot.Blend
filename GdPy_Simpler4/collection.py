@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Callable
 from collections import UserDict
+from string import digits, ascii_letters
+
+import random 
 
 from .signals import Signal
 from .context import Context
+
 
 class _UNSET:...
 
@@ -31,6 +35,8 @@ class CollectionKey[K:str|int]():
         self.src = src
         self._key = key
 
+from enum import Enum
+
 class Collection[K:str|int,V:Any](UserDict):
     context : Context
 
@@ -43,6 +49,10 @@ class Collection[K:str|int,V:Any](UserDict):
     renamed : Signal[K,K,V]
     replaced : Signal[K,V,V]
 
+    key_is_string : bool = True
+    key_increment : bool = False
+    key_formatter : None|Callable = None 
+
     def __setup__(self):
         self.data = {}
 
@@ -53,8 +63,12 @@ class Collection[K:str|int,V:Any](UserDict):
         self.renamed = Signal(self)
         self.replaced = Signal(self)
 
-    def __init__(self, key_attr:str, iterable:Iterable=tuple(), context:Context=None):
+    def __init__(self, key_attr:str, iterable:Iterable=tuple(), context:Context=None, key_is_string:bool=True, key_resolve_incriment:bool=False, key_formatter:Callable|None=None):
         self.__setup__()
+
+        self.key_is_string = key_is_string
+        self.key_increment = key_resolve_incriment
+        self.key_formatter = key_formatter
 
         self.key_attr = key_attr
 
@@ -70,7 +84,8 @@ class Collection[K:str|int,V:Any](UserDict):
         
         key = getattr(item, self.key_attr).key
         if key is None:
-            key = self.generate_key()
+            key = self.generate_key(item)
+            getattr(item, self.key_attr)._key = key
 
         if (key in self) and (rename is False):
             raise ValueError("key is already fullfilled in collection!")
@@ -150,7 +165,11 @@ class Collection[K:str|int,V:Any](UserDict):
 
         # if (rename):
         
-        new_l_key = self.generate_key(l_val)
+        if self.key_increment:
+            new_l_key = self.incriment_key(l_val, key)
+        else:
+            new_l_key = self.generate_key(l_val)
+
         assert new_l_key != key
 
         self.data[new_l_key] = l_val
@@ -184,6 +203,58 @@ class Collection[K:str|int,V:Any](UserDict):
             return (key in self.data.keys())
         return key in self.data.values()
 
-    ##TODO:
-    # Generate keys & optional methods (index vs regenerate, obj type dependent?, ect)
-    # Optional resolution methods fr collection keys
+    def incriment_key(self,obj:V,key:K)->K:
+        if isinstance(key, int):
+            return self.incriment_integer_key(obj,key)
+        if isinstance(key, str):
+            return self.incriment_string_key(obj,key)
+        raise KeyError(key)
+
+    def incriment_integer_key(self, obj:V, key:int):
+        keys = tuple(self.keys())
+        i = 1
+        if not (self.key_formatter is None):
+            n_key = self.key_formatter(self, obj, key+i)
+        else:
+            n_key = key+i
+        while n_key in keys:
+            if not (self.key_formatter is None):
+                n_key = self.key_formatter(self, obj, key+i)
+            else:
+                n_key = key+i
+            i = i+1
+        return n_key
+    
+    def incriment_string_key(self, obj:V, key:str):
+        keys = tuple(self.keys())
+        i = 1
+        if not (self.key_formatter is None):
+            n_key = self.key_formatter(self, obj, key.rstrip(digits))
+        else:
+            n_key = key.rstrip(digits)
+        while n_key in keys:
+            if not (self.key_formatter is None):
+                n_key = self.key_formatter(self, obj, f"{key}{i}")
+            else:
+                n_key = f"{key}{i}"
+            i = i+1
+        return n_key
+
+    def _generate_key(self,obj:V)->K:
+        if self.key_is_string:
+            res = "".join(random.sample(ascii_letters, 9))
+        else:
+            res = random.randint(100000, 999999)
+        if not (self.key_formatter is None):
+            return self.key_formatter(self, obj, res)
+
+    def generate_key(self,obj:V)->K:
+        keys = self.data.keys()
+        k = self._generate_key(obj)
+        i = 0
+        while k in keys:
+            k = self._generate_key(obj)
+            i = i+1
+            if i > 99:
+                raise Exception("")
+        return k
