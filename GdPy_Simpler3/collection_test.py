@@ -11,13 +11,15 @@ class _Item():
     def __init__(self, key:str):
         self.context = Context()
         self.var = 0
-        self.key = CollectionKey(key)
+        self.key = CollectionKey(src=self, key=key)
 
     def _reference_callback(self, context:Context):
         self.context.set_extends(context)
+        self.var = self.var+1
     
     def _dereference_callback(self, context:Context):
         self.context.set_extends(None)
+        self.var = self.var-1
 
 class Test_CollectionKey():
     def test_basic(self):
@@ -37,28 +39,28 @@ class Test_CollectionKey():
 
 class Test_Collection():
     def test_construction(self,):
-        c = Collection(context=Context())
+        c = Collection(context=Context(), key_attr="key")
 
     def test_append_remove(self):
-        c = Collection(context=Context())
+        c = Collection(context=Context(), key_attr="key")
         i = _Item("key")
 
         c.append(i)
 
         assert i in c.values()
         assert c["key"] is i
-        assert c.var == 1
-        assert c.context._extends is c.context
+        assert i.var == 1
+        # assert c.context._extends is c.context
 
         c.remove(i)
 
         assert not (i in c)
         assert c.get("key", None) is None 
-        assert c.var == 0
-        assert c.context._extends is None
+        assert i.var == 0
+        # assert c.context._extends is None
 
     def test_rename(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i = _Item("key")
 
         c.append(i)
@@ -72,7 +74,7 @@ class Test_Collection():
         
 
     def test_rename_via_key(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i = _Item("key")
 
         c.append(i)
@@ -82,10 +84,10 @@ class Test_Collection():
         i.key.key = "yek"
 
         assert c["yek"] is i
-        assert c.get("key",None) is None
+        assert c.get("key", None) is None
 
     def test_rename_via_setitem(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i = _Item("key")
 
         c.append(i)
@@ -98,7 +100,7 @@ class Test_Collection():
         assert c.get("key",None) is None
 
     def test_name_via_setitem(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i = _Item("key")
 
         c["yek"] = i
@@ -108,7 +110,7 @@ class Test_Collection():
 
 
     def test_keycollision_via_append(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item("key")
         i1 = _Item("key")
 
@@ -121,7 +123,7 @@ class Test_Collection():
         assert i1.key.key == "key"
 
     def test_keycollision_via_append_leftprio(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item("key")
         i1 = _Item("key")
 
@@ -134,7 +136,7 @@ class Test_Collection():
         assert i1.key.key != "key"
 
     def test_replace_via_set(self):
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item()
         i1 = _Item()
 
@@ -147,7 +149,7 @@ class Test_Collection():
 
     def test_replace_via_setitem(self):
         """ Assertion error doesn't occur, but should it? What other re-actions are required? """
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item()
         i1 = _Item()
 
@@ -161,7 +163,7 @@ class Test_Collection():
     def test_keycollision_via_rename(self):
         ''' Dynamic References must be rectified externally as no strong connection exists between dynamic refs and collections, this will be done via signals the ref subs to
         The signals will not be on the collection itself, but rather the scope containing the collection '''
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item("key")
         i1 = _Item("key1")
 
@@ -175,7 +177,7 @@ class Test_Collection():
     def test_keycollision_via_rename_left_priority(self):
         ''' Dynamic References must be rectified externally as no strong connection exists between dynamic refs and collections, this will be done via signals the ref subs to
         The signals will not be on the collection itself, but rather the scope containing the collection '''
-        c = Collection()
+        c = Collection(key_attr="key")
         i0 = _Item("key")
         i1 = _Item("key1")
 

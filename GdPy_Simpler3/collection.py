@@ -16,9 +16,10 @@ class CollectionKey[K:str|int]():
     _key : None|K = None
     key_updated : Signal[K]
 
-    def __init__(self, key:None|K=None):
+    def __init__(self, /, src:Any, key:None|K=None,):
         self.key_updated = Signal(self)
         self._key = key
+        self.src = src
 
     def __repr__(self):
         return f"CollectionKey('{self.key}')"
@@ -31,10 +32,10 @@ class CollectionKey[K:str|int]():
         o_val = self._key
         try:
             self._key = val
-            self.key_updated(val)
+            self.key_updated(self.src, val)
         except:
             self._key = o_val
-            self.key_updated(o_val)
+            self.key_updated(self.src, o_val)
             raise
 
 class _ItemIO():
@@ -100,14 +101,15 @@ class Collection[K:str|int,V:object](UserDict):
         if not (item in self):
             raise KeyError("Item isnt in collection!")
 
-        c_key = self._get_key(item)
+        c_key = self._get_key(item, local_only=True)
         c_item = self.get(key, None)
 
         if (c_item is item): 
             return
 
         if c_item is None:
-            del self.data[c_key]
+            if not (c_key is None):
+                del self.data[c_key]
             self.data[key] = item
             self.renamed(c_key, key, item)
         else:
@@ -135,9 +137,9 @@ class Collection[K:str|int,V:object](UserDict):
 
     def __contains__(self, item:K|V):
         if isinstance(item, (str,int)):
-            return item in self.data.keys()
+            return (item in self.data.keys())
         else:
-            return item in self.data.values()
+            return (item in self.data.values())
 
     def __setitem__(self, key, item):
         self._set_key(key, item, append=True)
@@ -167,17 +169,20 @@ class Collection[K:str|int,V:object](UserDict):
             self._set_key(l_item, l_key, append=ensure_appended, supress_callback=supress_callback)
             return l_key, key
 
-    def _get_key(self, item:V, generate:bool=False)->K:
+    def _get_key(self, item:V, generate:bool=False, local_only:bool=False)->K:
         ckey = getattr(item, self._key_attr, None)
 
         if (ckey is None):
+            # raise Exception(item, item.key, self._key_attr)
             for k,v in self.data.items():
                 if v is item:
                     return k
             if generate:
                 return self.generate_key(item)
             return None
-        return ckey.key
+        if not local_only:
+            return ckey.key
+        return None
 
     def _set_key(self, item:V, key:K, append:bool=True, supress_callback:bool=False):
         ''' Set key, prereq that key is not already fullfilled! '''
@@ -208,14 +213,14 @@ class Collection[K:str|int,V:object](UserDict):
     def _connect(self, item:V, supress_callback:bool=False):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
-            ckey.key_updated.connect(self.rename)
+            ckey.key_updated.connect(self.rename, weak=True)
         if (not supress_callback) and (func:=getattr(item, "_reference_callback", None)):
             func(self.context)
 
     def _disconnect(self, item:V, supress_callback:bool=False):
         if not ((ckey := getattr(item, self._key_attr,None)) is None):
             ckey : CollectionKey
-            ckey.key_updated.connect(self.rename)
+            ckey.key_updated.connect(self.rename, weak=True)
         if (not supress_callback) and (func:=getattr(item, "_dereference_callback", None)):
             func(self.context)
 
