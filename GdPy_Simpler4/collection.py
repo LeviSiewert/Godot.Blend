@@ -56,7 +56,7 @@ class Collection[K:str|int,V:Any](UserDict):
     def __setup__(self):
         self.data = {}
 
-        self.context = Context
+        self.context = Context()
 
         self.appended = Signal(self)
         self.removed = Signal(self)

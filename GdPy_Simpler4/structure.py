@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from weakref import ref as wref, ReferenceType as WeakReferenceType
+from weakref import ref as weakref, ReferenceType as WeakReferenceType
 from typing import Any, Self, Callable
 from enum import Enum
 
@@ -8,35 +8,61 @@ from .collection import Collection, CollectionKey
 from .context import Context
 from .signals import Signal
 
+class _UNSET:...
+
+class _ProjectIO[K:str|int]():
+    update_references: Signal[Callable, Callable, None|Any|_ItemIO]
+
 class _ResourceIO[K:str|int]():
-    replace_references: Signal[StructReference.RefType, K, StructReference.RefType, K, _IO|Any]
     some_collection : Collection
 
-class _IO[K:str|int]():
+class _ItemIO[K:str|int]():
     some_key : CollectionKey[K]
-    fullfill_references: Signal[Self, StructReference.RefType, K]
-    def provide_reftype_key(self)->tuple[None|StructReference.RefType, None|K]: ...
+    fullfill_references: Signal[Self, RefType, K]
+    def provide_reftype_key(self)->tuple[None|RefType, None|K]: ...
 
-class StructReference[K:str|int, V:_IO|Any]():
+class RefType(Enum):
+    ## Free for first fullfillment
+    DEFER        = None
+    ## Locked reference types;
+    RID          = ("project" , "resources"    , False)
+    FILE         = ("project" , "files"        , False)
+    ## Unlocked Reference types;
+    RESOURCE     = ("project" , "resources"    , True ) # -> ext_resource when saved, sub_resource when embedded
+    EXT_RESOURCE = ("resource", "ext_resources", True ) # -> Subresource when embedded
+    SUB_RESOURCE = ("resource", "sub_resources", True ) # -> resource | ext_resource when saved/coppied as.
+
+class StructReference[K:str|int, V:_ItemIO|Any]():
     ''' A reference type that can limited convert between types and be defered, requires resolving via context arguments '''
-
-    class RefType(Enum):
-        ## Free for first fullfillment
-        DEFER        = None
-        ## Locked reference types;
-        RID          = ("project" , "resources"    , False)
-        FILE         = ("project" , "files"        , False)
-        ## Unlocked Reference types;
-        RESOURCE     = ("project" , "resources"    , True ) # -> ext_resource when saved, sub_resource when embedded
-        EXT_RESOURCE = ("resource", "ext_resources", True ) # -> Subresource when embedded
-        SUB_RESOURCE = ("resource", "sub_resources", True ) # -> resource | ext_resource when saved/coppied as.
+    context : Context
 
     sref : None|V = None 
-    wref : None|WeakReferenceType[V] = None
+    wref : WeakReferenceType[V] = weakref(_UNSET())
     ref_type : RefType = RefType.DEFER
     key : str|None       ## Key for Collection
 
+    def __setup__(self):
+        self.context = Context()
+        self.context.callback("project", self._on_project_updated, weak=True)
+
+
+    p_cached : WeakReferenceType = weakref(_UNSET())
+    def _on_project_updated(self, _, project:_ProjectIO|Any|None):
+        p_cached : _ProjectIO|Any|None = self.p_cached()
+        if not (p_cached is None):
+            p_cached.update_references.disconnect(self._on_update_references)
+
+        if not (project is None):
+            self.p_cached = weakref(project)
+        else:
+            del self.p_cached
+
+        if not (project is None):
+            project.update_references.connect(self._on_update_references, weak=True)
+
     def __init__(self, /, key:K|None=None, ref_type:RefType=RefType.DEFER, obj:V|None=None, ):
+        self.__setup__()
+
         if not (key is None):
             assert not (ref_type is None)
             assert (obj is None)
@@ -52,12 +78,14 @@ class StructReference[K:str|int, V:_IO|Any]():
         _ref_type, _key = obj.provide_reftype_key()
         if (_ref_type is None):
             obj.fullfill_references.connect(self._on_fullfill_references, once=True, weak=True)
+            self.sref = obj
         else:
             self._on_fullfill_references(_ref_type, _key)
+            self.wref = weakref(obj)
 
 
-    def _on_fullfill_references(self, ref_type:StructReference.RefType, key:K):
-        if self.ref_type == StructReference.RefType.DEFER:
+    def _on_fullfill_references(self, ref_type:RefType, key:K):
+        if self.ref_type == RefType.DEFER:
             self.ref_type = ref_type
 
         elif not (self.ref_type[1] != ref_type[1]):
@@ -68,13 +96,13 @@ class StructReference[K:str|int, V:_IO|Any]():
         self.key = key
 
         if not (self.sref is None):
-            self.wref = wref(self.sref)
+            self.wref = weakref(self.sref)
             self.sref = None
 
-    def _on_update_reference(self, filter:Callable, updater:Callable, new_object:None|V, ):
+    def _on_update_references(self, filter:Callable, updater:Callable, new_object:None|V=None ):
         if not filter(self):
             return
-        obj :_IO= self.sref if (not (self.sref is None)) else self.wref()
+        obj :_ItemIO= self.sref if (not (self.sref is None)) else self.weakref()
 
         if not (obj is None):
             obj.fullfill_references.disconnect(self._on_fullfill_references)
@@ -86,10 +114,10 @@ class StructReference[K:str|int, V:_IO|Any]():
             new_object.fullfill_references.connect(self._on_fullfill_references, once=True, weak=True)
 
         elif not (new_object is None):
-            self.wref = wref(new_object)
+            self.wref = weakref(new_object)
 
     def resolve[D:Any|None](self, context:Context, default:D=None)->D|V:
-        if (self.ref_type is StructReference.RefType.DEFER):
+        if (self.ref_type is RefType.DEFER):
             if (self.sref is None):
                 return default
             return self.sref
@@ -102,13 +130,15 @@ class StructReference[K:str|int, V:_IO|Any]():
         if col is None:
             return default
 
-        item : _IO = col.get(self.key, None)
+        item : _ItemIO = col.get(self.key, None)
         if item is None:
             return default
 
         if not (self.sref is None):
             self.sref = None
-            self.wref = wref(item)
+            self.wref = weakref(item)
+
+        return item
         
 
     # def _on_collection_append():
