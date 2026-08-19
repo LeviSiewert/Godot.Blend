@@ -61,7 +61,7 @@ class Test_StructReference():
         assert r.sref is None
         assert r.wref() is i
 
-    def test_project_connection(self):
+    def test_element_changed_connection(self):
         i = _Item("val", "project")
         r = StructReference(obj=_Item("val","resource"))
 
@@ -69,14 +69,13 @@ class Test_StructReference():
         
         assert len(i.update_references.subscribers) == 1
 
-    def test_project_update_reference(self):
+    def test_element_changed(self):
         p = _Item("", "project")
         i = _Item("yek","resource")
         p.col_a.append(i)
         
         r = StructReference(obj=i)
         r.context.set_extends(p.context)
-
 
         def _filter(r:StructReference):
             return r.sref is i

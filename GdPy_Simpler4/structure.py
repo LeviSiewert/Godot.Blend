@@ -10,7 +10,7 @@ from .signals import Signal
 
 class _UNSET:...
 
-class _ProjectIO[K:str|int]():
+class _UpdaterIO[K:str|int]():
     update_references: Signal[Callable, Callable, None|Any|_ItemIO]
 
 class _ResourceIO[K:str|int]():
@@ -33,7 +33,30 @@ class RefType(Enum):
     SUB_RESOURCE = ("resource", "sub_resources", True ) # -> resource | ext_resource when saved/coppied as.
 
 class StructReference[K:str|int, V:_ItemIO|Any]():
-    ''' A reference type that can limited convert between types and be defered, requires resolving via context arguments '''
+    ''' A reference type that can limited convert between types and be defered, requires resolving via context arguments 
+    Noteable behavior: 
+        - Attaches to context.*.update_references for replacements
+        - fullfill_references is a one shot connection 
+        - _on_fullfill_references changes the internal strong reference to a weak reference
+    
+    Intent:
+        - If an object is already owned by a scope, short and use that.
+        - Items (V) being referenced should be owned by scope, (probably attaching themselves)
+        - On object attachement to scope that owns it, fullfill_references is emited to populate references to itself
+            ! non scoped owner in structure here could cause bugs, as IDs are relative to scope!
+                - In particular cross Resource.sub_resources fullfillment
+        - All objects within context, ie higher in the tree, should be *able* to update children's references 
+
+    FUTURE:
+        - Warnings around non-uniform reference fullfillment (object provide context on fullfillment?)
+
+        ~ I dont like this implimentation, but it's the best I've come up with so far that fullfills most requirements:
+            - Replaceable
+            - Godot Analagous
+            - Partial Loading allowed
+            - Mutable between types
+            - Doesnt rely on external container replacement of self
+    '''
     context : Context
 
     sref : None|V = None 
@@ -42,23 +65,21 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
     key : str|None       ## Key for Collection
 
     def __setup__(self):
+        self.cached = {}
         self.context = Context()
-        self.context.callback("project", self._on_project_updated, weak=True)
+        self.context.element_changed.connect(self._on_element_changed, weak=True)
 
+    cached : dict[str, WeakReferenceType[_UpdaterIO]]
 
-    p_cached : WeakReferenceType = weakref(_UNSET())
-    def _on_project_updated(self, _, project:_ProjectIO|Any|None):
-        p_cached : _ProjectIO|Any|None = self.p_cached()
-        if not (p_cached is None):
-            p_cached.update_references.disconnect(self._on_update_references)
+    def _on_element_changed(self, attr:str, element:_UpdaterIO|Any|None):
+        if (ref:=self.cached.get(attr,None)) and hasattr(ref, "update_references"):
+            ref().update_references.disconnect(self._on_update_references)
+            del self.cached[attr]
 
-        if not (project is None):
-            self.p_cached = weakref(project)
-        else:
-            del self.p_cached
+        if (not (element is None)) and hasattr(element, "update_references"):
+            self.cached[attr] = weakref(element)
+            element.update_references.connect(self._on_update_references, weak=True)
 
-        if not (project is None):
-            project.update_references.connect(self._on_update_references, weak=True)
 
     def __init__(self, /, key:K|None=None, ref_type:RefType=RefType.DEFER, obj:V|None=None, ):
         self.__setup__()
