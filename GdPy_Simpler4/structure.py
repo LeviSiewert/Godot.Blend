@@ -91,7 +91,7 @@ class Resource():
         self.id.key = id
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
-        self.properties.extend(properties)
+        self.properties.update(properties)
 
     def __setup__(self):
         self.context = Context(resource = self)
