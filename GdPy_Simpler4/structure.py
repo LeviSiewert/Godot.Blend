@@ -20,8 +20,18 @@ class Properties(UserDict):
 
     overlay : Properties|None
 
-    def __init__(self, iterable, /, context:Context):
+    added : Signal[str,Any]
+    removed : Signal[str,Any]
+    updated : Signal[str,Any,Any]
+
+    def __setup__(self):
         self.context = Context() 
+        self.added = Signal(self)
+        self.removed = Signal(self)
+        self.updated = Signal(self)
+
+    def __init__(self, iterable, /, context:Context):
+        self.__setup__()
         self.context.set_extends(context)
         super().__init__(iterable)
 
@@ -31,7 +41,7 @@ class Properties(UserDict):
     def get[D](self, key:str, default:D=_UNSET, localize:bool=True, use_overlay:bool=False, resolve_reference:bool=True)->Any|D:
         return self._get(key, default, localize, use_overlay, resolve_reference)
     
-    def _get[D](self, key:str, default:D=_UNSET, localize:bool=True, use_overlay:bool=False, resolve_reference:bool=True)->Any|D:
+    def _get[D](self, key:str, default:D=_UNSET, localize:bool=True, use_overlay:bool=False, resolve_reference:bool=True, unset_ok:bool=False)->Any|D:
         """ Converts promises outgoing, unless required to return direct """
         if use_overlay:
             chain : Iterable[Properties] = self.overlay_chain()
@@ -66,6 +76,11 @@ class Properties(UserDict):
         
         return default
 
+    def __delitem__(self, key):        
+        o_item = self._get(key, default=_UNSET, unset_ok=True)
+        super().__delitem__(key)
+        self.deleted(key, o_item)    
+
     def __setitem__(self, key, item):
         return self._set(key, item)
 
@@ -73,6 +88,8 @@ class Properties(UserDict):
         self._set(key, item)
 
     def _set(self, key:str, item:Any):
+        o_item = self._get(key, default=_UNSET, unset_ok=True)
+
         if isinstance(item, StructReference):
             self.data[key] = item
             # self.data[key] = copy(item)
@@ -80,6 +97,11 @@ class Properties(UserDict):
             self.data[key] = StructReference(obj = item)
         else:
             self.data[key] = item
+
+        if o_item is _UNSET:
+            self.added(key, item)
+        else:
+            self.updated(key, o_item, item)
 
     def keys(self, include_overlay:bool=True):
         yielded : list[str] = []
