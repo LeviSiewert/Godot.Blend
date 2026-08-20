@@ -81,6 +81,31 @@ class Properties(UserDict):
         else:
             self.data[key] = item
 
+    def keys(self, include_overlay:bool=True):
+        yielded : list[str] = []
+
+        if not include_overlay:
+            yield from self.data.keys()
+
+        for k in self.data.keys():
+            yielded.append(k)
+            yield k
+
+        for _p in self.overlay_chain():
+            for k in _p.data.keys():
+                if k in yielded: 
+                    continue
+                yielded.append(k)
+                yield k
+
+    def values(self, localize:bool=True, use_overlay:bool=False, resolve_reference:bool=True):
+        for k in self.keys(include_overlay=use_overlay):
+            yield self.get(k, localize=localize, use_overlay=use_overlay, resolve_reference=resolve_reference)
+        
+    def items(self, localize:bool=True, use_overlay:bool=False, resolve_reference:bool=True):
+        for k in self.keys(include_overlay=use_overlay):
+            yield (k, self.get(k, localize=localize, use_overlay=use_overlay, resolve_reference=resolve_reference))
+        
 class Project():
     context : Context
     files : Collection[str, File]
