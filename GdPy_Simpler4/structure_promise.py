@@ -165,3 +165,32 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
     # def _on_collection_append():
     #     ## Testing for fullfillment to attach update_reference to?
     #     pass
+
+class StructReferenceProperty[K:str|int, V:Any|None]():
+    ref_type : RefType
+    attr : str
+
+    def __init__(self, key:str, ref_type:RefType):
+        self.attr = key
+        self.ref_type = ref_type
+
+    def __set__(self, instance, value:K|V):
+        promise : None|StructReference = getattr(instance, self.attr, None)
+        if (promise is None) and (value is None):
+            return
+        elif (promise is None) and isinstance(value,(str,int)):
+            setattr(StructReference(key=value, ref_type=self.ref_type))
+            return
+        elif (promise is None): 
+            setattr(StructReference(obj=value, ref_type=self.ref_type))
+            return
+        elif (promise.sref is value) or (promise.wref() is value):
+            return
+        
+        promise._on_update_references(lambda r:True, lambda r:..., new_object=value)
+        
+    def __get__(self, instance, owner)->K|V|StructReference:
+        promise : None|StructReference = getattr(instance, self.attr, None)
+        if promise is None:
+            return None
+        return promise.resolve(instance.context, promise)
