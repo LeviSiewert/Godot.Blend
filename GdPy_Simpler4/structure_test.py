@@ -151,8 +151,35 @@ class Test_ExtResource:
     
 
 class Test_Resource:
+    def test_construction(self):
+        Resource()
+
+    def test_construction_subres(self):
+        res = Resource(id="some_id")
+        assert res.is_subresource()
+        assert res.uid.key is None
+        assert res.file is None
+
+    def test_construction_file(self):
+        res = Resource(uid="some_uid", file="file")
+        assert not res.is_subresource()
+        assert not (res.file is None)
+
+    def test_construction_file_sref(self):
+        file = File(path = "path")
+        res = Resource(uid ="some_uid", file=file)
+        assert not res.is_subresource()
+        assert not (res.file is None)
+
+
     class Test_SubResource:
-        ...
+        def test_normalized_inclusion(self):
+            r = Resource(uid="id")
+            sr = Resource()
+            r.properties["a"] = sr
+            r.normalize()
+            assert r in r.sub_resources
+            
     class Test_ExtResource:
         ...
 

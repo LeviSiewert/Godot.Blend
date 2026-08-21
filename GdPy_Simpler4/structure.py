@@ -321,7 +321,10 @@ class Resource():
         self.context.resource = self
 
     def is_subresource(self)->bool:
-        return (self.uid._key is None)
+        return (self.uid.key is None) and (self.file is None)
+    
+    def is_resource(self)->bool:
+        return (not (self.uid.key is None)) or (not (self.file is None))
 
     def provide_reftype_key(self)->tuple[RefType|None,str|None]:
         if self.is_subresource() and (not (self.id.key is None)) and (not (self.context.resource is None)):
