@@ -8,12 +8,15 @@ from typing import Iterable, Any
 from copy import copy
 
 from .signals import Signal
-from .context import Context
+from .context import Context as _Context
 from .collection import Collection, CollectionKey
 from .structure_promise import RefType, StructReference, StructReferenceProperty 
 from .defininitions import GdDefType, GdDefProperty, GdDefSignal
 
 class _UNSET:...
+
+class Context(_Context):
+    _slots_ = ("project", "resource", "subresource", "ext_resource")
 
 class Properties(UserDict):
     context : Context
@@ -263,13 +266,18 @@ class File():
 
     def __init__(self, path:str, resource:str|Resource|None=None):
         self.__setup__()
-        self.path = path
+        self.path.key = path
         self.resource = resource
 
     def __setup__(self):
         self.context = Context()
         self.path = CollectionKey(src=self)
         self.fullfill_references = Signal(self)
+
+    def provide_reftype_key(self)->tuple[RefType|None,str|None]:
+        if (not (self.path.key is None)) and (not (self.context.project is None)):
+            return (RefType.FILE, self.id.key)
+        return RefType.DEFER, None
 
 class Resource():
     context : Context
@@ -316,9 +324,9 @@ class Resource():
         return (self.uid._key is None)
 
     def provide_reftype_key(self)->tuple[RefType|None,str|None]:
-        if self.is_subresource() and not (self.id.key is None) and (not (self.context.Resource is None)):
+        if self.is_subresource() and (not (self.id.key is None)) and (not (self.context.resource is None)):
             return (RefType.SUB_RESOURCE, self.id.key)
-        elif (not self.is_subresource()) and (not self.uid.key) and (not (self.context.Project is None)):
+        elif (not self.is_subresource()) and (not (self.uid.key is None)) and (not (self.context.project is None)):
             return (RefType.RESOURCE, self.uid.key)
         return (RefType.DEFER, None)
 

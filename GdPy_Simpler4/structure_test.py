@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .structure_promise import StructReference, RefType
-from .structure import Context, Properties, Project, Resource, ExtResource, Node, NodePath
+from .structure import Context, Properties, Project, Resource, ExtResource, Node, NodePath, File
 from .collection import Collection, CollectionKey
 
 class Test_Properties:
@@ -124,12 +124,40 @@ class Test_Properties:
         ...
 
 
-class Test_File:...
+class Test_ExtResource:
+    def test_construction_string(self):
+        extres = ExtResource(id="extres_id", file="file_id", resource="resource_id" )
 
-class Test_ExtResource:...
+        assert extres.id.key == "extres_id"
+
+        assert isinstance(extres.resource, StructReference)
+        assert extres.resource.key == "resource_id"
+
+        assert isinstance(extres.file, StructReference)
+        assert extres.file.key == "file_id"
+
+    def test_construction_reference(self):
+        resource = Resource()
+        file = File(path="filepath.py")
+        extres = ExtResource(id="extres_id", file=file, resource=resource )
+
+        assert extres.id.key == "extres_id"
+
+        assert isinstance(extres._resource, StructReference)
+        assert extres.resource is resource
+
+        assert isinstance(extres._file, StructReference)
+        assert extres.file is file
+    
 
 class Test_Resource:
-    class Test_SubResource:...
-    class Test_ExtResource:...
+    class Test_SubResource:
+        ...
+    class Test_ExtResource:
+        ...
+
+class Test_File:...
 
 class Test_Project:...
+
+class Test_Structure_Normalize:...

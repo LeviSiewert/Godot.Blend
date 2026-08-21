@@ -21,7 +21,7 @@ class _ItemIO[K:str|int]():
     fullfill_references: Signal[Self, RefType, K]
     def provide_reftype_key(self)->tuple[None|RefType, None|K]: ...
 
-class RefType(Enum):
+class RefType():
     ## Free for first fullfillment
     DEFER        = None
     ## Locked reference types;
@@ -97,7 +97,7 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
         if (obj is None):
             return
         _ref_type, _key = obj.provide_reftype_key()
-        if (_ref_type is None) or (_ref_type is RefType.DEFER):
+        if (_ref_type is None) or (_ref_type == RefType.DEFER):
             obj.fullfill_references.connect(self._on_fullfill_references, once=True, weak=True)
             self.sref = obj
         else:
@@ -138,9 +138,11 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
             self.wref = weakref(new_object)
 
     def resolve[D:Any|None](self, context:Context, default:D=None)->D|V:
-        if (self.ref_type is RefType.DEFER):
+        if (self.ref_type == RefType.DEFER):
             if (self.sref is None):
                 return default
+            return self.sref
+        elif not (self.sref is None):
             return self.sref
 
         scope : _ResourceIO = getattr(context,self.ref_type[0], None)
@@ -179,10 +181,10 @@ class StructReferenceProperty[K:str|int, V:Any|None]():
         if (promise is None) and (value is None):
             return
         elif (promise is None) and isinstance(value,(str,int)):
-            setattr(StructReference(key=value, ref_type=self.ref_type))
+            setattr(instance, self.attr, StructReference(key=value, ref_type=self.ref_type))
             return
         elif (promise is None): 
-            setattr(StructReference(obj=value, ref_type=self.ref_type))
+            setattr(instance, self.attr, StructReference(obj=value, ref_type=self.ref_type))
             return
         elif (promise.sref is value) or (promise.wref() is value):
             return
