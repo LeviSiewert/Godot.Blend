@@ -35,6 +35,24 @@ class CollectionKey[K:str|int]():
         self.src = src
         self._key = key
 
+
+# class CollectionKeyProperty():
+#     attr : str
+    
+#     def __init__(self, attr):
+#         self.attr = attr
+
+#     def __get__(self, instance, owner):
+#         promise : None|CollectionKey = getattr(instance, self.attr, None)
+#         if promise is None:
+#             return None
+#         return promise.key
+
+#     def __set__(self, instance, value):
+#         promise : None|CollectionKey = getattr(instance, self.attr, None)
+#         if promise is None:
+#             return setattr(instance, self.attr, CollectionKey(instance, key = value))
+
 from enum import Enum
 
 class Collection[K:str|int,V:Any](UserDict):
