@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Self
 
-from .structure import StructReference, RefType, _ItemIO, _ResourceIO
-from .collection import Collection, CollectionKey
-from .context import Context as _Context
 from .signals import Signal
+from .context import Context as _Context
+from .collection import Collection, CollectionKey
+from .structure_promise import StructReference, RefType, _ItemIO, _ResourceIO
 
 class Context(_Context):
     _slots_ = ("project", "resource", "subresource")

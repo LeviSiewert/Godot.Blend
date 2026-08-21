@@ -97,7 +97,7 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
         if (obj is None):
             return
         _ref_type, _key = obj.provide_reftype_key()
-        if (_ref_type is None):
+        if (_ref_type is None) or (_ref_type is RefType.DEFER):
             obj.fullfill_references.connect(self._on_fullfill_references, once=True, weak=True)
             self.sref = obj
         else:
