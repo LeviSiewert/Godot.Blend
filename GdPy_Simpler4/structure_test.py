@@ -173,15 +173,57 @@ class Test_Resource:
 
 
     class Test_SubResource:
+
         def test_normalized_inclusion(self):
             r = Resource(uid="id")
             sr = Resource()
             r.properties["a"] = sr
             r.normalize()
-            assert r in r.sub_resources
+            assert sr in r.sub_resources
+            assert sr.context._extends is r.context
+
+        def test_normalized_inclusion_nested(self):
+            r = Resource(uid="id")
+            sr1 = Resource()
+            sr2 = Resource()
+            r.properties["a"] = sr1
+            sr1.properties["a"] = sr2
+            r.normalize()
+            assert sr1 in r.sub_resources
+            assert sr2 in r.sub_resources
+            assert sr1.context._extends is r.context
+            assert sr2.context._extends is r.context
             
     class Test_ExtResource:
-        ...
+        
+        def test_normalized_conversion(self):
+            r1 = Resource("uid_a")
+            r2 = Resource("uid_b")
+            r1.properties["a"] = r2
+
+            r1.normalize()
+
+            assert len(r1.ext_resources) == 1
+            assert tuple(r1.ext_resources.values())[0]._resource.sref is r2
+        
+        def test_normalized_conversion_nested(self):
+            r1 = Resource("uid_a")
+            r2 = Resource("uid_b")
+            r3 = Resource("uid_b")
+            r1.properties["a"] = r2
+            r2.properties["a"] = r3
+
+            r1.normalize()
+
+            assert len(r1.ext_resources) == 1
+            assert tuple(r1.ext_resources.values())[0]._resource.sref is r2
+            assert len(r2.ext_resources) == 1
+            assert tuple(r2.ext_resources.values())[0]._resource.sref is r3
+
+
+
+
+
 
 class Test_File:...
 
