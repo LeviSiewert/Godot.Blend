@@ -1,4 +1,14 @@
+from .structure import Project, Resource, Node, ExtResource, Properties
+from .signals import Signal
 from .structure_utilities import copy, deepcopy, check_recursion, singulate, localize, format_extresources
+
+class Test_Copy:
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
+    
 
 # class Test_Normalize:
 #     # Test Singulation
