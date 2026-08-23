@@ -48,9 +48,4 @@ class Test_Transformer():
 
         assert hash(a1) == hash(a0)
         assert a1.name == (a0.name + "_1")
-
-
-
-
-
-
+        assert a1.children[0].name == "b_1"
