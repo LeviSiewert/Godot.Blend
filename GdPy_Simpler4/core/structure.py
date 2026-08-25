@@ -9,7 +9,7 @@ from copy import copy
 
 from .signals import Signal
 from .context import Context as _Context
-from .collection import Collection, CollectionKey
+from .collection import Collection as _Collection, CollectionKey
 from .structure_promise import RefType, StructReference, StructReferenceProperty 
 from .defininitions import GdDefType, GdDefProperty, GdDefSignal
 
@@ -17,6 +17,13 @@ class _UNSET:...
 
 class Context(_Context):
     _slots_ = ("project", "resource", "subresource", "ext_resource")
+
+class Collection(_Collection):
+
+    overlay : None|Collection = None
+
+    def set_overlay(self, overlay:Collection|None):
+        raise NotImplementedError()
 
 class Properties(UserDict):
     context : Context
@@ -254,6 +261,14 @@ class ExtResource():
         self.file = file
         self.resource = resource
 
+    def provide_reftype_key(self)->tuple[None,None]:
+        if not (self.id.key is None):
+            return (RefType.EXT_RESOURCE, self.id.key)
+        return (None,None)
+
+    def _reference_callback(self):
+        self.fullfillreferences(RefType.EXT_RESOURCE, self.id.key)
+
 class File():
     context : Context
 
@@ -331,8 +346,8 @@ class Resource():
 
         if not (self.overlay is None):
             self.set_overlay(None)
-        if set_overlay and not(instance is None):
-            self.set_overlay(instance.resource)
+        if set_overlay and not( instance is None):
+            self.set_overlay(self.instance.resource)
 
         self.instance_updated(self.instance)
 
@@ -341,10 +356,13 @@ class Resource():
 
         if not (overlay is None):
             self.properties.set_overlay(overlay.properties.overlay)
-            self.sub_resources.set_overlay(overlay.sub_resources)
+            if not self.is_subresource():
+                self.sub_resources.set_overlay(overlay.sub_resources)
         else:
-            self.properties(None)
-            self.sub_resources(None)
+            self.properties.set_overlay(None)
+            if not self.is_subresource():
+                self.sub_resources.set_overlay(None)
+
 
         self.overlay_updated(overlay)
 
@@ -418,7 +436,7 @@ class Node(Resource):
 
         self.children.extend(children)
 
-        self.set_instance(instance, set_overlay=self.setup_instance)
+        self.set_instance(instance, set_overlay=setup_overlay)
 
     def __setup__(self):
         super().__setup__()
@@ -431,12 +449,14 @@ class Node(Resource):
 
         if not (overlay is None):
             self.properties.set_overlay(overlay.properties.overlay)
-            self.sub_resources.set_overlay(overlay.sub_resources)
             self.children.set_overlay(overlay.children)
+            if not self.is_subresource():
+                self.sub_resources.set_overlay(overlay.sub_resources)
         else:
-            self.properties(None)
-            self.sub_resources(None)
+            self.properties.set_overlay(None)
             self.children.set_overlay(None)
+            if not self.is_subresource():
+                self.sub_resources.set_overlay(None)
 
         self.overlay_updated(overlay)
 
