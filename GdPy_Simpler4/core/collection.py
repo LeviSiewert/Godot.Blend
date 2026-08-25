@@ -115,6 +115,10 @@ class Collection[K:str|int,V:Any](UserDict):
         self._connect(item)
         self.appended(key, item)
 
+    def extend(self, items:Iterable[V], /, rename=True, right_key_priority=True):
+        for i in items:
+            self.append(i, rename=rename, right_key_priority=right_key_priority)
+
     def remove(self, key_or_item:V|K):
         if isinstance(key_or_item, (str,int)):
             key = key_or_item

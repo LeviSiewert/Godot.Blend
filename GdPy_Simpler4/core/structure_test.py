@@ -4,6 +4,8 @@ from .structure_promise import StructReference, RefType
 from .structure import Context, Properties, Project, Resource, ExtResource, Node, NodePath, File
 from .collection import Collection, CollectionKey
 
+from contextvars import ContextVar
+
 class Test_Properties:
     def test_construction(self):
         p = Properties({"a":"a"},context=Context())
@@ -157,3 +159,204 @@ class Test_Resource:
         res = Resource(uid ="some_uid", file=file)
         assert not res.is_subresource()
         assert not (res.file is None)
+
+    def test_overlay(self):
+        R0 = Resource(id="some_id", properties={"a":"A0", "b":"B0", "c":"C0"})
+        R1 = Resource(id="some_id", instance=R0, properties={"a":"A1", "c":"C1"})
+
+        assert R1.overlay is R0
+        assert R1.properties.overlay is R0.properties
+        assert R1.properties["a"] == "A1"
+        assert R1.properties["b"] == "B0"
+
+        R1.set_overlay(None)
+        assert R1.overlay is None
+        assert R1.properties.overlay is None
+
+    def test_overlay_signals(self):
+        R0 = Resource(id="some_id")
+        R1 = Resource(id="some_id")
+
+        c = ContextVar("")
+        R1.overlay_updated.connect(lambda x: c.set(x))
+
+        R1.set_overlay(R0)
+        assert c.get() is R0
+
+        R1.set_overlay(None)
+        assert c.get() is None
+
+    def test_construct_resource_structure(self):
+        R0 = Resource(uid="R0")
+        Sr0 = Resource(id="Sr0")
+        Sr1 = Resource(id="Sr1", properties = {"ref":Sr0, "ref2":R0})
+        R1 = Resource(uid="R1", sub_resources = [Sr0,Sr1], properties={"a":Sr0, "b":Sr1}, ext_resources=[R0])
+
+        assert len(R1.sub_resources) == 2
+
+        assert Sr0 in R1.sub_resources
+        assert Sr0.id == "R0"
+
+        assert Sr1 in R1.sub_resources
+        assert Sr1.id == "Sr1"
+
+        assert len(R1.ext_resources) == 1
+        assert isinstance(R1.ext_resources[0], ExtResource).resource is R0
+        assert R1.ext_resources[0].resource is R0
+
+class Test_Node:
+
+    def test_construction_subres(self):
+        N0 = Node("N0",id="some_id")
+        assert N0.is_subresource()
+        assert N0.uid.key is None
+        assert N0.file is None
+
+    def test_construction_file(self):
+        N0 = Node("N0",uid="some_uid", file="file")
+        assert not N0.is_subresource()
+        assert not (N0.file is None)
+
+    def test_construction_file_sref(self):
+        file = File(path = "path")
+        N0 = Node("N0",uid ="some_uid", file=file)
+        assert not N0.is_subresource()
+        assert not (N0.file is None)
+        
+
+    def test_construct_overlay(self):
+        N0 = Node("N0", properties={"a":"A0", "b":"B0", "c":"C0"})
+        N1 = Node("N1", instance=N0, properties={"a":"A1", "c":"C1"})
+
+        assert N1.overlay is N0
+        assert N1.properties.overlay is N0.properties
+        assert N1.properties["a"] == "A1"
+        assert N1.properties["b"] == "B0"
+
+        N1.set_overlay(None)
+        assert N1.overlay is None
+        assert N1.properties.overlay is None
+
+    def test_overlay_signals(self):
+        N0 = Resource("N0")
+        N0 = Resource("N0")
+
+        c = ContextVar("")
+        N0.overlay_updated.connect(lambda x: c.set(x))
+
+        N0.set_overlay(N0)
+        assert c.get() is N0
+
+        N0.set_overlay(None)
+        assert c.get() is None
+
+    def test_construct_structure(self):
+        N0 = Node("N0",
+            properties = {
+                "a" : "A0",
+                "b" : "B0",
+            },
+            children = [
+                Node("N1"),
+                Node("N2"),
+                Node("N3",
+                    children = [
+                        Node("N1",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        assert len(N0.children) == 3
+
+
+    def test_construct_instance_load(self):
+        N0 = Node("N0", properties = {"a":"A0", "c":"C0"})
+        N1 = Node("N1", properties = {"a":"A1", "b":"B1"}, instance = N0, setup_overlay=True)
+        assert N1.overlay is N0
+
+    def test_construct_instance_load_complex(self):
+        N0 = Node("N0", 
+            properties = {"a":"A0", "c":"C0"},
+            children = [
+                Node("A", 
+                    properties = {"i_am":"A0"},
+                ),
+                Node("B", 
+                    properties = {"i_am":"B0"},
+                ),
+                Node("C", 
+                    properties = {"i_am":"C0"},
+                    children = [
+                        Node("D"),
+                        Node("E"),
+                    ],
+                ),
+            ],
+        )
+
+        N1 = Node("N1", 
+            properties = {"a":"A1", "b":"B1"}, 
+            instance = N0, 
+            setup_overlay=True,
+            children = [
+                Node("A", 
+                    properties = {"i_am":"A1"},
+                ),
+                Node("B", 
+                    properties = {"i_am":"B1"},
+                ),
+                Node("C", 
+                    properties = {"i_am":"C1"},
+                    children = [
+                        Node("D"), ## Matched
+                        # Node("E") ## Created thin
+                        Node("F"), ## Added
+                    ],
+                ),
+            ],
+        )
+
+        assert N1.overlay is N0
+
+        A0 = N0.children["A"]
+        B0 = N0.children["B"]
+        C0 = N0.children["C"]
+        D0 = C0.children["D"]
+        E0 = C0.children["E"]
+        F0 = C0.children.get("F", default=None)
+
+        A1 = N1.children["A"] ## Should match
+        B1 = N1.children["B"] ## Should match
+        C1 = N1.children["C"] ## Should match
+        D1 = C1.children["D"] ## Should match (Nested)
+        E1 = C1.children.get("E", default=None) ## Added thin-overlay
+        F1 = C1.children["F"] ## Local, alread present
+
+        assert A1.overlay is A0
+        assert B1.overlay is B0
+        assert C1.overlay is C0
+
+        assert len(C1.children) == 3
+
+        assert D1.overlay is D0
+        assert E1.overlay is E0
+        assert F1.overlay is F0
+
+        N1.set_overlay(None, keep_thin=False)
+
+        assert A1.overlay is None
+        assert B1.overlay is None
+        assert C1.overlay is None
+
+        assert len(C1.children) == 2
+
+        assert D1.overlay is None
+        assert E1.overlay is None
+        assert F1.overlay is None
+
+        assert not E1 in C1.children
+
+    # def test_construct_instance_load_complex_localize_reference():
+    #     pass

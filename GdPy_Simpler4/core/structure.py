@@ -289,6 +289,11 @@ class Resource():
     sub_resources : Collection[str, Resource]
     ext_resources : Collection[str, ExtResource]
 
+    _instance : StructReference[str, ExtResource]
+    instance = StructReferenceProperty("_instance", RefType.EXT_RESOURCE)
+    overlay : Resource|None = None
+    overlay_updated : Signal[Resource|None]
+
     ## All:
     id : CollectionKey[str]
     gdtype : GdDefType
@@ -296,16 +301,57 @@ class Resource():
 
     fullfill_references : Signal[RefType, str]
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple()):
+    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True,):
         self.__setup__()
         self.id.key = id
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
         self.properties.update(properties)
 
+
+        if not (sub_resources is None):
+            self.sub_resources.extend(sub_resources)
+        if not (ext_resources is None):
+            self.ext_resources.extend(ext_resources)
+
+        self.set_instance(instance, set_overlay=setup_overlay)
+
+    def set_instance(self, instance:Resource|File|ExtResource|None, set_overlay:bool=False):
+        o_val = self.instance
+        if instance is o_val:
+            return
+        if instance is None:
+            self.instance = None
+        elif isinstance(instance, ExtResource):
+            self.instance = instance
+        elif isinstance(instance, (File,Resource)):
+            self.instance = ExtResource(id=None, file=instance)
+        else:
+            raise TypeError(instance, "expected:", Resource|File|ExtResource|None) 
+
+        if not (self.overlay is None):
+            self.set_overlay(None)
+        if set_overlay and not(instance is None):
+            self.set_overlay(instance.resource)
+
+        self.instance_updated(self.instance)
+
+    def set_overlay(self, overlay:Resource|None):
+        self.overlay = overlay
+
+        if not (overlay is None):
+            self.properties.set_overlay(overlay.properties.overlay)
+            self.sub_resources.set_overlay(overlay.sub_resources)
+        else:
+            self.properties(None)
+            self.sub_resources(None)
+
+        self.overlay_updated(overlay)
+
     def __setup__(self):
         self.context = Context(resource = self)
-
+        self.instance_updated = Signal(self)
+        self.overlay_updated = Signal(self)
         self.fullfill_references = Signal(self)
 
         self.id = CollectionKey(src=self,key=None)
@@ -357,22 +403,50 @@ class Node(Resource):
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
 
+    def __init__(self, name:str, id = None, uid = None, file = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple()):
+        self.__setup__()
+        self.name.key = name
+        self.id.key = id
+        if uid or file:
+            self.__setup_file__(uid=uid, file=file)
+        self.properties.update(properties)
+            
+        if not (sub_resources is None):
+            self.sub_resources.extend(sub_resources)
+        if not (ext_resources is None):
+            self.ext_resources.extend(ext_resources)
+
+        self.children.extend(children)
+
+        self.set_instance(instance, set_overlay=self.setup_instance)
+
     def __setup__(self):
         super().__setup__()
         self.name = CollectionKey(src = self)
         self.children = Collection(key_attr="name", context=self.context, key_resolve_incriment=True)
         self.signals = Collection(key_attr="id", context=self.context)
 
+    def set_overlay(self, overlay:Resource|None):
+        self.overlay = overlay
+
+        if not (overlay is None):
+            self.properties.set_overlay(overlay.properties.overlay)
+            self.sub_resources.set_overlay(overlay.sub_resources)
+            self.children.set_overlay(overlay.children)
+        else:
+            self.properties(None)
+            self.sub_resources(None)
+            self.children.set_overlay(None)
+
+        self.overlay_updated(overlay)
+
     def __setup_file__(self, uid = None, file = None):
         self.nodes = Collection(key_attr="id", key_is_string=False)
         return super().__setup_file__(uid, file)
 
-    def __init__(self, name=None, id = None, uid = None, file = None, properties = tuple()):
-        self.name.key = name
-        super().__init__(id, uid, file, properties)
-
     def setup_instance(self):
         raise NotImplementedError()
+
 
 
 # class NormalizeSession():
