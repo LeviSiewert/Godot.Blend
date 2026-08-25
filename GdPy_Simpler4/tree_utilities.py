@@ -9,12 +9,12 @@ from .signals import Signal
 
 N = Properties|Project|Resource|Node|Signal
 
-def copy(node:N): raise NotImplimentedError()
-def deepcopy(node:N): raise NotImplimentedError()
-def check_recursion(node:N): raise NotImplimentedError()
-def singulate(node:N): raise NotImplimentedError()
-def localize(node:N): raise NotImplimentedError()
-def format_extresources(node:N): raise NotImplimentedError()
+def copy(node:N): raise NotImplementedError()
+def deepcopy(node:N): raise NotImplementedError()
+def check_recursion(node:N): raise NotImplementedError()
+def singulate(node:N): raise NotImplementedError()
+def localize(node:N): raise NotImplementedError()
+def format_extresources(node:N): raise NotImplementedError()
 
 
 def normalize(node           : N,
