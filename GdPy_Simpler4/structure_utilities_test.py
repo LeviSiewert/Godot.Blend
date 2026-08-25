@@ -2,20 +2,42 @@ from .structure import Project, Resource, Node, ExtResource, Properties
 from .signals import Signal
 from .structure_utilities import copy, deepcopy, check_recursion, singulate, localize, format_extresources
 
-class Test_Copy:
+class Test_copy():
     def test_Signal(self):  raise NotImplementedError()
     def test_Project(self):  raise NotImplementedError()
     def test_Resource(self):  raise NotImplementedError()
     def test_SubResource(self):  raise NotImplementedError()
     def test_ExtResource(self):  raise NotImplementedError()
-    
-
-# class Test_Normalize:
-#     # Test Singulation
-#     # Test Inlcusion/Localization
-#     # Test instance_load & Fix
-#     # Test Scope limitation
-#     # Test session join?s
+class Test_deepcopy():
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
+class Test_check_recursion():
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
+class Test_singulate():
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
+class Test_localize():
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
+class Test_format_extresources():
+    def test_Signal(self):  raise NotImplementedError()
+    def test_Project(self):  raise NotImplementedError()
+    def test_Resource(self):  raise NotImplementedError()
+    def test_SubResource(self):  raise NotImplementedError()
+    def test_ExtResource(self):  raise NotImplementedError()
 
 
 #     class Test_Project:
