@@ -111,19 +111,6 @@ class Test_Properties:
         assert p2.get("c", use_overlay=False, default=None) is None
 
 
-    def test_get_overlay_resolveref(self):
-        ## TODO: Resolve reference through any means
-        ...
-
-    def test_get_overlay_resolveref_localize(self):
-        ## TODO: two resources, ref 1 subresource, commit to another. Localize ref on get.
-        ...
-
-    def test_get_overlay_resolveref_localize_false(self):
-        ## TODO: two resources, ref 1 subresource, commit to another. Don't localize ref on get.
-        ...
-
-
 class Test_ExtResource:
     def test_construction_string(self):
         extres = ExtResource(id="extres_id", file="file_id", resource="resource_id" )

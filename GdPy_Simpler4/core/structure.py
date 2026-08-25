@@ -374,6 +374,7 @@ class Node(Resource):
     def setup_instance(self):
         raise NotImplementedError()
 
+
 # class NormalizeSession():
 #     memo : dict
 
