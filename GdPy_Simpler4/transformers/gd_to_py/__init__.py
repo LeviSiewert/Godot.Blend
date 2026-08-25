@@ -3,11 +3,11 @@ from .lark import parser as lark_parser
 
 from ._transformer import (
     GdToPyTransformer, 
-    GdToPyRulesset, 
+    GdToPyRuleset, 
     GdToPyModule, 
     GdToPyContext,
     PyToGdTransformer,
-    PyToGdRulesset,
+    PyToGdRuleset,
     PyToGdModule,
     PyToGdContext,
 )

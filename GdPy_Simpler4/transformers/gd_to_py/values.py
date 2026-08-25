@@ -375,7 +375,7 @@ class PyToGd_PackedByteArray(PyToGdModule):
         return f'PackedByteArray("{node.decode("utf-8")}")'
 
 
-gd_to_py_ruleset = GdToPyRuleset("STD_Values", [
+gd_to_py_ruleset = GdToPyRuleset("STD_Values", *[
     GdToPy_NodePath,
     GdToPy_StringName,
     GdToPy_ObjectArgs,
@@ -411,7 +411,7 @@ gd_to_py_ruleset = GdToPyRuleset("STD_Values", [
     GdToPy_PackedByteArray,
 ])
 
-py_to_gd_ruleset = PyToGdRuleset("STD_Values", [
+py_to_gd_ruleset = PyToGdRuleset("STD_Values", *[
     PyToGd_NodePath,
     PyToGd_StringName,
     PyToGd_Object,

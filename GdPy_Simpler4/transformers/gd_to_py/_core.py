@@ -1,11 +1,11 @@
 from ._transformer import (
     GdToPyTransformer,
-    GdToPyRulesset,
+    GdToPyRuleset,
     GdToPyModule,
     GdToPyContext,
 
     PyToGdTransformer,
-    PyToGdRulesset,
+    PyToGdRuleset,
     PyToGdModule,
     PyToGdContext
 )
@@ -13,9 +13,9 @@ from ._transformer import (
 from . import values
 
 gd_to_py = GdToPyTransformer("GdToPy", *[
-    *values.GdToPyRulesset,
+    values.py_to_gd_ruleset,
 ])
 
 py_to_gd = PyToGdTransformer("PyToGd", *[
-    *values.PyToGdRulesset,
+    values.gd_to_py_ruleset,
 ])
