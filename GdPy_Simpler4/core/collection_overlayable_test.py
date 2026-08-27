@@ -26,11 +26,15 @@ class _Item():
 class Test_Collection():
     ''' test overlay version of collection, desired behavior is match by id and copy-overlay OR passthrough '''
 
+    def test_construction(self):
+        C0 = Collection("key", iterable=[], )
+        pass
+
     def test_overlay_copy(self):
         I0 = _Item("string")
-        C0 = Collection(iterable = [I0], key_attr="key" )
+        C0 = Collection("key", iterable=[I0],  )
 
-        C1 = Collection(overlay_copy=True)
+        C1 = Collection("key", mode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY)
         dif = C1.set_overlay(C0)
 
         assert len(C1) == 1
@@ -41,10 +45,10 @@ class Test_Collection():
 
     def test_overlay_copy_integrate(self):
         I0 =_Item("string")
-        C0 = Collection(*[I0], key_attr="key")
+        C0 = Collection("key", iterable=[I0], )
 
         I1 =_Item("string", value=1)
-        C1 = Collection(*[I1], key_attr="key", mode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY)
+        C1 = Collection("key", iterable=[I1], mode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY)
         dif = C1.set_overlay(C0)
 
         assert not (C1["string"] is I0)
@@ -54,10 +58,10 @@ class Test_Collection():
 
     def test_overlay_copy_disintegrate(self):
         I0 =_Item("string")
-        C0 = Collection(*[I0], key_attr="key")
+        C0 = Collection("key", iterable=[I0], )
 
         I1 =_Item("string", value=1)
-        C1 = Collection(*[I1], key_attr="key", mode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY)
+        C1 = Collection("key", iterable=[I1], mode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY)
         C1.set_overlay(C0)
 
         assert I1.overlay is I0
@@ -67,10 +71,10 @@ class Test_Collection():
         
     def test_overlay_passtrough_integrate(self):
         I0 =_Item("string")
-        C0 = Collection(*[I0], key_attr="key")
+        C0 = Collection("key", iterable=[I0], )
 
         I1 =_Item("string")
-        C1 = Collection(*[I1], key_attr="key", mode=CollectionOverlayMode.SUBITEM_PASSTHROUGH)
+        C1 = Collection("key", iterable=[I1], mode=CollectionOverlayMode.SUBITEM_PASSTHROUGH)
         dif = C1.set_overlay(C0)
 
         assert not (C1["string"] is I0)
@@ -80,7 +84,7 @@ class Test_Collection():
 
     def test_overlay_passtrough_disintegrate(self):
         I0 =_Item("string")
-        C0 = Collection(*[I0], key_attr="key")
-        C1 = Collection(key_attr="key", mode=CollectionOverlayMode.SUBITEM_PASSTHROUGH)
+        C0 = Collection("key", iterable=[I0])
+        C1 = Collection("key", mode=CollectionOverlayMode.SUBITEM_PASSTHROUGH)
         dif = C1.set_overlay(C0)
         assert dif == {"add":[I0], "removed":tuple(), "update":tuple()}
