@@ -118,7 +118,7 @@ class Collection[K:str|int,V:Any](UserDict):
             self.extend(iterable)
             
     def append(self, item, /, rename=True, right_key_priority=True):
-        if (item in self):
+        if (item in self.data.values()):
             raise ValueError("Item already in collection!")
         
         key = getattr(item, self.key_attr).key
@@ -126,9 +126,9 @@ class Collection[K:str|int,V:Any](UserDict):
             key = self.generate_key(item)
             getattr(item, self.key_attr)._key = key
 
-        if (key in self) and (rename is False):
+        if (key in self.data.keys()) and (rename is False):
             raise ValueError("key is already fullfilled in collection!")
-        elif (key in self):
+        elif (key in self.data.keys()):
             self._resolve_key_collision(key, self[key], item, replace=False, rename=True, right_key_priority=right_key_priority)
             return
 
