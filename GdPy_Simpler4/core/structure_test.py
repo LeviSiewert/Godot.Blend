@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+
+from typing import Self
+
 from .structure_promise import StructReference, RefType
-from .structure import Context, Properties, Project, Resource, ExtResource, Node, NodePath, File
-from .collection import Collection, CollectionKey
+from .structure import Context, Properties, Project, Resource, ExtResource, Node, NodePath, File, Collection, CollectionKey, CollectionOverlayMode
+# from .collection import Collection, CollectionKey
 
 from contextvars import ContextVar
 
