@@ -9,48 +9,16 @@ from copy import copy
 
 from .signals import Signal
 from .context import Context as _Context
-from .collection import Collection as _Collection, CollectionKey
+from .collection_overlayable import CollectionOverlayMode, CollectionKey, Collection
 from .structure_promise import RefType, StructReference, StructReferenceProperty 
 from .defininitions import GdDefType, GdDefProperty, GdDefSignal
+
 
 class _UNSET:...
 
 class Context(_Context):
     _slots_ = ("project", "resource", "subresource", "ext_resource")
 
-from enum import Enum
-
-class CollectionOverlayMode(Enum):
-    SUBITEM_OVERLAY_COPY = 0
-    SUBITEM_PASSTHROUGH = 1
-
-class Collection(_Collection):
-
-    overlay : None|Collection = None
-    overlay_itemmode = CollectionOverlayMode.SUBITEM_OVERLAY_COPY
-
-    def __init__(self, key_attr, iterable = ..., context = None, key_is_string = True, key_resolve_incriment = False, key_formatter = None, mode:CollectionOverlayMode=CollectionOverlayMode.SUBITEM_OVERLAY_COPY):
-        super().__init__(key_attr, iterable, context, key_is_string, key_resolve_incriment, key_formatter)
-
-    def set_overlay(self, overlay:Collection|None, supress_signals:bool=False)->dict[str,tuple[Any]]:
-        if self.overlay is overlay: return
-
-        o_values = dict(self.items(include_overlay=True))
-
-        if not (self.overlay is None):
-            pass #disconnect
-
-        self.overlay = overlay
-
-        if not (self.overlay is None):
-            pass #Connect
-
-        if supress_signals:
-            return
-
-        n_values = dict(self.items(include_overlay=True))
-
-        raise NotImplementedError()
 
 class Properties(UserDict):
     context : Context
