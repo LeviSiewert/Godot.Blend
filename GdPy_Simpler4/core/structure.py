@@ -9,7 +9,7 @@ from copy import copy
 
 from .signals import Signal
 from .context import Context as _Context
-from .collection_overlayable import CollectionOverlayMode, CollectionKey, Collection
+from .collection import Collection, CollectionKey
 from .structure_promise import RefType, StructReference, StructReferenceProperty 
 from .defininitions import GdDefType, GdDefProperty, GdDefSignal
 

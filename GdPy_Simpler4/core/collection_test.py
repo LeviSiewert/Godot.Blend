@@ -1,10 +1,29 @@
-from .collection import Collection, CollectionKey
+from .collection import Collection, CollectionKey, _ItemIo, OverlayMode
 from contextvars import ContextVar
 
-class _Item():
+from typing import Self
+
+class _Item(_ItemIo):
     key : CollectionKey[str]
-    def __init__(self, key:str|None):
-        self.key = CollectionKey(src=self, key=key)
+    value : int = 0
+    overlay : Self|None=None
+
+    def overlay_copy(self,)->Self:
+        r = _Item(self.key)
+        r.set_overlay(self)
+        return r
+
+    def overlay_is_thin(self)->bool:
+        if self.overlay is None: 
+            return False
+        return self.overlay.value == self.value
+
+    def set_overlay(self, item:Self|None)->None:
+        self.overlay=item
+
+    def __init__(self, key:str, value:int=0):
+        self.value = value
+        self.key = CollectionKey(self, key)
 
 class Test_Collection():
 
@@ -201,12 +220,271 @@ class Test_Collection():
         assert cvar.get()[2] == "key1"
 
 
+    def test_overlay_empty(self):
+        C0 = Collection("key", OverlayMode.COPY)
+        C1 = Collection("key", OverlayMode.COPY)
+
+        C1.set_overlay(C0)
+        assert C1.overlay is C0
+
+        C1.set_overlay(None)
+        assert C1.overlay is None
+
+    def test_overlay_empty_signals(self):
+        C0 = Collection("key", OverlayMode.COPY)
+        C1 = Collection("key", OverlayMode.COPY)
+        c = ContextVar("")
+        C1.overlay_updated.connect(lambda x:c.set(x))
+
+        C1.set_overlay(C0)
+        assert c.get() is C0
+
+        C1.set_overlay(None)
+        assert c.get() is None
+
+    def test_overlay_empty_dif(self):
+        C0 = Collection("key", OverlayMode.COPY)
+        C1 = Collection("key", OverlayMode.COPY)
+
+        dif = C1.set_overlay(C0)
+        assert dif == {"appended":{},"removed":{},"replaced":{}} 
 
 
-    # def test_resolve_replace(self):
-    #     raise NotImplementedError()
-    # def test_resolve_replace_lpriority(self):
-    #     raise NotImplementedError()
-    # def test_resolve_replace_signal(self):
-    #     raise NotImplementedError()
+    def test_overlay_basic_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+        C1 = Collection("key", OverlayMode.COPY)
+
+        C1.set_overlay(C0)
+
+        I1 = C1["key"]
+
+        assert len(C1) == 1
+        assert not (I1 is I0)
+        assert I1.overlay is I0
+        assert I1.overlay_is_thin()
+
+        C1.set_overlay(None)
+
+        assert C1.overlay is None
+        assert len(C1) == 0
+        assert not (I1 in C1)
+
+    # def test_overlay_basic_copy_signals(self):
+    #     pass
+
+    def test_overlay_basic_copy_dif(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+        C1 = Collection("key", OverlayMode.COPY)
+
+        dif = C1.set_overlay(C0)
+
+        I1 = C1["key"]
+        assert dif == {"appended":{"key":I1}, "removed":{}, "replaced":{}}
+
+        dif = C1.set_overlay(None)
+        assert dif == {"appended":{}, "removed":{"key":I1}, "replaced":{}}
+
+
+    def test_overlay_basic_passthrough(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I0])
+        C1 = Collection("key", OverlayMode.PASSTHROUGH)
+
+        C1.set_overlay(C0)
+
+        I1 = C1["key"]
+
+        assert C1.overlay is C0
+        assert len(C1) == 1
+        assert len(C1.data) == 0
+        assert I1 is I0
+        assert I0 in C1
+
+        C1.set_overlay(None)
+
+        assert C1.overlay == None
+        assert len(C1) == 0
+        assert len(C1.data) == 0
+        assert not (I1 in C1)
+
+    # def test_overlay_basic_passthrough_signals(self):
+    #     pass
+
+    def test_overlay_basic_passthrough_dif(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I0])
+        C1 = Collection("key", OverlayMode.PASSTHROUGH)
+
+        dif = C1.set_overlay(C0)
+        assert dif == {"appended":{"key":I0}, "removed":{}, "replaced":{}}
+
+        dif = C1.set_overlay(None)
+        assert dif == {"appended":{}, "removed":{"key":I0}, "replaced":{}}
+
+
+    def test_overlay_intigrate_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 1)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+
+        C1.set_overlay(C0)
+        assert I1.overlay is I0
+
+        C1.set_overlay(None)
+        assert I1 in C1
+        assert I1.overlay is None
+
+    def test_overlay_intigrate_copy_thin(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+
+        C1.set_overlay(C0)
+        assert I1.overlay is I0
+
+        C1.set_overlay(None)
+        assert not (I1 in C1)
+        assert I1.overlay is I0 ## Kept, as this object is now orphaned
+
+
+    def test_overlay_intigrate_passthrough(self):
+        I0 = _Item("key", 0)
+        I0_b = _Item("key2", 0)
+        C0 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I0, I0_b])
+
+        I1 = _Item("key", 1)
+        C1 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I1])
+
+        C1.set_overlay(C0)
+
+        assert C1.overlay is C0
+        assert I1.overlay is None
+        assert I1 in C1
+        assert not (I0 in C1)
+        assert I0_b in C1
+
+        C1.set_overlay(None)
+
+        assert C1.overlay is None
+        assert I1 in C1
+        assert not (I0_b in C1)
+
+    def test_overlay_intigrate_passthrough_thin(self):
+        I0 = _Item("key", 0)
+        I0_b = _Item("key2", 0)
+        C0 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I0, I0_b])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.PASSTHROUGH, iterable=[I1])
+
+        C1.set_overlay(C0)
+
+        assert C1.overlay is C0
+        assert I1.overlay is None
+        assert I1 in C1
+        assert not (I0 in C1)
+        assert I0_b in C1
+
+        C1.set_overlay(None)
+
+        assert C1.overlay is None
+        assert I1 in C1
+        assert not (I0_b in C1)
+
+
+    def test_overlay_leaf_appended_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        C1 = Collection("key", OverlayMode.COPY)
+        C1.set_overlay(C0)
+
+        I1 = _Item("key", 0)
+        C1.append(I1)
+        ## Unknown desired behavior; Integrate OR rename left priority?
+        raise NotImplementedError()
+
+    def test_overlay_leaf_removed_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+        C1.set_overlay(C0)
+
+        C1.remove(I1)
+        ## Unknown desired behavior; if present in parent, error?
+
+        raise NotImplementedError()
+
+    def test_overlay_leaf_replaced_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+        C1.set_overlay(C0)
+
+        C1.remove(I1)
+        ## Unknown desired behavior; replace w/ new & set overlay?
+
+        raise NotImplementedError()
+
+    def test_overlay_root_appended_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY)
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+        C1.set_overlay(C0)
+
+        C0.append(I0)
+        ## Unknown desired behavior!
+
+        raise NotImplementedError()
+
+    def test_overlay_root_removed_copy(self):
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+        C1.set_overlay(C0)
+
+        C0.remove(I0)
+
+        ## Unknown desired behavior!
+        raise NotImplementedError()
+
+    def test_overlay_root_replaced_copy(self): 
+        I0 = _Item("key", 0)
+        C0 = Collection("key", OverlayMode.COPY, iterable=[I0])
+
+        I1 = _Item("key", 0)
+        C1 = Collection("key", OverlayMode.COPY, iterable=[I1])
+        C1.set_overlay(C0)
+
+        C0["key"] = _Item("key", value = 1)
+
+        ## Unknown desired behavior!
+        raise NotImplementedError()
+
+
+    def test_overlay_appended_passthrough(self):
+        ## Desired behavior: Replaced signal.
+        raise NotImplementedError()
+
+    def test_overlay_removed_passthrough(self):
+        ## Desired behavior: (Replaced) if lower level key present, removed otherwise 
+        raise NotImplementedError()
+
+    def test_overlay_replaced_passthrough(self):
+        ## Desired behavior: (Replaced) signal emit
+        raise NotImplementedError()
         

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Callable
+from typing import Any, Iterable, Callable, Self
 from collections import UserDict
 from string import digits, ascii_letters
+from enum import Enum
+from abc import abstractmethod, ABC
 
 import random 
 
@@ -11,6 +13,15 @@ from .context import Context
 
 
 class _UNSET:...
+
+class _ItemIo(ABC):
+    @abstractmethod
+    def overlay_copy(self)->Self:
+        ''' Create a thin copy and set it's overlay to self '''
+    @abstractmethod
+    def overlay_is_thin(self)->bool:
+        ''' Determine if local data is thin compared to the overlay, IE identical contents, to be removed when the collection overlay changes.  '''  
+
 
 class CollectionKey[K:str|int]():
     _key : None|K = None
@@ -35,7 +46,6 @@ class CollectionKey[K:str|int]():
         self.src = src
         self._key = key
 
-
 # class CollectionKeyProperty():
 #     attr : str
     
@@ -55,6 +65,10 @@ class CollectionKey[K:str|int]():
 
 from enum import Enum
 
+class OverlayMode(Enum):
+    COPY = 0
+    PASSTHROUGH = 1
+
 class Collection[K:str|int,V:Any](UserDict):
     context : Context
 
@@ -71,18 +85,25 @@ class Collection[K:str|int,V:Any](UserDict):
     key_increment : bool = False
     key_formatter : None|Callable = None 
 
+    overlay : None|Self = None
+    overlay_updated : Signal[None|Self]
+    overlay_mode : OverlayMode
+
     def __setup__(self):
         self.data = {}
 
         self.context = Context()
 
+        self.overlay_updated = Signal(self)
         self.appended = Signal(self)
         self.removed = Signal(self)
         self.renamed = Signal(self)
         self.replaced = Signal(self)
 
-    def __init__(self, key_attr:str, iterable:Iterable=tuple(), context:Context=None, key_is_string:bool=True, key_resolve_incriment:bool=False, key_formatter:Callable|None=None):
+    def __init__(self, key_attr:str, mode:OverlayMode=OverlayMode.PASSTHROUGH, iterable:Iterable=tuple(), context:Context=None, key_is_string:bool=True, key_resolve_incriment:bool=False, key_formatter:Callable|None=None):
         self.__setup__()
+
+        self.overlay_mode = mode
 
         self.key_is_string = key_is_string
         self.key_increment = key_resolve_incriment
@@ -280,3 +301,138 @@ class Collection[K:str|int,V:Any](UserDict):
             if i > 99:
                 raise Exception("")
         return k
+
+    def __len__(self):
+        return len(self.keys(use_overlay=True))
+    
+    def set_overlay(self, overlay:Self|None, supress_signals:bool=False)->dict:
+        o_items = dict(self.items(use_overlay=True))
+
+        if not (self.overlay is None):
+            self.overlay.appended.disconnect(self._on_overlay_item_appended)
+            self.overlay.removed.disconnect(self._on_overlay_item_removed)
+            self.overlay.replaced.disconnect(self._on_overlay_item_replaced)
+
+        self.overlay = overlay
+
+        if not (self.overlay is None):
+            self.overlay.appended.connect(self._on_overlay_item_appended)
+            self.overlay.removed.connect(self._on_overlay_item_removed)
+            self.overlay.replaced.connect(self._on_overlay_item_replaced)
+
+        ## Integrate & DisIntegrate overlay in copy mode:
+        if (self.overlay_mode is OverlayMode.COPY):
+            if self.overlay is None:
+                for k,v in dict(self.data.items()).items():
+                    if (not (v.overlay is None)) and v.overlay_is_thin():
+                        ## Remove all thin overlayed
+                        del self.data[k]
+
+                for v in self.values():
+                    ## Remove all remainder that (were not thin)
+                    v.set_overlay(None)
+
+            else:
+                for k,v in self.data.items():
+                    if (not (v.overlay is None)) and v.overlay_is_thin() and (not (k in self.overlay.keys())):
+                        # Remove if thin and from old overlay + not will be overlayed now
+                        del self.data[k]
+                        continue
+                    else:
+                        ## Overlay applicable
+                        v.set_overlay(self.overlay.get(k,None))
+
+                ## Append missing
+                for k,v in ((k,v) for k,v in self.overlay.items() if k not in self.data.keys()):
+                    self.data[k] = v.overlay_copy()
+
+        elif self.overlay_mode is OverlayMode.PASSTHROUGH:
+            pass
+
+        n_items = dict(self.items(use_overlay=True))
+        
+        appended = {k:v for k,v in n_items.items() if (not (k in o_items.keys()))}
+        removed = {k:v for k,v in o_items.items() if (not (k in n_items.keys()))}
+        replaced = {k:(o_items[k],v) for k,v in n_items.items() if (k not in appended.keys()) and (not (o_items[k] is n_items[k]))}
+
+        if not supress_signals:
+            for k,v in appended.items():
+                self.appended(k,v)
+            for k,v in removed.items():
+                self.removed(k,v)
+            for k,v in replaced.items():
+                self.replaced(k,*v)
+
+        self.overlay_updated(overlay)
+
+        return {"appended":appended, "removed":removed, "replaced":replaced}
+
+    def _on_overlay_item_appended(self, k, v):...
+    def _on_overlay_item_removed(self, k, v):...
+    def _on_overlay_item_replaced(self, k, v0, v):...
+    
+    def overlay_chain(self, depth_first:bool=False):
+        if self.overlay is None:
+            yield self
+            return
+        if depth_first:
+            yield from self.overlay.overlay_chain(depth_first=depth_first)
+            yield self
+        else:
+            yield self
+            yield from self.overlay.overlay_chain(depth_first=depth_first)
+
+    def keys(self, use_overlay:bool=True):
+        yielded : list[str] = []
+
+        if not use_overlay:
+            yield from self.data.keys()
+            return
+
+        for k in self.data.keys():
+            yielded.append(k)
+            yield k
+
+        for _p in self.overlay_chain():
+            for k in _p.data.keys():
+                if k in yielded: 
+                    continue
+                yielded.append(k)
+                yield k
+
+    def values(self, use_overlay:bool=True):
+        for k in self.keys(use_overlay=use_overlay):
+            yield self.get(k, use_overlay=use_overlay)
+        
+    def items(self, use_overlay:bool=True):
+        for k in self.keys(use_overlay=use_overlay):
+            yield (k, self.get(k, use_overlay=use_overlay))
+
+    def get[D](self, key:str, default:D=_UNSET, use_overlay:bool=True, unset_ok:bool=False)->Any|D:
+        """ Converts promises outgoing, unless required to return direct """
+        if use_overlay:
+            chain : Iterable[Self] = self.overlay_chain()
+        else:
+            chain : Iterable[Self] = tuple([self])
+
+        for p in chain:
+            v = p.data.get(key, _UNSET)
+            if v is _UNSET:
+                continue
+            return v
+
+        if (default is _UNSET) and (not unset_ok):
+            raise KeyError(key)
+        
+        return default
+
+    def __len__(self):
+        return len(tuple(self.keys()))
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __contains__(self, key):
+        if isinstance(key, (str,int)):
+            return key in self.keys(use_overlay=True)
+        return key in self.values(use_overlay=True) 
