@@ -143,6 +143,7 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
                 return default
             return self.sref
         elif not (self.sref is None):
+            raise Exception()
             return self.sref
 
         scope : _ResourceIO = getattr(context,self.ref_type[0], None)
