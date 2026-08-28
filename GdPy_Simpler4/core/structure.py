@@ -249,10 +249,12 @@ class ExtResource():
         self.id = CollectionKey(src = self, key = None)
         self.fullfill_references = Signal(self)
 
-    def __init__(self, id:str|None=None, file:str|Resource|None=None, resource:str|Resource|None=None):
+    def __init__(self, id:str|None=None, file:str|File|None=None, resource:str|Resource|None=None):
         self.__setup__()
         self.id.key = id
 
+        if (not (file is None)) and (not (resource is None)):
+            assert file.resource is resource
         self.file = file
         self.resource = resource
 
@@ -334,14 +336,17 @@ class Resource():
             self.instance = None
         elif isinstance(instance, ExtResource):
             self.instance = instance
-        elif isinstance(instance, (File,Resource)):
+        elif isinstance(instance, Resource):
+            self.instance = ExtResource(id=None, resource=instance)
+        elif isinstance(instance, File):
             self.instance = ExtResource(id=None, file=instance)
         else:
             raise TypeError(instance, "expected:", Resource|File|ExtResource|None) 
 
         if not (self.overlay is None):
             self.set_overlay(None)
-        if set_overlay and not( instance is None):
+        if set_overlay and (not (instance is None)):
+            assert not isinstance(self.instance.resource, StructReference)
             self.set_overlay(self.instance.resource)
 
         self.instance_updated(self.instance)
@@ -350,14 +355,13 @@ class Resource():
         self.overlay = overlay
 
         if not (overlay is None):
-            self.properties.set_overlay(overlay.properties.overlay)
+            self.properties.set_overlay(overlay.properties)
             if not self.is_subresource():
                 self.sub_resources.set_overlay(overlay.sub_resources)
         else:
             self.properties.set_overlay(None)
             if not self.is_subresource():
                 self.sub_resources.set_overlay(None)
-
 
         self.overlay_updated(overlay)
 
