@@ -207,6 +207,18 @@ class Test_Resource:
         assert isinstance(R1.ext_resources[tuple(R1.ext_resources.data.keys())[0]], ExtResource)
         assert R1.ext_resources[0].resource is R0
 
+    def test_defered_instance_subresource_to_resource():
+        R0 = Resource(uid="R0")
+        Sr0 = Resource(id="Sr0")
+        Sr1 = Resource(id="Sr1", properties = {"ref":Sr0, "ref2":R0})
+
+        R1 = Resource(id="R1", sub_resources = [Sr0,Sr1], properties={"a":Sr0, "b":Sr1}, ext_resources=[R0])
+        R1.__setup_file__("R1")
+
+        #Unknown desired behavior
+        raise NotImplementedError()
+    
+
 class Test_Node:
 
     def test_construction_subres(self):
@@ -360,6 +372,14 @@ class Test_Node:
         assert F1.overlay is None
 
         assert not E1 in C1.children
+
+    def test_defered_instance_subresource_to_resource():
+        N0 = Node("N0", uid="N0")
+        N1 = Node("N1", id="N1", instance=N0)
+        N1.__setup_file__("N1")
+        #Unknown desired behavior
+        raise NotImplementedError()
+    
 
     # def test_construct_instance_load_complex_localize_reference():
     #     pass
