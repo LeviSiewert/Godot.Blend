@@ -147,7 +147,7 @@ class Test_Resource:
         Resource()
 
     def test_construction_subres(self):
-        res = Resource(id="some_id")
+        res = Resource(id="res")
         assert res.is_subresource()
         assert res.uid.key is None
         assert res.file is None
@@ -164,8 +164,8 @@ class Test_Resource:
         assert not (res.file is None)
 
     def test_overlay(self):
-        R0 = Resource(id="some_id", properties={"a":"A0", "b":"B0", "c":"C0"})
-        R1 = Resource(id="some_id", instance=R0, properties={"a":"A1", "c":"C1"})
+        R0 = Resource(uid="R0", properties={"a":"A0", "b":"B0", "c":"C0"})
+        R1 = Resource(uid="R1", instance=R0, properties={"a":"A1", "c":"C1"})
 
         assert R1.overlay is R0
         assert R1.properties.overlay is R0.properties
@@ -177,8 +177,8 @@ class Test_Resource:
         assert R1.properties.overlay is None
 
     def test_overlay_signals(self):
-        R0 = Resource(id="some_id")
-        R1 = Resource(id="some_id")
+        R0 = Resource(id="R0")
+        R1 = Resource(id="R1")
 
         c = ContextVar("")
         R1.overlay_updated.connect(lambda x: c.set(x))
@@ -198,13 +198,13 @@ class Test_Resource:
         assert len(R1.sub_resources) == 2
 
         assert Sr0 in R1.sub_resources
-        assert Sr0.id == "R0"
+        assert Sr0.id.key == "Sr0"
 
         assert Sr1 in R1.sub_resources
-        assert Sr1.id == "Sr1"
+        assert Sr1.id.key == "Sr1"
 
         assert len(R1.ext_resources) == 1
-        assert isinstance(R1.ext_resources[0], ExtResource).resource is R0
+        assert isinstance(R1.ext_resources[tuple(R1.ext_resources.data.keys())[0]], ExtResource)
         assert R1.ext_resources[0].resource is R0
 
 class Test_Node:
