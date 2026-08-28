@@ -228,8 +228,8 @@ class Test_Node:
         
 
     def test_construct_overlay(self):
-        N0 = Node("N0", properties={"a":"A0", "b":"B0", "c":"C0"})
-        N1 = Node("N1", instance=N0, properties={"a":"A1", "c":"C1"})
+        N0 = Node("N0", uid="N0", properties={"a":"A0", "b":"B0", "c":"C0"})
+        N1 = Node("N1", uid="N1", instance=N0, properties={"a":"A1", "c":"C1"})
 
         assert N1.overlay is N0
         assert N1.properties.overlay is N0.properties
@@ -242,15 +242,15 @@ class Test_Node:
 
     def test_overlay_signals(self):
         N0 = Resource("N0")
-        N0 = Resource("N0")
+        N1 = Resource("N1")
 
         c = ContextVar("")
-        N0.overlay_updated.connect(lambda x: c.set(x))
+        N1.overlay_updated.connect(lambda x: c.set(x))
 
-        N0.set_overlay(N0)
+        N1.set_overlay(N0)
         assert c.get() is N0
 
-        N0.set_overlay(None)
+        N1.set_overlay(None)
         assert c.get() is None
 
     def test_construct_structure(self):
@@ -275,12 +275,12 @@ class Test_Node:
 
 
     def test_construct_instance_load(self):
-        N0 = Node("N0", properties = {"a":"A0", "c":"C0"})
-        N1 = Node("N1", properties = {"a":"A1", "b":"B1"}, instance = N0, setup_overlay=True)
+        N0 = Node("N0", uid="N0", properties={"a":"A0", "c":"C0"})
+        N1 = Node("N1", uid="N1", properties={"a":"A1", "b":"B1"}, instance = N0, setup_overlay=True)
         assert N1.overlay is N0
 
     def test_construct_instance_load_complex(self):
-        N0 = Node("N0", 
+        N0 = Node("N0", uid="N0", 
             properties = {"a":"A0", "c":"C0"},
             children = [
                 Node("A", 
@@ -299,7 +299,7 @@ class Test_Node:
             ],
         )
 
-        N1 = Node("N1", 
+        N1 = Node("N1", uid="N1", 
             properties = {"a":"A1", "b":"B1"}, 
             instance = N0, 
             setup_overlay=True,
