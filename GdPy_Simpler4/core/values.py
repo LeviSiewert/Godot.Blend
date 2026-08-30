@@ -126,6 +126,8 @@ class _FixedLenArray():
         return all(a==b for a,b in zip(other,self.val))
     def __iter__(self):
         yield from self.val
+    def __len__(self):
+        return len(self.val)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.val.__repr__()})"

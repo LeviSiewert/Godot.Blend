@@ -176,8 +176,11 @@ class Transformer():
         t = c.transformer.set(self)
 
         mod = None
+        keys = []
         for r in c.rulesets.get():
+            r : TransformerRuleset
             mod,key = r.get(c, node, None)
+            keys.append(key)
             if mod:
                 t0 = c.module.set(mod)
                 t1 = c.ruleset.set(r)
@@ -185,7 +188,7 @@ class Transformer():
                 t4 = c.key.set(key)
                 break
         if (mod is None):
-            raise KeyError(self, node)
+            raise KeyError(self, node, keys)
 
         transform_func = mod.transform
 

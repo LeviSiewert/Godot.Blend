@@ -46,8 +46,8 @@ class PyToGd_NodePath(PyToGdModule):
     def transform(self, c, node:NodePath):
         if node._typing:
             yield (node._typing,)
-            return f'NodePath[{c.children.get()[0]}]("{node.get_address()}")'
-        return f'NodePath("{node.get_address()}")'
+            return f'NodePath[{c.children.get()[0]}]("{node}")'
+        return f'NodePath("{node}")'
 
 class GdToPy_StringName(GdToPyModule):
     _keys = ("stringname",)

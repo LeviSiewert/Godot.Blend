@@ -10,12 +10,14 @@ from ._transformer import (
     PyToGdContext
 )
 
-from . import values
+from . import values, terminals_and_simple
 
 gd_to_py = GdToPyTransformer("GdToPy", *[
-    values.py_to_gd_ruleset,
+    values.gd_to_py_ruleset,
+    terminals_and_simple.gd_to_py_ruleset,
 ])
 
 py_to_gd = PyToGdTransformer("PyToGd", *[
-    values.gd_to_py_ruleset,
+    values.py_to_gd_ruleset,
+    terminals_and_simple.py_to_gd_ruleset,
 ])

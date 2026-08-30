@@ -400,7 +400,13 @@ class Resource():
             return (RefType.RESOURCE, self.uid.key)
         return (RefType.DEFER, None)
 
-class NodePath(UserString):... 
+class NodePath(UserString):
+
+    def __init__(self, seq, typing:GdDefType|None=None):
+        super().__init__(seq)
+        self._typing = typing
+    _typing : GdDefType = None
+    
 
 class GdSignal():
     context : Context
