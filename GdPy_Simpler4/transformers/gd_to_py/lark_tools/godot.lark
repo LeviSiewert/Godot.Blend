@@ -2,22 +2,22 @@ start : file_resource
       | file_tscn
       | file_settings
 
-file_settings :  properties cat_resources [prim_resource] 
-file_resource : "[gd_resource" properties "]" ext_resources sub_resources [prim_resource]
-file_tscn : "[gd_scene" properties "]" ext_resources sub_resources node_resources signals edit_flags 
+file_settings :  properties _cat_resources [_prim_resource] 
+file_resource : "[gd_resource" properties "]" _ext_resources _sub_resources [_prim_resource]
+file_tscn : "[gd_scene" properties "]" _ext_resources _sub_resources _node_resources _signals _edit_flags 
 
-ext_resources : [ext_resource]*
-sub_resources : [sub_resource]*
-node_resources : [node_resource]*
-cat_resources : [cat_resource]*
-signals : [signal]*
-edit_flags : [edit_flag]*
+_ext_resources : [ext_resource]*
+_sub_resources : [sub_resource]*
+_node_resources : [node_resource]*
+_cat_resources : [cat_resource]*
+_signals : [signal]*
+_edit_flags : [edit_flag]*
 
 ext_resource : "[ext_resource" properties "]" properties
 sub_resource : "[sub_resource" properties "]" properties
 node_resource : "[node" properties "]" properties
 cat_resource : "[" WORD "]" properties //[COMMENT|property]*
-prim_resource : "[resource]" properties
+_prim_resource : "[resource]" properties
 signal : "[connection" properties "]"
 edit_flag : "[editable" properties "]" properties
 

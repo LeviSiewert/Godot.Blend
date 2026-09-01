@@ -6,8 +6,15 @@ from ...core.structure import Resource, Node, ExtResource, Properties
 class GdToPy_Properties(GdToPyModule):
     _keys = ("properties",)
 
+    def transform(self, c, node):
+        yield node.children
+        return dict(c.children.get())
+
 class PyToGd_Properties(GdToPyModule):
     _keys = (Properties,)
+
+    # def transform(self, c, node):
+    #     pass.
 
 class GdToPy_Resource(GdToPyModule):
     #"[ ..." properties "]" ext_resources sub_resources [prim_resource]
@@ -20,7 +27,7 @@ class GdToPy_Resource(GdToPyModule):
         header_properties = children[0]
         ext_resources = children[1]
         sub_resources = children[2]
-        properties = children[3][0]
+        properties = children[3]
 
         return Resource(*header_properties, 
             ext_resources=ext_resources,
@@ -29,7 +36,7 @@ class GdToPy_Resource(GdToPyModule):
         )
 
 class GdToPy_SubResource(GdToPyModule):
-    _keys = ("resource",)
+    _keys = ("sub_resource",)
 
     def transform(self, c, node): #->Resource:
         yield node.children
