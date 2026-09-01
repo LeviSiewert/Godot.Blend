@@ -78,7 +78,7 @@ class PyToGd_Object(PyToGdModule):
     def transform(self, c, node:Object):
         if node.kwargs:
             yield node.kwargs
-            return f"Object({node.type}, {",".join(f"{k}:{v}"for k,v in c.children.get()[0])})"
+            return f"Object({node.type}, {",".join(f"\"{k}\":{v}"for k,v in dict(c.children.get()).items())})"
         return f"Object({node.type})"
 
 class GdToPy_DictionaryImplicit(GdToPyModule):
