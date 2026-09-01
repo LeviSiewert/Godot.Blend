@@ -103,6 +103,8 @@ class TransformerModule[IN:Any, CHILDREN:Any|TERMINAL, OUT:Any|IGNORE]():
     
     _keys = tuple()
     def get_keys(self,)->tuple[Any]:
+        if isinstance(self._keys, str):
+            return tuple(self._keys) 
         return self._keys
     
     def transform(self, c:Context, node:IN)->Generator[CHILDREN,OUT]:
