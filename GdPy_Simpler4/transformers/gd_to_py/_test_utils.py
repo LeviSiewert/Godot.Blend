@@ -1,7 +1,7 @@
 from typing import Generator, Type, Any
 
 from ._core import gd_to_py, py_to_gd
-from .lark import make_parser
+from .lark_tools import make_parser
 
 from ._transformer import ( GdToPyContext, PyToGdContext )
 
