@@ -4,6 +4,7 @@ from ._test_utils import _StructureTest
 class Test_Resource():
 
     class Test_Simple(_StructureTest):
+        _parser_key = "start"
         def data(self):
             txt = ''' 
 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
@@ -15,6 +16,7 @@ val = "VAL"
 
     
     class Test_NestedSubRes(_StructureTest):
+        _parser_key = "start"
         def data(self):
             txt = '''
 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
@@ -22,13 +24,13 @@ val = "VAL"
 [sub_resource type="Resource" id="a"]
 
 [sub_resource type="Resource" id="b"]
-reference=a
+reference=SubResource("a")
 
 [sub_resource type="Resource" id="c"]
-reference=b
+reference=SubResource("b")
 
 [resource]
-reference=c
+reference=SubResource("c")
 '''
             res = Resource(type="Resource", uid="uid://b52f332102m2l", properties={
                 "reference": Resource(type="Resource", id = "c", properties={
@@ -41,6 +43,7 @@ reference=c
 
 
     class Test_ExtRes(_StructureTest):
+        _parser_key = "start"
         def data(self):
             txt = """
 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
@@ -50,7 +53,7 @@ reference=c
 [resource]
 reference = ExtResource("1_2f6dx")
 """
-            extres = ExtResource(type="Resource", uid="uid://cjkvk7qbv5oby", path="res://ext_res.tres", id="1_2f6dx")
+            extres = ExtResource(type="Resource", resource="uid://cjkvk7qbv5oby", file="res://ext_res.tres", id="1_2f6dx")
             res = Resource(
                 ext_resources=[extres],
                 properties={"reference":extres}
@@ -59,6 +62,7 @@ reference = ExtResource("1_2f6dx")
     
     
     class Test_ExtResNestedSubRes(_StructureTest):
+        _parser_key = "start"
         def data(self):
             txt = """
 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
@@ -71,7 +75,7 @@ reference = ExtResource("1_2f6dx")
 [resource]
 reference=SubResource("a")
 """
-            extres = ExtResource(type="Resource", uid="uid://cjkvk7qbv5oby", path="res://ext_res.tres", id="1_2f6dx")
+            extres = ExtResource(type="Resource", resource="uid://cjkvk7qbv5oby", file="res://ext_res.tres", id="1_2f6dx")
             a = Resource(id="a", properties={"reference":extres})
             res = Resource(
                 ext_resources=[extres],

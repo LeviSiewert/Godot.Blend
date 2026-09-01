@@ -244,14 +244,18 @@ class ExtResource():
     file = StructReferenceProperty("_file", RefType.FILE)
     resource = StructReferenceProperty("_resource", RefType.RID)
 
+    _gdtype : StructReference[str, GdDefType]
+    gdtype = StructReferenceProperty("_file", RefType.FILE)
+
     def __setup__(self):
         self.context = Context(ext_resource=self)
         self.id = CollectionKey(src = self, key = None)
         self.fullfill_references = Signal(self)
 
-    def __init__(self, id:str|None=None, file:str|File|None=None, resource:str|Resource|None=None):
+    def __init__(self, type:GdDefType|str|None=None, id:str|None=None, file:str|File|None=None, resource:str|Resource|None=None):
         self.__setup__()
         self.id.key = id
+        self.gdtype = type
 
         if (not (file is None)) and (not (resource is None)):
             assert file.resource is resource
@@ -312,17 +316,22 @@ class Resource():
 
     ## All:
     id : CollectionKey[str]
-    gdtype : GdDefType
+
+    _gdtype : StructReference[str, GdDefType]
+    gdtype = StructReferenceProperty("_file", RefType.FILE)
+
     properties : Properties
 
     fullfill_references : Signal[RefType, str]
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True,):
+    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True, type:GdDefType|str|None=None):
         self.__setup__()
         self.id.key = id
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
         self.properties.update(properties)
+
+        self.gdtype = type
 
 
         if not (sub_resources is None):

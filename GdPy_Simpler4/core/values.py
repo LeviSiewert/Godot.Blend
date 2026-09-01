@@ -5,7 +5,7 @@ from typing import Any
 from collections import OrderedDict, UserString, UserList
 
 from .structure import NodePath
-from .defininitions import GdDefValue, GdDefType
+from .defininitions import GdDefValue, GdDefType, GdDefValueTyping
 from .signals import Signal 
 
 class StringName(UserString):
@@ -39,16 +39,25 @@ class Dictionary(OrderedDict):
     removed : Signal[str,Any]
     updated : Signal[str,Any,Any]
 
-    typing : GdDefValue
+    typing : GdDefValueTyping
 
     def __setup__(self):
         self.added = Signal(self)
         self.removed = Signal(self) 
         self.updated = Signal(self) 
 
-    def __init__(self, map=tuple(), /, typing:tuple[GdDefValue|Any]=None):
+    def __init__(self, map=tuple(), /, typing:GdDefValueTyping|Any=None):
         self.__setup__()
-        self.typing = typing
+
+        if (typing is None):
+            self.typing = None
+        elif isinstance(typing, str):
+            self.typing = GdDefValueTyping(typing)
+        elif not isinstance(typing, GdDefValueTyping):
+            self.typing = GdDefValueTyping(*typing)
+        else:
+            self.typing = typing
+
         super().__init__(map)
 
     def __setitem__(self, key, value):
@@ -71,7 +80,7 @@ class Dictionary(OrderedDict):
         self.removed(key, value)
         
 class Array(UserList):
-    typing : GdDefValue
+    typing : GdDefValueTyping
 
     added : Signal[str,Any]
     removed : Signal[str,Any]
@@ -84,7 +93,14 @@ class Array(UserList):
 
     def __init__(self, *values, typing:tuple[GdDefValue|Any]=None):
         self.__setup__()
-        self.typing = typing
+
+        if (typing is None):
+            self.typing = None
+        elif isinstance(typing, str):
+            self.typing = GdDefValueTyping(typing)
+        else:
+            self.typing = typing
+
         super().__init__(values)
 
     def __setitem__(self, key:int, value):

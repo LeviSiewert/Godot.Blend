@@ -32,6 +32,8 @@ from ...core.values import (
     PackedByteArray,
 )
 
+from ...core.defininitions import GdDefValueTyping
+
 from ._test_utils import _StructureTest
 
 class Test_NodePath(_StructureTest):
@@ -70,14 +72,18 @@ class Test_Object(_StructureTest):
 class Test_Dictionary(_StructureTest):
     _type = Dictionary
     _parser_key = "value"
-    def data(self,):
-        yield '{}', Dictionary()
+    def data_to_py_only(self,):
         yield 'Dictionary()', Dictionary()
         yield 'Dictionary[Variant,Variant]()', Dictionary()
         yield 'Dictionary({})', Dictionary()
         yield 'Dictionary[Variant,Variant]({})', Dictionary()
         yield 'Dictionary({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"})
         yield 'Dictionary[Variant,Variant]({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"})
+    # def data_to_gd_only(self,):
+    #     yield 
+    def data(self,):
+        yield '{}', Dictionary()
+        yield '{"a":"b", "c":"d"}', Dictionary({"a":"b", "c":"d"})
         yield 'Dictionary[String,String]({"a":"b", "c":"d"})', Dictionary({"a":"b", "c":"d"}, typing=["String","String"])
 
 class Test_Array(_StructureTest):

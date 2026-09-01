@@ -1,6 +1,6 @@
 from ._transformer import GdToPyModule, PyToGdModule, GdToPyRuleset, PyToGdRuleset
 
-from ...core.structure import Resource, Node, ExtResources
+from ...core.structure import Resource, Node, ExtResource
 
 
 class GdToPy_Resource(GdToPyModule):
@@ -14,7 +14,7 @@ class GdToPy_ExtResource(GdToPyModule):
     _keys = ("ext_resource",)
 
 class PyToGd_ExtResource(PyToGdModule):
-    _keys = (ExtResources,)
+    _keys = (ExtResource,)
 
 
 class GdToPy_Node(GdToPyModule):
@@ -24,13 +24,13 @@ class PyToGd_Node(PyToGdModule):
     _keys = (Node,)
 
 
-gd_to_py_ruleset = GdToPyRuleset("STD_Resources", [
+gd_to_py_ruleset = GdToPyRuleset("STD_Resources", *[
     GdToPy_Resource,
     GdToPy_Node,
     GdToPy_ExtResource,
 ])
 
-py_to_gd_ruleset = PyToGdRuleset("STD_Resources", [
+py_to_gd_ruleset = PyToGdRuleset("STD_Resources", *[
     PyToGd_Resource,
     PyToGd_Node,
     PyToGd_ExtResource,

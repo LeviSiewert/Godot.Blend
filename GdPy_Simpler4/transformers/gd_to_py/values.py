@@ -1,6 +1,6 @@
 from ._transformer import GdToPyRuleset, GdToPyModule, PyToGdRuleset, PyToGdModule, GdToPyContext, PyToGdContext
 
-from typing import Type 
+from typing import Type, Any
 
 from ...core.values import (
     NodePath,
@@ -93,23 +93,30 @@ class GdToPy_Dictionary(GdToPyModule):
         yield node.children 
         typing, children = c.children.get() 
         if children is None:
-            return Dictionary(types=typing)
-        return Dictionary(children, types=typing)
-    
+            return Dictionary(typing=typing)
+        return Dictionary(children, typing=typing)
+
+
+from ...core.transformer import _TransformerCmd
+class _DictBothSides(_TransformerCmd):
+    data : dict
+    def __init__(self, data):
+        self.data = data
+    def iter(self, func):
+        for k,v in self.data.items():
+            yield func(k), func(v)
+
 class PyToGd_Dictionary(PyToGdModule):
     _keys = (Dictionary,)
     def transform(self, c, node:Dictionary):
+        yield _DictBothSides(node)
+        # yield ((k,v) for k,v in node.items()):
 
-        yield node
-        di = c.children.get()
-
-        
-        reps = tuple((f'{k}:{v}' for k,v in di.items()))
+        reps = tuple((f'{k}:{v}' for k,v in c.children.get()))
         inner = '{' + ",".join(reps) + '}'
         
         if (node.typing is None): # or node.typing.is_variant(): #TODO
             return inner
-
         yield (node.typing,)
         ty = c.children.get()[0]
 
@@ -138,14 +145,14 @@ class PyToGd_Array(PyToGdModule):
 
         inner = '[' + ",".join(values) + ']'
 
-        if (node.typing is None): #or node.typing.is_variant():
+        if (node.typing is None) or ((node.typing.contents_a is Any)): #or node.typing.is_variant():
             #TODO:
             return inner
 
         yield (node.typing,)
         typing = c.children.get()[0]
         
-        return f'Array[{typing}]({inner})'
+        return f'Array{typing}({inner})'
 
 class _GdToPy_FixedLenArray(GdToPyModule):
     _res_type : Type

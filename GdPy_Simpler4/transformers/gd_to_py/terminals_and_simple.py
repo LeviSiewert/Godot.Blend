@@ -63,7 +63,7 @@ class GdToPy_Simple(GdToPyModule):
     ''' Thin objects that should still be paired with current parser
     May will be implied in refactor suppporting lalr(1) + treeless.
     '''
-    _keys = ("pair", "value", "property", "resource_header", "resource_body",  "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12")
+    _keys = ("type_anno_item","pair", "value", "property", "resource_header", "resource_body",  "packed_2", "packed_2i", "packed_3", "packed_3i", "packed_4", "packed_4i", "packed_6", "packed_9", "packed_12")
     def transform(self, c, node):
         yield node.children
         assert(isinstance(node, LarkTree))
@@ -73,8 +73,8 @@ class GdToPy_Simple(GdToPyModule):
                 return c.children.get()
             case "value":
                 return c.children.get()[0]
-            case "type_anno":
-                return c.children.get()
+            case "type_anno_item":
+                return c.children.get()[0]
             case "type":
                 return c.children.get()[0] ## expected: Str|None
             case "property":
