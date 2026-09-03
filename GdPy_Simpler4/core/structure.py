@@ -303,6 +303,7 @@ class Resource():
     context : Context
 
     ## as file:
+    _format : int = 4
     uid : CollectionKey[str]
     _file : StructReference[str, File]
     file = StructReferenceProperty("_file", RefType.FILE)
@@ -324,15 +325,15 @@ class Resource():
 
     fullfill_references : Signal[RefType, str]
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True, type:GdDefType|str|None=None):
+    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True, type:GdDefType|str|None=None, format:int=4):
         self.__setup__()
+        self._format = format
         self.id.key = id
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
         self.properties.update(properties)
 
         self.gdtype = type
-
 
         if not (sub_resources is None):
             self.sub_resources.extend(sub_resources)
@@ -392,6 +393,9 @@ class Resource():
         self.sub_resources = Collection(key_attr = "id", context=self.context)
         self.ext_resources = Collection(key_attr = "id", context=self.context)        
 
+        if not (uid is None):
+            uid = uid.split("uid://")[-1]
+
         self.file = file
         self.uid.key = uid
         self.context.resource = self
@@ -416,16 +420,18 @@ class Resource():
         return all ([
             self.sub_resources == other.sub_resources,
             self.ext_resources == other.ext_resources,
-            self.uid == other.uid.key,
+            self.uid.key == other.uid.key,
+            self.id.key == other.id.key,
             self.file == other.file,
             self.gdtype == other.gdtype,
-            self.id == other.id.key,
             self.properties == other.properties,
             self.instance == other.instance,
         ])
 
     def _dif(self, other)->dict:
         return {
+            "uid"           : (self.uid.key == other.uid.key,             self.uid.key, other.uid.key),
+            "id"            : (self.id.key == other.id.key,               self.id.key, other.id.key),
             "sub_resources" : (self.sub_resources == other.sub_resources, self.sub_resources, other.sub_resources),
             "ext_resources" : (self.ext_resources == other.ext_resources, self.ext_resources, other.ext_resources),
             "properties"    : (self.properties == other.properties,       self.properties, other.properties),
@@ -504,7 +510,9 @@ class Node(Resource):
 
         self.overlay_updated(overlay)
 
-    def __setup_file__(self, uid = None, file = None):
+    def __setup_file__(self, uid : str = None, file = None):
+        if not (uid is None):
+            uid = uid.split("uid://")[-1]
         self.nodes = Collection(key_attr="id", key_is_string=False)
         return super().__setup_file__(uid, file)
 

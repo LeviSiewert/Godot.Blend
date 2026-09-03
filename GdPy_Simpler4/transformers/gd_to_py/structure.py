@@ -22,14 +22,11 @@ class GdToPy_Resource(GdToPyModule):
 
     def transform(self, c, node): #->Resource:
         yield node.children
-        children = c.children.get()
+        header_properties, ext_resources, sub_resources, properties = c.children.get()
 
-        header_properties = children[0]
-        ext_resources = children[1]
-        sub_resources = children[2]
-        properties = children[3]
+        # raise Exception(header_properties)
 
-        return Resource(*header_properties, 
+        return Resource(**header_properties, 
             ext_resources=ext_resources,
             sub_resources=sub_resources,
             properties=properties,
