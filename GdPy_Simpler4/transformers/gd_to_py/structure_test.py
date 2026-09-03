@@ -4,6 +4,7 @@ from ._test_utils import _StructureTest
 class Test_Resource():
 
     class Test_Simple(_StructureTest):
+        _type = Resource
         _parser_key = "start"
         def data(self):
             txt = ''' 
@@ -16,6 +17,7 @@ val = "VAL"
 
     
     class Test_NestedSubRes(_StructureTest):
+        _type = Resource
         _parser_key = "start"
         def data(self):
             txt = '''
@@ -43,6 +45,7 @@ reference=SubResource("c")
 
 
     class Test_ExtRes(_StructureTest):
+        _type = Resource
         _parser_key = "start"
         def data(self):
             txt = """
@@ -62,6 +65,7 @@ reference = ExtResource("1_2f6dx")
     
     
     class Test_ExtResNestedSubRes(_StructureTest):
+        _type = Resource
         _parser_key = "start"
         def data(self):
             txt = """

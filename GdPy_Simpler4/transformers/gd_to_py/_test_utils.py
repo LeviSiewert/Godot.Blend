@@ -48,7 +48,11 @@ class _StructureTest[T:Type]():
 
     def py_compare(self, ground:T, new:T):
         assert (isinstance(new, self._type))
-        assert (ground == new)
+        if (ground != new):
+            if hasattr(ground, "_dif"):
+                raise Exception({k:v for k,v in ground._dif(new).items() if not v[0]})
+            raise Exception("(ground != new)")
+        
 
     def gd_compare(self, ground:str, new:str):
         g = ground.replace("\n","").replace("\t","").replace(" ","")

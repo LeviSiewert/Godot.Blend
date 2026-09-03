@@ -162,6 +162,14 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
             self.wref = weakref(item)
 
         return item
+
+    def __eq__():
+        ## Compare against Key or Object
+        ## If one defered type, or both same type allow direct comparison:
+        ## When one key, other object: Assume Key name == Object
+        ## If both obj, compare obj
+        ## If both key, compare key
+        raise NotImplementedError()
         
 
     # def _on_collection_append():

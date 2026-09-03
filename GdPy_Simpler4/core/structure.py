@@ -409,6 +409,32 @@ class Resource():
             return (RefType.RESOURCE, self.uid.key)
         return (RefType.DEFER, None)
 
+    def __eq__(self, other):
+        if not isinstance(other, Resource):
+            return False
+        other : Resource
+        return all ([
+            self.sub_resources == other.sub_resources,
+            self.ext_resources == other.ext_resources,
+            self.uid == other.uid.key,
+            self.file == other.file,
+            self.gdtype == other.gdtype,
+            self.id == other.id.key,
+            self.properties == other.properties,
+            self.instance == other.instance,
+        ])
+
+    def _dif(self, other)->dict:
+        return {
+            "sub_resources" : (self.sub_resources == other.sub_resources, self.sub_resources, other.sub_resources),
+            "ext_resources" : (self.ext_resources == other.ext_resources, self.ext_resources, other.ext_resources),
+            "properties"    : (self.properties == other.properties,       self.properties, other.properties),
+            "instance"      : (self.instance == other.instance,           self.instance, other.instance),
+            "file"          : (self.file == other.file,                   self.file, other.file),
+            "gdtype"        : (self.gdtype == other.gdtype,               self.gdtype, other.gdtype),
+        }
+        
+
 class NodePath(UserString):
 
     def __init__(self, seq, typing:GdDefType|None=None):
