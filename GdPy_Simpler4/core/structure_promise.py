@@ -62,7 +62,7 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
     sref : None|V = None 
     wref : WeakReferenceType[V] = weakref(_UNSET())
     ref_type : RefType = RefType.DEFER
-    key : str|None       ## Key for Collection
+    key : int|str|None       ## Key for Collection
 
     def __setup__(self):
         self.cached = {}
@@ -163,18 +163,32 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
 
         return item
 
-    def __eq__():
-        ## Compare against Key or Object
-        ## If one defered type, or both same type allow direct comparison:
-        ## When one key, other object: Assume Key name == Object
-        ## If both obj, compare obj
-        ## If both key, compare key
-        raise NotImplementedError()
-        
+    def __eq__(self, other:Self|Any):
+        if isinstance(other, str|int):
+            return (self.key == other)
+        elif not isinstance(other, StructReference):
+            return False
 
-    # def _on_collection_append():
-    #     ## Testing for fullfillment to attach update_reference to?
-    #     pass
+        if (other.ref_type != self.ref_type) and (not any([self.ref_type == RefType.DEFER, other.ref_type == RefType.DEFER])):
+            return False
+
+        if (other.key == self.key) and (not self.key is None):
+            return True
+        if (other.sref == self.sref) and (not self.sref is None):
+            return True
+        if (other.wref() == self.wref()) and (not self.wref() is None):
+            return True
+
+        # return any(
+        #     getattr(other.cached(), "key", None) ==  
+        # )
+
+        return False
+
+        raise NotImplementedError(self, other)
+        
+    def __repr__(self):
+        return f"StructureReference({self.ref_type} :: {self.key})"
 
 class StructReferenceProperty[K:str|int, V:Any|None]():
     ref_type : RefType
