@@ -302,8 +302,8 @@ class Resource():
     uid : CollectionKey[str]
     _file : StructReference[str, File]
     file = StructReferenceProperty("_file", RefType.FILE)
-    sub_resources : Collection[str, Resource]
-    ext_resources : Collection[str, ExtResource]
+    sub_resources : None|Collection[str, Resource] = None
+    ext_resources : None|Collection[str, ExtResource] = None
 
     _instance : StructReference[str, ExtResource]
     instance = StructReferenceProperty("_instance", RefType.EXT_RESOURCE)

@@ -58,6 +58,8 @@ reference = ExtResource("1_2f6dx")
 """
             extres = ExtResource(type="Resource", resource="uid://cjkvk7qbv5oby", file="res://ext_res.tres", id="1_2f6dx")
             res = Resource(
+                uid = "b52f332102m2l",
+                type = "Resource",
                 ext_resources=[extres],
                 properties={"reference":extres}
             )
@@ -82,6 +84,8 @@ reference=SubResource("a")
             extres = ExtResource(type="Resource", resource="uid://cjkvk7qbv5oby", file="res://ext_res.tres", id="1_2f6dx")
             a = Resource(id="a", properties={"reference":extres})
             res = Resource(
+                uid = "b52f332102m2l",
+                type = "Resource",
                 ext_resources=[extres],
                 properties={"reference":a}
             )

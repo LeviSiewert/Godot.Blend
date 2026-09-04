@@ -26,8 +26,6 @@ class GdToPy_Resource(GdToPyModule):
         yield node.children
         header_properties, ext_resources, sub_resources, properties = c.children.get()
 
-        # raise Exception(header_properties)
-
         return Resource(**header_properties, 
             ext_resources=ext_resources,
             sub_resources=sub_resources,
@@ -110,9 +108,18 @@ class PyToGd_Resource(PyToGdModule):
 class GdToPy_ExtResource(GdToPyModule):
     _keys = ("ext_resource",)
 
+
 class PyToGd_ExtResource(PyToGdModule):
     _keys = (ExtResource,)
 
+    def transform(self, c, node:ExtResource):
+        # return f"[]"
+        
+        gdtype = node.gdtype if isinstance(node.gdtype, (str,int)) else node.gdtype.key
+        file =  node.file if isinstance(node.file, (str,int)) else node.file.path.key
+        resource =  node.resource if isinstance(node.resource, (str,int)) else node.resource.path.key
+        id =  node.id.key
+        return f'[ext_resource type="{gdtype}" uid="{resource}" path="{file}"]'
 
 class GdToPy_Node(GdToPyModule):
     _keys = ("file_node", "node")
