@@ -123,7 +123,7 @@ class StructReference[K:str|int, V:_ItemIO|Any]():
     def _on_update_references(self, filter:Callable, updater:Callable, new_object:None|V=None ):
         if not filter(self):
             return
-        obj :_ItemIO= self.sref if (not (self.sref is None)) else self.weakref()
+        obj :_ItemIO= self.sref if (not (self.sref is None)) else self.wref()
 
         if not (obj is None):
             obj.fullfill_references.disconnect(self._on_fullfill_references)
@@ -210,8 +210,12 @@ class StructReferenceProperty[K:str|int, V:Any|None]():
             return
         elif (promise.sref is value) or (promise.wref() is value):
             return
-        
-        promise._on_update_references(lambda r:True, lambda r:..., new_object=value)
+        elif isinstance(value, (str,int)):
+            promise._on_fullfill_references(ref_type=self.ref_type, key=value)
+            return
+        else:
+            promise._on_update_references(lambda r:True, lambda r:..., new_object=value)
+            return
         
     def __get__(self, instance, owner)->K|V|StructReference:
         promise : None|StructReference = getattr(instance, self.attr, None)

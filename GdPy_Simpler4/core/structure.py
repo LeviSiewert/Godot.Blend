@@ -257,14 +257,9 @@ class ExtResource():
         self.id.key = id
         self.gdtype = type
 
-        if (not (file is None)) and (not (resource is None)):
-            assert file.resource is resource
         self.file = file
-
-        if not (resource is None):
-            assert not resource.is_subresource()
-
         self.resource = resource
+
 
     def provide_reftype_key(self)->tuple[None,None]:
         if not (self.id.key is None):
