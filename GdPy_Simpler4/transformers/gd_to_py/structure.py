@@ -108,6 +108,11 @@ class PyToGd_Resource(PyToGdModule):
 class GdToPy_ExtResource(GdToPyModule):
     _keys = ("ext_resource",)
 
+    def transform(self, c, node):
+        yield node.children
+        header_props = c.children.get()[0]
+        return ExtResource(**header_props)
+
 
 class PyToGd_ExtResource(PyToGdModule):
     _keys = (ExtResource,)

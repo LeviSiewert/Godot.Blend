@@ -252,13 +252,15 @@ class ExtResource():
         self.id = CollectionKey(src = self, key = None)
         self.fullfill_references = Signal(self)
 
-    def __init__(self, type:GdDefType|str|None=None, id:str|None=None, file:str|File|None=None, resource:str|Resource|None=None):
+    def __init__(self, type:GdDefType|str|None=None, id:str|None=None, path:str|File|None=None, uid:str|Resource|None=None):
         self.__setup__()
         self.id.key = id
         self.gdtype = type
 
-        self.file = file
-        self.resource = resource
+        self.file = path
+        if isinstance(uid, str):
+            uid = uid.split("uid//")[-1]
+        self.resource = uid
 
 
     def provide_reftype_key(self)->tuple[None,None]:

@@ -13,7 +13,7 @@ _cat_resources : [cat_resource]*
 _signals : [signal]*
 _edit_flags : [edit_flag]*
 
-ext_resource : "[ext_resource" properties "]" properties
+ext_resource : "[ext_resource" properties "]"
 sub_resource : "[sub_resource" properties "]" properties
 node_resource : "[node" properties "]" properties
 cat_resource : "[" WORD "]" properties //[COMMENT|property]*
