@@ -3,24 +3,24 @@ from typing import Any, Generator, Iterable
 from contextvars import ContextVar
 from inspect import isgenerator, isclass
 
-def tranform(session, node:Any)->Generator[Flag, None|Any, Any]:
-    yield RESULT(...)
+# def tranform(session, node:Any)->Generator[Flag, None|Any, Any]:
+#     yield RESULT(...)
 
-    yield STEP("", ...)
-    ## Outer scope, return is None
+#     yield STEP("", ...)
+#     ## Outer scope, return is None
 
-    children : Any = yield TRANFORM_CHILDREN(...)
-    ## Calls outer scope to call transform, blocking and within the current session
-    ## Best pracitce atm due to desire for:
-        # Tree traversal siblings first
-        # Blocking child escape // dependent transformations
-            # Ie child Escapes, but isnt fully transformed due to waitng on another flag?
+#     children : Any = yield TRANFORM_CHILDREN(...)
+#     ## Calls outer scope to call transform, blocking and within the current session
+#     ## Best pracitce atm due to desire for:
+#         # Tree traversal siblings first
+#         # Blocking child escape // dependent transformations
+#             # Ie child Escapes, but isnt fully transformed due to waitng on another flag?
 
-    children : Generator = yield TRANFORM_CHILDREN_GENERATOR(...)
-    ## Calls session to transform each upon read.
+#     children : Generator = yield TRANFORM_CHILDREN_GENERATOR(...)
+#     ## Calls session to transform each upon read.
 
 
-    return result
+#     return result
 
 class _UNSET:...
 
