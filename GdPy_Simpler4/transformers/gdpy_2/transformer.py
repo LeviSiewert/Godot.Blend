@@ -55,6 +55,8 @@ class STEP(Flag):
 #         self.buffer_id = buffer_id
 #     def __integrate__():
 #         pass
+#     def enterscope() # Add and remove from ctx? As interupt would *kinda* fuck with it 
+#     def exitscope() # Add and remove from ctx? As interupt would *kinda* fuck with it 
 
 
 class SWAP_GENERATOR(Flag):
@@ -153,12 +155,12 @@ class TransformerSet():
 
 class Session():
     memo : dict[int, tuple[Any|_UNSET, dict|None, Generator|None]] #Map of id(node) : result, cache, generator, ...
-    buffers : ContextVar[dict[str, list]]
+    # buffers : ContextVar[dict[str, list]]
     rulesets : ContextVar[list[TransformerSet]]
 
     def __init__(self, rulesets:list[TransformerSet]):
         self.memo = {}
-        self.buffers = ContextVar("Buffers", default={})
+        # self.buffers = ContextVar("Buffers", default={})
         self.rulesets = ContextVar("Rulesets", default=rulesets)
 
     def make_generator(self, node)->Generator:
