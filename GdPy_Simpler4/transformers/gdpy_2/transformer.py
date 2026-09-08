@@ -3,24 +3,41 @@ from typing import Any, Generator, Iterable
 from contextvars import ContextVar
 from inspect import isgenerator, isclass
 
-# def tranform(session, node:Any)->Generator[Flag, None|Any, Any]:
-#     yield RESULT(...)
+""" This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
+implimentation of dependency transformation via yielding `Flags` that the outer scope respects.
 
-#     yield STEP("", ...)
-#     ## Outer scope, return is None
+It does this through a generator per `id(node)`, as generators allow for sequencial & interuptable operations.
+Matching of `node` to function is dependent on the implimentation of `TransformModule.match`, and is called seq by `TransformerSet`, called seq within `Session.rulesets`
 
-#     children : Any = yield TRANFORM_CHILDREN(...)
-#     ## Calls outer scope to call transform, blocking and within the current session
-#     ## Best pracitce atm due to desire for:
-#         # Tree traversal siblings first
-#         # Blocking child escape // dependent transformations
-#             # Ie child Escapes, but isnt fully transformed due to waitng on another flag?
+Rulesets should be a contextual variable! 
+This means point means that the ruleset can be changed during transformation for any sub-tree.
+However; Creating secondary sessions with a second ruleset is a method to get around this, but escapes and similar from sub-Sessions will have to be handled within the transformation function
 
-#     children : Generator = yield TRANFORM_CHILDREN_GENERATOR(...)
-#     ## Calls session to transform each upon read.
+Through handling of rulesets and session generation, user-created modules will be supported to alter behavior bi-directionally.
 
-
-#     return result
+Future plans for V2 include:
+- BLOCKING / DEPENDENCIES
+    - 
+- ESCAPE sequences
+    - Nested partial transformations (level one - level 2 > level 3 :: ESCAPE -> ?? > level one)
+    - Similar to raising exceptions, but using generators and caching to maintain state of sub-transformations & dependencies
+- Context variables re-work (implied by escape sequences)
+    - semi-local dict that looks upwared within the tree upon missing value (dict is localized on set)
+    - dict will be saved within the memo per node
+    - Ordering of calls cross the tree will not always be determinisitc, so context and thus dict values could change between yields
+- BUFFER
+    - Automated list "context" variable w/ callback.
+    - Should only be readable by the creator of the buffer. 
+    - Usefull for listing nested children for inter-step processing
+    - Clearing the buffer should *optionally* be Blocking (Lambda in memo!) 
+- CALLBACK_INSERT
+    - Append lambda to BUFFER object, one-off func call that sends a value to the generator
+    - Blocking !!
+    - Blocking via flag in memo?
+    - Usefull for (nested object - value insertion) that doesnt rely on `session.context` values
+- CALLBACK
+    - Append lambda to BUFFER object, call that sends a value.
+"""
 
 class _UNSET:...
 
@@ -44,6 +61,15 @@ class STEP(Flag):
         self.obj = obj
     def integrate(self, session:Session, transformer_id:int, indv_cache:dict):
         indv_cache[self.step_id] = self.obj
+
+class TRANFORM(Flag):
+    def __init__(self, child=None, **settings):
+        self.value = child
+        self.settings = settings
+
+    def integrate(self, session:Session, tranformer_id:int, indv_cache)->Any:
+        return session.transform(self.value, **self.settings)
+    
 # class ESCAPE_STEP(Flag): EXACT BEHAVIOR UNKOWN
 
 # class BUFFER(Flag):
@@ -64,7 +90,7 @@ class SWAP_GENERATOR(Flag):
         self.generator = generator
         self.value = value
 
-    def integrate(self, session, indv_cache, res)->Generator:
+    def integrate(self, session:Session, tranformer_id:int, indv_cache)->tuple[Generator,Any]:
         ## Value is replacement for transform.val, used in generator.send() for value insertion from outer scope
         return self.generator, self.value
 
@@ -76,7 +102,7 @@ class TRANFORM_CHILDREN_GENERATOR(Flag):
         self.children = children 
         self.settings = settings
 
-    def intigrate(self, session:Session, tranformer_id:int, indv_cache:dict)->Generator:
+    def intigrate(self, session:Session, tranformer_id:int, indv_cache:dict)->tuple[Generator,Any]:
         children = self.children.__iter__()
         settings = self.settings
 
@@ -93,7 +119,7 @@ class TRANFORM_CHILDREN(SWAP_GENERATOR):
         self.children = children 
         self.settings = settings
 
-    def intigrate(self, session:Session, transformer_id:int, indv_cache:dict)->Generator:
+    def intigrate(self, session:Session, transformer_id:int, indv_cache:dict)->tuple[Generator,Any]:
         ''' Methodolodgy is nesting the generator to structure for the future ESCAPE logic that has undefined desired behavior '''
         r = session.memo[transformer_id]
         current_generator = r[2]
@@ -158,8 +184,10 @@ class Session():
     # buffers : ContextVar[dict[str, list]]
     rulesets : ContextVar[list[TransformerSet]]
 
-    def __init__(self, rulesets:list[TransformerSet]):
+    def __init__(self, rulesets:list[TransformerSet], memo:Any|None=None):
         self.memo = {}
+        if not (memo is None):
+            self.memo.update(memo``)
         # self.buffers = ContextVar("Buffers", default={})
         self.rulesets = ContextVar("Rulesets", default=rulesets)
 
@@ -208,13 +236,16 @@ class Session():
                 if isinstance(res, Flag):
                     if isinstance(res, STEP) and (res.step_id == step):
                         send_val = res.integrate(self, id(node), indv_cache)
-                        return res.value
+                        return res.value  
                     elif isinstance(res, SWAP_GENERATOR):
                         generator, send_val = res.integrate(self, id(node), indv_cache)
                         _current = self.memo[id(node)]
                         self.memo[id(node)] = (_current[0], _current[1], generator)
                         del _current 
                         continue
+                    elif isinstance(res, TRANFORM):
+                        send_val = res.integrate(self, id(node), indv_cache)
+                        ## Handling an escape sequence here may be required, and some sort of wrapped-resume for outer.
                     else:
                         send_val = res.integrate(self, id(node), indv_cache)
                     
