@@ -38,7 +38,8 @@ class PyToGd_StructReference(PyToGdModule):
                 return f'RID("{node.key}")'
                 # raise Exception("non-normalized structure!, Resource ref should be converted to ExtResource before serialization")
             case RefType.FILE:
-                raise Exception("non-normalized structure!, file ref should be converted to RID before serialization")
+                return node.key
+                # raise Exception("non-normalized structure!, file ref should be converted to RID before serialization")
             case RefType.DEFER:
                 raise Exception("non-normalized structure!, Non-fullfilled structureReference")
             case _:

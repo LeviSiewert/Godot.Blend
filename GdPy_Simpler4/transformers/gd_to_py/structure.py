@@ -8,7 +8,11 @@ class GdToPy_Properties(GdToPyModule):
 
     def transform(self, c, node):
         yield node.children
-        return dict(c.children.get())
+        res = {}
+        raise Exception(c.children.get())
+        for k,v in c.children.get():
+            res[k] = v
+        return res
 
 class PyToGd_Properties(GdToPyModule):
     _keys = (Properties,)
