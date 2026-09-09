@@ -65,9 +65,6 @@ class STEP(Flag):
             session.get_cache(node_id)[self.step_id] = self.obj
         return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
 
-class CONTEXT():
-    pass
-
 class TRANSFORM(Flag):
 
     def __int__(self, item:Any, **settings):
@@ -117,18 +114,44 @@ class Transformer():
         raise NotImplementedError("Abstract class!")
         return False
 
+from inspect import getmembers, get_annotations
+class TransformerOption():
+    ''' Class that is instancated at session creation, and has a factory method to generate context vars from type annotations
+    IE: 
+        - `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
+        - where `...` in above is `str(id(self))`, which prevents overlap of contextvars across sessions w/ the same options objects (and across options objects in the same session)
+    '''
+
+    def _generate_contextvars(self):
+        annotations = get_annotations(self)
+        for item in getmembers(self):
+            if (item[0].startswith("_")): 
+                continue
+            if anno:=annotations.get(item[0],None) is None:
+                continue
+            elif (anno is ContextVar) or ((not isclass(anno)) and (isinstance(anno, ContextVar))):
+                setattr(self, anno, ContextVar(str(id(self))+item[0],default=item[1]))
+
+    def __init__(self, session):
+        self._generate_contextvars()
+        
+    
 class TransformerSet():
     identifier : str|None = None
     transformers : tuple[Transformer]
+    options : dict[str, TransformerOption]
 
-    def __init__(self, identifier:str, transformers:Iterable[Transformer]):
+    def __init__(self, identifier:str, transformers:Iterable[Transformer], options:dict[str,TransformerOption|Any]=tuple()):
         self.identifier = identifier
-        ts = []
+
+        self.options = {}
+        self.options.update(options)
+
+        self.transformers = []
         for t in transformers:
             if isclass(t):
                 t = t()
-            ts.append(t)
-        self.transformers = ts
+            self.transformers.append(t)
 
     def match[D:Any](self, session, node:Any, default:D=None)->Generator|D:
         for t in self.transformers:
@@ -138,14 +161,22 @@ class TransformerSet():
 
 _EMPTYDICT = {}
 
-class Session():
+class Session[T:TransformerSet]():
     memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None, Context|None]] # [result, generator, cache, context]
     ## Context should be nullable, and entered-exited via middle
-    transformer_sets : tuple[TransformerSet]
+    transformer_sets : tuple[T]
+    options: dict[str, TransformerOption]
 
-    def __init__(self, transformer_sets:Iterable[TransformerSet]):
+    def __init__(self, transformer_sets:Iterable[T]):
         self.memo = {}
         self.transformer_sets = tuple(transformer_sets)
+
+        self.options = {}
+        _options_template = {}
+        for ts in self.transformer_sets:
+            _options_template.update(ts.options)
+        for k,v in _options_template.items():
+            self.options[k] = v(self)
 
     def find_transformer(self, node)->Generator:
         for ts in self.transformer_sets:
@@ -174,6 +205,15 @@ class Session():
         entry = self.memo.get(id(node), _UNSET)
 
         if entry is _UNSET:
+
+            maybe_generator = self.find_transformer(node)
+            if not( isgenerator(maybe_generator) or isgeneratorfunction(maybe_generator)):
+                ctx = Context()
+                val = ctx.run(maybe_generator, self, node)
+                entry = (val, None, None, None)
+                self.memo[id(node)] = val
+                return val
+            
             transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)
             entry = (_UNSET, transformer, None, Context())
             self.memo[id(node)] = entry
