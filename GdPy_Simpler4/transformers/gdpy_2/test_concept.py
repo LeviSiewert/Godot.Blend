@@ -31,7 +31,7 @@ def middle(generator:Generator, settings:dict):
     ''' Storing send_value state inside this generator '''
     send_val = None
     c = True
-    send_val_insert = None
+    _settings = None
     while c:
         try:
             if not ((_val := settings.get("send",_UNSET))is _UNSET):
@@ -43,14 +43,13 @@ def middle(generator:Generator, settings:dict):
             
             if resulting_val.identifier == settings["stop"]:
                 _settings = yield send_val
+
+            if not (_settings is None):
                 if not (_settings is None):
                     settings = _settings
                 else:
-                    settings = {} # I think? Outer generator step replaces settings when /a
-
-            if not (send_val_insert is None):
-                send_val = send_val_insert
-                send_val_insert = None
+                    settings = {} 
+                    ## I think? Outer generator step replaces settings when it occurs
 
         except StopIteration as e:
             return e.value
