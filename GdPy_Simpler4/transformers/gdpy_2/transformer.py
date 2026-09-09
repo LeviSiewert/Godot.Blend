@@ -57,7 +57,7 @@ class STEP(Flag):
 
     def intigrate(self, session:Session, node_id:int, indv_cache:dict, settings:dict)->tuple[bool, Any, Any]:
         indv_cache[self.step_id] = self.obj
-        return (self.step_id == settings.get("step",_UNSET)), self.step_id, self.obj
+        return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
 
 
 class Transformer():
