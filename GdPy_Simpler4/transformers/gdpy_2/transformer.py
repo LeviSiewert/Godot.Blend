@@ -65,6 +65,34 @@ class STEP(Flag):
             session.get_cache(node_id)[self.step_id] = self.obj
         return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
 
+class TRANSFORM(Flag):
+
+    def __int__(self, item:Any, **settings):
+        self.item = item
+        self.settings = settings
+
+    def intigrate(self, session, node_id, settings):
+        ''' Returns a call to session.transform '''
+        return session.transform(self.item, self.settings)
+
+class TRANSFORM_CHILDREN(Flag):
+
+    def __init__(self, items:Iterable[Any], as_generator:bool=False, **settings):
+        self.items = items
+        self.settings = settings
+        self.as_generator = as_generator
+
+    def intigrate(self, session, node_id, settings):
+        ''' Returns a call to session.transform '''
+        
+        def _generator():
+            for i in self.items:
+                yield session.transform(i, **self.settings)
+
+        if self.as_generator:
+            return _generator()
+        else:
+            return tuple(_generator())
 
 class Transformer():
     identifier : str|None = None
@@ -144,7 +172,12 @@ class Session():
             transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)
             entry = (_UNSET, transformer, None)
             self.memo[id(node)] = entry
-            return next(transformer)
+            try:
+                return next(transformer)
+            except StopIteration as e:
+                entry = e.value, None, entry[2]
+                self.memo[id(node)] = entry
+                return e.value
 
         ## Cache retrieval:
         if _cache:=self.get_cache(id(node), create=False) and (not ((_step_id := settings.get("step", _UNSET) is _UNSET))) :
@@ -174,16 +207,23 @@ class Session():
                     send_val = _val
                     del _val
 
-                # raise Exception(generator)
                 flag = generator.send(send_val)
 
-                # if isinstance(flag, STEP) and (flag.identifier == settings.get("step")):
+                ## IMPLIMENT FLAGS BELOW:
+
                 if isinstance(flag, STEP):
                     do_yield, yield_val, send_val = flag.intigrate(self, node_id, settings)
                     if do_yield:
                         _settings = yield yield_val
                     del do_yield
                     del yield_val
+
+                elif isinstance(flag, TRANSFORM):
+                    send_val = flag.intigrate(self, node_id, settings)
+
+                elif isinstance(flag, TRANSFORM_CHILDREN):
+                    send_val = flag.intigrate(self, node_id, settings)
+
 
                 if not (_settings is None):
                     if not (_settings is None):

@@ -1,6 +1,7 @@
 # from __future__ import annotations
 # from typing import Iterable, Generator, Any, Callable
 # from inspect import isgenerator
+from __future__ import annotations
 
 from .transformer import *
 
@@ -36,7 +37,42 @@ def test_basic():
 
     node == ["PRE", "A", "B", "C"]
 
+def test_nested():
+    lst = []
 
+    class _Node():
+        def __init__(self, name, children:Iterable[_Node]):
+            self.name = name
+            self.children = tuple(children)
+    class _transformer(Transformer):
+        def match(self, session, node):
+            return True
+        def transform(self, session, node:_Node)->Generator:
+            children = yield TRANSFORM_CHILDREN(node.children)
+            lst.append(node.name)
+            return _Node(node.name+"_V2", children)
+
+    session = Session([TransformerSet("", [_transformer])])
+
+    root = _Node("A", [
+        _Node("B",[]),
+        _Node("C",[]),
+        _Node("D",[
+            _Node("E",[])
+        ]),
+    ])
+
+    result = session.transform(root)
+
+    assert result.name == "A_V2"
+    assert not (result is root)
+    assert len(result.children) == len(root.children) 
+    assert result.children[0].name == "B_V2"
+
+    assert lst == ["B","C","E","D","A"]
+    
+
+    
 
 # class N():
 #     name : str
