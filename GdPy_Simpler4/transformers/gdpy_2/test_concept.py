@@ -1,10 +1,13 @@
 from contextvars import ContextVar
-from typing import Generator
+from typing import Generator, Any
 
 class Flag():
     def __init__(self, id, obj):
         self.identifier = id
         self.obj = obj
+
+    def intigrate(self)->Any:
+        return self.identifier
 
 cvar = ContextVar("")
 
@@ -22,23 +25,41 @@ def gen():
 
     return "D"
 
+class _UNSET:...
+
 def middle(generator:Generator, settings:dict):
     ''' Storing send_value state inside this generator '''
     send_val = None
     c = True
+    send_val_insert = None
     while c:
         try:
+            if not ((_val := settings.get("send",_UNSET))is _UNSET):
+                send_val = _val
+                del _val 
+
             resulting_val = generator.send(send_val)
-            send_val = resulting_val.identifier
+            send_val = resulting_val.intigrate()
+            
             if resulting_val.identifier == settings["stop"]:
-                yield send_val
+                _settings = yield send_val
+                if not (_settings is None):
+                    settings = _settings
+                else:
+                    settings = {} # I think? Outer generator step replaces settings when /a
+
+            if not (send_val_insert is None):
+                send_val = send_val_insert
+                send_val_insert = None
+
         except StopIteration as e:
             return e.value
         except:
             raise
 
 cache = {}
-def outer(obj, **settings):
+
+def outer(obj, insert_val=None, **settings):
     ''' Accessor, settings '''
 
     if not (id(obj) in cache.keys()):
@@ -48,7 +69,8 @@ def outer(obj, **settings):
         cache[id(obj)][1].update(settings)
     _gen, settings = cache[id(obj)]
     try:
-        return next(_gen)
+        # return next(_gen)
+        return _gen.send(insert_val)
     except StopIteration as e:
         return e.value
 
