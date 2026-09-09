@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Generator, Iterable
 from contextvars import ContextVar, Context
 from inspect import isgenerator, isgeneratorfunction, isclass
-
+from contextlib import contextmanager
 # """ This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
 # implimentation of dependency transformation via yielding `Flags` that the outer scope respects.
 
@@ -64,6 +64,9 @@ class STEP(Flag):
         if self.caching:
             session.get_cache(node_id)[self.step_id] = self.obj
         return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
+
+class CONTEXT():
+    pass
 
 class TRANSFORM(Flag):
 
@@ -133,6 +136,7 @@ class TransformerSet():
                 return t.transform
         return default
 
+_EMPTYDICT = {}
 
 class Session():
     memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None, Context|None]] # [result, generator, cache, context]
@@ -156,7 +160,7 @@ class Session():
         cache = entry[2]
         if (entry[2] is None) and create:
             cache = {}
-            self.memo[node_id] = entry[0], entry[1], cache
+            self.memo[node_id] = entry[0], entry[1], cache, entry[3]
         return cache
 
     def transform(self, node, **settings):
@@ -171,13 +175,15 @@ class Session():
 
         if entry is _UNSET:
             transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)
-            entry = (_UNSET, transformer, None)
+            entry = (_UNSET, transformer, None, Context())
             self.memo[id(node)] = entry
+
+            # Fresh transformer; requires next() instead of send()
             try:
-                return next(transformer)
+                ctx = entry[3]
+                return ctx.run(lambda: next(entry[1]))
             except StopIteration as e:
-                entry = e.value, None, entry[2]
-                self.memo[id(node)] = entry
+                self.memo[id(node)] = (e.value, None, entry[2], None)
                 return e.value
 
         ## Cache retrieval:
@@ -188,23 +194,22 @@ class Session():
             return entry[0]
 
         try:
-            ## Send - continue middle generator
-            return entry[1].send(settings)
-        
+            ctx = entry[3]
+            return ctx.run(lambda: entry[1].send(settings))
         except StopIteration as e:
-            entry = e.value, None, entry[2]
-            self.memo[id(node)] = entry
+            self.memo[id(node)] = (e.value, None, entry[2], None)
             return e.value
-        
+
     def _transform(self, node_id:int, generator:Generator, settings:dict):
         ''' AKA: Middle
         Storing send_value & sub-generator state inside this generator, also handles cache population '''
+
         send_val = None
-        c = True
         _settings = None
+
+        c = True
         while c:
             try:
-                #enter context if not already entered
                 if not ((_val := settings.get("send", _UNSET)) is _UNSET):
                     send_val = _val
                     del _val
@@ -216,7 +221,6 @@ class Session():
                 if isinstance(flag, STEP):
                     do_yield, yield_val, send_val = flag.intigrate(self, node_id, settings)
                     if do_yield:
-                        #exit context?
                         _settings = yield yield_val
                     del do_yield
                     del yield_val
@@ -227,16 +231,14 @@ class Session():
                 elif isinstance(flag, TRANSFORM_CHILDREN):
                     send_val = flag.intigrate(self, node_id, settings)
 
-
+                ## Outer this.send(...) sends settings for next step(s)
                 if not (_settings is None):
-                    if not (_settings is None):
-                        settings = _settings
-                    else:
-                        settings = {} 
-                        ## I think? Outer generator step replaces settings when it occurs
+                    settings = _settings
+                else:
+                    settings = _EMPTYDICT
 
             except StopIteration as e:
-                #exit context?
+                c = False
                 return e.value
             except:
                 raise
