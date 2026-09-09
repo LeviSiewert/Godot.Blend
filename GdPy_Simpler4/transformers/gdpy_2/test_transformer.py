@@ -11,12 +11,15 @@ class N():
         self.name = name
         self.children = list(children)
 
+    def __repr__(self):
+        return f'Node("{self.name}" children={len(self.children)})'
 
 class N_Transformer(TransformerModule):
     def __init__(self, tool:Callable):
-        self.tool = tool
-    def transfrom(self, session, node):
-        yield from self.tool(session, node)
+        self.transform = tool
+    # def transform(self, session, node):
+    #     res = yield from self.tool(session, node)
+    #     return res
     def match(self, obj)->bool:
         return True
 
@@ -24,7 +27,7 @@ class Test_Basic:
     def test_construction(self):
         session = Session([TransformerSet("basic", TransformerModule())])
 
-def tree():
+def make_tree():
     return N("A", [
         N("B",[
             N("B2"),
@@ -46,7 +49,7 @@ class Test_Flags:
                 assert new_children == node.children
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
     class Test_TRANFORM_CHILDREN:
         def test_basic(self):
@@ -55,7 +58,7 @@ class Test_Flags:
                 assert isinstance(children, list)
                 assert len(children) == len(node.children)
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
     class Test_TRANFORM_CHILDREN_GENERATOR:
         def test_basic(self):
@@ -65,20 +68,18 @@ class Test_Flags:
                 children = tuple(children)
                 assert len(children) == len(node.children)
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
         
     class Test_STEP:
         def test_basic(self):
             def transform(session, node:N)->Generator[Flag, Any, None]:
-                r = yield STEP("ONE", node.name, "one")
-                assert r is None
-                r = yield STEP("TWO", node.name, "two")
-                assert r is None
-                r = yield STEP("three", node.name, "three")
-                assert r is None
+                yield STEP("ONE", "one")
+                yield STEP("TWO", "two")
+                yield STEP("THREE", "three")
+                return "FINAL"
                 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            tree = tree()
+            tree = make_tree()
 
             res = session.transform(tree, step = "ONE")
             assert res == "one"
@@ -86,15 +87,16 @@ class Test_Flags:
             assert not "TWO" in session.memo[id(tree)][1].keys()
 
             res = session.transform(tree, step = "TWO")
+            # assert "ONE" in session.memo[id(tree)][1].keys()
+            # assert "TWO" in session.memo[id(tree)][1].keys()
+            raise Exception(session.memo)
             assert res == "two"
-            assert "ONE" in session.memo[id(tree)][1].keys()
-            assert "TWO" in session.memo[id(tree)][1].keys()
 
-            res = session.transform(tree)
-            ## res in this case is final return
-            assert res is None
-            assert "THREE" in session.memo[id(tree)][1].keys()
-            assert "RETURN" in session.memo[id(tree)][1].keys()
+            # res = session.transform(tree)
+            # ## res in this case is final return
+            # assert res is None
+            # assert "THREE" in session.memo[id(tree)][1].keys()
+            # assert "RETURN" in session.memo[id(tree)][1].keys()
             
 
     class Test_RESULT:
@@ -102,7 +104,7 @@ class Test_Flags:
             def transform(session, node:N)->Generator[Flag, Any, None]:
                 yield RESULT("ONE")
                 return "TWO"
-            tree = tree()
+            tree = make_tree()
             session = Session([TransformerSet("basic", N_Transformer(transform))])
 
             res = session.transform(tree, step = "RESULT")
@@ -123,7 +125,7 @@ class Test_Ordering:
                     session.transform(n)
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["A","B","B2","C","D","D1"]
 
@@ -135,7 +137,7 @@ class Test_Ordering:
                 lst.append(node.name)
                 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["B2", "B", "C", "D1", "D", "A"]
 
@@ -147,7 +149,7 @@ class Test_Ordering:
                 lst.append(node.name)
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["B2", "B", "C", "D1", "D", "A"]
 
@@ -158,7 +160,7 @@ class Test_Ordering:
                 yield TRANFORM_CHILDREN(node.children)
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["A","B","B2","C","D","D1"]
 
@@ -172,7 +174,7 @@ class Test_Ordering:
                 tuple(children)
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["A","B","B2","C","D","D1"]
 
@@ -185,7 +187,7 @@ class Test_Ordering:
                 lst.append(node.name)
 
             session = Session([TransformerSet("basic", N_Transformer(transform))])
-            session.transform(tree())
+            session.transform(make_tree())
 
             assert lst == ["A","B","B2","C","D","D1"]
 

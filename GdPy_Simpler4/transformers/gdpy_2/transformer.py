@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Generator, Iterable
 from contextvars import ContextVar
-from inspect import isgenerator, isclass
+from inspect import isgenerator, isgeneratorfunction, isclass
 
 """ This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
 implimentation of dependency transformation via yielding `Flags` that the outer scope respects.
@@ -61,6 +61,7 @@ class STEP(Flag):
         self.obj = obj
     def integrate(self, session:Session, transformer_id:int, indv_cache:dict):
         indv_cache[self.step_id] = self.obj
+        return self.step_id
 
 class TRANFORM(Flag):
     def __init__(self, child=None, **settings):
@@ -171,6 +172,8 @@ class TransformerSet():
         for r in modules:
             if isclass(r):
                 m.append(r())
+            else:
+                m.append(r)
         self.modules = tuple(m)
 
     def match[D](self, node:Any, default:D)->D|Generator:
@@ -187,7 +190,7 @@ class Session():
     def __init__(self, rulesets:list[TransformerSet], memo:Any|None=None):
         self.memo = {}
         if not (memo is None):
-            self.memo.update(memo``)
+            self.memo.update(memo)
         # self.buffers = ContextVar("Buffers", default={})
         self.rulesets = ContextVar("Rulesets", default=rulesets)
 
@@ -196,16 +199,17 @@ class Session():
         for r in rulesets:
             t = r.match(node, _UNSET)
             if not (t is _UNSET):
-                if not isgenerator(t):
-                    def t(*args, **kwargs):
+                if not (isgenerator(t) or (isgeneratorfunction(t))):
+                    def T(*args, **kwargs):
                         return t(*args, **kwargs) 
                         yield
+                    return T(self, node)
                 return t(self, node)
-        raise KeyError()
+        raise KeyError("Could not match node to TransformModule!", node)
 
     def ensure_transform(self, node:Any)->tuple[dict,Generator|None]:
         ''' Ensure a cache and generator exists. '''
-        res = self.memo[id(node),None]
+        res = self.memo.get(id(node), None)
         if not (res is None):
             return res
         res = (_UNSET, {}, self.make_generator(node))
@@ -214,7 +218,7 @@ class Session():
 
 
     @staticmethod
-    def generator_escape(g:Generator, cvar:ContextVar)->Generator:
+    def generator_escape(g:Generator[Flag, Any, Any], cvar:ContextVar)->Generator:
         result = yield from g
         cvar.set(result)
 
@@ -224,39 +228,43 @@ class Session():
         if not ((res:=indv_cache.get(step, result)) is _UNSET):
             return res
 
-        res = ContextVar("", default=_UNSET)
-        generator : Generator = self.generator_escape(generator, res)
+        cvar = ContextVar("", default=_UNSET)
+        escape_generator : Generator = self.generator_escape(generator, cvar)
 
-        c = False
+        c = True
         send_val = None
         while c:
             try:
-                res = generator.send(send_val)
+                res = escape_generator.send(send_val)
 
-                if isinstance(res, Flag):
-                    if isinstance(res, STEP) and (res.step_id == step):
-                        send_val = res.integrate(self, id(node), indv_cache)
-                        return res.value  
-                    elif isinstance(res, SWAP_GENERATOR):
-                        generator, send_val = res.integrate(self, id(node), indv_cache)
-                        _current = self.memo[id(node)]
-                        self.memo[id(node)] = (_current[0], _current[1], generator)
-                        del _current 
-                        continue
-                    elif isinstance(res, TRANFORM):
-                        send_val = res.integrate(self, id(node), indv_cache)
-                        ## Handling an escape sequence here may be required, and some sort of wrapped-resume for outer.
-                    else:
-                        send_val = res.integrate(self, id(node), indv_cache)
-                    
-                else:
+                if not isinstance(res, Flag):
                     raise Exception("Non-Flag yielded, unknown desire!", res)
+
+                if (not (step is None)) and isinstance(res, STEP) and (res.step_id == step):
+                    send_val = res.integrate(self, id(node), indv_cache)
+                    return res.obj  
+                
+                elif isinstance(res, SWAP_GENERATOR):
+                    generator, send_val = res.integrate(self, id(node), indv_cache)
+                    _current = self.memo[id(node)]
+                    self.memo[id(node)] = (_current[0], _current[1], generator)
+                    del _current 
+                    escape_generator = self.generator_escape(self.generator, cvar)
+                
+                elif isinstance(res, TRANFORM):
+                    send_val = res.integrate(self, id(node), indv_cache)
+                    ## Handling an escape sequence here may be required, and some sort of wrapped-resume for outer.
+                else:
+                    send_val = res.integrate(self, id(node), indv_cache)
+                res = None
 
             except StopIteration:
                 c = False
+            except:
+                raise
 
-            
-        ret_value = res.get()
+        raise Exception(cvar.get())
+        ret_value = cvar.get()
         if ret_value is None:
             indv_cache["RETURN"] = indv_cache.get("RESULT", None)
         else:
