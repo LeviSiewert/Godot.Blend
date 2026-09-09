@@ -107,7 +107,7 @@ class TransformerSet():
 
 
 class Session():
-    memo : dict[int, tuple[Any|_UNSET, Generator, dict]] # [result,generator,cache]
+    memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None]] # [result,generator,cache]
     transformer_sets : tuple[TransformerSet]
 
     def __init__(self, transformer_sets:Iterable[TransformerSet]):
@@ -158,6 +158,8 @@ class Session():
             return entry[1].send(settings)
         
         except StopIteration as e:
+            entry = e.value, None, entry[2]
+            self.memo[id(node)] = entry
             return e.value
         
     def _transform(self, node_id:int, generator:Generator, settings:dict):
