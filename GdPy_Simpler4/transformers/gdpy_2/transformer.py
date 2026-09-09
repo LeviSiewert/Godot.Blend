@@ -181,7 +181,7 @@ class Session():
             # Fresh transformer; requires next() instead of send()
             try:
                 ctx = entry[3]
-                return ctx.run(lambda: next(entry[1]))
+                return ctx.run(next, entry[1])
             except StopIteration as e:
                 self.memo[id(node)] = (e.value, None, entry[2], None)
                 return e.value
@@ -195,7 +195,7 @@ class Session():
 
         try:
             ctx = entry[3]
-            return ctx.run(lambda: entry[1].send(settings))
+            return ctx.run(entry[1].send, settings)
         except StopIteration as e:
             self.memo[id(node)] = (e.value, None, entry[2], None)
             return e.value
