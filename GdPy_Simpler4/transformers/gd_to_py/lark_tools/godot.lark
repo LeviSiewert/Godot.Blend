@@ -1,1 +1,151 @@
-start:
+start : file_resource
+    | file_scene
+    // | file_options
+
+
+file_resource : "[gd_resource" options "]" ext_resources sub_resources ["[resource]" properties]
+file_scene : "[gd_scene" options "]" ext_resources sub_resources node_resources edit_flags
+file_options : [properties] _categories
+
+ext_resources : ext_resource*
+ext_resource : "[ext_resource" options "]"
+
+sub_resources : sub_resource*
+sub_resource : "[sub_resource" options "]" properties
+
+node_resources : node_resource*
+node_resource : "[node" options "]" properties
+
+edit_flags : edit_flag*
+edit_flag : "[editable" options "]" properties
+
+_categories : category
+category : "["WORD"]" properties
+
+// TYPING
+typing : "[" _typing_item ["," _typing_item]"]"
+_typing_item : WORD|ref_subresource|ref_extresource|ref_resource
+
+// DICT-like pairs
+options : (WORD "=" _value)*
+properties : (WORD "=" _value)*
+// CONSIDER: Add newline check? May greatly increase performance
+
+// ARRAY:
+list : "[" (_value ("," _value)*)? "]"
+explicit_list : "Array" [typing] "(" ("[" _value ("," _value)* "]")? ")"  //Desired format : children == (typing, *values)
+
+// DICTIONARY:
+dict : "{" (pair ("," pair)*)? "}"
+explicit_dict : "Dictionary" [typing] "(" ("{" pair ("," pair)* "}")? ")"  //Desired format : children == (typing, *pairs)
+pair : _value ":" _value
+
+// SIMPLE SUBTYPES
+stringname : "&" STRING
+
+// COMPLEX or REFERENCES: 
+ref_subresource : "SubResource" [typing] "(" [STRING] ")"
+ref_extresource : "ExtResource" [typing] "(" [STRING] ")"
+ref_resource : "RID" [typing] "(" [STRING] ")"
+ref_nodepath : "NodePath" [typing] "(" [STRING] ")"
+
+// GENERIC
+object : "Object(" WORD ("," pair)* ")" // Desired format == (TYPE, **kwargs)
+
+
+// VARIABLE LENGTH ARRAYS
+
+packed_byte_array : "PackedByteArray(" STRING ")"
+
+packed_string_array : "PackedStringArray(" (STRING ("," STRING)*)? ")"
+
+packed_int32_array : "PackedInt32Array(" (INTEGER ("," INTEGER)*)? ")"
+packed_int64_array : "PackedInt64Array(" (INTEGER ("," INTEGER)*)? ")"
+
+packed_float32_array : "PackedFloat32Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_float64_array : "PackedFloat64Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+
+// note:  Moved away from uniform fixed len child as errors from wrong length are more explicitly handled in transformer rather than lexer-parser
+packed_vector2_array : "PackedVector2Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_vector3_array : "PackedVector3Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_vector4_array : "PackedVector4Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_color_array : "PackedColorArray(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+
+/// FIXED LENGTH ARRAYS
+vector2i : "Vector2i(" [INTEGER ("," INTEGER)~1] ")"
+vector3i : "Vector3i(" [INTEGER ("," INTEGER)~2] ")"
+vector4i : "Vector4i(" [INTEGER ("," INTEGER)~3] ")"
+
+vector2 : "Vector2(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~1] ")"
+vector3 : "Vector3(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~2] ")"
+vector4 : "Vector4(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+
+rect2 : "Rect2(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+rect2i : "Rect2i(" [INTEGER ("," INTEGER)~3] ")"
+
+plane : "Plane(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+
+color : "Color(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+
+aabb : "AABB(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~5] ")"
+
+quaternion : "Quaternion(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+
+transform2d : "Transform2D(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~5] ")"
+transform3d : "Transform3D(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~11] ")"
+basis : "Basis(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~8] ")"
+
+_value : NULL
+       | INF
+       | BOOL
+       | FLOAT
+       | INTEGER
+       | dict
+       | list
+       | STRING
+       | stringname
+       | ref_subresource
+       | ref_extresource
+       | ref_resource
+       | ref_nodepath
+       | packed_byte_array
+       | packed_int32_array
+       | packed_int64_array
+       | packed_float32_array
+       | packed_float64_array
+       | packed_string_array
+       | packed_vector2_array
+       | packed_vector3_array
+       | packed_vector4_array
+       | packed_color_array
+       | vector2i
+       | vector3i
+       | vector4i
+       | vector2
+       | vector3
+       | vector4
+       | rect2
+       | rect2i
+       | plane
+       | color
+       | aabb
+       | quaternion
+       | transform2d
+       | transform3d
+       | basis
+
+INF : "inf" | "-inf"
+NULL : "null"
+BOOL : "true" | "false"
+
+// NON - VALUES:
+COMMENT : /;.*/
+WORD : (LETTER | "_" | INTEGER | "/" | ".")+
+
+%import common.ESCAPED_STRING   -> STRING
+%import common.LETTER           -> LETTER
+%import common.SIGNED_INT       -> INTEGER
+%import common.SIGNED_FLOAT     -> FLOAT
+%import common.WS
+%ignore WS
+%ignore COMMENT
