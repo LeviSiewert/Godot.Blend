@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .transformer import Transformer, TransformerRuleset, TransformerModule, Context
+from ._old_transformer import Transformer, TransformerRuleset, TransformerModule, Context
 
 class _TContext(Context):
     ...

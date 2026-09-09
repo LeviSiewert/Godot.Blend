@@ -97,7 +97,7 @@ class GdToPy_Dictionary(GdToPyModule):
         return Dictionary(children, typing=typing)
 
 
-from ...core.transformer import _TransformerCmd
+from ...core._old_transformer import _TransformerCmd
 class _DictBothSides(_TransformerCmd):
     data : dict
     def __init__(self, data):

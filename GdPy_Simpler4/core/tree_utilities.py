@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Type
 
-from .transformer import Transformer, TransformerRuleset, TransformerModule
+from ._old_transformer import Transformer, TransformerRuleset, TransformerModule
 from .structure import Properties, Project, Resource, Node
 from .structure_promise import StructReference
 from .signals import Signal
