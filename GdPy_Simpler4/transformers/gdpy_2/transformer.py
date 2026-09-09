@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Generator, Iterable
-from contextvars import ContextVar
+from contextvars import ContextVar, Context
 from inspect import isgenerator, isgeneratorfunction, isclass
 
 # """ This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
@@ -135,7 +135,8 @@ class TransformerSet():
 
 
 class Session():
-    memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None]] # [result,generator,cache]
+    memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None, Context|None]] # [result, generator, cache, context]
+    ## Context should be nullable, and entered-exited via middle
     transformer_sets : tuple[TransformerSet]
 
     def __init__(self, transformer_sets:Iterable[TransformerSet]):
@@ -203,6 +204,7 @@ class Session():
         _settings = None
         while c:
             try:
+                #enter context if not already entered
                 if not ((_val := settings.get("send", _UNSET)) is _UNSET):
                     send_val = _val
                     del _val
@@ -214,6 +216,7 @@ class Session():
                 if isinstance(flag, STEP):
                     do_yield, yield_val, send_val = flag.intigrate(self, node_id, settings)
                     if do_yield:
+                        #exit context?
                         _settings = yield yield_val
                     del do_yield
                     del yield_val
@@ -233,6 +236,7 @@ class Session():
                         ## I think? Outer generator step replaces settings when it occurs
 
             except StopIteration as e:
+                #exit context?
                 return e.value
             except:
                 raise
