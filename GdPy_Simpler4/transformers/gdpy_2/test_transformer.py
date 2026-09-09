@@ -13,25 +13,26 @@ def test_basic():
         def transform(self, session, node:list)->Generator:
             node.append("PRE")
 
-            res = yield STEP("A", "a")
+            res = yield STEP("A", "a", caching=False)
             node.append(res)
 
-            res = yield STEP("B", "b")
+            res = yield STEP("B", "b", caching=False)
             node.append(res)
 
-            res = yield STEP("C", "c")
+            res = yield STEP("C", "c", caching=True)
             node.append(res)
 
             return "D"
 
     session = Session([TransformerSet("", [_transformer])])
     node = []
-    assert "a" == session.transform(node, step="A") 
-    assert "b" == session.transform(node, step="B") 
+    assert "a" == session.transform(node, step="A")
+    assert "b" == session.transform(node, step="B")
     assert "c" == session.transform(node, step="C")
     assert "D" == session.transform(node)
 
-    ## Cached
+    assert "c" == session.get_cache(id(node), create=False).get("C", None)
+    assert None == session.get_cache(id(node), create=False).get("A", None)
 
     node == ["PRE", "A", "B", "C"]
 

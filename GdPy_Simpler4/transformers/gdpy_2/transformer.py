@@ -45,18 +45,24 @@ class _UNSET:...
 class Flag():
     def __init__(self):
         ...
-    def intigrate(self, session:Session, node_id:int, indv_cache:dict, settings:dict)->tuple[bool, Any, Any]:
-        ''' Returns tuple(Do_Yield:bool, Yield_Value:Any, Send_Echo_Value (Overridable):Any)'''
-        return None,None,None
+    def intigrate(self, session:Session, node_id:int, settings:dict)->Any:
+        ...
 
 
 class STEP(Flag):
-    def __init__(self, step_id, obj):
+    step_id : str
+    obj : Any
+    caching : bool
+
+    def __init__(self, step_id:str, obj:Any, caching:bool=False):
         self.step_id = step_id
         self.obj = obj
+        self.caching = caching
 
-    def intigrate(self, session:Session, node_id:int, indv_cache:dict, settings:dict)->tuple[bool, Any, Any]:
-        indv_cache[self.step_id] = self.obj
+    def intigrate(self, session:Session, node_id:int, settings:dict)->tuple[bool, Any, Any]:
+        ''' Returns tuple(Do_Yield:bool, Yield_Value:Any, Send_Echo_Value (Overridable):Any)'''
+        if self.caching:
+            session.get_cache(node_id)[self.step_id] = self.obj
         return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
 
 
@@ -114,7 +120,16 @@ class Session():
             if not (res is None):
                 return res
         raise KeyError("Could not determine transformer for:", node)
-        
+
+
+    def get_cache(self, node_id, create=True):
+        entry = self.memo[node_id]
+        cache = entry[2]
+        if (entry[2] is None) and create:
+            cache = {}
+            self.memo[node_id] = entry[0], entry[1], cache
+        return cache
+
     def transform(self, node, **settings):
         ''' AKA: Outer 
         Ensure a memo entry [result,generator,cache] exists, call next() on generator.
@@ -126,15 +141,15 @@ class Session():
         entry = self.memo.get(id(node), _UNSET)
 
         if entry is _UNSET:
-            _cache = {} 
-            transformer = self._transform(id(node), _cache, self.find_transformer(node)(self,node), settings)
-            entry = (_UNSET, transformer, _cache)
+            transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)
+            entry = (_UNSET, transformer, None)
             self.memo[id(node)] = entry
             return next(transformer)
 
         ## Cache retrieval:
-        if not ((_val := entry[2].get(settings.get("step", _UNSET), _UNSET)) is _UNSET):
-            return _val
+        if _cache:=self.get_cache(id(node), create=False) and (not ((_step_id := settings.get("step", _UNSET) is _UNSET))) :
+            if not ((_res:=_cache.get(_step_id, _UNSET)) is _UNSET):
+                return _res
         elif not entry[0] is _UNSET:
             return entry[0]
 
@@ -145,7 +160,7 @@ class Session():
         except StopIteration as e:
             return e.value
         
-    def _transform(self, node_id:int, indv_cache:dict, generator:Generator, settings:dict):
+    def _transform(self, node_id:int, generator:Generator, settings:dict):
         ''' AKA: Middle
         Storing send_value & sub-generator state inside this generator, also handles cache population '''
         send_val = None
@@ -161,8 +176,8 @@ class Session():
                 flag = generator.send(send_val)
 
                 # if isinstance(flag, STEP) and (flag.identifier == settings.get("step")):
-                if isinstance(flag, Flag):
-                    do_yield, yield_val, send_val = flag.intigrate(self, node_id, indv_cache, settings)
+                if isinstance(flag, STEP):
+                    do_yield, yield_val, send_val = flag.intigrate(self, node_id, settings)
                     if do_yield:
                         _settings = yield yield_val
                     del do_yield
