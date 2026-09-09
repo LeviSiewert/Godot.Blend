@@ -1,6 +1,6 @@
 start : file_resource
     | file_scene
-    // | file_options
+    | file_options
 
 
 file_resource : "[gd_resource" options "]" ext_resources sub_resources ["[resource]" properties]
