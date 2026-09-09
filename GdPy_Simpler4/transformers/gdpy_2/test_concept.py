@@ -6,21 +6,25 @@ class Flag():
         self.identifier = id
         self.obj = obj
 
-    def intigrate(self)->Any:
-        return self.identifier
+    def intigrate(self)->tuple[Any, Any]:
+        ''' Return a value that will be yielded, and a value that will be echod back into yield (unless external settings insert) '''
+        return self.identifier, self.identifier
+
+class STEP(Flag):
+    ...
 
 cvar = ContextVar("")
 
 def gen():
     cvar.get().append("PRE")
 
-    res = yield Flag("A", "a")
+    res = yield STEP("A", "a")
     cvar.get().append(res)
 
-    res = yield Flag("B", "b")
+    res = yield STEP("B", "b")
     cvar.get().append(res)
 
-    res = yield Flag("C", "c")
+    res = yield STEP("C", "c")
     cvar.get().append(res)
 
     return "D"
@@ -38,10 +42,13 @@ def middle(generator:Generator, settings:dict):
                 send_val = _val
                 del _val 
 
-            resulting_val = generator.send(send_val)
-            send_val = resulting_val.intigrate()
-            
-            if resulting_val.identifier == settings["stop"]:
+            flag = generator.send(send_val)
+
+            if isinstance(flag, STEP) and (flag.identifier == settings.get("step")):
+                yieldval, send_val = flag.intigrate()
+                _settings = yield yieldval
+            else:
+                yieldval, send_val = flag.intigrate()
                 _settings = yield send_val
 
             if not (_settings is None):
