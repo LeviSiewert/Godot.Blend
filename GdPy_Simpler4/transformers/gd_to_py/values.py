@@ -56,13 +56,65 @@ class MACROS:
             return default
         return callable(item)
 
-    def default_yield(item, /, default:Any=None):
+    def default_yield(item, /, default:Any=None, flag:Flag=TRANSFORM_CHILDREN, settings={}):
         if item is None:
             return default
-        res = yield TRANSFORM(item)
+        res = yield flag(item, settings)
         return res
 
+    def pair_list_dict(item:list)->Generator[Flag,tuple,dict]:
+        res = {}
+        for e in item:
+            k,v = yield TRANSFORM_CHILDREN(item)
+            res[k] = v
+        return res
 
+    def yield_dict_kv(item:dict, seperator="=", join=",")->Generator:
+        res = []
+        for i in item.items():
+            _k,_v = yield TRANSFORM_CHILDREN(i) 
+            res.append(_k + seperator + _v)
+        return join.join(res)
+
+
+
+class _Float:
+    class GdToPy(GdToPy_Transformer):
+        keys = ["FLOAT","INF"]
+        def transform(self, session:GdToPy_Session, node:LarkToken)->float:
+            return float(node)
+
+    class PyToGd(PyToGd_Transformer):
+        types = [float]
+        def transform(self, session:PyToGd_Session, node:float)->str:
+            return str(node)
+
+class _Int:
+    class GdToPy(GdToPy_Transformer):
+        keys = ["INTEGER"]
+        def transform(self, session:GdToPy_Session, node:LarkToken)->int:
+            return int(node)
+
+    class PyToGd(PyToGd_Transformer):
+        types = [int]
+        def transform(self, session:PyToGd_Session, node:int)->str:
+            return str(node)
+
+
+class _Bool:
+    class GdToPy(GdToPy_Transformer):
+        keys = ["BOOL"]
+        def transform(self, session:GdToPy_Session, node:LarkToken)->str:
+            return node.value == "true"
+
+    class PyToGd(PyToGd_Transformer):
+        types = [bool]
+        def transform(self, session:PyToGd_Session, node:bool)->str:
+            if node is True:
+                return 'true'
+            elif node is False:
+                return 'false'
+            raise ValueError(node)
 
 class _String:
     class GdToPy(GdToPy_Transformer):
@@ -95,9 +147,9 @@ class _NodePath():
 
 class _StringName():
     class GdToPy(GdToPy_Transformer):
-        keys = ["string_name"]
+        keys = ["stringname"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->Generator[Flag, Any, NodePath]:
-            return StringName(node.value.strip('"'))
+            return StringName(MACROS.default(node.children[0], default="", callable=lambda x: x.strip('"')))
         
     class PyToGd(PyToGd_Transformer):
         types = [StringName]
@@ -108,20 +160,117 @@ class _Object():
     class GdToPy(GdToPy_Transformer):
         keys = ["object"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
-            
+            kwargs = yield from MACROS.pair_list_dict(node.children[1].children)
             return Object(type=node.children[0].value, **kwargs)
         
     class PyToGd(PyToGd_Transformer):
         types = [Object]
         def transform(self, session:PyToGd_Session, node:Object)->Generator[Flag, Any, str]:
-            return f'&"{node}"'
-    
+            if len(node.kwargs):
+                kwargs : str = yield from MACROS.yield_dict_kv(node.kwargs)
+                return f'Object({node.type}, {kwargs})'
+                
+            return f'Object({node.type})'
+            # return f'&"{node}"'
+
+
+class _Dictionary:
+    class GdToPy_implicit(GdToPy_Transformer):
+        keys = ["dict"]
+        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
+            kwargs = yield from MACROS.pair_list_dict(node.children[1:])
+            return Dictionary(kwargs)
+        
+    class GdToPy(GdToPy_Transformer):
+        keys = ["explicit_dict"]
+        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
+            kwargs = yield from MACROS.pair_list_dict(node.children[1:])
+            typing = yield from MACROS.default_yield(node.children[0], default=None)
+            return Dictionary(kwargs, typing=typing, )
+        
+    class PyToGd(PyToGd_Transformer):
+        types = [Dictionary, dict]
+        def transform(self, session:PyToGd_Session, node:Dictionary)->Generator[Flag, Any, str]:
+            if isinstance(node,Dictionary) and (not (node.typing is None)):
+                typing = yield TRANSFORM(node.typing)
+                body = yield from MACROS.yield_dict_kv(node, seperator=":")
+                return f'Dictionary{typing}(' + '{' + body + "})" 
+
+            body = yield from MACROS.yield_dict_kv(node)
+            return '{' + body + "}" 
+
+
+class _Array:
+    class GdToPy_implicit(GdToPy_Transformer):
+        keys = ["list"]
+        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Array]:
+            body = yield TRANSFORM_CHILDREN(node.children)
+            return Array(*body, type=None)
+        
+
+    class GdToPy(GdToPy_Transformer):
+        keys = ["explicit_list"]
+        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Array]:
+            body = yield TRANSFORM_CHILDREN(node.children)
+            typing = yield from MACROS.default_yield(node.children[0], default=tuple(), flag=TRANSFORM_CHILDREN)
+            return Array(*body, type=typing)
+        
+    class PyToGd(PyToGd_Transformer):
+        types = [Array, list]
+        def transform(self, session:PyToGd_Session, node:Array)->Generator[Flag, Any, str]:
+            if isinstance(node,Array) and (not (node.typing is None)):
+                typing = yield TRANSFORM(node.typing)
+                body = yield TRANSFORM_CHILDREN(node)
+                return f'Array{typing}(' + '[' + body + "])" 
+
+            body = yield from MACROS.yield_dict_kv(node)
+            return '[' + body + "]" 
+
+
+class _Vectors():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["vector2i", "vector3i", "vector4i", "vector2", "vector3", "vector4","plane","color","aabb","quaternion","transform2d","transform3d","basis"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Vector2i, Vector3i, Vector4i, Vector2, Vector3, Vector4,Plane,Color,AABB,Quaternion,Transform2D,Transform3D,Basis]
+
+
+class _Packed():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["packed_int32_array", "packed_int64_array", "packed_float32_array", "packed_float64_array", "packed_string_array", "packed_vector2_array", "packed_vector3_array", "packed_vector4_array", "packed_color_array"]
+    class PyToGd(PyToGd_Transformer):
+        types = [PackedInt32Array, PackedInt64Array, PackedFloat32Array, PackedFloat64Array, PackedStringArray, PackedVector2Array, PackedVector3Array, PackedVector4Array, PackedColorArray,]
+
+
+class _Refs():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["ref_subresource", "ref_extresource", "ref_resource",]
+    class PyToGd(PyToGd_Transformer):
+        types = []
+
+
+class _PackedByteArray():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["packed_byte_array"]
+    class PyToGd(PyToGd_Transformer):
+        types = [PackedByteArray]
+
 
 gd_to_py = GdToPy_TransformerSet("STD::values.py", [  
     _String.GdToPy,
     _NodePath.GdToPy,
     _StringName.GdToPy,
     _Object.GdToPy,
+    _Bool.GdToPy,
+    _Int.GdToPy,
+    _Float.GdToPy,
+    _Dictionary.GdToPy,
+    _Dictionary.GdToPy_implicit,
+    _Array.GdToPy,
+    _Array.GdToPy_implicit,
+    _Vectors.GdToPy,
+    _Packed.GdToPy,
+    _Refs.GdToPy,
+    _PackedByteArray.GdToPy,
 ], 
 options = {"values":GdToPy_Options}
 )
@@ -131,6 +280,15 @@ py_to_gd = PyToGd_TransformerSet("STD::values.py", [
     _NodePath.PyToGd,
     _StringName.PyToGd,
     _Object.PyToGd,
+    _Bool.PyToGd,
+    _Int.PyToGd,
+    _Float.PyToGd,
+    _Dictionary.PyToGd,
+    _Array.PyToGd,
+    _Vectors.PyToGd,
+    _Packed.PyToGd,
+    _Refs.PyToGd,
+    _PackedByteArray.PyToGd,
 ], 
 options = {"values":PyToGd_Options} 
 )
