@@ -67,13 +67,13 @@ class STEP(Flag):
 
 class TRANSFORM(Flag):
 
-    def __int__(self, item:Any, **settings):
+    def __init__(self, item:Any, **settings):
         self.item = item
         self.settings = settings
 
     def intigrate(self, session, node_id, settings):
         ''' Returns a call to session.transform '''
-        return session.transform(self.item, self.settings)
+        return session.transform(self.item, **self.settings)
 
 class TRANSFORM_CHILDREN(Flag):
 
@@ -115,7 +115,7 @@ class Transformer():
         return False
 
 from inspect import getmembers, get_annotations
-class TransformerOption():
+class TransformerOptions():
     ''' Class that is instancated at session creation, and has a factory method to generate context vars from type annotations
     IE: 
         - `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
@@ -123,11 +123,11 @@ class TransformerOption():
     '''
 
     def _generate_contextvars(self):
-        annotations = get_annotations(self)
+        # annotations = get_annotations(self)
         for item in getmembers(self):
             if (item[0].startswith("_")): 
                 continue
-            if anno:=annotations.get(item[0],None) is None:
+            if (anno:=get_annotations(item[1])) is None:
                 continue
             elif (anno is ContextVar) or ((not isclass(anno)) and (isinstance(anno, ContextVar))):
                 setattr(self, anno, ContextVar(str(id(self))+item[0],default=item[1]))
@@ -136,12 +136,12 @@ class TransformerOption():
         self._generate_contextvars()
         
     
-class TransformerSet():
+class TransformerSet[T:Transformer, O:TransformerOptions]():
     identifier : str|None = None
-    transformers : tuple[Transformer]
-    options : dict[str, TransformerOption]
+    transformers : tuple[T]
+    options : dict[str, O]
 
-    def __init__(self, identifier:str, transformers:Iterable[Transformer], options:dict[str,TransformerOption|Any]=tuple()):
+    def __init__(self, identifier:str, transformers:Iterable[T], options:dict[str,O|Any]=tuple()):
         self.identifier = identifier
 
         self.options = {}
@@ -161,11 +161,11 @@ class TransformerSet():
 
 _EMPTYDICT = {}
 
-class Session[T:TransformerSet]():
+class Session[T:TransformerSet, O:TransformerOptions]():
     memo : dict[int, tuple[Any|_UNSET, Generator|None, dict|None, Context|None]] # [result, generator, cache, context]
     ## Context should be nullable, and entered-exited via middle
     transformer_sets : tuple[T]
-    options: dict[str, TransformerOption]
+    options: dict[str, O]
 
     def __init__(self, transformer_sets:Iterable[T]):
         self.memo = {}

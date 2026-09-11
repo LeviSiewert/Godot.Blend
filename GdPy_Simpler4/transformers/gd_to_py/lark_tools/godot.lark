@@ -23,7 +23,7 @@ _categories : category
 category : "["WORD"]" properties
 
 // TYPING
-typing : "[" _typing_item ["," _typing_item]"]"
+typing : "[" _typing_item ["," _typing_item] "]"
 _typing_item : WORD|ref_subresource|ref_extresource|ref_resource
 
 // DICT-like pairs
