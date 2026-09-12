@@ -168,8 +168,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
     options: dict[str, O]
     id_func: Callable = id
 
-    def __init__(self, transformer_sets:Iterable[T], id_func:Callable=id):
-        self.id_func = id_func
+    def __init__(self, transformer_sets:Iterable[T]):
         self.memo = {}
         self.transformer_sets = tuple(transformer_sets)
 
