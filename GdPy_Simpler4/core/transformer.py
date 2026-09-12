@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import Any, Generator, Iterable
+from typing import Any, Generator, Iterable, Callable
 from contextvars import ContextVar, Context
 from inspect import isgenerator, isgeneratorfunction, isclass
 from contextlib import contextmanager
 # """ This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
 # implimentation of dependency transformation via yielding `Flags` that the outer scope respects.
 
-# It does this through a generator per `id(node)`, as generators allow for sequencial & interuptable operations.
+# It does this through a generator per `self.id_func(node)`, as generators allow for sequencial & interuptable operations.
 # Matching of `node` to function is dependent on the implimentation of `TransformModule.match`, and is called seq by `TransformerSet`, called seq within `Session.rulesets`
 
 # Rulesets should be a contextual variable! 
@@ -119,7 +119,7 @@ class TransformerOptions():
     ''' Class that is instancated at session creation, and has a factory method to generate context vars from type annotations
     IE: 
         - `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
-        - where `...` in above is `str(id(self))`, which prevents overlap of contextvars across sessions w/ the same options objects (and across options objects in the same session)
+        - where `...` in above is `str(self.id_func(self))`, which prevents overlap of contextvars across sessions w/ the same options objects (and across options objects in the same session)
     '''
 
     def _generate_contextvars(self):
@@ -130,7 +130,7 @@ class TransformerOptions():
             if (anno:=get_annotations(item[1])) is None:
                 continue
             elif (anno is ContextVar) or ((not isclass(anno)) and (isinstance(anno, ContextVar))):
-                setattr(self, anno, ContextVar(str(id(self))+item[0],default=item[1]))
+                setattr(self, anno, ContextVar(str(self.id_func(self))+item[0],default=item[1]))
 
     def __init__(self, session):
         self._generate_contextvars()
@@ -166,8 +166,10 @@ class Session[T:TransformerSet, O:TransformerOptions]():
     ## Context should be nullable, and entered-exited via middle
     transformer_sets : tuple[T]
     options: dict[str, O]
+    id_func: Callable = id
 
-    def __init__(self, transformer_sets:Iterable[T]):
+    def __init__(self, transformer_sets:Iterable[T], id_func:Callable=id):
+        self.id_func = id_func
         self.memo = {}
         self.transformer_sets = tuple(transformer_sets)
 
@@ -202,7 +204,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
         - Outer function handles ensure memo[item], cache retrival, indexing of middle generator
         '''
 
-        entry = self.memo.get(id(node), _UNSET)
+        entry = self.memo.get(self.id_func(node), _UNSET)
 
         if entry is _UNSET:
 
@@ -211,23 +213,23 @@ class Session[T:TransformerSet, O:TransformerOptions]():
                 ctx = Context()
                 val = ctx.run(maybe_generator, self, node)
                 entry = (val, None, None, None)
-                self.memo[id(node)] = entry
+                self.memo[self.id_func(node)] = entry
                 return val
             
-            transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)
+            transformer = self._transform(self.id_func(node), self.find_transformer(node)(self,node), settings)
             entry = (_UNSET, transformer, None, Context())
-            self.memo[id(node)] = entry
+            self.memo[self.id_func(node)] = entry
 
             # Fresh transformer; requires next() instead of send()
             try:
                 ctx = entry[3]
                 return ctx.run(next, entry[1])
             except StopIteration as e:
-                self.memo[id(node)] = (e.value, None, entry[2], None)
+                self.memo[self.id_func(node)] = (e.value, None, entry[2], None)
                 return e.value
 
         ## Cache retrieval:
-        if _cache:=self.get_cache(id(node), create=False) and (not ((_step_id := settings.get("step", _UNSET) is _UNSET))) :
+        if _cache:=self.get_cache(self.id_func(node), create=False) and (not ((_step_id := settings.get("step", _UNSET) is _UNSET))) :
             if not ((_res:=_cache.get(_step_id, _UNSET)) is _UNSET):
                 return _res
         elif not entry[0] is _UNSET:
@@ -237,7 +239,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
             ctx = entry[3]
             return ctx.run(entry[1].send, settings)
         except StopIteration as e:
-            self.memo[id(node)] = (e.value, None, entry[2], None)
+            self.memo[self.id_func(node)] = (e.value, None, entry[2], None)
             return e.value
 
     def _transform(self, node_id:int, generator:Generator, settings:dict):
@@ -427,7 +429,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 #         return default
 
 # class Session():
-#     memo : dict[int, tuple[Any|_UNSET, dict|None, Generator|None]] #Map of id(node) : result, cache, generator, ...
+#     memo : dict[int, tuple[Any|_UNSET, dict|None, Generator|None]] #Map of self.id_func(node) : result, cache, generator, ...
 #     # buffers : ContextVar[dict[str, list]]
 #     rulesets : ContextVar[list[TransformerSet]]
 
@@ -453,11 +455,11 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 
 #     def ensure_transform(self, node:Any)->tuple[dict,Generator|None]:
 #         ''' Ensure a cache and generator exists. '''
-#         res = self.memo.get(id(node), None)
+#         res = self.memo.get(self.id_func(node), None)
 #         if not (res is None):
 #             return res
 #         res = (_UNSET, {}, self.make_generator(node))
-#         self.memo[id(node)] = res
+#         self.memo[self.id_func(node)] = res
 #         return res
 
 
@@ -485,21 +487,21 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 #                     raise Exception("Non-Flag yielded, unknown desire!", res)
 
 #                 if (not (step is None)) and isinstance(res, STEP) and (res.step_id == step):
-#                     send_val = res.integrate(self, id(node), indv_cache)
+#                     send_val = res.integrate(self, self.id_func(node), indv_cache)
 #                     return res.obj  
                 
 #                 elif isinstance(res, SWAP_GENERATOR):
-#                     generator, send_val = res.integrate(self, id(node), indv_cache)
-#                     _current = self.memo[id(node)]
-#                     self.memo[id(node)] = (_current[0], _current[1], generator)
+#                     generator, send_val = res.integrate(self, self.id_func(node), indv_cache)
+#                     _current = self.memo[self.id_func(node)]
+#                     self.memo[self.id_func(node)] = (_current[0], _current[1], generator)
 #                     del _current 
 #                     escape_generator = self.generator_escape(self.generator, cvar)
                 
 #                 elif isinstance(res, TRANFORM):
-#                     send_val = res.integrate(self, id(node), indv_cache)
+#                     send_val = res.integrate(self, self.id_func(node), indv_cache)
 #                     ## Handling an escape sequence here may be required, and some sort of wrapped-resume for outer.
 #                 else:
-#                     send_val = res.integrate(self, id(node), indv_cache)
+#                     send_val = res.integrate(self, self.id_func(node), indv_cache)
 #                 res = None
 
 #             except StopIteration:
@@ -514,7 +516,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 #         else:
 #             indv_cache["RETURN"] = ret_value
 
-#         self.memo[id(node)] = (ret_value, indv_cache, None) ## Clear the empty generator
+#         self.memo[self.id_func(node)] = (ret_value, indv_cache, None) ## Clear the empty generator
 #         return ret_value
 
     
