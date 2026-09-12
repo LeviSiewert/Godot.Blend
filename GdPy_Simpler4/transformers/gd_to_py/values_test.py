@@ -97,13 +97,13 @@ class Test_Dictionary():
 class Test_Array(_StructureTest):
     class Test_Explicit(_StructureTest):
         _type = Array
-        _parser_key = "list_explicit"
+        _parser_key = "array_explicit"
         def data(self,session):
             yield 'Array[String](["a","b","c"])', Array("a","b","c", typing="String")
 
     class Test_Implicit(_StructureTest):
         _type = Array
-        _parser_key = "list"
+        _parser_key = "array"
         def data(self,session):
             yield '[]', Array()
     
@@ -217,27 +217,27 @@ class Test_Basis(_StructureTest):
 
 class Test_PackedInt32Array(_StructureTest):
     _type = PackedInt32Array
-    _parser_key = "packedint32array"
+    _parser_key = "packed_int32_array"
     def data(self,session):
         yield "PackedInt32Array()", PackedInt32Array()
         yield "PackedInt32Array(0,1,2,3,4)", PackedInt32Array(0,1,2,3,4)
 class Test_PackedInt64Array(_StructureTest):
     _type = PackedInt64Array
-    _parser_key = "packedint64array"
+    _parser_key = "packed_int64_array"
     def data(self,session):
         yield "PackedInt64Array()", PackedInt64Array()
         yield "PackedInt64Array(0,1,2,3,4)", PackedInt64Array(0,1,2,3,4) 
     
 class Test_PackedFloat32Array(_StructureTest):
     _type = PackedFloat32Array
-    _parser_key = "packedfloat32array"
+    _parser_key = "packed_float32_array"
     def data(self,session):
         yield "PackedFloat32Array()",PackedFloat32Array()
         yield "PackedFloat32Array(0,1,2,3,4)",PackedFloat32Array(0,1,2,3,4)
         yield "PackedFloat32Array(0,1.5,2.5,3.5,4.5)",PackedFloat32Array(0,1.5,2.5,3.5,4.5)
 class Test_PackedFloat64Array(_StructureTest):
     _type = PackedFloat64Array
-    _parser_key = "packedfloat64array"
+    _parser_key = "packed_float64_array"
     def data(self,session):
         yield "PackedFloat64Array()", PackedFloat64Array()
         yield "PackedFloat64Array(0,1,2,3,4)", PackedFloat64Array(0,1,2,3,4)
@@ -245,14 +245,14 @@ class Test_PackedFloat64Array(_StructureTest):
     
 class Test_PackedStringArray(_StructureTest):
     _type = PackedStringArray
-    _parser_key = "packedstringarray"
+    _parser_key = "packed_string_array"
     def data(self,session):
         yield 'PackedStringArray()', PackedStringArray()
         yield 'PackedStringArray("a","b")', PackedStringArray("a","b")
 
 class Test_PackedVector2Array(_StructureTest):
     _type = PackedVector2Array
-    _parser_key = "packedvector2array"
+    _parser_key = "packed_vector2_array"
     def data(self,session):
          yield "PackedVector2Array(0,1)", PackedVector2Array(0,1)
          yield "PackedVector2Array(0,1)", PackedVector2Array(Vector2(0,1))
@@ -261,7 +261,7 @@ class Test_PackedVector2Array(_StructureTest):
          yield "PackedVector2Array(0,1,0,1)", PackedVector2Array(Vector2(0,1),*(0,1))
 class Test_PackedVector3Array(_StructureTest):
     _type = PackedVector3Array
-    _parser_key = "packedvector3array"
+    _parser_key = "packed_vector3_array"
     def data(self,session):
         yield "PackedVector3Array(0,1,2)", PackedVector3Array(0,1,2)
         yield "PackedVector3Array(0,1,2)", PackedVector3Array(Vector3(0,1,2))
@@ -270,7 +270,7 @@ class Test_PackedVector3Array(_StructureTest):
         yield "PackedVector3Array(0,1,2,0,1,2)", PackedVector3Array(Vector3(0,1,2),*(0,1,2))
 class Test_PackedVector4Array(_StructureTest):
     _type = PackedVector4Array
-    _parser_key = "packedvector4array"
+    _parser_key = "packed_vector4_array"
     def data(self,session):
         yield "PackedVector4Array(0,1,2,3)", PackedVector4Array(0,1,2,3)
         yield "PackedVector4Array(0,1,2,3)", PackedVector4Array(Vector4(0,1,2,3))
@@ -279,7 +279,7 @@ class Test_PackedVector4Array(_StructureTest):
         yield "PackedVector4Array(0,1,2,3,0,1,2,3)", PackedVector4Array(Vector4(0,1,2,3),*(0,1,2,3))
 class Test_PackedColorArray(_StructureTest):
     _type = PackedColorArray
-    _parser_key = "packedcolorarray"
+    _parser_key = "packed_color_array"
     def data(self,session):
         yield "PackedColorArray(0,1,2,3)", PackedColorArray(0,1,2,3)
         yield "PackedColorArray(0,1,2,3)", PackedColorArray(Color(0,1,2,3))
@@ -289,7 +289,7 @@ class Test_PackedColorArray(_StructureTest):
     
 class Test_PackedByteArray(_StructureTest):
     _type = PackedByteArray
-    _parser_key = "packedbytearray"
+    _parser_key = "packed_byte_array"
     def data(self,session):
         yield 'PackedByteArray("")', PackedByteArray(b"")
         yield 'PackedByteArray("abc123")', PackedByteArray(b"abc123")

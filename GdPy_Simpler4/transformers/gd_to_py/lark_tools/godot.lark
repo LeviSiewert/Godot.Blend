@@ -62,38 +62,38 @@ packed_string_array : "PackedStringArray(" (STRING ("," STRING)*)? ")"
 packed_int32_array : "PackedInt32Array(" (INTEGER ("," INTEGER)*)? ")"
 packed_int64_array : "PackedInt64Array(" (INTEGER ("," INTEGER)*)? ")"
 
-packed_float32_array : "PackedFloat32Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
-packed_float64_array : "PackedFloat64Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_float32_array : "PackedFloat32Array(" (FLOAT ("," FLOAT)*)? ")"
+packed_float64_array : "PackedFloat64Array(" (FLOAT ("," FLOAT)*)? ")"
 
 // note:  Moved away from uniform fixed len child as errors from wrong length are more explicitly handled in transformer rather than lexer-parser
-packed_vector2_array : "PackedVector2Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
-packed_vector3_array : "PackedVector3Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
-packed_vector4_array : "PackedVector4Array(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
-packed_color_array : "PackedColorArray(" (INTEGER|FLOAT ("," INTEGER|FLOAT)*)? ")"
+packed_vector2_array : "PackedVector2Array(" (FLOAT ("," FLOAT)*)? ")"
+packed_vector3_array : "PackedVector3Array(" (FLOAT ("," FLOAT)*)? ")"
+packed_vector4_array : "PackedVector4Array(" (FLOAT ("," FLOAT)*)? ")"
+packed_color_array : "PackedColorArray(" (FLOAT ("," FLOAT)*)? ")"
 
 /// FIXED LENGTH ARRAYS
 vector2i : "Vector2i(" [INTEGER ("," INTEGER)~1] ")"
 vector3i : "Vector3i(" [INTEGER ("," INTEGER)~2] ")"
 vector4i : "Vector4i(" [INTEGER ("," INTEGER)~3] ")"
 
-vector2 : "Vector2(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~1] ")"
-vector3 : "Vector3(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~2] ")"
-vector4 : "Vector4(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+vector2 : "Vector2(" [FLOAT ("," FLOAT)~1] ")"
+vector3 : "Vector3(" [FLOAT ("," FLOAT)~2] ")"
+vector4 : "Vector4(" [FLOAT ("," FLOAT)~3] ")"
 
-rect2 : "Rect2(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+rect2 : "Rect2(" [FLOAT ("," FLOAT)~3] ")"
 rect2i : "Rect2i(" [INTEGER ("," INTEGER)~3] ")"
 
-plane : "Plane(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+plane : "Plane(" [FLOAT ("," FLOAT)~3] ")"
 
-color : "Color(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+color : "Color(" [FLOAT ("," FLOAT)~3] ")"
 
-aabb : "AABB(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~5] ")"
+aabb : "AABB(" [FLOAT ("," FLOAT)~5] ")"
 
-quaternion : "Quaternion(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~3] ")"
+quaternion : "Quaternion(" [FLOAT ("," FLOAT)~3] ")"
 
-transform2d : "Transform2D(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~5] ")"
-transform3d : "Transform3D(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~11] ")"
-basis : "Basis(" [INTEGER|FLOAT ("," INTEGER|FLOAT)~8] ")"
+transform2d : "Transform2D(" [FLOAT ("," FLOAT)~5] ")"
+transform3d : "Transform3D(" [FLOAT ("," FLOAT)~11] ")"
+basis : "Basis(" [FLOAT ("," FLOAT)~8] ")"
 
 _value : NULL
        | INF
@@ -141,11 +141,12 @@ BOOL : "true" | "false"
 // NON - VALUES:
 COMMENT : /;.*/
 WORD : (LETTER | "_" | INTEGER | "/" | ".")+
+FLOAT : SIGNED_FLOAT | INTEGER
 
 %import common.ESCAPED_STRING   -> STRING
 %import common.LETTER           -> LETTER
 %import common.SIGNED_INT       -> INTEGER
-%import common.SIGNED_FLOAT     -> FLOAT
+%import common.SIGNED_FLOAT
 %import common.WS
 %ignore WS
 %ignore COMMENT
