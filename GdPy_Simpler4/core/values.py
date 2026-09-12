@@ -14,9 +14,9 @@ class StringName(UserString):
 
 class Object():
     ''' Generic object, stored and accessed as a value. '''
-    type : GdDefType
+    type : GdDefType|str
     kwargs : dict
-    def __init__(self, type:GdDefType|None=None, **kwargs):
+    def __init__(self, type:GdDefType|str|None, **kwargs):
         self.type = type
         self.kwargs = kwargs
     
@@ -27,7 +27,15 @@ class Object():
             self.type == value.type,
             self.kwargs == value.kwargs,
         ])
-    
+
+    def _dif(self, value:Object)->dict:
+        return {
+            "types" : (self.type, value.type) ,
+            "foreign" : {k:(v) for k,v in value.kwargs if not (k in self.kwargs.keys())},
+            "local" : {k:(v) for k,v in self.kwargs if not (k in value.kwargs.keys())},
+            "different" : {k:(v) for k,v in self.kwargs if (value.kwargs[k] != v)},
+        }
+        
     def items(self,):
         return self.kwargs.items()
     

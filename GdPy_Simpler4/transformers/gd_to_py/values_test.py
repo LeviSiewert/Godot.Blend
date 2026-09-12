@@ -97,13 +97,13 @@ class Test_Dictionary():
 class Test_Array(_StructureTest):
     class Test_Explicit(_StructureTest):
         _type = Array
-        _parser_key = "array_explicit"
+        _parser_key = "explicit_list"
         def data(self,session):
             yield 'Array[String](["a","b","c"])', Array("a","b","c", typing="String")
 
     class Test_Implicit(_StructureTest):
         _type = Array
-        _parser_key = "array"
+        _parser_key = "list"
         def data(self,session):
             yield '[]', Array()
     

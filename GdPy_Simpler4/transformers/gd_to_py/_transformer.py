@@ -29,6 +29,9 @@ PyToGd_TransformerSet = TransformerSet
 class PyToGd_Transformer(Transformer):
     types : Iterable[Type]
 
+    def __repr__(self,):
+        return f"PyToGd_Transformer{self.types}"
+
     def match(self, session:Session, node:Any)->bool:
         for t in self.types:
             if isinstance(node, t):
