@@ -29,12 +29,17 @@ class Object():
         ])
 
     def _dif(self, value:Object)->dict:
+        
         return {
-            "types" : (self.type, value.type) ,
-            "foreign" : {k:(v) for k,v in value.kwargs if not (k in self.kwargs.keys())},
-            "local" : {k:(v) for k,v in self.kwargs if not (k in value.kwargs.keys())},
-            "different" : {k:(v) for k,v in self.kwargs if (value.kwargs[k] != v)},
+            "type":(self.type==value.type, self.type, value.type),
+            "kwargs":(self.kwargs==value.kwargs, self.kwargs, value.kwargs),
         }
+        # return {
+        #     "types" : (self.type, value.type) ,
+        #     "foreign" : {k:(v) for k,v in value.kwargs.items() if not (k in self.kwargs.keys())},
+        #     "local" : {k:(v) for k,v in self.kwargs.items() if not (k in value.kwargs.keys())},
+        #     "different" : {k:(v) for k,v in self.kwargs.items() if ((k in value.kwargs.keys()) and  (value.kwargs[k] != v))},
+        # }
         
     def items(self,):
         return self.kwargs.items()

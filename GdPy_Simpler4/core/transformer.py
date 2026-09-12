@@ -211,7 +211,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
                 ctx = Context()
                 val = ctx.run(maybe_generator, self, node)
                 entry = (val, None, None, None)
-                self.memo[id(node)] = val
+                self.memo[id(node)] = entry
                 return val
             
             transformer = self._transform(id(node), self.find_transformer(node)(self,node), settings)

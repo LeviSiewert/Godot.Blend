@@ -46,10 +46,23 @@ from lark import (
 class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creation.
 class PyToGd_Options(TransformerOptions):
     ''' Options are instantiated at Session creation '''
-    use_quotations : ContextVar[bool] = True
-    def __init__(self, session:Session):
-        self.use_quotations = ContextVar(str(id(self))+"::use_quotations", default=False)
+    str_use_quotations : ContextVar[bool] = True
 
+    float_as_int_ok : ContextVar[bool] = True
+    float_percision : ContextVar[int] = -1
+    float_tail_req_len : ContextVar[int] = -1
+
+    def __init__(self, session:Session):
+        uid = str(id(self))
+        self.str_use_quotations = ContextVar(uid+"::str_use_quotations", default=False)
+        self.float_as_int_ok = ContextVar(uid+"::float_as_int_ok", default = True )
+        self.float_percision = ContextVar(uid+"::float_percision", default = -1 )
+        self.float_tail_req_len = ContextVar(uid+"::float_tail_req_len", default = -1 ) 
+    
+    def render_float(self, f:float)->str:
+        if self.float_as_int_ok.get() and f.is_integer():
+            return str(int(f))
+        return f'{f:g}'
 
 class MACROS:
     def default(item, /, default:Any=None, callable = lambda x:x):
@@ -102,7 +115,7 @@ class _Float:
     class PyToGd(PyToGd_Transformer):
         types = [float]
         def transform(self, session:PyToGd_Session, node:float)->str:
-            return str(node)
+            return session.options["values"].render_float(node) 
 
 class _Int:
     class GdToPy(GdToPy_Transformer):
@@ -133,14 +146,14 @@ class _Bool:
 
 class _String:
     class GdToPy(GdToPy_Transformer):
-        keys = ["STRING"]
+        keys = ["STRING", "WORD"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->str:
-            return node
+            return str(node.value).strip('"')
         
     class PyToGd(PyToGd_Transformer):
         types = [str]
         def transform(self, session:PyToGd_Session, node:str)->str:
-            if session.options["values"].use_quotations.get():
+            if session.options["values"].str_use_quotations.get():
                 return f'"{node}"'
             return f'{node}'
 
@@ -300,15 +313,42 @@ class _PackedByteArray():
             return f'PackedByteArray("{str(node)}")'
 
 
-class _Packed():
+class _PackedComplex():
+                
     class GdToPy(GdToPy_Transformer):
-        keys = ["packed_int32_array", "packed_int64_array", "packed_float32_array", "packed_float64_array", "packed_string_array", "packed_vector2_array", "packed_vector3_array", "packed_vector4_array", "packed_color_array"]
-
+        keys = ["packed_vector2_array", "packed_vector3_array", "packed_vector4_array", "packed_color_array"]
         def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
             children = yield TRANSFORM_CHILDREN(node.children)
 
-            if isinstance(children, TRANSFORM_CHILDREN):
-                raise Exception("FUCK")
+            match str(node.data):
+                case "packed_vector2_array":
+                    return PackedVector2Array(*children)
+                case "packed_vector3_array":
+                    return PackedVector3Array(*children)
+                case "packed_vector4_array":
+                    return PackedVector4Array(*children)
+                case "packed_color_array":
+                    return PackedColorArray(*children)
+            raise KeyError(node)
+
+    class PyToGd(PyToGd_Transformer):
+        types = [PackedVector2Array, PackedVector3Array, PackedVector4Array, PackedColorArray,]
+
+        def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
+            # children = yield TRANSFORM_CHILDREN(node)
+            children = []
+            for i in node:
+                r = yield TRANSFORM_CHILDREN(i)
+                children.extend(r)
+            return f"{node.__class__.__name__}({",".join(children)})"
+
+class _PackedSimple():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["packed_int32_array", "packed_int64_array", "packed_float32_array", "packed_float64_array", "packed_string_array"]
+
+        def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
+
+            children = yield TRANSFORM_CHILDREN(node.children)
             
             match str(node.data):
                 case "packed_int32_array":
@@ -321,18 +361,10 @@ class _Packed():
                     return PackedFloat64Array(*children)
                 case "packed_string_array":
                     return PackedStringArray(*children)
-                case "packed_vector2_array":
-                    return PackedVector2Array(*children)
-                case "packed_vector3_array":
-                    return PackedVector3Array(*children)
-                case "packed_vector4_array":
-                    return PackedVector4Array(*children)
-                case "packed_color_array":
-                    return PackedColorArray(*children)
             raise KeyError(node)
 
     class PyToGd(PyToGd_Transformer):
-        types = [PackedInt32Array, PackedInt64Array, PackedFloat32Array, PackedFloat64Array, PackedStringArray, PackedVector2Array, PackedVector3Array, PackedVector4Array, PackedColorArray,]
+        types = [PackedInt32Array, PackedInt64Array, PackedFloat32Array, PackedFloat64Array, PackedStringArray,]
 
         def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
             children = yield TRANSFORM_CHILDREN(node)
@@ -354,7 +386,8 @@ gd_to_py = GdToPy_TransformerSet("STD::values.py", [
     _Array.GdToPy,
     _Array.GdToPy_implicit,
     _Vectors.GdToPy,
-    _Packed.GdToPy,
+    _PackedSimple.GdToPy,
+    _PackedComplex.GdToPy,
     _PackedByteArray.GdToPy,
     _Null.GdToPy,
 ], 
@@ -372,7 +405,8 @@ py_to_gd = PyToGd_TransformerSet("STD::values.py", [
     _Dictionary.PyToGd,
     _Array.PyToGd,
     _Vectors.PyToGd,
-    _Packed.PyToGd,
+    _PackedSimple.PyToGd,
+    _PackedComplex.PyToGd,
     _PackedByteArray.PyToGd,
     _Null.PyToGd,
 ], 
