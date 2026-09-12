@@ -54,7 +54,7 @@ class PyToGd_Options(TransformerOptions):
 
     def __init__(self, session:Session):
         uid = str(id(self))
-        self.str_use_quotations = ContextVar(uid+"::str_use_quotations", default=False)
+        self.str_use_quotations = ContextVar(uid+"::str_use_quotations", default=True)
         self.float_as_int_ok = ContextVar(uid+"::float_as_int_ok", default = True )
         self.float_percision = ContextVar(uid+"::float_percision", default = -1 )
         self.float_tail_req_len = ContextVar(uid+"::float_tail_req_len", default = -1 ) 
@@ -338,8 +338,8 @@ class _PackedComplex():
             # children = yield TRANSFORM_CHILDREN(node)
             children = []
             for i in node:
-                r = yield TRANSFORM_CHILDREN(i)
-                children.extend(r)
+                children.extend(i)
+            children = yield TRANSFORM_CHILDREN(children)
             return f"{node.__class__.__name__}({",".join(children)})"
 
 class _PackedSimple():
