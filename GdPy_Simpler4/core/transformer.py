@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Generator, Iterable, Callable
-from contextvars import ContextVar, Context
+from contextvars import ContextVar, Context, copy_context
 from inspect import isgenerator, isgeneratorfunction, isclass
 from contextlib import contextmanager
 # """ This transformer module is best thought of as a methodology for ordering individual transform functions & function substates, and \n
@@ -62,7 +62,10 @@ class STEP(Flag):
     def intigrate(self, session:Session, node_id:int, settings:dict)->tuple[bool, Any, Any]:
         ''' Returns tuple(Do_Yield:bool, Yield_Value:Any, Send_Echo_Value (Overridable):Any)'''
         if self.caching:
-            session.get_cache(node_id)[self.step_id] = self.obj
+            cache = session.get_cache(node_id, create=False)
+            if not cache is None:
+                cache[self.step_id] = self.obj
+                
         return (self.step_id == settings.get("step",_UNSET)), self.obj, self.step_id
 
 class TRANSFORM(Flag):
@@ -96,6 +99,7 @@ class TRANSFORM_CHILDREN(Flag):
 
 class Transformer():
     identifier : str|None = None
+    caching : bool|ContextVar = True
 
     def __init__(self, identifier:str|None=None):
         self.identifier = identifier
@@ -153,11 +157,11 @@ class TransformerSet[T:Transformer, O:TransformerOptions]():
                 t = t()
             self.transformers.append(t)
 
-    def match[D:Any](self, session, node:Any, default:D=None)->Generator|D:
+    def match[D:Any](self, session, node:Any, default:D=None)->Transformer|D:
         for t in self.transformers:
             if t.match(session, node):
-                return t.transform
-        return default
+                return t
+        return default, None
 
 _EMPTYDICT = {}
 
@@ -179,15 +183,20 @@ class Session[T:TransformerSet, O:TransformerOptions]():
         for k,v in _options_template.items():
             self.options[k] = v(self)
 
-    def find_transformer(self, node)->Generator:
+    def find_transformer(self, node)->tuple[Generator|Callable,bool] :
         for ts in self.transformer_sets:
-            res = ts.match(self, node, None)
-            if not (res is None):
-                return res
+            t = ts.match(self, node, None)
+            if not (t is None):
+                if isinstance(t.caching, ContextVar):
+                    return t.transform,  t.caching.get()
+                else:
+                    return t.transform,  t.caching
         raise KeyError("Could not determine transformer for:", node)
 
 
     def get_cache(self, node_id, create=True):
+        if not (node_id in self.memo.keys()):
+            return _EMPTYDICT
         entry = self.memo[node_id]
         cache = entry[2]
         if (entry[2] is None) and create:
@@ -207,24 +216,27 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 
         if entry is _UNSET:
 
-            maybe_generator = self.find_transformer(node)
+            maybe_generator, caching = self.find_transformer(node)
             if not( isgenerator(maybe_generator) or isgeneratorfunction(maybe_generator)):
-                ctx = Context()
+                ctx = copy_context()
                 val = ctx.run(maybe_generator, self, node)
-                entry = (val, None, None, None)
-                self.memo[self.id_func(node)] = entry
+                if caching:
+                    entry = (val, None, None, None)
+                    self.memo[self.id_func(node)] = entry
                 return val
             
-            transformer = self._transform(self.id_func(node), self.find_transformer(node)(self,node), settings)
-            entry = (_UNSET, transformer, None, Context())
-            self.memo[self.id_func(node)] = entry
+            transformer = self._transform(self.id_func(node), maybe_generator(self,node), settings)
+            ctx = copy_context()
+            if caching:
+                entry = (_UNSET, transformer, None, ctx)
+                self.memo[self.id_func(node)] = entry
 
             # Fresh transformer; requires next() instead of send()
             try:
-                ctx = entry[3]
-                return ctx.run(next, entry[1])
+                return ctx.run(next, transformer)
             except StopIteration as e:
-                self.memo[self.id_func(node)] = (e.value, None, entry[2], None)
+                if caching:
+                    self.memo[self.id_func(node)] = (e.value, None, entry[2], None)
                 return e.value
 
         ## Cache retrieval:

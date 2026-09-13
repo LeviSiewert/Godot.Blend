@@ -5,13 +5,15 @@ from typing import Iterable
 
 from . import (
     values,
-    promises
+    promises,
+    defintions,
 )
 
 def make_gd_to_py[TS:GdToPy_TransformerSet[GdToPy_Transformer]](insert:Iterable[TS]=tuple())->Session[GdToPy_TransformerSet[GdToPy_Transformer]|TS]:
     return Session([
         values.gd_to_py,
         promises.gd_to_py,
+        defintions.gd_to_py,
         *insert
     ])
 
@@ -19,6 +21,7 @@ def make_py_to_gd[TS:PyToGd_TransformerSet[PyToGd_Transformer]](insert:Iterable[
     return Session([
         values.py_to_gd,
         promises.py_to_gd,
+        defintions.py_to_gd,
         *insert
     ])
 

@@ -70,8 +70,82 @@ def test_nested():
     assert result.children[0].name == "B_V2"
 
     assert lst == ["B","C","E","D","A"]
-    
 
+@contextmanager
+def cvar_as(cvar:ContextVar, val:Any):
+    t = cvar.set(val)
+    yield
+    cvar.reset(t)
+
+def test_nocache_simple():
+    ''' test disable caching depending on generator provider (transformer) flag'''
+    cvar : ContextVar[bool] = ContextVar("", default=False) ## emulate mutable external changes
+
+    class _transformer(Transformer):
+        caching = False
+        def match(self, session, node):
+            return True
+        def transform(self, session, node:str)->Generator:
+            if cvar.get():
+                return node
+            return None
+
+    session = Session([TransformerSet("", [_transformer])], )
+
+    with cvar_as(cvar, True):
+        assert session.transform("string") == "string"
+
+    with cvar_as(cvar, False):
+        assert session.transform("string") is None
+
+    with cvar_as(cvar, True):
+        assert session.transform("string") == "string"
+
+
+
+
+def test_context_simple():
+    ''' Simple testing of context, without INTERUPT / STEP or other lateral movement
+    Traverse and incriment contextual counter + 1 for depth, compare against manual tree
+    NOTE: Context() is not a "translucent" stack, so for the current implimentation context *cannot* change between yield statments
+        # Refs ofc remain, so some mutability between yields is possible  
+    '''
+
+    class _Node():
+        def __init__(self, name, depth:int, children:Iterable[_Node]):
+            self.name = name
+            self.depth = depth
+            self.children = tuple(children)
+        def __repr__(self):
+            return f"_Node({self.name}, {self.depth})"
+    class _options(TransformerOptions):
+        depth : ContextVar[int] = 0
+        def __init__(self, session):
+            self.depth = ContextVar("dept", default=0)
+    class _transformer(Transformer):
+        def match(self, session, node):
+            return True
+        def transform(self, session, node:_Node)->Generator:
+            assert node.depth == session.options["test"].depth.get()
+
+            with cvar_as(session.options["test"].depth, node.depth + 1):
+                yield TRANSFORM_CHILDREN(node.children)
+
+            assert node.depth == session.options["test"].depth.get()
+            
+    session = Session([TransformerSet("", [_transformer], options={"test":_options})], )
+
+    root = _Node("A", 0, [
+        _Node("B", 1, []),
+        _Node("C", 1, []),
+        _Node("D", 1, [
+            _Node("E", 2, [])
+        ]),
+        _Node("F", 1, []),
+    ])
+
+    result = session.transform(root)
+    
     
 
 # class N():

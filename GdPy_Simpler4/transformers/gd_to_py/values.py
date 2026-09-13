@@ -152,10 +152,11 @@ class _String:
         
     class PyToGd(PyToGd_Transformer):
         types = [str]
+        # caching = False ##TODO! as rendering options change contextually
         def transform(self, session:PyToGd_Session, node:str)->str:
             if session.options["values"].str_use_quotations.get():
                 return f'"{node}"'
-            return f'{node}'
+            return node
 
 
 class _NodePath():
@@ -206,13 +207,12 @@ class _Dictionary:
     class GdToPy_implicit(GdToPy_Transformer):
         keys = ["dict"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
-            kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children[1:])
+            kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children)
             return Dictionary(kwargs)
         
     class GdToPy(GdToPy_Transformer):
         keys = ["explicit_dict"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
-            # raise Exception(node)
             kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children[1:])
             typing = yield from MACROS.default_yield(node.children[0], default=None, flag=TRANSFORM)
             return Dictionary(kwargs, typing=typing)
@@ -225,7 +225,7 @@ class _Dictionary:
                 body = yield from MACROS.pytogd_dict_to_str(node, seperator=":")
                 return f'Dictionary{typing}(' + '{' + body + "})" 
 
-            body = yield from MACROS.pytogd_dict_to_str(node)
+            body = yield from MACROS.pytogd_dict_to_str(node, seperator=":")
             return '{' + body + "}" 
 
 
@@ -250,10 +250,10 @@ class _Array:
             if isinstance(node,Array) and (not (node.typing is None)):
                 typing = yield TRANSFORM(node.typing)
                 body = yield TRANSFORM_CHILDREN(node)
-                return f'Array{typing}(' + '[' + body + "])" 
+                return f'Array{typing}(' + '[' + ",".join(body) + "])" 
 
             body = yield TRANSFORM_CHILDREN(node)
-            return '[' + body + "]" 
+            return '[' + ",".join(body) + "]" 
 
 
 class _Vectors():
@@ -298,7 +298,9 @@ class _Vectors():
         types = [Vector2i, Vector3i, Vector4i, Vector2, Vector3, Vector4,Plane,Color,AABB,Quaternion,Transform2D,Transform3D,Basis, Rect2i, Rect2]
 
         def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
-            children = yield TRANSFORM_CHILDREN(node)
+            children = yield TRANSFORM_CHILDREN(tuple(node))
+            ## Tuple conversion fixed an issue, as it seems that iterating an array object in cpython means sequencial entries have shared IDs?
+            ## Example of issue : `Vector4(0,1,2,3) -> Vector4(0,1,0,1)`
             return f"{node.__class__.__name__}({",".join(children)})"
 
 

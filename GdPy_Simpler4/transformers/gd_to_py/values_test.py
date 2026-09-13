@@ -94,7 +94,7 @@ class Test_Dictionary():
             yield '{}', Dictionary()
             yield '{"a":"b", "c":"d"}', Dictionary({"a":"b", "c":"d"})
 
-class Test_Array(_StructureTest):
+class Test_Array():
     class Test_Explicit(_StructureTest):
         _type = Array
         _parser_key = "explicit_list"
