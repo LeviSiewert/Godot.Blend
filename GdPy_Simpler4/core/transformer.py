@@ -125,7 +125,7 @@ class TransformerSet[T:Transformer, O:TransformerOptions]():
         for t in self.transformers:
             if t.match(session, node):
                 return t
-        return default, None
+        return default
 
 
 MemoEntry = namedtuple("Memo", ["result", "cache", "generator", "context"])
