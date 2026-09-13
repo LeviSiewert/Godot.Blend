@@ -1,4 +1,4 @@
-from typing import Generator, Any, Callable
+from typing import Generator, Any, Callable, Iterable
 from inspect import isgeneratorfunction, isgenerator
 from contextvars import ContextVar, copy_context
 from collections import namedtuple
@@ -13,6 +13,62 @@ class Transformer():
     caching : ContextVar|bool = True
 
 _EMPTY_DICT = {}
+
+class Flag():
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        ## Returns do_yield, 
+        raise NotImplementedError(self.__class__)
+
+class STEP(Flag):
+    caching : bool = True
+    step : str
+    value : Any|None|_UNSET = _UNSET
+
+    def __init__(self, step:str, value:Any=_UNSET, /, caching : bool = True):
+        self.step = step
+        self.value = value
+        self.caching = caching
+
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        do_yield = self.step == settings.get("step",None)
+
+        if (memoized and caching and self.caching and (self.value != _UNSET)):
+            memo.cache[self.step] = self.value
+
+        # do_yield, yield_val, send_val
+        return do_yield, self.value, self.step
+        
+class TRANSFORM(Flag):
+    item : Any
+    as_generator : bool
+
+    def __init__(self, item:Any, **settings):
+        self.item = item
+        self.settings = settings
+
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        return False, None, session.transform(self.item, **self.settings)
+
+class TRANSFORM_CHILDREN(Flag):
+    children : Iterable
+    as_generator : bool
+
+    def __init__(self, children:Iterable, /, as_generator:bool=False, **settings):
+        self.children = children
+        self.settings = settings
+        self.as_generator = as_generator
+
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+
+        def _generator():
+            for i in self.items:
+                yield session.transform(i, **self.settings)
+
+        if self.as_generator:
+            return False, None, _generator()
+        
+        return False, None, tuple(_generator())    
+
 
 class Session():
     memo : dict
@@ -90,8 +146,10 @@ class Session():
                 context = ctx, 
             )
 
-        return iterator.send(settings)
-
+        try:
+            return iterator.send(settings)
+        except StopIteration as e:
+            return e.value
 
     @staticmethod
     def _runw(_memo:MemoEntry, func, *args, **kwargs):
@@ -99,7 +157,7 @@ class Session():
             return func(*args, **kwargs)
         _memo.context.run(func, *args, **kwargs)
 
-    def iterator(self, uid:int, transform:Generator, /, contextual:bool=True, memoized:bool=True, caching:bool=True, send_val:Any=None)->Generator[]:
+    def iterator(self, uid:int, transform:Generator, /, contextual:bool=True, memoized:bool=True, caching:bool=True, send_val:Any=None)->Generator:
         ''' iterators through child transformer and integrates flags  
         Adds to Memo
         Returns None if step not met, even if internal generator completes
@@ -111,39 +169,44 @@ class Session():
         send_value = None
 
         if (not memoized):
-            memo = MemoEntry(None,None,None,copy_context())
+            memo = MemoEntry(None,None,None,context=copy_context())
 
         c = True
         while c:
-            if memoized:
-                memo = self.memo[uid]
-            send_value = settings.get("send_value", send_value)
 
-            flag = transform.send(send_val)
+            try:
+                send_value = settings.get("send_value", send_value)
 
-            if isinstance(flag, STEP):
-                do_yield, yield_val, send_val = flag.intigrate(self, )
+                flag = transform.send(send_val)
 
+                if memoized:             
+                    memo = self.memo[uid]
 
+                if isinstance(flag, Flag):
+                    do_yield, yield_val, send_val = flag.intigrate(self, uid, contextual=contextual, memoized=memoized, caching=caching)
 
-    #     while c:
-    #         if memoized:
-    #             memo = self.memo[uid]
+                    if do_yield:
+                        _settings = yield yield_val
+                        if not (_settings is None):
+                            settings = _settings
+                        del _settings
 
-    #         try:
-    #             res = self._runw(self.memo.send, send_val)
+                # elif isinstance(flag, TRANSFORM):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
+                # elif isinstance(flag, TRANSFORM_CHILDREN):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
+                # elif isinstance(flag, Flag):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
 
-    #             if isinstance(res, Flag):
-    #                 res.integrate()
-    #                 ... #if:
-    #                 settings = yield res
+                else: 
+                    raise Exception("UNKNOWN Flag:", flag)
 
-    #             else:
-    #                 raise Exception(...)
-            
+            except StopIteration as e:
+                c = False
+                if memoized:             
+                    memo = self.memo[uid]
+                    self[uid] = MemoEntry(result=e.value, cache=memo.cache, generator=None, context=None)
+                return e.value
 
-    #         except StopIteration as e:
-    #             if memoized:
-    #                 self.memo[uid] = MemoEntry(result=e.value, generator=memo.generator, context=memo.context, cache=memo.cache)
-    #             return e.value
-        
+            except:
+                raise
