@@ -2,6 +2,7 @@
 # from typing import Iterable, Generator, Any, Callable
 # from inspect import isgenerator
 from __future__ import annotations
+from contextlib import contextmanager
 
 from .transformer import *
 
@@ -32,8 +33,8 @@ def test_basic():
     assert "c" == session.transform(node, step="C")
     assert "D" == session.transform(node)
 
-    assert "c" == session.get_cache(id(node), create=False).get("C", None)
-    assert None == session.get_cache(id(node), create=False).get("A", None)
+    assert "c" == session.memo[id(node)].cache.get("C", None)
+    assert None == session.memo[id(node)].cache.get("A", None)
 
     node == ["PRE", "A", "B", "C"]
 
@@ -77,12 +78,12 @@ def cvar_as(cvar:ContextVar, val:Any):
     yield
     cvar.reset(t)
 
-def test_nocache_simple():
+def test_no_memoization_simple():
     ''' test disable caching depending on generator provider (transformer) flag'''
     cvar : ContextVar[bool] = ContextVar("", default=False) ## emulate mutable external changes
 
     class _transformer(Transformer):
-        caching = False
+        memoized = False
         def match(self, session, node):
             return True
         def transform(self, session, node:str)->Generator:
