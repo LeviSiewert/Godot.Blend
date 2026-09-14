@@ -26,7 +26,7 @@ class _StructureTest[T:Type]():
     def _yield_gd_to_py(self,)->Generator[tuple[Any,Any]]:
         for txt, obj in self.data(gd_to_py):
             parsed = make_parser_cached(self._parser_key).parse(txt)
-            gd_to_py.memo.clear()         
+            # gd_to_py.memo.clear()         
             
             ## FOR SOME REASON id(LarkToken) is reusing/producing a non-unique ID between parsing sessions, or id() is evaluating form (not recursive content) 
             res = gd_to_py.transform(parsed)

@@ -8,7 +8,7 @@ from lark import (
 
 
 class GdToPy_Session(Session):
-    id_func = id
+    get_id = hash
 
 GdToPy_TransformerSet = TransformerSet
 

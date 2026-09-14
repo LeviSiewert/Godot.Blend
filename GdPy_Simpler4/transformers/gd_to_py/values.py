@@ -121,6 +121,7 @@ class MACROS:
 
 class _Null:
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["NULL"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->float:
             return None
@@ -135,6 +136,7 @@ class _Null:
 
 class _Float:
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["FLOAT","INF"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->float:
             return float(node)
@@ -146,6 +148,7 @@ class _Float:
 
 class _Int:
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["INTEGER"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->int:
             return int(node)
@@ -158,6 +161,7 @@ class _Int:
 
 class _Bool:
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["BOOL"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->str:
             return node.value == "true"
@@ -173,6 +177,7 @@ class _Bool:
 
 class _String:
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["STRING", "WORD"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->str:
             return str(node.value).strip('"')
@@ -188,6 +193,7 @@ class _String:
 
 class _NodePath():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["ref_nodepath"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->Generator[Flag, Any, NodePath]:
             typing = yield from MACROS.default_yield(node.children[0], default=None)
@@ -203,6 +209,7 @@ class _NodePath():
 
 class _StringName():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["stringname"]
         def transform(self, session:GdToPy_Session, node:LarkToken)->Generator[Flag, Any, NodePath]:
             return StringName(MACROS.default(node.children[0], default="", callable=lambda x: x.strip('"')))
@@ -214,6 +221,7 @@ class _StringName():
 
 class _Object():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["object"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
             kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children[1:])
@@ -231,12 +239,14 @@ class _Object():
 
 class _Dictionary:
     class GdToPy_implicit(GdToPy_Transformer):
+        memoized = False
         keys = ["dict"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
             kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children)
             return Dictionary(kwargs)
         
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["explicit_dict"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Object]:
             kwargs = yield from MACROS.gdtopy_pairs_to_dict(node.children[1:])
@@ -257,6 +267,7 @@ class _Dictionary:
 
 class _Array:
     class GdToPy_implicit(GdToPy_Transformer):
+        memoized = False
         keys = ["list","array"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Array]:
             body = yield TRANSFORM_CHILDREN(node.children)
@@ -264,6 +275,7 @@ class _Array:
         
 
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["explicit_list","explicit_array"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Array]:
             typing = yield from MACROS.default_yield(node.children[0], default=tuple(), flag=TRANSFORM)
@@ -284,6 +296,7 @@ class _Array:
 
 class _Vectors():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["vector2i", "vector3i", "vector4i", "vector2", "vector3", "vector4","plane","color","aabb","quaternion","transform2d","transform3d","basis","rect2","rect2i"]
         def transform(self, session:Session, node:LarkTree)->Generator[Flag,None,Any]:
             children = yield TRANSFORM_CHILDREN(node.children)
@@ -332,6 +345,7 @@ class _Vectors():
 
 class _PackedByteArray():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["packed_byte_array"]
         def transform(self, session, node):
             return PackedByteArray(str(node.children[0].value).strip('"'))
@@ -344,6 +358,7 @@ class _PackedByteArray():
 class _PackedComplex():
                 
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["packed_vector2_array", "packed_vector3_array", "packed_vector4_array", "packed_color_array"]
         def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:
             children = yield TRANSFORM_CHILDREN(node.children)
@@ -372,6 +387,7 @@ class _PackedComplex():
 
 class _PackedSimple():
     class GdToPy(GdToPy_Transformer):
+        memoized = False
         keys = ["packed_int32_array", "packed_int64_array", "packed_float32_array", "packed_float64_array", "packed_string_array"]
 
         def transform(self, session:Session, node:Any)->Generator[Flag,Any,str]:

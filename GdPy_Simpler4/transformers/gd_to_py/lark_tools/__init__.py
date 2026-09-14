@@ -8,7 +8,7 @@ from lark import Lark
 
 def make_parser(key:str="start")->Lark:
     return Lark(grammer, parser="lalr", start=key, propagate_positions=False, maybe_placeholders=True, cache=True)
-    # return Lark(grammer, parser="earley", propagate_positions=False, maybe_placeholders=True)
-    # return Lark(grammer, propagate_positions=False, maybe_placeholders=True)
+    # return Lark(grammer, parser="lalr", start=key, propagate_positions=True, maybe_placeholders=True, cache=True)
+    ## current (propigate_positions = True) for token.meta -> memo[id] generation, even if it slows things down a little 
 
 parser = make_parser()
