@@ -7,6 +7,7 @@ from . import (
     values,
     promises,
     defintions,
+    structure,
 )
 
 def make_gd_to_py[TS:GdToPy_TransformerSet[GdToPy_Transformer]](insert:Iterable[TS]=tuple())->Session[GdToPy_TransformerSet[GdToPy_Transformer]|TS]:
@@ -14,6 +15,7 @@ def make_gd_to_py[TS:GdToPy_TransformerSet[GdToPy_Transformer]](insert:Iterable[
         values.gd_to_py,
         promises.gd_to_py,
         defintions.gd_to_py,
+        structure.gd_to_py,
         *insert
     ])
 
@@ -22,6 +24,7 @@ def make_py_to_gd[TS:PyToGd_TransformerSet[PyToGd_Transformer]](insert:Iterable[
         values.py_to_gd,
         promises.py_to_gd,
         defintions.py_to_gd,
+        structure.py_to_gd,
         *insert
     ])
 
