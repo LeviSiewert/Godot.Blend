@@ -34,7 +34,19 @@ from ...core.values import (
 )
 
 
-# from ...core.defininitions import GdDefValueTyping
+from .values import GdToPy_Options, PyToGd_Options, cvar_as
+
+class Test_Options():
+    def test_render_basic(self):
+        options = PyToGd_Options(None)
+
+        with cvar_as(options.float_as_int_ok, True):
+            assert options.render_float(0.0) == "0"
+            assert options.render_float(0.1) == "0.1"
+
+        with cvar_as(options.float_as_int_ok, False):
+            assert options.render_float(0.0) == "0.0"
+            assert options.render_float(0.1) == "0.1"
 
 
 class Test_NodePath(_StructureTest):

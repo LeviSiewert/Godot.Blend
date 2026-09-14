@@ -1,4 +1,4 @@
-from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions
+from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions, cvar_as
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
 from ...core.values import (
     NodePath,
@@ -43,26 +43,53 @@ from lark import (
 
 ## Value Rendering Options:
 
+from math import modf
+
 class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creation.
 class PyToGd_Options(TransformerOptions):
     ''' Options are instantiated at Session creation '''
     str_use_quotations : ContextVar[bool] = True
 
     float_as_int_ok : ContextVar[bool] = True
-    float_percision : ContextVar[int] = -1
-    float_tail_req_len : ContextVar[int] = -1
+    float_render_mode : ContextVar[str] = "g"
+    float_tail_min_len : ContextVar[int] = 1
+    float_tail_max_len : ContextVar[int] = -1
 
     def __init__(self, session:Session):
         uid = str(id(self))
         self.str_use_quotations = ContextVar(uid+"::str_use_quotations", default=True)
         self.float_as_int_ok = ContextVar(uid+"::float_as_int_ok", default = True )
-        self.float_percision = ContextVar(uid+"::float_percision", default = -1 )
-        self.float_tail_req_len = ContextVar(uid+"::float_tail_req_len", default = -1 ) 
-    
+        self.float_render_mode = ContextVar(uid+"float_render_mode", default= "g")
+        self.float_tail_min_len = ContextVar(uid+"float_tail_min_len", default= 1)
+        self.float_tail_max_len = ContextVar(uid+"float_tail_max_len", default= -1)
+
     def render_float(self, f:float)->str:
         if self.float_as_int_ok.get() and f.is_integer():
-            return str(int(f))
-        return f'{f:g}'
+            return f'{f:G}'
+         
+        maxlen = self.float_tail_max_len.get()
+        minlen = self.float_tail_min_len.get()
+
+
+        if maxlen != -1:
+            assert maxlen <= minlen
+            f = round(f, maxlen)
+
+        string = '{:.9{mode}}'.format(f, mode=self.float_render_mode.get())
+        if ("e" in string) or ("E" in string):
+            return string
+
+        if not ("." in string):
+            string = string+".0"
+
+        int_str, float_str = string.rsplit(".")         
+
+        if (maxlen != -1) and (len(float_str) > maxlen):
+            float_str = float_str[:maxlen]
+        elif len(float_str) < minlen:
+            float_str = float_str + ("0" * (len(float_str) - minlen)) 
+        return f"{int_str}.{float_str}"
+
 
 class MACROS:
     def default(item, /, default:Any=None, callable = lambda x:x):
@@ -196,11 +223,10 @@ class _Object():
         types = [Object]
         def transform(self, session:PyToGd_Session, node:Object)->Generator[Flag, Any, str]:
             if len(node.kwargs):
-                kwargs : str = yield from MACROS.pytogd_dict_to_str(node.kwargs)
+                with cvar_as(session.options["values"].float_as_int_ok, False):
+                    kwargs : str = yield from MACROS.pytogd_dict_to_str(node.kwargs, seperator=":")
                 return f'Object({node.type}, {kwargs})'
-                
             return f'Object({node.type})'
-            # return f'&"{node}"'
 
 
 class _Dictionary:
@@ -240,8 +266,8 @@ class _Array:
     class GdToPy(GdToPy_Transformer):
         keys = ["explicit_list","explicit_array"]
         def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, Array]:
-            body = yield TRANSFORM_CHILDREN(node.children)
-            typing = yield from MACROS.default_yield(node.children[0], default=tuple(), flag=TRANSFORM_CHILDREN)
+            typing = yield from MACROS.default_yield(node.children[0], default=tuple(), flag=TRANSFORM)
+            body = yield TRANSFORM_CHILDREN(node.children[1:])
             return Array(*body, typing=typing)
         
     class PyToGd(PyToGd_Transformer):

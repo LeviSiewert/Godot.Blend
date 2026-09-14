@@ -8,6 +8,12 @@ from collections import namedtuple
 class _UNSET:...
 _EMPTY_DICT = {}
 
+@contextmanager
+def cvar_as(cvar:ContextVar, value):
+    t = cvar.set(value)
+    yield
+    cvar.set(t)
+
 class Flag():
     def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
         raise NotImplementedError(self.__class__)
