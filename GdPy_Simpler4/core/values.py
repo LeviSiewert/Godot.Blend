@@ -286,9 +286,9 @@ class PackedColorArray(_PackedListComplex):
 
 
 
-class PackedByteArray(bytearray, ): 
+class PackedByteArray(bytearray): 
     def __init__(self, string, /, encoding="utf-8", errors = "strict"):
         super().__init__(string, encoding, errors)
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+    # def __repr__(self):
+    #     return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"

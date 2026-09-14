@@ -334,11 +334,11 @@ class _PackedByteArray():
     class GdToPy(GdToPy_Transformer):
         keys = ["packed_byte_array"]
         def transform(self, session, node):
-            return PackedByteArray(str(node.children[0].value))
+            return PackedByteArray(str(node.children[0].value).strip('"'))
     class PyToGd(PyToGd_Transformer):
         types = [PackedByteArray]
         def transform(self, session, node:PackedByteArray):
-            return f'PackedByteArray("{str(node)}")'
+            return f'PackedByteArray("{node.decode()}")'
 
 
 class _PackedComplex():

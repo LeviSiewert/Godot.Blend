@@ -303,5 +303,5 @@ class Test_PackedByteArray(_StructureTest):
     _type = PackedByteArray
     _parser_key = "packed_byte_array"
     def data(self,session):
-        yield 'PackedByteArray("")', PackedByteArray(b"")
-        yield 'PackedByteArray("abc123")', PackedByteArray(b"abc123")
+        yield 'PackedByteArray("")', PackedByteArray("")
+        yield 'PackedByteArray("abc123")', PackedByteArray("abc123")
