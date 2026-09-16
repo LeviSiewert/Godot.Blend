@@ -18,10 +18,43 @@ from ...core.structure import Resource, ExtResource, Node
 from ._test_utils import _StructureTest
 
 
-class Test_Properties(_StructureTest):...
+class Test_Properties(_StructureTest):
+    _type = Properties
+    _parser_key = "properties"
+    def data(self, session):
+        txt = '''
+            A="a"
+        '''
+        res = Properties({"A":"a"})
+        yield txt, res
 
-class Test_ExtResource(_StructureTest):...
-class Test_GdSignal(_StructureTest):...
+        txt = '''
+            A="a"
+            B="b"
+        '''
+        res = Properties({"A":"a", "B":"b"})
+        yield txt, res
+
+class Test_ExtResource(_StructureTest):
+    _type = ExtResource
+    _parser_key = "ext_resource"
+    def data(self, session):
+        txt = ''' [ext_resource type="PackedScene" uid="uid" path="res" id="id"] '''
+        res = ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+        yield txt, res
+
+class Test_GdSignal(_StructureTest):
+    _type = GdSignal
+    _parser_key = "signal"
+
+    def data(self, session):
+        txt = ''' [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"] '''
+        res = GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
+        yield txt, res
+
+        res = '''[connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]'''
+        res = GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
+        yield txt, res
 
 
 class Test_Resource():
@@ -115,21 +148,6 @@ class Test_Resource():
                 properties={"reference":a}
             )
             yield txt, res ## Nested Subresource!
-
-    # class Test_SubResource_Indv_Complex(_StructureTest):
-    #     _type = Node
-    #     _parser_key = "node_resource"
-    #     def data(self, session):
-
-    #         txt = '''
-    #         [sub_resource type="Resource" id="Resource_0ixfh"]
-    #         resource_name = "A"
-    #         script = ExtResource("2_8oio5")
-    #         r = SubResource("Resource_88bq2")
-    #         metadata/_custom_type_script = "uid://cjkvk7qbv5oby"
-    #         '''
-
-    #         res = 
 
 class Test_Node():
             
