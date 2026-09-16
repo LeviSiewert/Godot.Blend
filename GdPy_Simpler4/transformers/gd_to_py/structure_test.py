@@ -449,9 +449,81 @@ class Test_Node():
 
 class Test_Options():
     class Test_Category(_StructureTest):
-        ...
+        _type = Category
+        _parser_key = "category" 
+        def data(self, session):
+            txt = '''
+                [deps]
+                name="A"
+
+            '''
+            res = Category(name="deps", properties = {"name":"A"})
+            yield txt, res
+
     class Test_File(_StructureTest):
-        ...
+        _type = FileOptions 
+        _parser_key = "file_options" 
+        def data(self, session):
+            txt = '''
+                property="A"
+
+                [A]
+                name="A"
+
+                [B]
+                name="B"
+            '''
+            res = FileOptions(
+                properties = {
+                    "property":"A"
+                },
+                categories = [
+                        Category(name="A", properties = {"name":"A"}),
+                        Category(name="B", properties = {"name":"B"}),
+                ],
+            )
+            yield txt, res
+
+        
+class Test_Import():
+    class Test_File(_StructureTest):
+        _type = ImportOptions
+        _parser_key = "file_import"
+        def data(self,sesson):
+            txt = '''
+                [remap]
+
+                importer="scene"
+                importer_version=1
+                type="PackedScene"
+                uid="uid://cocfi2vsn5qt2"
+                path="res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"
+
+                [deps]
+
+                source_file="res://assets/blender.glb"
+                dest_files=["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"]
+
+                [params]
+
+                nodes/root_type=""
+                nodes/root_name=""
+            '''
+            res = ImportOptions(
+                importer="scene",
+                importer_version=1,
+                type="PackedScene",
+                uid="uid://cocfi2vsn5qt2",
+                path="res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn",
+                source_file="res://assets/blender.glb",
+                dest_files=["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"],
+                properties = {
+                    "nodes/root_type":"",
+                    "nodes/root_name":"",
+                },
+            )
+
+            yield txt, res
 
 
 # class Test_Project(_StructureTest):...
