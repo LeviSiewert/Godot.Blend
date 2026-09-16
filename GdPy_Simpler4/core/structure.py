@@ -468,7 +468,7 @@ class Node(Resource):
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
 
-    def __init__(self, name:str, id = None, uid = None, file = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple()):
+    def __init__(self, name:str, id = None, uid = None, file = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
         self.__setup__()
         self.name.key = name
         self.id.key = id
