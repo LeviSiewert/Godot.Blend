@@ -24,6 +24,9 @@ class _ItemIO[K:str|int]():
 class RefType():
     ## Free for first fullfillment
     DEFER        = None
+
+    ## META:
+    TYPE         = ("project",  "types",         False )
     ## Locked reference types;
     RID          = ("project" , "resources"    , False)
     FILE         = ("project" , "files"        , False)
@@ -31,6 +34,7 @@ class RefType():
     RESOURCE     = ("project" , "resources"    , True ) # -> ext_resource when saved, sub_resource when embedded
     EXT_RESOURCE = ("resource", "ext_resources", True ) # -> Subresource when embedded
     SUB_RESOURCE = ("resource", "sub_resources", True ) # -> resource | ext_resource when saved/coppied as.
+
 
 class StructReference[K:str|int, V:_ItemIO|Any]():
     ''' A reference type that can limited convert between types and be defered, requires resolving via context arguments 

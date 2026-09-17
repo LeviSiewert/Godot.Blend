@@ -327,12 +327,12 @@ class Settings(FileContents):
 
     def __init__(self, uid = None, file = None, categories:Iterable[Category]=tuple(), properties:Iterable=tuple()):
         super().__init__(uid, file)
-        self.categories.update(categories)
+        self.categories.extend(categories)
         self.properties.update(properties)
 
     def __setup__(self):
         super().__setup__()
-        self.categories = Collection(key = "name")
+        self.categories = Collection(key_attr = "name")
         self.properties = Properties(context=self.context)
 
 class Category():
@@ -341,6 +341,7 @@ class Category():
     properties : Properties
 
     def __init__(self, name, properties):
+        self.__setup__()
         self.name.key = name
         self.properties.update(properties)
 
@@ -514,6 +515,7 @@ class Node(Resource):
 
     _instance : StructReference[str, Node]
     instance = StructReferenceProperty("_instance", RefType.EXT_RESOURCE)
+    gdtype = StructReferenceProperty("_type", RefType.TYPE)
     overlay : None|Node = None
 
     nodes : Collection[int, Node]
@@ -522,10 +524,13 @@ class Node(Resource):
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
 
-    def __init__(self, name:str, id = None, uid = None, file = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
+    def __init__(self, name:str, id = None, uid = None, file = None, type = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
         self.__setup__()
         self.name.key = name
         self.id.key = id
+
+        self.gdtype = type
+
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
         self.properties.update(properties)

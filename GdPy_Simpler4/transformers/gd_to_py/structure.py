@@ -68,6 +68,12 @@ class _GdSignal():
 class _Node():
     class GdToPy(GdToPy_Transformer):...
     class PyToGd(PyToGd_Transformer):...
+class _Settings():
+    class GdToPy(GdToPy_Transformer):...
+    class PyToGd(PyToGd_Transformer):...
+class _Category():
+    class GdToPy(GdToPy_Transformer):...
+    class PyToGd(PyToGd_Transformer):...
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _Properties.GdToPy,
@@ -78,6 +84,8 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _NodePath.GdToPy,
     _GdSignal.GdToPy,
     _Node.GdToPy,
+    _Settings.GdToPy,
+    _Category.GdToPy,
 ], 
 options = {"structure":GdToPy_Options}
 )
@@ -91,6 +99,8 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _NodePath.PyToGd,
     _GdSignal.PyToGd,
     _Node.PyToGd,
+    _Settings.PyToGd,
+    _Category.PyToGd,
 ], 
 options = {"structure":PyToGd_Options} 
 )
