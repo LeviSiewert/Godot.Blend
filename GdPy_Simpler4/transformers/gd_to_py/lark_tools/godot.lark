@@ -1,11 +1,11 @@
 start : file_resource
     | file_scene
-    | file_options
+    | file_settings
 
 
 file_resource : "[gd_resource" options "]" ext_resources sub_resources ["[resource]" properties]
 file_scene : "[gd_scene" options "]" ext_resources sub_resources node_resources edit_flags
-file_options : [properties] _categories
+file_settings : [properties] _categories
 
 ext_resources : ext_resource*
 ext_resource : "[ext_resource" options "]"

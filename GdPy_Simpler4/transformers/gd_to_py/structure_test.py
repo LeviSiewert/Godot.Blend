@@ -482,7 +482,7 @@ class Test_Options():
 
     class Test_File(_StructureTest):
         _type = Settings 
-        _parser_key = "file_options" 
+        _parser_key = "file_settings" 
         def data(self, session):
             txt = '''
                 property="A"
@@ -508,7 +508,7 @@ class Test_Options():
 class Test_Import():
     class Test_File(_StructureTest):
         _type = Settings
-        _parser_key = "file_import"
+        _parser_key = "file_settings"
         def data(self,sesson):
             txt = '''
                 [remap]

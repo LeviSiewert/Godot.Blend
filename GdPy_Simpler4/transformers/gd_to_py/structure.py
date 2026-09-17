@@ -1,36 +1,16 @@
 from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions, cvar_as
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
-from ...core.values import (
+from ...core.structure import (
+    Properties,
+    Project,
+    ExtResource,
+    File,
+    Resource,
     NodePath,
-    StringName,
-    Object,
-    Dictionary,
-    Array,
-    Vector2i,
-    Vector3i,
-    Vector4i,
-    Rect2i,
-    Vector2,
-    Vector3,
-    Vector4,
-    Rect2,
-    Plane,
-    Color,
-    AABB,
-    Quaternion,
-    Transform2D,
-    Transform3D,
-    Basis,
-    PackedInt32Array,
-    PackedInt64Array,
-    PackedFloat32Array,
-    PackedFloat64Array,
-    PackedStringArray,
-    PackedVector2Array,
-    PackedVector3Array,
-    PackedVector4Array,
-    PackedColorArray,
-    PackedByteArray,
+    GdSignal,
+    Node,
+    Settings,
+    Category,
 )
 
 
@@ -45,45 +25,65 @@ class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creatio
 class PyToGd_Options(TransformerOptions): ...
 
 class _Properties():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["properties"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Properties]
 class _Project():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["project"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Project]
 class _ExtResource():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
-class _File():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["ext_resource"]
+    class PyToGd(PyToGd_Transformer):
+        types = [ExtResource]
 class _Resource():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["sub_resource"]
+    class GdToPy_File(GdToPy_Transformer):
+        keys = ["file_resource"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Resource]
 class _NodePath():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["node_path"]
+    class PyToGd(PyToGd_Transformer):
+        types = [NodePath]
 class _GdSignal():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["gd_signal"]
+    class PyToGd(PyToGd_Transformer):
+        types = [GdSignal]
 class _Node():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["node_resource"]
+    class GdToPy_File(GdToPy_Transformer):
+        keys = ["file_scene"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Node]
 class _Settings():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["file_settings"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Settings]
 class _Category():
-    class GdToPy(GdToPy_Transformer):...
-    class PyToGd(PyToGd_Transformer):...
+    class GdToPy(GdToPy_Transformer):
+        keys = ["category"]
+    class PyToGd(PyToGd_Transformer):
+        types = [Category]
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _Properties.GdToPy,
     _Project.GdToPy,
     _ExtResource.GdToPy,
-    _File.GdToPy,
     _Resource.GdToPy,
+    _Resource.GdToPy_File,
     _NodePath.GdToPy,
     _GdSignal.GdToPy,
     _Node.GdToPy,
+    _Node.GdToPy_File,
     _Settings.GdToPy,
     _Category.GdToPy,
 ], 
@@ -94,7 +94,6 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _Properties.PyToGd,
     _Project.PyToGd,
     _ExtResource.PyToGd,
-    _File.PyToGd,
     _Resource.PyToGd,
     _NodePath.PyToGd,
     _GdSignal.PyToGd,
