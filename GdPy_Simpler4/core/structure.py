@@ -296,7 +296,61 @@ class File():
             return (RefType.FILE, self.id.key)
         return RefType.DEFER, None
 
-class Resource():
+class FileContents():
+    context : Context
+    uid : CollectionKey[str]
+    _file : StructReference[str, File]
+    file = StructReferenceProperty("_file", RefType.FILE)
+
+    def __init__(self, uid:str|None=None, file:File|None=None,):
+        self.__setup__()
+        if uid or file:
+            self.__setup_file__(uid=uid, file=file)
+
+    def __setup__(self):
+        self.context = Context(resource = self)
+        self.uid = CollectionKey(src=self,key=None)
+        self.properties = Properties(context=self.context)
+
+    def __setup_file__(self, uid:str|None=None, file:str|File|None=None):
+        if not (uid is None):
+            uid = uid.split("uid://")[-1]
+
+        self.file = file
+        self.uid.key = uid
+        self.context.resource = self
+
+
+class Settings(FileContents):
+    ''' Simple file contents object '''
+    categories : Collection
+
+    def __init__(self, uid = None, file = None, categories:Iterable[Category]=tuple(), properties:Iterable=tuple()):
+        super().__init__(uid, file)
+        self.categories.update(categories)
+        self.properties.update(properties)
+
+    def __setup__(self):
+        super().__setup__()
+        self.categories = Collection(key = "name")
+        self.properties = Properties(context=self.context)
+
+class Category():
+    context : Context
+    name : CollectionKey[str]
+    properties : Properties
+
+    def __init__(self, name, properties):
+        self.name.key = name
+        self.properties.update(properties)
+
+    def __setup__(self):
+        self.context = Context(subresouce=self)
+        self.name = CollectionKey(self)
+        self.properties = Properties(context=self.context)
+        
+
+class Resource(FileContents):
     context : Context
 
     ## as file:

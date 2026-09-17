@@ -8,6 +8,8 @@ from ...core.structure import (
     Resource,
     GdSignal,
     Node,
+    Settings,
+    Category,
 )
 
 from .values import PackedStringArray
@@ -479,7 +481,7 @@ class Test_Options():
             yield txt, res
 
     class Test_File(_StructureTest):
-        _type = FileOptions 
+        _type = Settings 
         _parser_key = "file_options" 
         def data(self, session):
             txt = '''
@@ -491,7 +493,7 @@ class Test_Options():
                 [B]
                 name="B"
             '''
-            res = FileOptions(
+            res = Settings(
                 properties = {
                     "property":"A"
                 },
@@ -505,7 +507,7 @@ class Test_Options():
         
 class Test_Import():
     class Test_File(_StructureTest):
-        _type = ImportOptions
+        _type = Settings
         _parser_key = "file_import"
         def data(self,sesson):
             txt = '''
@@ -527,18 +529,25 @@ class Test_Import():
                 nodes/root_type=""
                 nodes/root_name=""
             '''
-            res = ImportOptions(
-                importer="scene",
-                importer_version=1,
-                type="PackedScene",
-                uid="uid://cocfi2vsn5qt2",
-                path="res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn",
-                source_file="res://assets/blender.glb",
-                dest_files=["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"],
-                properties = {
-                    "nodes/root_type":"",
-                    "nodes/root_name":"",
-                },
+            res = Settings(
+                uid = "cocfi2vsn5qt2",
+                categories=[
+                    Category(name="remap", properties={
+                        "importer":"scene",
+                        "importer_version":1,
+                        "type":"PackedScene",
+                        "uid":"uid://cocfi2vsn5qt2",
+                        "path":"res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn",
+                    }),
+                    Category(name="deps", properties={
+                        "source_file":"res://assets/blender.glb",
+                        "dest_files":["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"],
+                    }),
+                    Category(name="params", properties={
+                        "nodes/root_type":"",
+                        "nodes/root_name":"",
+                    }),
+                ],
             )
 
             yield txt, res
