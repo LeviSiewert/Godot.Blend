@@ -271,6 +271,17 @@ class ExtResource():
     def _reference_callback(self):
         self.fullfillreferences(RefType.EXT_RESOURCE, self.id.key)
 
+    def __eq__(self, value:Any|ExtResource):
+        if not isinstance(value, self.__class__):
+            return super().__eq__(value)
+        return all([
+            self.id.key == value.id.key,
+            self.gdtype == value.gdtype,
+            self.file == value.file,
+            self.resource == value.resource,
+        ])
+
+
 class File():
     context : Context
 
@@ -503,12 +514,17 @@ class NodePath(UserString):
 
 class GdSignal():
     context : Context
+
+    signal : str
     fr : NodePath
     to : NodePath
+    options: dict
 
-    def __init__(self, fr:NodePath, to:NodePath):
+    def __init__(self, signal:str, fr:NodePath|str, to:NodePath|str, **options):
+        self.signal = signal
         self.fr = fr
         self.to = to
+        self.options = options
         self.context = Context()
     
 class Node(Resource):
@@ -520,18 +536,22 @@ class Node(Resource):
 
     ## Claimed by file:
     nodes : Collection[int, Node]
-    edit_flags : Collection[str, ExtResource] | None
     ext_resources : Collection[str, ExtResource] | None
+    edit_flags : list[NodePath] | None = None
 
     name : CollectionKey[str]
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
+
+    parent : NodePath|None = None ## Cached?
     
-    def __init__(self, name:str, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
+    def __init__(self, name:str, parent=None, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
         self.__setup__()
         self.format = format
         self.name.key = name
         self.id.key = id
+
+        self.parent = parent
 
         self.gdtype = type
 
@@ -571,6 +591,8 @@ class Node(Resource):
         self.overlay_updated(overlay)
 
     def __setup_file__(self, uid : str = None, file = None):
+        if (self.edit_flags is None):
+            self.edit_flags = []
         if not (uid is None):
             uid = uid.split("uid://")[-1]
         self.nodes = Collection(key_attr="id", key_is_string=False)
@@ -578,8 +600,6 @@ class Node(Resource):
 
     def setup_instance(self):
         raise NotImplementedError()
-
-
 
 # class NormalizeSession():
 #     memo : dict

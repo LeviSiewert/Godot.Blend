@@ -19,7 +19,7 @@ node_resource : "[node" options "]" properties
 edit_flags : edit_flag*
 edit_flag : "[editable" options "]" properties
 
-connections : connections*
+connections : connection*
 connection : "[connection" options "]"
 
 _categories : category
@@ -30,8 +30,9 @@ typing : "[" _typing_item ["," _typing_item] "]"
 _typing_item : WORD|ref_subresource|ref_extresource|ref_resource
 
 // DICT-like pairs
-options : (WORD "=" _value)*
-properties : (WORD "=" _value)*
+options : (options_pair)*
+properties : ( options_pair)*
+options_pair : (WORD "=" _value)
 // CONSIDER: Add newline check? May greatly increase performance
 
 // ARRAY:

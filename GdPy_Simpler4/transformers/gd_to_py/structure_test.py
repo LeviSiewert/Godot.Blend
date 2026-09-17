@@ -20,42 +20,42 @@ from ...core.structure import Resource, ExtResource, Node
 from ._test_utils import _StructureTest
 
 
-class Test_Properties(_StructureTest):
-    _type = Properties
-    _parser_key = "properties"
-    def data(self, session):
-        txt = '''
-            A="a"
-        '''
-        res = Properties({"A":"a"})
-        yield txt, res
+# class Test_Properties(_StructureTest):
+#     _type = Properties
+#     _parser_key = "properties"
+#     def data(self, session):
+#         txt = '''
+#             A="a"
+#         '''
+#         res = Properties({"A":"a"})
+#         yield txt, res
 
-        txt = '''
-            A="a"
-            B="b"
-        '''
-        res = Properties({"A":"a", "B":"b"})
-        yield txt, res
+#         txt = '''
+#             A="a"
+#             B="b"
+#         '''
+#         res = Properties({"A":"a", "B":"b"})
+#         yield txt, res
 
 class Test_ExtResource(_StructureTest):
     _type = ExtResource
     _parser_key = "ext_resource"
     def data(self, session):
         txt = ''' [ext_resource type="PackedScene" uid="uid" path="res" id="id"] '''
-        res = ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+        res = ExtResource(id="id",path="res", uid="uid", type="PackedScene")
         yield txt, res
 
 class Test_GdSignal(_StructureTest):
     _type = GdSignal
-    _parser_key = "signal"
+    _parser_key = "connection"
 
     def data(self, session):
         txt = ''' [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"] '''
-        res = GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
+        res = GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
         yield txt, res
 
         res = '''[connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]'''
-        res = GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
+        res = GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
         yield txt, res
 
 
@@ -213,8 +213,8 @@ class Test_Node():
                 [node name="B" type="Node" parent="." unique_id=805633638]
 
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", type="Node", id=805633638)
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", id=805633638)
             ])
             yield txt, res ## Root + 1 level
 
@@ -227,9 +227,9 @@ class Test_Node():
 
                 [node name="C" type="Node" parent="." unique_id=1360691913]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", type="Node", id=805633638),
-                Node(Name="C", type="Node", id=1360691913),
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", id=805633638),
+                Node(name="C", type="Node", id=1360691913),
             ])
             yield txt, res ## Root + 1 level *2
 
@@ -244,10 +244,10 @@ class Test_Node():
 
                 [node name="D" type="Node" parent="C" unique_id=1360691913]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", type="Node", id=805633638),
-                Node(Name="C", type="Node", id=1360691913, children=[
-                    Node(Name="D", type="Node", id=2075458515)
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", id=805633638),
+                Node(name="C", type="Node", id=1360691913, children=[
+                    Node(name="D", type="Node", id=2075458515)
                 ]),
             ])
             yield txt, res ## Root + 2 levels
@@ -265,11 +265,11 @@ class Test_Node():
 
                 [node name="E" type="Node" parent="C/D" unique_id=116493720]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", type="Node", id=805633638),
-                Node(Name="C", type="Node", id=1360691913, children=[
-                    Node(Name="D", type="Node", id=2075458515, children=[
-                        Node(Name="E", type="Node", id=116493720)
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", id=805633638),
+                Node(name="C", type="Node", id=1360691913, children=[
+                    Node(name="D", type="Node", id=2075458515, children=[
+                        Node(name="E", type="Node", id=116493720)
                     ]),
                 ]),
             ])
@@ -293,11 +293,11 @@ class Test_Node():
                 [node name="E" type="Node" parent="C/D" unique_id=116493720]
                 prop = "E"
             '''
-            res = Node(Name="A", properties={"prop":"A"}, type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", properties={"prop":"B"}, type="Node", id=805633638),
-                Node(Name="C", properties={"prop":"C"}, type="Node", id=1360691913, children=[
-                    Node(Name="D", properties={"prop":"D"}, type="Node", id=2075458515, children=[
-                        Node(Name="E", properties={"prop":"E"}, type="Node", id=116493720)
+            res = Node(name="A", properties={"prop":"A"}, type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", properties={"prop":"B"}, type="Node", id=805633638),
+                Node(name="C", properties={"prop":"C"}, type="Node", id=1360691913, children=[
+                    Node(name="D", properties={"prop":"D"}, type="Node", id=2075458515, children=[
+                        Node(name="E", properties={"prop":"E"}, type="Node", id=116493720)
                     ]),
                 ]),
             ])
@@ -311,9 +311,9 @@ class Test_Node():
                 [node name="A" type="Node" unique_id=1936822026]
                 ref = ExtResource("id")
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab",
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab",
                 ext_resources=[
-                    ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
                ],
                 properties={
                     "ref":StructReference(ref_type=RefType.EXT_RESOURCE, key="id"),
@@ -330,9 +330,9 @@ class Test_Node():
                 [node name="A" type="Node" unique_id=1936822026, instance=ExtResource("id")]
                 ref = ExtResource("id")
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
                 ext_resources=[
-                    ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
                ],
                 properties={
                     "ref":StructReference(ref_type=RefType.EXT_RESOURCE, key="id"),
@@ -350,9 +350,9 @@ class Test_Node():
                 
                 [editable path="."]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id", instance_editable=True,
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id", instance_editable=True,
                 ext_resources=[
-                    ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
                ],
             )
             yield txt, res ## Root Instance editable w/ ExtResource
@@ -368,11 +368,11 @@ class Test_Node():
                 [node name="B" type="Node" parent="." unique_id=805633638, instance=ExtResource("id")]
 
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                    Node(Name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id"), 
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", children=[
+                    Node(name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id"), 
             ],
                 ext_resources=[
-                    ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
                ],
             )
             yield txt, res ## Nested Instance
@@ -389,11 +389,11 @@ class Test_Node():
 
                 [editable path="B"]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                    Node(Name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id", instance_editable=True), 
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", children=[
+                    Node(name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id", instance_editable=True), 
             ],
                 ext_resources=[
-                    ExtResource(id="id",file="res", uid="uid", type="PackedScene"),
+                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
                ],
             )
             
@@ -406,8 +406,8 @@ class Test_Node():
                 
                 [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
-                GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+                GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
             ])
             
             yield txt, res ## Basic signal
@@ -419,8 +419,8 @@ class Test_Node():
 
                 [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
-                GdSignal(name="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+                GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
             ])
             
             yield txt, res ## Complex Signal
@@ -448,18 +448,18 @@ class Test_Node():
                 [connection signal="child_entered_tree" from="D" to="." method="_on_child_entered_tree"]
                 
             '''
-            res = Node(Name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(Name="B", type="Node", id=805633638),
-                Node(Name="C", type="Node", id=1360691913, children=[
-                    Node(Name="D", type="Node", id=2075458515)
+            res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", id=805633638),
+                Node(name="C", type="Node", id=1360691913, children=[
+                    Node(name="D", type="Node", id=2075458515)
                 ]),
             ],
             signals = [
-                GdSignal(name="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
-                GdSignal(name="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
-                GdSignal(name="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
-                GdSignal(name="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
-                GdSignal(name="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
+                GdSignal(signal="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
+                GdSignal(signal="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
+                GdSignal(signal="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
+                GdSignal(signal="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
+                GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
             ],
             )
             yield txt, res ## Complex/many signals

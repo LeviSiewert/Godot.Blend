@@ -56,7 +56,7 @@ class PyToGd_Options(TransformerOptions): ...
 #     class GdToPy(GdToPy_Transformer):
 #         keys = ["properties"]
 #         def transform(self, session, node:LarkTree):
-#             result = yield from MACROS.gdtopy_pairs_to_dict(node.children)
+#             result = yield from MACROS.gdtopy_pairs_to_dict(node.children.children)
 #             return Properties(result)
 
 #     class PyToGd(PyToGd_Transformer):
@@ -76,7 +76,7 @@ class _ExtResource():
         keys = ["ext_resource"]
         def transform(self, session, node):
             _options = node.children[0]
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
             return ExtResource(**options)
 
     class PyToGd(PyToGd_Transformer):
@@ -87,8 +87,8 @@ class _Resource():
         keys = ["sub_resource"]
         def transform(self, session, node):
             _options, _properties = node.children
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties)
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
             return Resource(**options, properties = properties)
 
     class GdToPy_File(GdToPy_Transformer):
@@ -96,10 +96,10 @@ class _Resource():
         def transform(self, session, node):
             _options, _ext_resources, _sub_resources, _properties = node.children
 
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
             ext_resources : tuple[ExtResource] = yield TRANSFORM_CHILDREN(_ext_resources)
             sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources)
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties)
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
 
             return Resource(**options, ext_resources=ext_resources, sub_resources=sub_resources, properties = properties)
         
@@ -111,7 +111,9 @@ class _GdSignal():
         keys = ["connection"]
         def transform(self, session, node):
             _options = node.children[0]
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+            options["fr"] = options["from"]
+            del options["from"]
             return GdSignal(**options)
 
     class PyToGd(PyToGd_Transformer):
@@ -122,8 +124,10 @@ class _Node():
         keys = ["node_resource"]
         def transform(self, session, node):
             _options, _properties = node.children
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties)
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
+            options["id"] = options["unique_id"]
+            del options["unique_id"]
             return Node(**options, properties = properties)
 
     class GdToPy_File(GdToPy_Transformer):
@@ -133,24 +137,26 @@ class _Node():
             _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
             # _options, _ext_resources, _sub_resources, _properties = node.children
             assert len(_node_resources.children) > 0
-            result : Node = yield TRANSFORM_CHILDREN(_node_resources.children[0])
+            result : Node = yield TRANSFORM(_node_resources.children[0])
 
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options)
-            for k,v in options.items():
-                setattr(result, k, v)
+
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+            result.__setup_file__(uid=options["uid"])
+            result.format= options["format"]
 
             ext_resources : tuple[ExtResource] = yield TRANSFORM_CHILDREN(_ext_resources.children)
             sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources.children)
-            node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children)
-            # edit_flags : tuple[EditFlag] = yield TRANSFORM_CHILDREN(_edit_flags)
-
+            node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children[1:])
+            edit_flags = [] 
+            for n in _edit_flags.children:
+                edit_flags.append(NodePath(n.children[0][0]))
             #TODO: Incorperate edit flags.
             ## Cache that dumps on setup of instances?
 
             result.ext_resources.extend(ext_resources)
             result.sub_resources.extend(sub_resources)
             result.nodes.extend(node_resources)
-            # result.edit_flags.extend(edit_flags)            
+            result.edit_flags.extend(edit_flags)
 
             return result
         
@@ -162,7 +168,7 @@ class _Settings():
         keys = ["file_settings"]
         def transform(self, session, node):
             _properties, _categories = node.children
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties)
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
             categories : tuple[Category] = yield from TRANSFORM_CHILDREN(_categories)
             return Settings(properties=properties, categories=categories)
 
@@ -174,7 +180,7 @@ class _Category():
         keys = ["category"]
         def transform(self, session, node):
             _name, _properties = node.children
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties)
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
             return Category(str(_name), properties=properties)
 
     class PyToGd(PyToGd_Transformer):
