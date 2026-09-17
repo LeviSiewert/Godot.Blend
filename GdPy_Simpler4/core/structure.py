@@ -518,12 +518,15 @@ class Node(Resource):
     gdtype = StructReferenceProperty("_type", RefType.TYPE)
     overlay : None|Node = None
 
+    ## Claimed by file:
     nodes : Collection[int, Node]
+    edit_flags : Collection[str, ExtResource] | None
+    ext_resources : Collection[str, ExtResource] | None
 
     name : CollectionKey[str]
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
-
+    
     def __init__(self, name:str, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
         self.__setup__()
         self.format = format
