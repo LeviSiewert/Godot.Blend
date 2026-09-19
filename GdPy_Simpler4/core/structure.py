@@ -534,36 +534,33 @@ class Node(Resource):
     gdtype = StructReferenceProperty("_type", RefType.TYPE)
     overlay : None|Node = None
 
-    ## Claimed by file:
-    nodes : Collection[int, Node]
-    ext_resources : Collection[str, ExtResource] | None
-    edit_flags : list[NodePath] | None = None
-
     name : CollectionKey[str]
     children : Collection[str, Node]
     signals : Collection[str, GdSignal]
 
-    parent : NodePath|None = None ## Cached?
-    
-    def __init__(self, name:str, parent=None, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = None, ext_resources = None, instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
+    ## temp-construction only:
+    _parent : NodePath|None = None ## Cached on fresh node when interpretted
+    nodes_unclaimed : dict[str, Node] | None = None ## on dump and load, any instance nodes's children that are edited will produce nodes & Edits that cannot be consumed until instances are loaded in file_construction  
+    edits_unclaimed : list[NodePath] | None = None
+
+    ## File only:
+    ext_resources : Collection[str, ExtResource] | None
+    # +++ From Resource baseclass
+
+    def __init__(self, name:str, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = tuple(), ext_resources = tuple(), instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
         self.__setup__()
         self.format = format
         self.name.key = name
         self.id.key = id
 
-        self.parent = parent
-
         self.gdtype = type
 
         if uid or file:
             self.__setup_file__(uid=uid, file=file)
-        self.properties.update(properties)
             
-        if not (sub_resources is None):
-            self.sub_resources.extend(sub_resources)
-        if not (ext_resources is None):
-            self.ext_resources.extend(ext_resources)
-
+        self.properties.update(properties)
+        self.sub_resources.extend(sub_resources)
+        self.ext_resources.extend(ext_resources)
         self.children.extend(children)
 
         self.set_instance(instance, set_overlay=setup_overlay)
@@ -590,16 +587,13 @@ class Node(Resource):
 
         self.overlay_updated(overlay)
 
-    def __setup_file__(self, uid : str = None, file = None):
-        if (self.edit_flags is None):
-            self.edit_flags = []
-        if not (uid is None):
-            uid = uid.split("uid://")[-1]
-        self.nodes = Collection(key_attr="id", key_is_string=False)
-        return super().__setup_file__(uid, file)
-
     def setup_instance(self):
         raise NotImplementedError()
+
+    def file_construction(self):
+        ''' load all dependency-instances and construct instance-overlay system, pulling from nodes_cache as required'''
+        raise NotImplementedError()
+        
 
 # class NormalizeSession():
 #     memo : dict

@@ -126,9 +126,12 @@ class _Node():
             _options, _properties = node.children
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
             properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
-            options["id"] = options["unique_id"]
-            del options["unique_id"]
-            return Node(**options, properties = properties)
+
+            options["id"] = options.pop["unique_id"]
+            _parent = options.pop("parent")
+
+            res = Node(**options, properties = properties)
+            res._parent = _parent
 
     class GdToPy_File(GdToPy_Transformer):
         keys = ["file_scene"]
@@ -146,17 +149,44 @@ class _Node():
 
             ext_resources : tuple[ExtResource] = yield TRANSFORM_CHILDREN(_ext_resources.children)
             sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources.children)
-            node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children[1:])
+
             edit_flags = [] 
             for n in _edit_flags.children:
                 edit_flags.append(NodePath(n.children[0][0]))
-            #TODO: Incorperate edit flags.
-            ## Cache that dumps on setup of instances?
 
+            ## Prepare tree dependencies:
             result.ext_resources.extend(ext_resources)
             result.sub_resources.extend(sub_resources)
-            result.nodes.extend(node_resources)
-            result.edit_flags.extend(edit_flags)
+
+            node_namespace = {".": result}
+            nodes_unclaimed = {}
+            node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children[1:], as_generator=True)
+
+            for n in node_resources:
+                ## Construct node structure from paths, remove temp variable from node.
+                p_path = n._parent
+                del n._parent
+                fullpath : str|None = None
+
+                if p_path == ".":
+                    result.children.append(n)
+                    fullpath = n.name.key
+                    node_namespace[fullpath] = n
+                else:
+                    fullpath = (p_path + "/" + n.name.key)
+                    if p_path in node_namespace.keys():
+                        node_namespace[p_path].children.append(n)
+                        node_namespace[fullpath] = n
+                    else:
+                        ## Instance-Overlay edited 
+                        nodes_unclaimed[fullpath] = n
+
+                if fullpath in edit_flags:
+                    edit_flags.remove(fullpath)
+                    n.instance_editable = True
+
+            result.nodes_unclaimed = nodes_unclaimed
+            result.edits_unclaimed = edit_flags
 
             return result
         
