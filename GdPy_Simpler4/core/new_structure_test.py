@@ -54,12 +54,13 @@ class Test_PromiseContextual:
 
         project = _DummyProject()
         context = Context(project = project)
+
         promise = PromiseContextual("key", Promise.Type.RESOURCE, context=context)
 
         cvar = ContextVar("")
         promise.replace.connect(lambda value: cvar.set((value)))
 
-        ## Dummy siganl call:
+        ## Dummy signal call:
         project.resources.appended("key", "dummy_resource")
 
         assert cvar.get() == "dummy_resource"
@@ -118,15 +119,15 @@ class Test_PromiseProperty:
         assert len(d._value.replace.subscribers) == 1
         assert d._value.key == "key"
 
-        d._value.replace("dummy_resource")
+        d._value.replace("dummy_resource", *d._value._extra_args)
         assert d._value == "dummy_resource"
         assert d.value == "dummy_resource"
 
 class Test_Properties:
     def test_construction(self):
         Properties()
-        Properties({"data"})
-        Properties({"data"}, context=Context())
+        Properties({"data":"data"})
+        Properties({"data":"data"}, context=Context())
 
     def test_overlay_basic(self):
         a = Properties({         "b":"b", "c":"c1"})
@@ -174,16 +175,16 @@ class Test_Properties:
         assert removed["b"] == "b"
 
     def test_setitem_promise_failure(self):
-        p = Properties({"ref":Promise("", Promise.Type.RESOURCE)})
+        p = Properties({"ref": Promise("", Promise.Type.RESOURCE)})
 
         ## Tries and fails to find relevent in context, converts to a PromiseContextual
         assert isinstance(p["ref"], PromiseContextual)
-        assert p.replace_value in p["ref"].replace.subscribers
+        assert len(p["ref"].replace.subscribers) == 1
 
     def test_setitem_promise_success(self):
         ## Monkeypatch Promise object to ensure that resolve is being called, and is replacing item on property
         promise = Promise("", Promise.Type.RESOURCE)
-        promise.resolve = lambda context: "value"
+        promise.resolve = lambda context, default: "value"
 
         ## "Finds" relevent in context via monkey patch, replaces.
         p = Properties({"ref":promise})
@@ -195,18 +196,24 @@ class Test_Properties:
         
     def test_localize_defered(self):
         ''' Behavior is to defer localization to object when a `localize` attribute exists '''
-        cvar : bool = False
+
         class _object():
             def localize(self, context):
-                cvar = True
+                return "Replacement"
 
-        p = Properties({"ref":_object()})
-        p.get("ref", localize=True)
-        assert (cvar is True)
+        obj = _object()
+        p0 = Properties({"ref":obj})
+        p = Properties()
+        p.set_overlay(p0)
 
-        cvar = False
-        p.get("ref", localize=False)
-        assert (cvar is False)
+        ## Localize is only called if object is sourced from an overlay
+        assert p.get("ref", localize=True) == "Replacement"
+        assert p.get("ref", localize=False) is obj
+
+        assert p0.get("ref", localize=True) is obj
+        assert p0.get("ref", localize=False) is obj
+
+
 
 
 class Test_Project:

@@ -69,27 +69,27 @@ class Promise[T:Any]:
         match self.p_type:
             case Promise.Type.FILE:
                 container = context.project 
-                if (container is None): return
+                if (container is None): return default
                 result = container.files.get(self.key,default=None)
 
             case Promise.Type.RESOURCE:
                 container = context.project
-                if (container is None): return
+                if (container is None): return default
                 result = container.resources.get(self.key,default=None)
 
             case Promise.Type.EXT_RESOURCE:
                 container = context.project 
-                if (container is None): return
+                if (container is None): return default
                 result = container.resolve_ext_resource(**self.key, default=None)
 
             case Promise.Type.SUB_RESOURCE:
                 container = context.resource
-                if (container is None): return
+                if (container is None): return default
                 result = container.sub_resources.get(self.key, default=None)
 
             case Promise.Type.EXT_RESOURCE_DIRECT:
                 container = context.resource
-                if (container is None): return
+                if (container is None): return default
                 result = container.ext_resources.get(self.key, default=None)
 
         if result is None:
@@ -120,9 +120,12 @@ class PromiseContextual(Promise):
         super().__init__(key, p_type)
         if context is None: 
             return
+
+        self.context.element_changed.connect(self._on_element_changed)
+        self.connect()
         self.context.set_extends(context)
-        if not ((val:=self.resolve(context)) is None):
-            self.replace(val, *self._extra_args)
+        # if not ((val:=self.resolve(context)) is None):
+        #     self.replace(val, *self._extra_args)
         
     def __setup__(self):
         self.context = Context()
@@ -180,9 +183,8 @@ class PromiseContextual(Promise):
 
     def _check_appended(self, col, key, obj):
         ''' Non-optimal, but is alright for now '''
-        if key != self.key:
-            return
-        self.replace(obj)
+        if key == self.key:
+            self.replace(obj, *self._extra_args)
 
 class PromiseProperty():
     obj : Any
@@ -274,7 +276,7 @@ class Properties(UserDict):
         o_item :Any|_UNSET = self.data.get(key, _UNSET)
 
         if isinstance(item, Promise):
-            item = item.resolve(self.context, item)
+            item = item.resolve(self.context, default=item)
 
         if isinstance(item, Promise) and (not isinstance(item, PromiseContextual)):
             item = PromiseContextual(item.key, p_type=item.p_type, context=self.context)
@@ -331,7 +333,7 @@ class Properties(UserDict):
     def overlay_chain(self, ):
         if not (self.overlay is None): 
             yield from self.overlay.overlay_chain()
-        yield self.overlay
+            yield self.overlay
 
     def set_overlay(self, overlay:Properties|None, supress_diff:bool=False)->tuple[list,list,list]:
         if self.overlay is overlay: 
@@ -415,18 +417,24 @@ class Properties(UserDict):
     def localize[V:Any](self, original_context, value:V)->V:
         if isinstance(value, Promise):
             return value.resolve(self.context, default=value)
+
         elif isinstance(value, Resource) and (not isinstance(value,Node)):
             if self.context.resource:
                 return self.context.resource.sub_resources.get(value.name, default=value)
-        elif getattr(value, "localize"):
+
+        elif not ((func:=getattr(value, "localize", None)) is None):
             ## Array / Dict copy
-            return value.localize(self.context)
+            return func(self.context)
+
         return value
         
     def replace_value(self, o_value, n_value):
         for k,v in dict(self.data):
             if (v is o_value):
                 self[k] = n_value
+
+    def __len__(self):
+        return len((*self.keys(),))
 
 class Project():
     context : Context
@@ -444,8 +452,9 @@ class Project():
         self.resources.extend(resources)
 
     def __setup__(self):
-        self.resources = Collection(key_attr="_name")
-        self.file = Collection(key_attr="_path")
+        self.context = Context(project=self)
+        self.resources = Collection(key_attr="_name", context = self.context)
+        self.file = Collection(key_attr="_path", context = self.context)
 
 class File():
     context : Context
@@ -460,7 +469,7 @@ class File():
     resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
 
-    def __init__(self, filetype:str|FileIO|None=None, resource:Resource|None=None):
+    def __init__(self, filetype:str|FileIO|None=None , resource:Resource|None=None):
         self.__setup__()
         raise NotImplementedError()
 
@@ -476,6 +485,8 @@ class File():
 
 class Settings:
     ''' Simple file contents object '''
+    context : Context 
+    
     categories : Collection[str, Category]
     properties : Properties
 
@@ -485,7 +496,8 @@ class Settings:
         self.properties.update(properties)
 
     def __setup__(self):
-        self.categories = Collection(key_attr = "name")
+        self.context = Context(resource = self)
+        self.categories = Collection(key_attr = "name", context=self.context)
         self.properties = Properties(context=self.context)
 
 class Category:
@@ -568,7 +580,7 @@ class Resource():
 
     def __setup__(self):
         self.context = Context(subresource=self)
-        self.sub_resources = Collection(key_attr = "name")
+        self.sub_resources = Collection(key_attr = "name", context=self.context)
         self.properties = Properties(context=self.context)
 
         self._uid = CollectionKey(self) 
@@ -633,7 +645,7 @@ class Node(Resource):
         if unclaimed_nodes: self.unclaimed_nodes.extend(unclaimed_nodes)
 
     def __setup__(self):
-        self.children = Collection(key_attr = "_name")
+        self.children = Collection(key_attr = "_name", context = self.context)
         super().__setup__()
 
     def resolve_nodepath(self, path:str|NodePath):
