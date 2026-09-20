@@ -7,14 +7,14 @@
 
 from __future__ import annotations
 
-from .collection import Collection, CollectionKey, CollectionKeyProperty
+from .collection import Collection, CollectionKey #, CollectionKeyProperty
 from .context import Context as _Context
 from .signals import Signal, DISCONNECT
 
 from random import randint
-from typing import Any, Self, Iterable
+from typing import Any, Self, Iterable, Type
 from enum import Enum
-from collection import UserDict
+from collections import UserDict
 from weakref import ref as wref, ReferenceType
 
 from fsspec import AbstractFileSystem
@@ -24,6 +24,23 @@ class _UNSET:...
 class Context(_Context):
     _slots_ = ("project", "resource", "subresource", "ext_resource")
 
+
+class CollectionKeyProperty:
+    ty : Type
+    attr : str
+    callback_id : str
+
+    def __init__(self, ty, attr:str):
+        self.ty = ty
+        self.attr = attr
+
+    def __get__(self, instance, owner):
+        return getattr(instance, self.attr).key
+
+    def __set__(self, instance, value ):
+        getattr(instance, self.attr).key = value
+
+    
 
 class Promise[T:Any]:
     class Type(Enum):
@@ -101,6 +118,8 @@ class PromiseContextual(Promise):
         self.__setup__()
         self._extra_args = _extra_args
         super().__init__(key, p_type)
+        if context is None: 
+            return
         self.context.set_extends(context)
         if not ((val:=self.resolve(context)) is None):
             self.replace(val, *self._extra_args)
@@ -240,7 +259,7 @@ class Properties(UserDict):
         self.updated = Signal(self)
         self.data = {}
 
-    def __init__(self, iterable, context:Context=None):
+    def __init__(self, iterable:Iterable=tuple(), context:Context=None):
         self.__setup__()
         self.context.set_extends(context)
         super().__init__(iterable)
@@ -302,7 +321,7 @@ class Properties(UserDict):
         self.delitem(key)
 
     def delitem(self, key):
-        o_item = self._get(key, default=_UNSET, unset_ok=True)
+        o_item = self.get(key, default=_UNSET, unset_ok=True)
         super().__delitem__(key)
         self.deleted(key, o_item)    
 
@@ -387,11 +406,11 @@ class Properties(UserDict):
 
     def values(self, localize:bool=True, use_overlay:bool=True):
         for k in self.keys(use_overlay=use_overlay):
-            yield self._get(k, localize=localize, use_overlay=use_overlay)
+            yield self.get(k, localize=localize, use_overlay=use_overlay)
         
     def items(self, localize:bool=True, use_overlay:bool=True):
         for k in self.keys(use_overlay=use_overlay):
-            yield (k, self._get(k, localize=localize, use_overlay=use_overlay))
+            yield (k, self.get(k, localize=localize, use_overlay=use_overlay))
         
     def localize[V:Any](self, original_context, value:V)->V:
         if isinstance(value, Promise):
@@ -434,14 +453,14 @@ class File():
     importer : FileIO|None = None
 
     _path : CollectionKey[str]
-    path = CollectionKeyProperty(str, "_path", callack="path_set")
+    path = CollectionKeyProperty(str, "_path")
     path_set : Signal[str|None]
 
     _resource : Promise[Resource]|Resource|None = None
     resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
 
-    def __init__(self, filetype:str|FileIO, resource:Resource|None=None):
+    def __init__(self, filetype:str|FileIO|None=None, resource:Resource|None=None):
         self.__setup__()
         raise NotImplementedError()
 
@@ -471,7 +490,8 @@ class Settings:
 
 class Category:
     context : Context
-    name : CollectionKey[str]
+    _name : CollectionKey[str]
+    name = CollectionKeyProperty(str, '_name')
     properties : Properties
 
     def __init__(self, name, properties):
@@ -481,7 +501,7 @@ class Category:
 
     def __setup__(self):
         self.context = Context(subresouce=self)
-        self.name = CollectionKey(self)
+        self._name = CollectionKey(self)
         self.properties = Properties(context=self.context)
 
 class FileIO[ResourceType:Resource](Settings):
@@ -504,11 +524,12 @@ class Resource():
     context : Context
 
     _name : CollectionKey[str]
-    name = CollectionKeyProperty(str, "_name", callback = "name_set")
-    nane_set : Signal[str|Node|None]
+    name = CollectionKeyProperty(str, "_name")
+    name_set : Signal[str|Node|None]
 
     _instance : Promise[Self]|Self|None = None # Specifically ExtResource promise
-    instance = PromiseProperty(self, "_instance", self.context, "instance_set", Promise.Type.EXT_RESOURCE)
+    instance = PromiseProperty("_instance", "instance_set", Promise.Type.EXT_RESOURCE)
+    # instance = PromiseProperty(self, "_instance", self.context, "instance_set", Promise.Type.EXT_RESOURCE)
     instance_set : Signal[str|Self|None]
     instance_editable : bool = False
 
@@ -522,10 +543,10 @@ class Resource():
     file_set : Signal[str|File|None]
 
     _uid : CollectionKey[str]|None = None
-    uid = CollectionKeyProperty(str, "_uid", callback = "uid_set")
+    uid = CollectionKeyProperty(str, "_uid") #callback = "uid_set"
 
     _file : Promise[File]|File|None = None
-    file = PromiseProperty(self, "_file", self.context, "file_set", Promise.Type.FILE)
+    file = PromiseProperty("_file", "file_set", Promise.Type.FILE)
 
     sub_resources : Collection[str, Resource] 
         ## Inclusionary, 
@@ -547,21 +568,31 @@ class Resource():
 
     def __setup__(self):
         self.context = Context(subresource=self)
-        self.sub_resources = Collection(key = "name")
+        self.sub_resources = Collection(key_attr = "name")
         self.properties = Properties(context=self.context)
 
-        self.uid_set = Signal(src = self) 
-        self.name_set = Signal(src = self) 
+        self._uid = CollectionKey(self) 
+        self.uid_set = Signal(self) 
+        self._uid.key_updated.connect(self.uid_set)
 
-        self.file_set = Signal(src = self) 
-        self.instance_set = Signal(src = self) 
+        self._name = CollectionKey(self)
+        self.name_set = Signal(self)
+        self._name.key_updated.connect(self.name_set)
 
+        self.instance_set = Signal(self) 
+        self.instance_set.connect(self._on_instance_set)
+
+        self.file_set = Signal(self) 
         self.file_set.connect(self._on_file_set)
 
 
-    ## STD BEHAVIOR:
 
-    def _on_file_set(self):
+    ## STD BEHAVIOR:
+    def _on_instance_set(self, instance:Promise|Resource|None):
+        pass
+
+
+    def _on_file_set(self, file:Promise|File|None):
         ''' Generate UID if one doesn't already exist'''
         if (self.file is None) or (not (self.uid is None)): 
             return
@@ -602,7 +633,7 @@ class Node(Resource):
         if unclaimed_nodes: self.unclaimed_nodes.extend(unclaimed_nodes)
 
     def __setup__(self):
-        self.children = Collection(key = "_name")
+        self.children = Collection(key_attr = "_name")
         super().__setup__()
 
     def resolve_nodepath(self, path:str|NodePath):

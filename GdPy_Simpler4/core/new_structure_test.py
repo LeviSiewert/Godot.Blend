@@ -1,4 +1,5 @@
 from .new_structure import (
+    Collection,
     Context,
     Promise,
     Type,
@@ -14,6 +15,9 @@ from .new_structure import (
     NodePath,
     Node,
 )
+
+from typing import Any
+from contextvars import ContextVar
 
 class Test_Promise:
     def test_construction(self):
@@ -38,7 +42,7 @@ class Test_Promise:
         assert "dummy_resource" == promise.resolve(context)
         
 class Test_PromiseContextual:
-    def test_construction():
+    def test_construction(self):
         PromiseContextual("", Promise.Type.RESOURCE, context=None)
 
     def test_replace_signal(self):
@@ -56,7 +60,7 @@ class Test_PromiseContextual:
         promise.replace.connect(lambda value: cvar.set((value)))
 
         ## Dummy siganl call:
-        project.resources.added("key", "dummy_resource")
+        project.resources.appended("key", "dummy_resource")
 
         assert cvar.get() == "dummy_resource"
 
@@ -69,22 +73,22 @@ class Test_PromiseContextual:
         p2 = _DummyProject()
         context = Context(project = p1)
 
-        assert len(p1.resources.added.subscribers) == 0
+        assert len(p1.resources.appended.subscribers) == 0
         assert len(p1.resources.renamed.subscribers) == 0
 
         promise = PromiseContextual("key", Promise.Type.RESOURCE, context=context)
 
         ## attaches to context,
-        assert len(p1.resources.added.subscribers) == 1
+        assert len(p1.resources.appended.subscribers) == 1
         assert len(p1.resources.renamed.subscribers) == 1
 
         context.project = p2
 
         ## detaches from old project, attaches to new project 
-        assert len(p1.resources.added.subscribers) == 0
+        assert len(p1.resources.appended.subscribers) == 0
         assert len(p1.resources.renamed.subscribers) == 0
 
-        assert len(p2.resources.added.subscribers) == 1
+        assert len(p2.resources.appended.subscribers) == 1
         assert len(p2.resources.renamed.subscribers) == 1
 
 class Test_PromiseProperty:
@@ -99,7 +103,7 @@ class Test_PromiseProperty:
             value = PromiseProperty("_value","value_set",Promise.Type.RESOURCE)
             def __init__(self):
                 self.context = Context()
-            def value_set(self, value):
+            def value_set(self, old_value, value):
                 cvar.set(value)
         d = _Dummy()
 
