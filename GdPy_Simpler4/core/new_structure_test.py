@@ -214,11 +214,9 @@ class Test_Properties:
         assert p0.get("ref", localize=False) is obj
 
 
-
-
 class Test_Project:
     def test_construction(self):
-        Project()
+        Project(fs=None)
 
 class Test_File:
     def test_construction(self):
@@ -234,7 +232,7 @@ class Test_Settings:
 
 class Test_Category:
     def test_construction(self):
-        Category()
+        Category("")
 
 class Test_Resource:
     def test_construction(self):

@@ -454,12 +454,12 @@ class Project():
     def __setup__(self):
         self.context = Context(project=self)
         self.resources = Collection(key_attr="_name", context = self.context)
-        self.file = Collection(key_attr="_path", context = self.context)
+        self.files = Collection(key_attr="_path", context = self.context)
 
 class File():
     context : Context
 
-    importer : FileIO|None = None
+    filetype : FileIO|None = None
 
     _path : CollectionKey[str]
     path = CollectionKeyProperty(str, "_path")
@@ -471,7 +471,8 @@ class File():
 
     def __init__(self, filetype:str|FileIO|None=None , resource:Resource|None=None):
         self.__setup__()
-        raise NotImplementedError()
+        self.filetype = filetype
+        self.resource = resource
 
     def __setup__(self):
         self.context = Context(file=self)
@@ -506,9 +507,9 @@ class Category:
     name = CollectionKeyProperty(str, '_name')
     properties : Properties
 
-    def __init__(self, name, properties):
+    def __init__(self, name:str, properties=tuple()):
         self.__setup__()
-        self.name.key = name
+        self.name = name
         self.properties.update(properties)
 
     def __setup__(self):
@@ -570,10 +571,7 @@ class Resource():
     def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Subresource]=tuple()):
         self.__setup__()
 
-        if id is None:
-            self._name.generate()
-        else:
-            self.name = id 
+        self.name = id 
 
         self.sub_resources.extend(subresources)
         self.properties.update(properties)
@@ -592,31 +590,31 @@ class Resource():
         self._name.key_updated.connect(self.name_set)
 
         self.instance_set = Signal(self) 
-        self.instance_set.connect(self._on_instance_set)
+        # self.instance_set.connect(self._on_instance_set)
 
         self.file_set = Signal(self) 
-        self.file_set.connect(self._on_file_set)
+        # self.file_set.connect(self._on_file_set)
 
 
 
-    ## STD BEHAVIOR:
-    def _on_instance_set(self, instance:Promise|Resource|None):
-        pass
+    # ## STD BEHAVIOR:
+    # def _on_instance_set(self, instance:Promise|Resource|None):
+    #     pass
 
 
-    def _on_file_set(self, file:Promise|File|None):
-        ''' Generate UID if one doesn't already exist'''
-        if (self.file is None) or (not (self.uid is None)): 
-            return
-        self.uid = self._uid.generate(self.context)
+    # def _on_file_set(self, file:Promise|File|None):
+    #     ''' Generate UID if one doesn't already exist'''
+    #     if (self.file is None) or (not (self.uid is None)): 
+    #         return
+    #     self.uid = self._uid.generate(self.context)
 
     ## STD TOOLS:
 
-    def construct_and_load(self):
-        ''' construct tree, loading everything. Multipass in-place transformer. Load dependencies as well. '''
-        if self.uid is None: 
-            raise TypeError()
-        raise NotImplimentedError()
+    # def construct_and_load(self):
+    #     ''' construct tree, loading everything. Multipass in-place transformer. Load dependencies as well. '''
+    #     if self.uid is None: 
+    #         raise TypeError()
+    #     raise NotImplimentedError()
 
 
 class NodePath(str):...
@@ -633,7 +631,7 @@ class Node(Resource):
     unclaimed_nodes : None | dict[str, Node] = None
     unclaimed_edits : None | dict[str, NodePath] = None
 
-    def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple):
+    def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple()):
         super().__init__(name, uid, file, properties, subresources)
 
         if not (unique_id is None):
@@ -641,12 +639,14 @@ class Node(Resource):
         else:
             self.unique_id = randint(100000, 1000000)
 
-        if unclaimed_edits: self.unclaimed_edits.extend(unclaimed_edits)
-        if unclaimed_nodes: self.unclaimed_nodes.extend(unclaimed_nodes)
+        if unclaimed_edits: 
+            self.unclaimed_edits = dict(unclaimed_edits)
+        if unclaimed_nodes: 
+            self.unclaimed_nodes = dict(unclaimed_nodes)
 
     def __setup__(self):
-        self.children = Collection(key_attr = "_name", context = self.context)
         super().__setup__()
+        self.children = Collection(key_attr = "_name", context = self.context)
 
     def resolve_nodepath(self, path:str|NodePath):
         pass
