@@ -1,3 +1,10 @@
+''' This version of the structure focuses on
+- promises as temporary helper objects that are replaced at first possible state where it can be done so 
+- Removing requirement for nodes to attach self to `resource.nodes`
+    - SubResources should still be attached to resource.sub_resources for namespace reasons
+- Simplifying interfaces via @properties and objects that act as properties
+'''
+
 from __future__ import annotations
 
 from .collection import Collection, CollectionKey, CollectionKeyProperty
@@ -9,6 +16,8 @@ from typing import Any, Self, Iterable
 from enum import Enum
 from collection import UserDict
 from weakref import ref as wref, ReferenceType
+
+from fsspec import AbstractFileSystem
 
 class _UNSET:...
 
@@ -25,22 +34,22 @@ class Promise[T:Any]:
         EXT_RESOURCE_DIRECT = "EXT_RESOURCE_DIRECT" ## As in actual Ext_Resource object. Used pretty mmuch only in construction!
 
     key : str|int|dict
-    o_type : Promise.Type
+    p_type : Promise.Type
 
-    def __init__(self, key:str|int|dict, o_type:Promise.Type):
-        match o_type:
+    def __init__(self, key:str|int|dict, p_type:Promise.Type):
+        match p_type:
             case Promise.Type.EXT_RESOURCE:
                 assert isinstance(key, dict)
             case _:
                 assert isinstance(key, str)
         self.key = key
-        self.o_type = o_type
+        self.p_type = p_type
 
     def __repr__(self):
-        return f"Promise({self.o_type.lower()}, {self.key})"
+        return f"Promise({self.p_type.lower()}, {self.key})"
 
     def resolve[D](self, context:Context, /, default:D=None)->D|T:
-        match self.o_type:
+        match self.p_type:
             case Promise.Type.FILE:
                 container = context.project 
                 if (container is None): return
@@ -77,49 +86,38 @@ class PromiseContextual(Promise):
     context : Context
     replace : Signal
 
-    def __init__(self, key, o_type, context):
-        self.context = context
-        super().__init__(key, o_type)
-
-    TODO
-
-class PromiseProperty():
-    ''' Instance this per object! Has a callback '''
-    obj : Any
-    attr : str
-    context : Context
-    callback : str
-
-    def __init__(self, obj, attr:str, context:Context, callback_id:str, p_type:Promise.Type):
-        self.obj = obj 
-        self.attr = attr
-        self.context = context
-        self.p_type = p_type
-
-    def __get__(self, _instance, _owner)->Any|Promise|None:
-        if obj:=getattr(self.obj, self.attr, None) is None:
-            return None
-        elif isinstance(obj, Promise):
-            return obj.resolve(self.obj.context, default=obj)
-        else:
-            return obj
-
-    def __set__(self, _instance, value:Promise|str|Any|None):
-        if isinstance(value, str, int):
-            value = Promise(value, self.p_type)
-
-        if isinstance(value, Promise):
-            value = Promise.resolve(self.context, default=value)
-
-        setattr(self.obj, self.attr, value)
-        getattr(self.obj, self.callback)(value)
-
-        self.diconnect()
-        if isinstance(value, Promise):
-            self.connect()
-
     _cached_collection : ReferenceType[Collection] = wref(_UNSET())
     _cached_collection_b : ReferenceType[Collection] = wref(_UNSET())
+
+    _map = {
+        Promise.Type.FILE : ["project", "files"],
+        Promise.Type.RESOURCE : ["project", "resources"],
+        Promise.Type.EXT_RESOURCE : ["project", None],
+        Promise.Type.SUB_RESOURCE : ["resource", "sub_resources"],
+        Promise.Type.EXT_RESOURCE_DIRECT : ["resource", "ext_resources"],
+    }
+
+    def __init__(self, key, p_type, context:Context|None=None, _extra_args:Iterable=tuple()):
+        self.__setup__()
+        self._extra_args = _extra_args
+        super().__init__(key, p_type)
+        self.context.set_extends(context)
+        if not ((val:=self.resolve(context)) is None):
+            self.replace(val, *self._extra_args)
+        
+    def __setup__(self):
+        self.context = Context()
+        self.replace = Signal(self)
+        self.context.element_changed(self._on_element_changed)
+
+    def _on_element_changed(self, elem, obj):
+        if elem != self._map[self.p_type][0]:
+            return
+        if not ((val:=self.resolve(self.context)) is None):
+            self.replace(val, *self._extra_args)
+        self.disconnect()
+        if obj:
+            self.connect()
 
     def disconnect(self):
         ''' disconnect from cached collection if/a '''
@@ -140,16 +138,7 @@ class PromiseProperty():
 
     def connect(self):
         ''' Fetch from local context (owners's context), connect if/a '''
-
-        _map = {
-            Promise.Type.FILE : ["project", "files"],
-            Promise.Type.RESOURCE : ["project", "resources"],
-            Promise.Type.EXT_RESOURCE : ["project", None],
-            Promise.Type.SUB_RESOURCE : ["resource", "sub_resources"],
-            Promise.Type.EXT_RESOURCE_DIRECT : ["resource", "ext_resources"],
-        }
-
-        container = getattr(self.context, _map[self.p_type][0], None)
+        container = getattr(self.context, self._map[self.p_type][0], None)
         if container is None: 
             return
 
@@ -162,7 +151,7 @@ class PromiseProperty():
             container.resources.appended.connect(self._check_appended, weak=True, prepend_source=True)
             container.resources.renamed.connect(self._check_renamed, weak=True, prepend_source=True)
         else:
-            col = getattr(container, _map[self.p_type][1])
+            col : Collection = getattr(container, self._map[self.p_type][1])
             self._cached_collection = wref(col)
             col.appended.connect(self._check_appended, weak=True, prepend_source=True)
             col.renamed.connect(self._check_renamed, weak=True, prepend_source=True)
@@ -172,21 +161,53 @@ class PromiseProperty():
 
     def _check_appended(self, col, key, obj):
         ''' Non-optimal, but is alright for now '''
-        val = getattr(self.obj, self.attr, None)
-        if (val is None) or (not isinstance(val, Promise)):
-            return DISCONNECT
-        if val.o_type is Promise.Type.EXT_RESOURCE:
-            result = val.resolve(self.context, default=None)
-        elif key == val.key:
-            result = obj
-        else:
-            result = None
-
-        if (result is None):
+        if key != self.key:
             return
+        self.replace(obj)
 
-        setattr(self.obj, self.attr, result)
-        getattr(self.obj, self.callback)(result)
+class PromiseProperty():
+    obj : Any
+    attr : str
+    callback_id : str
+
+    def __init__(self, attr:str, callback_id:str, p_type:Promise.Type):
+        self.attr = attr
+        self.callback_id = callback_id
+        self.p_type = p_type
+
+    def __get__(self, instance, owner):
+        return getattr(instance, self.attr)
+
+    #     if obj:=getattr(self.obj, self.attr, None) is None:
+    #         return None
+    #     elif isinstance(obj, Promise):
+    #         return obj.resolve(self.obj.context, default=obj)
+    #     else:
+    #         return obj
+
+
+    def __set__(self, instance, value:str|int|Promise|Any|None):
+        o_val = getattr(instance, self.attr, None)
+
+        if isinstance(o_val, PromiseContextual):
+            o_val.replace.disconnect(self.replace, not_exist_ok=True)
+
+        if isinstance(value, str|int):
+            value = Promise(value, self.p_type)
+
+        if isinstance(value, Promise):
+            if not ((val:=value.resolve(instance.context)) is None):
+                value = val
+            else:
+                value = PromiseContextual(value.key, value.p_type, context=instance.context, _extra_args = (instance,))
+                value.replace.connect(self.replace, weak=True)
+        
+        setattr(instance, self.attr, value)
+        getattr(instance, self.callback_id)(o_val, value)
+
+
+    def replace(self, value, instance):
+        setattr(instance, self.attr, value)
 
 
 # class Dict():
@@ -237,7 +258,7 @@ class Properties(UserDict):
             item = item.resolve(self.context, item)
 
         if isinstance(item, Promise) and (not isinstance(item, PromiseContextual)):
-            item = PromiseContextual(item.key, o_type=item.o_type, context=self.context)
+            item = PromiseContextual(item.key, p_type=item.p_type, context=self.context)
             item.replace.connect(self.replace_value, prepend_source=True)
 
         if not ((callback:=getattr(item, "reference_callback",None)) is None):
@@ -399,7 +420,9 @@ class Project():
 
     def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
         self.__setup__()
-        raise NotImplementedError()
+        self.fs = fs
+        self.files.extend(files)
+        self.resources.extend(resources)
 
     def __setup__(self):
         self.resources = Collection(key_attr="_name")
@@ -408,15 +431,15 @@ class Project():
 class File():
     context : Context
 
+    importer : FileIO|None = None
+
     _path : CollectionKey[str]
     path = CollectionKeyProperty(str, "_path", callack="path_set")
     path_set : Signal[str|None]
 
     _resource : Promise[Resource]|Resource|None = None
-    resource : PromiseProperty[str, Resource]
+    resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
-
-    importer : FileIO|None = None
 
     def __init__(self, filetype:str|FileIO, resource:Resource|None=None):
         self.__setup__()
@@ -428,7 +451,6 @@ class File():
         self.path_set = Signal(self)
         self.resource_set = Signal(self)
 
-        self.resource = PromiseProperty(self, "_resource", self.context, "resource_set", Promise.Type.RESOURCE)
 
 
 ## IMPORT AND SETTINGS ##
@@ -460,7 +482,7 @@ class Category:
     def __setup__(self):
         self.context = Context(subresouce=self)
         self.name = CollectionKey(self)
-        self.properties = Properties(context=self.context)s
+        self.properties = Properties(context=self.context)
 
 class FileIO[ResourceType:Resource](Settings):
     ## TODO Matched globally via file type, somehow.
@@ -486,11 +508,11 @@ class Resource():
     nane_set : Signal[str|Node|None]
 
     _instance : Promise[Self]|Self|None = None # Specifically ExtResource promise
-    instance : PromiseProperty[Self]
+    instance = PromiseProperty(self, "_instance", self.context, "instance_set", Promise.Type.EXT_RESOURCE)
     instance_set : Signal[str|Self|None]
     instance_editable : bool = False
 
-    properties : dict[str, Any|Generic[Promise[Promise.Object]|Promise.Object]]
+    properties : Properties
 
 
     ## SCENE/FILE ONLY ##
@@ -503,7 +525,7 @@ class Resource():
     uid = CollectionKeyProperty(str, "_uid", callback = "uid_set")
 
     _file : Promise[File]|File|None = None
-    file : PromiseProperty[File]
+    file = PromiseProperty(self, "_file", self.context, "file_set", Promise.Type.FILE)
 
     sub_resources : Collection[str, Resource] 
         ## Inclusionary, 
@@ -525,20 +547,16 @@ class Resource():
 
     def __setup__(self):
         self.context = Context(subresource=self)
-
-        self.uid_set = Signal(src = self) 
-        self.file_set = Signal(src = self) 
-        self.name_set = Signal(src = self) 
-        self.instance_set = Signal(src = self) 
-
         self.sub_resources = Collection(key = "name")
         self.properties = Properties(context=self.context)
 
-        self.file = PromiseProperty(self, "_file", self.context, "file_set", Promise.Type.FILE)
-        self.instance = PromiseProperty(self, "_instance", self.context, "instance_set", Promise.Type.EXT_RESOURCE)
+        self.uid_set = Signal(src = self) 
+        self.name_set = Signal(src = self) 
+
+        self.file_set = Signal(src = self) 
+        self.instance_set = Signal(src = self) 
 
         self.file_set.connect(self._on_file_set)
-
 
 
     ## STD BEHAVIOR:
