@@ -284,8 +284,7 @@ class Properties(UserDict):
             item.replace.connect(self.replace_value, prepend_source=True)
 
         if not ((callback:=getattr(item, "reference_callback",None)) is None):
-            callback(self, self.context)
-            ## Let the object sort out any reference BS
+            callback(self)
 
         super().__setitem__(key, item)
 
@@ -327,6 +326,8 @@ class Properties(UserDict):
         o_item = self.get(key, default=_UNSET, unset_ok=True)
         super().__delitem__(key)
         self.deleted(key, o_item)    
+        if not ((callback:=getattr(o_item, "reference_callback",None)) is None):
+            callback(self)
 
 
     ### OVERALY 
@@ -442,6 +443,8 @@ class Project():
 
     fs : AbstractFileSystem
 
+    users: list[ReferenceType]
+
     resources : Collection[str, Resource]
     files : Collection[str, File]
     # resource_types : Collection[str, GdType] #DEFER
@@ -453,14 +456,22 @@ class Project():
         self.resources.extend(resources)
 
     def __setup__(self):
+        self.users = []
         self.context = Context(project=self)
         self.resources = Collection(key_attr="_name", context = self.context)
         self.files = Collection(key_attr="_path", context = self.context)
+
+    def reference_callback(self, obj):
+        self.users.append(wref(obj))
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
 
 class File():
     context : Context
 
     filetype : FileIO|None = None
+
+    users: list[ReferenceType]
 
     _path : CollectionKey[str]
     path = CollectionKeyProperty(str, "_path")
@@ -477,11 +488,15 @@ class File():
 
     def __setup__(self):
         self.context = Context(file=self)
+        self.users = []
 
         self.path_set = Signal(self)
         self.resource_set = Signal(self)
 
-
+    def reference_callback(self, obj):
+        self.users.append(wref(obj))
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
 
 ## IMPORT AND SETTINGS ##
 
@@ -508,6 +523,8 @@ class Category:
     name = CollectionKeyProperty(str, '_name')
     properties : Properties
 
+    users : list[ReferenceType]
+
     def __init__(self, name:str, properties=tuple()):
         self.__setup__()
         self.name = name
@@ -517,6 +534,12 @@ class Category:
         self.context = Context(subresouce=self)
         self._name = CollectionKey(self)
         self.properties = Properties(context=self.context)
+
+    def reference_callback(self, obj):
+        self.users.append(wref(obj))
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
+
 
 class FileIO[ResourceType:Resource](Settings):
     ## TODO Matched globally via file type, somehow.
@@ -540,6 +563,7 @@ class Resource():
 
     ## ALL INSTANCES ##
     context : Context
+    users : list[ReferenceType]
 
     _name : CollectionKey[str]
     name = CollectionKeyProperty(str, "_name")
@@ -573,8 +597,11 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Subresource]=tuple()):
+    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Subresource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
+
+        self.instance = instance
+        self.instance_editable = instance_editable
 
         self.name = id 
 
@@ -585,6 +612,7 @@ class Resource():
         self.context = Context(subresource=self)
         self.sub_resources = Collection(key_attr = "name", context=self.context)
         self.properties = Properties(context=self.context)
+        self.users = []
 
         self._uid = CollectionKey(self) 
         self.uid_set = Signal(self) 
@@ -614,6 +642,11 @@ class Resource():
             raise TypeError()
         raise NotImplementedError()
 
+    def reference_callback(self, obj):
+        self.users.append(wref(obj))
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
+
 class NodePath(str):...
 
 class Node(Resource):
@@ -628,8 +661,11 @@ class Node(Resource):
     unclaimed_nodes : None | dict[str, Node] = None
     unclaimed_edits : None | dict[str, NodePath] = None
 
-    def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple()):
-        super().__init__(name, uid, file, properties, subresources)
+    # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
+    #     super().__init__(name, uid, file, properties, subresources)
+    def __init__(self, name:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_edits:dict[str,str]=tuple(), unclaimed_nodes:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+        
+        super().__init__(id=name, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
 
         if not (unique_id is None):
             self.unique_id = unique_id
@@ -640,6 +676,8 @@ class Node(Resource):
             self.unclaimed_edits = dict(unclaimed_edits)
         if unclaimed_nodes: 
             self.unclaimed_nodes = dict(unclaimed_nodes)
+
+        self.children.extend(children)
 
     def __setup__(self):
         super().__setup__()

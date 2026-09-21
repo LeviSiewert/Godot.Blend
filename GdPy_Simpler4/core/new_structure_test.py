@@ -245,12 +245,12 @@ class Test_Resource:
         r = Resource(uid="uid", properties = {"ref":sr})
 
         assert not (sr in r.sub_resources)
-        assert (r in sr.users)
+        assert (r.sub_resources in sr.users)
 
         r.normalize(duplicate=False)
 
         assert (sr in r.sub_resources)
-        assert (r in sr.users)
+        assert (r.sub_resources in sr.users)
 
 class Test_Node:
     def test_construction(self):
@@ -267,8 +267,8 @@ class Test_Node:
         r0 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
         r1 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
 
-        assert (r0 in sr.users)
-        assert (r1 in sr.users)
+        assert (r0.children in sr.users)
+        assert (r1.children in sr.users)
         assert not (sr.context.resource is r0) ## NON-NORMALIZED due to multiple references
         assert (sr.context.resource is r1)
 
@@ -289,7 +289,7 @@ class Test_Node:
         assert r0.properties["ref"] == NodePath("./ChildNode") ## nromalize flag refs_to_paths=True
         assert r1.properties["ref"] == NodePath("./ChildNode")
 
-    def test_normalization_childtooverlay():
+    def test_normalization_childtooverlay(self):
         ''' When normalizing, direct instances are turned to overlayed nodes.
         
         '''

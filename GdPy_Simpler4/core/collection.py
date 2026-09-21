@@ -132,6 +132,9 @@ class Collection[K:str|int,V:Any](UserDict):
             self._resolve_key_collision(key, self[key], item, replace=False, rename=True, right_key_priority=right_key_priority)
             return
 
+        if func:=getattr(item, "reference_callback", None):
+            func(self)
+
         self.data[key] = item
         self._connect(item)
         self.appended(key, item)
@@ -147,6 +150,9 @@ class Collection[K:str|int,V:Any](UserDict):
         else:
             key = self.find_key(key_or_item)
             item = key_or_item
+
+        if func:=getattr(item, "dereference_callback", None):
+            func(self)
 
         self._disconnect(item)
         del self.data[key]
