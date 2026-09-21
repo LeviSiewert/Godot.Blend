@@ -11,7 +11,8 @@ from .collection import Collection, CollectionKey #, CollectionKeyProperty
 from .context import Context as _Context
 from .signals import Signal, DISCONNECT
 
-from random import randint
+from string import ascii_letters
+from random import randint, sample
 from typing import Any, Self, Iterable, Type
 from enum import Enum
 from collections import UserDict
@@ -533,6 +534,10 @@ class FileIO[ResourceType:Resource](Settings):
 ## RESOURCE STRUCTURE ##
 
 class Resource():
+    ''' Baseclass for resources, mostly equivilent to Godot eq 
+    Due to desire for simplicity, and non-uniform trees, tree normalization is done via external means
+    '''
+
     ## ALL INSTANCES ##
     context : Context
 
@@ -584,6 +589,7 @@ class Resource():
         self._uid = CollectionKey(self) 
         self.uid_set = Signal(self) 
         self._uid.key_updated.connect(self.uid_set)
+        # self.uid_set.connect(self._on_uid_set)
 
         self._name = CollectionKey(self)
         self.name_set = Signal(self)
@@ -593,29 +599,20 @@ class Resource():
         # self.instance_set.connect(self._on_instance_set)
 
         self.file_set = Signal(self) 
-        # self.file_set.connect(self._on_file_set)
+        self.file_set.connect(self._on_file_set)
 
-
-
-    # ## STD BEHAVIOR:
-    # def _on_instance_set(self, instance:Promise|Resource|None):
-    #     pass
-
-
-    # def _on_file_set(self, file:Promise|File|None):
-    #     ''' Generate UID if one doesn't already exist'''
-    #     if (self.file is None) or (not (self.uid is None)): 
-    #         return
-    #     self.uid = self._uid.generate(self.context)
+    def _on_file_set(self, file:Promise|File|None):
+        ''' Generate UID if one doesn't already exist'''
+        if (file is None) or (not (self.uid is None)): 
+            return
+        self.uid = "".join(sample(ascii_letters, 9))
 
     ## STD TOOLS:
-
-    # def construct_and_load(self):
-    #     ''' construct tree, loading everything. Multipass in-place transformer. Load dependencies as well. '''
-    #     if self.uid is None: 
-    #         raise TypeError()
-    #     raise NotImplimentedError()
-
+    def construct_and_load(self):
+        ''' Normalize references/ownership and construct tree, loading everything. Multipass in-place transformer. Load dependencies as well. '''
+        if self.uid is None: 
+            raise TypeError()
+        raise NotImplementedError()
 
 class NodePath(str):...
 
