@@ -1,27 +1,22 @@
+from __future__ import annotations
+
 from array import array
 from typing import Any
 from collections import OrderedDict, UserString, UserList
-from .structure import GdType, GdTypeValue, GdTypeValueSet
 
-from .property_collection import GdValue
+from .structure import NodePath
+from .defininitions import GdDefValue, GdDefType, GdDefValueTyping
+from .signals import Signal 
 
-class NodePath(UserString, GdValue):
-    _typing : GdType|GdTypeValue
-    def __init__(self, value, /, typing:GdType|GdTypeValue=None):
-        self._typing = typing
-        super().__init__(value)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__()})"
-    
-class StringName(UserString, GdValue):
+class StringName(UserString):
     def __repr__(self):
         return f'&{super().__repr__()}'
 
-class Object(GdValue):
-    type : str
+class Object():
+    ''' Generic object, stored and accessed as a value. '''
+    type : GdDefType|str
     kwargs : dict
-    def __init__(self, type, **kwargs):
+    def __init__(self, type:GdDefType|str|None, **kwargs):
         self.type = type
         self.kwargs = kwargs
     
@@ -32,49 +27,115 @@ class Object(GdValue):
             self.type == value.type,
             self.kwargs == value.kwargs,
         ])
-    
+
+    def _dif(self, value:Object)->dict:
+        
+        return {
+            "type":(self.type==value.type, self.type, value.type),
+            "kwargs":(self.kwargs==value.kwargs, self.kwargs, value.kwargs),
+        }
+        # return {
+        #     "types" : (self.type, value.type) ,
+        #     "foreign" : {k:(v) for k,v in value.kwargs.items() if not (k in self.kwargs.keys())},
+        #     "local" : {k:(v) for k,v in self.kwargs.items() if not (k in value.kwargs.keys())},
+        #     "different" : {k:(v) for k,v in self.kwargs.items() if ((k in value.kwargs.keys()) and  (value.kwargs[k] != v))},
+        # }
+        
     def items(self,):
         return self.kwargs.items()
     
     def __repr__(self,):
         return f"{self.__class__.__name__}({self.type,} ...{len(self.kwargs)})"
 
-class Dictionary(OrderedDict, GdValue):
-    typing : GdTypeValueSet 
-    def __init__(self, map=tuple(), /, typing:tuple[GdType|GdTypeValue|Any]=None):
-        self.typing = typing
+class Dictionary(OrderedDict):
+    added : Signal[str,Any]
+    removed : Signal[str,Any]
+    updated : Signal[str,Any,Any]
+
+    typing : GdDefValueTyping
+
+    def __setup__(self):
+        self.added = Signal(self)
+        self.removed = Signal(self) 
+        self.updated = Signal(self) 
+
+    def __init__(self, map=tuple(), /, typing:GdDefValueTyping|Any=None):
+        self.__setup__()
+
+        if (typing is None):
+            self.typing = None
+        elif isinstance(typing, str):
+            self.typing = GdDefValueTyping(typing)
+        elif not isinstance(typing, GdDefValueTyping):
+            self.typing = GdDefValueTyping(*typing)
+        else:
+            self.typing = typing
+
         super().__init__(map)
 
     def __setitem__(self, key, value):
-        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
-            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
-        return super().__setitem__(key, value)
+        update = False
+        if key in self.keys():
+            o_value = self[key]
+            update=True
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__().strip("{}")})"
+        r = super().__setitem__(key, value)
 
-class Array(UserList, GdValue):
-    typing : GdTypeValueSet 
+        if update:
+            self.updated(key, o_value, value)
+        else:
+            self.added(key, value)
+        return r
 
-    def __init__(self, *values, typing:tuple[GdType|GdTypeValue|Any]=None):
-        self.typing = typing
+    def __delitem__(self, key):
+        value = self.get(key)
+        r = super().__delattr__(key)
+        self.removed(key, value)
+        
+class Array(UserList):
+    typing : GdDefValueTyping
+
+    added : Signal[str,Any]
+    removed : Signal[str,Any]
+    updated : Signal[str,Any,Any]
+
+    def __setup__(self):
+        self.added = Signal(self)
+        self.removed = Signal(self) 
+        self.updated = Signal(self) 
+
+    def __init__(self, *values, typing:tuple[GdDefValue|Any]=None):
+        self.__setup__()
+
+        if (typing is None):
+            self.typing = None
+        elif isinstance(typing, str):
+            self.typing = GdDefValueTyping(typing)
+        else:
+            self.typing = typing
+
         super().__init__(values)
 
-    def append(self, value):        
-        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
-            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
-        return super().append(object)
-    
-    def __setitem__(self, key, value):
-        if (not isinstance(value, GdValue)) and isinstance(value, (dict, list)):
-            raise TypeError("This object cannot intake base dicts or lists due to context object support. Use values.Dictionary or values.Array instead")
-        return super().__setitem__(key, value)
-    
-    def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
-    
+    def __setitem__(self, key:int, value):
+        update = False
+        if key >= len(self):
+            o_value = self[key]
+            update=True
 
-class _FixedLenArray(GdValue):
+        r = super().__setitem__(key, value)
+
+        if update:
+            self.updated(key, o_value, value)
+        else:
+            self.added(key, value)
+        return r
+
+    def __delitem__(self, key):
+        value = self.get(key)
+        r = super().__delattr__(key)
+        self.removed(key, value)
+
+class _FixedLenArray():
     val : array = None
     _type_str : str = "f"
     _types = (int, float,)
@@ -87,9 +148,15 @@ class _FixedLenArray(GdValue):
         else:
             self.val = array(self._type_str, (self._def,)*self._len)
     def __eq__(self, other):
-        return self.val == other
+        if not hasattr(other,"__len__"):
+            return False
+        if len(other) != len(self.val):
+            return False
+        return all(a==b for a,b in zip(other,self.val))
     def __iter__(self):
         yield from self.val
+    def __len__(self):
+        return len(self.val)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.val.__repr__()})"
@@ -144,7 +211,7 @@ class Basis(_FixedLenArray):
         super().__init__(*args)
 
 
-class _PackedListSimple(UserList, GdValue):
+class _PackedListSimple(UserList, ):
     def __init__(self, *args):
         l = []
         for v in args:
@@ -153,6 +220,14 @@ class _PackedListSimple(UserList, GdValue):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+
+    def __eq__(self, other):
+        if not hasattr(other,"__len__"):
+            return False
+        if len(other) != len(self.data):
+            return False
+        return all(a==b for a,b in zip(other,self.data))
+        
 
 class PackedInt32Array(_PackedListSimple):
     _types = (int,)
@@ -169,7 +244,7 @@ class PackedStringArray(_PackedListSimple):
 
 
 
-class _PackedListComplex(UserList, GdValue):
+class _PackedListComplex(UserList, ):
     _type : _FixedLenArray = Vector2
     def __init__(self, *args):
         super().__init__(self._unpack(args))
@@ -188,6 +263,14 @@ class _PackedListComplex(UserList, GdValue):
                 yield ty(*values.pop(0))
             else:
                 raise TypeError("Could not cast input to types", _value, ty)
+
+    def __eq__(self, other):
+        if not hasattr(other,"__len__"):
+            return False
+        if len(other) != len(self.data):
+            return False
+        return all(a==b for a,b in zip(other,self.data))
+        
             
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
@@ -203,9 +286,9 @@ class PackedColorArray(_PackedListComplex):
 
 
 
-class PackedByteArray(bytearray, GdValue): 
+class PackedByteArray(bytearray): 
     def __init__(self, string, /, encoding="utf-8", errors = "strict"):
         super().__init__(string, encoding, errors)
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+    # def __repr__(self):
+    #     return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"

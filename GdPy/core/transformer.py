@@ -1,251 +1,311 @@
 from __future__ import annotations
-from contextvars import ContextVar
-from typing import Any, Iterable, Generator, Callable
-from inspect import isclass, isgeneratorfunction, isgenerator
-# from copy import deepcopy
+from typing import Generator, Any, Callable, Iterable
+from inspect import isgeneratorfunction, isgenerator, isclass
+from contextvars import ContextVar, copy_context
+from contextlib import contextmanager
+from collections import namedtuple
 
-class _UNSET():
-    pass
+class _UNSET:...
+_EMPTY_DICT = {}
 
-class TERMINAL():
-    pass
+@contextmanager
+def cvar_as(cvar:ContextVar, value):
+    t = cvar.set(value)
+    yield
+    cvar.set(t)
 
-class DEFAULT():
-    ''' Catch all transformer module'''
+class Flag():
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        raise NotImplementedError(self.__class__)
 
-class IGNORE():
-    pass
+class STEP(Flag):
+    __slots__ = tuple()
+    # __slots__ = ("caching","step","value") 
+    caching : bool = True
+    step : str
+    value : Any|None|_UNSET = _UNSET
 
-class _TransformerCmd():
-    def __init__():
-        pass
-
-    def result(self, tranform_func:Callable)->Generator[Generator|tuple]|tuple[Any]:
-        pass
-    
-
-class TSet(_TransformerCmd):
-    ''' Children are expanded and grouped together in results, can stream. Can Cache. Nestable Tstream-like '''
-    data : tuple[TSet|Any]
-    res_structure : tuple[Any]
-
-    def __init__(self, *args, stream=False):
-        self.stream = stream
-        self.data = args
-
-    def result(self,)->Generator[Generator|tuple] | tuple[Any]:
-        raise NotImplementedError()
-    
-    
-class TStream[I:Any,O:Any](_TransformerCmd):
-    ''' Tranform is only called when iterated over, .cache keeps results on this object '''
-    source : Iterable[I] 
-    result : tuple[O]
-    caching : bool = False
-    completed : bool = False
-
-    def __init__(self, source:Iterable[I], /, caching=False):
-        self.source = source
+    def __init__(self, step:str, value:Any=_UNSET, /, caching : bool = True):
+        self.step = step
+        self.value = value
         self.caching = caching
-    
-    def iter(self, tranform_func:Callable)->Generator[O]:
-        if self.completed and self.caching:
-            yield from self.result
-            return
 
-        if self.caching:
-            self.result = []
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        do_yield = self.step == settings.get("step",None)
 
-        for node in self.source:
-            val = tranform_func(node)
-            if self.caching:
-                self.result.append(val)
-            yield val
+        if (memoized and caching and self.caching and (not (self.value is _UNSET))):
+            if memo.cache is None:
+                session.set_cache(uid, {self.step:self.value})
+            else:
+                memo.cache[self.step] = self.value
+        elif self.caching and (not (self.value is _UNSET)):
+            raise Exception("Caching is enabled but value is not set!")
+
+        # do_yield, yield_val, send_val
+        return do_yield, self.value, self.step
         
-        self.completed = True
+class TRANSFORM(Flag):
+    __slots__ = tuple()
+    # __slots__ = ("item", "settings")
+    item : Any
+    settings : dict
 
+    def __init__(self, item:Any, **settings):
+        self.item = item
+        self.settings = settings
 
-class Context():
-    def __init__(self):
-        self.__setup__()
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+        return False, None, session.transform(self.item, **self.settings)
 
-    def __setup__(self):
-        # self = super().__new__(cls)
-        self.transformer = ContextVar("transformer", default=None)
-        self.rulesets = ContextVar("rulesets", default=None)
+class TRANSFORM_CHILDREN(Flag):
+    __slots__ = tuple()
+    # __slots__ = ("children", "as_generator", "settings")
+    children : Iterable
+    as_generator : bool
+    settings : dict
 
-        self.key = ContextVar("key", default=None)
-        self.ruleset = ContextVar("ruleset", default=None)
-        self.module = ContextVar("module", default=None)
+    def __init__(self, children:Iterable, /, as_generator:bool=False, **settings):
+        self.children = children
+        self.settings = settings
+        self.as_generator = as_generator
 
-        self.children = ContextVar("children", default=None)
-        return self
+    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
 
-    transformer : ContextVar
-    rulesets : ContextVar
-    
-    ruleset : ContextVar
-    module : ContextVar
+        def _generator():
+            for i in self.children:
+                yield session.transform(i, **self.settings)
 
-    children : ContextVar[Iterable[Any]]
+        if self.as_generator:
+            return False, None, _generator()
+        
+        return False, None, tuple(_generator())    
 
-    # def __deepcopy__(self,):
-    #     ##TODO: Double check IO
-    #     res = self.__class__()
-    #     for k,v in self.__dict__():
-    #         if isinstance(v, ContextVar):
-    #             getattr(res,k).set(v.get())
-    #     return res
+class Transformer[I:Any, O:Any]():
+    contextual : ContextVar|bool = True
+    memoized : ContextVar|bool = True
+    caching : ContextVar|bool = True
+    identifier : str|None = None
 
-class TransformerModule[IN:Any, CHILDREN:Any|TERMINAL, OUT:Any|IGNORE]():
-    def __repr__(self,):
-        return f"Module({self.__class__.__name__})"
-    
-    _keys = tuple()
-    def get_keys(self,)->tuple[Any]:
-        return self._keys
-    
-    def transform(self, c:Context, node:IN)->Generator[CHILDREN,OUT]:
-        raise NotImplementedError(f"{c.ruleset.get().identifier} :: {self.__class__.__name__}.transform(...)")
-        yield TERMINAL
-        return IGNORE
-
-class TransformerRuleset():
-    modules : dict[Any, TransformerModule]
-    
-    def __init__(self, identifier, modules:Iterable[TransformerModule]):
-        self.identifier = identifier
-        self.modules = {}
-
-        for m in modules:
-            if isclass(m):
-                m = m()
-            keys = m.get_keys()
-            mod_keys = self.modules.keys()
-            for k in keys:
-                if k in mod_keys:
-                    raise KeyError(f"Key {k} already exists!", m, self, self.modules[k])
-                self.modules[k] = m
-
-    def __repr__(self,):
-        return f"Ruleset({self.identifier})"
-
-    def _extract_keys(self, c:Context|None, node:Any)->tuple[Any]:
-        if node is None:
-            return (None,)
-        if isclass(node):
-            return (node, node.__name__) 
-        return (node.__class__, node.__class__.__name__)
-
-    def _match_module(self, keys:tuple[Any], default=_UNSET)->None|TransformerModule:
-        # raise Exception(keys, (*self.modules.keys(),))
-        for k in keys:
-            if res:=self.modules.get(k,None):
-                return res, k
-        if res:=self.modules.get(DEFAULT,None):
-            return res, DEFAULT
-        if default is _UNSET:
-            raise KeyError(self, keys)
-        return default, DEFAULT
-    
-    def get(self, key:Any, c:Context=None, default:Any=_UNSET):
-        keys = self._extract_keys(key, c)
-        return self._match_module(keys, default)
-
-
-class Transformer():
-    rulesets : tuple[TransformerRuleset]
-    def __init__(self, *args:tuple[TransformerRuleset], identifier:str ):
-        self.rulesets = args
+    def __init__(self, identifier:str|None=None):
         self.identifier = identifier
 
     def __repr__(self)->str:
-        return f"{self.__class__.__name__}({self.identifier} :: {self.rulesets})"
-        
-    def transform_tree(self, c:Context, node:Any)->None:
-        if c.rulesets.get() is None:
-            c.rulesets.set(self.rulesets)
-        return self._transform_tree(c, node)
-        
-    def _transform_tree(self, c:Context, node:Any)->None:
-        t = c.transformer.set(self)
+        if not self.identifier is None:
+            return f"Transformer({self.identifier})"
+        return self.__class__.__name__
 
-        mod = None
-        for r in c.rulesets.get():
-            mod,key = r.get(c, node, None)
-            if mod:
-                t0 = c.module.set(mod)
-                t1 = c.ruleset.set(r)
-                t3 = c.transformer.set(self)
-                t4 = c.key.set(key)
-                break
-        if (mod is None):
-            raise KeyError(self, node)
+    def transform(self, session:Session, node:I)->Generator[Flag, Any, O]:
+        """AKA : Inner Generator"""
+        raise NotImplementedError("Abstract class!")
+        yield
 
-        transform_func = mod.transform
+    def match(self, session:Session, node:Any)->bool:
+        raise NotImplementedError("Abstract class!")
 
-        if not isgeneratorfunction(transform_func):
-            def _func(c:Context, node:Any,*args,**kwargs):
-                ## TODO: Consider default get-children functions asc w/ local?
-                yield TERMINAL
-                return mod.transform(c,node,*args,**kwargs)
-            transform_func = _func
+class TransformerOptions():
+    ''' TODO
+    Class that is instancated at session creation, and has a factory method to generate context vars from type annotations
+    IE: `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
+    '''
+    def __init__(self, session:Session):
+        pass
 
-        escape_result = ContextVar("escape_result")
-        def caller():
-            _res = yield from transform_func(c,node)
-            escape_result.set(_res)
+class TransformerSet[T:Transformer, O:TransformerOptions]():
+    identifier : str|None = None
+    transformers : tuple[T]
+    options : dict[str, O]
 
-        t5 = c.children.set(TERMINAL)
-        
-        _t = None
-        for child_set in caller():
+    def __init__(self, identifier:str, transformers:Iterable[T], options:dict[str,O|Any]=tuple()):
+        self.identifier = identifier
+
+        self.options = {}
+        self.options.update(options)
+
+        self.transformers = []
+        for t in transformers:
+            if isclass(t):
+                t = t()
+            self.transformers.append(t)
+
+    def match[D:Any](self, session, node:Any, default:D=None)->Transformer|D:
+        for t in self.transformers:
+            if t.match(session, node):
+                return t
+        return default
+
+
+MemoEntry = namedtuple("Memo", ["result", "cache", "generator", "context"])
+
+class Session[T:TransformerSet, O:TransformerOptions]():
+    memo : dict[int, MemoEntry]
+    get_id : Callable = id
+    transformer_sets : tuple[T]
+    options: dict[str, O]
+
+    def set_cache(self, uid:int, data:dict)->None:
+        memo = self.memo[uid]
+        if memo.cache is None:
+            self.memo[uid] = MemoEntry(
+                result = memo.result,
+                cache = data,
+                generator = memo.generator,
+                context = memo.context,
+            )
+
+    def __init__(self, transformer_sets:Iterable[T]):
+        self.memo = {}
+        self.transformer_sets = tuple(transformer_sets)
+
+        self.options = {}
+        _options_template = {}
+        for ts in self.transformer_sets:
+            _options_template.update(ts.options)
+        for k,v in _options_template.items():
+            self.options[k] = v(self)
+
+    def find_transformer(self, node)->tuple[Generator|Callable,bool]:
+        for ts in self.transformer_sets:
+            t = ts.match(self, node, None)
+            if not (t is None):
+                return t
+        raise KeyError("Could not determine transformer for:", node)
+
+    def transform(self, node:Any, step:str|None=None, allow_restart_generator:bool=False , **settings)->Any:
+        ''' Header function for creating, accessing memo & stepping self.iterator while fetching caches w/a '''
+
+        uid = self.get_id(node)
+
+        if not ((memo:=self.memo.get(uid,None)) is None): ## Is memoized, has some sort of cache
+            memo : MemoEntry
+
+            if (not (step is None)) and (not (memo.cache is None)):
+                ## Fetch cached and return w/a
+                if not((res:=memo.cache.get(step, _UNSET)) is _UNSET):
+                    return res
+
+            elif (step is None) and (not (memo.result is _UNSET)):
+                ## Fetch cached result and return w/a
+                return memo.result
             
-            if _t:
-                c.children.reset(_t)
-                _t = None
-            
-            if child_set is TERMINAL:
-                _t = c.children.set(TERMINAL)
+            if memo.generator:
+                ## Run iterator with settings
+                try:
+                    return memo.context.run(memo.generator.send, {**settings, "step":step})
+                except StopIteration as e:
+                    return e.value
 
-            elif child_set is IGNORE:
-                _t = c.children.set(IGNORE)
-                        
-            elif isgenerator(child_set):
-                # _c = deepcopy(c)
-                def _call_transform(val):
-                    return c.transformer.get()._transform_tree(c,val)
-                _t = c.children.set(TStream(child_set, caching=True).iter(_call_transform))
+            elif not allow_restart_generator:
+                ## Case where cache[step] is never fullfilled while executing, generator is complete and this is called again
+                raise Exception("Tranform query already completed, request non-normal. \n Check requested step, caching & memoization flags, context dependent steps for caching options before considering the `allow_restart_generator` option  ")
 
-            elif isinstance(child_set, _TransformerCmd):
-                # _c = deepcopy(c)
-                def _call_transform(val):
-                    return c.transformer.get()._transform_tree(c,val)
-                _t = c.children.set(child_set.iter(_call_transform))
-            
-            elif isinstance(child_set, dict):
-                res = {}
-                for k,v in child_set.items():
-                    res[k] = c.transformer.get()._transform_tree(c,v)
-                _t = c.children.set(res)
+        t : Transformer = self.find_transformer(node)
 
-            elif hasattr(child_set, "__iter__"):
-                res = []
-                for v in child_set:
-                    res.append(c.transformer.get()._transform_tree(c,v))
-                _t = c.children.set(res)
+        ## Integrate flags/settings:
+        _settings = {
+            "step" : step,
+            "memoized" : t.memoized if isinstance(t.memoized, bool) else t.memoized.get(),
+            "caching" : t.caching if isinstance(t.caching, bool) else t.caching.get(),
+            "contextual" : t.contextual if isinstance(t.contextual, bool) else t.contextual.get(),
+        }
+        _settings.update(settings)
 
+        if (not isgeneratorfunction(t.transform)):
+            ## if straight tra
+            res = t.transform(self, node) 
+
+            if _settings["memoized"]:
+                self.memo[uid] = MemoEntry(
+                result = res,
+                cache = None,
+                generator = None,
+                context = None
+            ) 
+            return res
+
+        ## create iterator and send first result
+        if isgeneratorfunction:
+            iterator = self.iterator(uid, t.transform(self, node), **_settings)
+        else: 
+            ## Generator that has already been started for some reason.
+            iterator = self.iterator(uid, t.transform, **_settings)
+
+
+
+        if _settings["memoized"]:
+
+            if _settings["contextual"]:
+                ctx = copy_context()
             else:
-                raise Exception(f" Yielded children cannot be interpretted! ", child_set.__class__, child_set)
-            
-            ## Code runs until next yield / func completion
-            ## res should now be populated
+                ctx = None
 
-        c.children.reset(t5)
-        c.key.reset(t4)
-        c.transformer.reset(t3)
-        c.ruleset.reset(t1)
-        c.module.reset(t0)
-        c.transformer.reset(t)
+            self.memo[uid] = MemoEntry(
+                result = _UNSET,
+                cache = None,
+                generator = iterator,
+                context = ctx, 
+            )
 
-        return escape_result.get() 
+        try:
+            return next(iterator)
+        
+        except StopIteration as e:
+            return e.value
+
+    @staticmethod
+    def _runw(_memo:MemoEntry, func, *args, **kwargs):
+        if _memo.context is None:
+            return func(*args, **kwargs)
+        _memo.context.run(func, *args, **kwargs)
+
+    def iterator(self, uid:int, transform:Generator, /, contextual:bool=True, memoized:bool=True, caching:bool=True, send_val:Any=None, **settings)->Generator:
+        ''' iterators through child transformer and integrates flags  
+        Adds to Memo
+        Returns None if step not met, even if internal generator completes
+        Will clean self from memo at completion if `memoized` 
+        settings are sent from every yield
+        '''
+
+        send_value = None
+
+        if (not memoized):
+            memo = MemoEntry(None,None,None,context=copy_context())
+
+        c = True
+        while c:
+
+            try:
+                send_value = settings.get("send_value", send_value)
+
+                flag = transform.send(send_val)
+
+                if memoized:             
+                    memo = self.memo[uid]
+
+                if isinstance(flag, Flag):
+                    do_yield, yield_val, send_val = flag.intigrate(self, uid, memo, settings, contextual=contextual, memoized=memoized, caching=caching)
+
+                    if do_yield:
+                        _settings = yield yield_val
+                        if not (_settings is None):
+                            settings = _settings
+                        del _settings
+
+                # elif isinstance(flag, TRANSFORM):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
+                # elif isinstance(flag, TRANSFORM_CHILDREN):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
+                # elif isinstance(flag, Flag):
+                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
+
+                else: 
+                    raise Exception("UNKNOWN Flag:", flag)
+
+            except StopIteration as e:
+                c = False
+                if memoized:             
+                    memo = self.memo[uid]
+                    self.memo[uid] = MemoEntry(result=e.value, cache=memo.cache, generator=None, context=None)
+                return e.value
+
+            except:
+                raise

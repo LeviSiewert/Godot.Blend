@@ -2,88 +2,111 @@ from __future__ import annotations
 from typing import Any, Callable
 from .signals import Signal
 
-class StructContext(object):
-    _extends : StructContext = None
+from contextvars import ContextVar
+
+class _UNSET:...
+
+class Context():
+    ''' Context object, attribute fallback through extends chain. Values set/changed along chain propigate to children. (including removed as None) 
+    sub to self.verify_structure w/ any behavior that is disallowed.
+    '''
+    _extends : Context = None
     _slots_ : tuple[str] = tuple()
-
-    signal_value_updated : Signal[str,Any]
-    signal_parent_value_updated : Signal[str,Any]
-
-    def __init_subclass__(cls):
-        cls.__slots__ = tuple( set(cls._slots_) | set(("_extends","signal_value_updated",))) 
-
-    def __setup__(self):
-        self.signal_value_updated = Signal(owner=self)
-
-    def __init__(self, extends:StructContext=None, **kwargs):
-        self.__setup__()
-        if extends:
-            self.set_extends(extends)
-        for k,v in kwargs.items():
-            setattr(self,k,v)
-
-    def __getattr__(self, attr):
-        if not (self._extends is None):
-            return getattr(self._extends, attr, None)
-        elif attr in self._slots_:
-            return None
-        raise AttributeError(obj=self,name=attr)
+    _default = None
+    element_changed : Signal
+    default_null = ContextVar("", default=None)
+    # verify_structure : Signal[dict] 
     
-    def __setattr__(self, attr, value):
+    def __init__(self, **kwargs):
+        self.element_changed = Signal(self)
+        for k,v in kwargs.items():
+            setattr(self, k, v)
+
+    def __getattr__(self,attr):
+        ''' Called when attr is missing from local object '''
+        if not (self._extends is None):
+            return getattr(self._extends, attr, self.default_null.get())
+        elif attr in self._slots_:
+            return self.default_null.get()
+        raise AttributeError(self._slots_,attr, obj=self, name=attr)
+        
+    def __setattr__(self,attr,value):
+        # self.verify_structure({attr:value})
+        super().__setattr__(attr, value)
         if attr in self._slots_:
-            res = super().__setattr__(attr, value)
-            self.signal_value_updated(attr, value)
-            return res
-        return super().__setattr__(attr, value)
+            self.element_changed(attr,value)
 
-    def _get_filled_slots(self)->dict:
-        res = {}
-        for k in self._slots_:
-            if hasattr(self,k):
-                res[k] = getattr(self,k)
-        return res
+    def __setitem__(self, key, value):
+        self.__setattr__(key,value)
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+    def __delitem__(self, key):
+        self.__delattr__(key)
 
-    def _iter_extends(self,):
+    def __delattr__(self, attr):
+        super().__delattr__(attr)
+        self.element_changed(attr, getattr(self, attr))
+
+    def _iter_extends(self):
         if self._extends:
             yield from self._extends._iter_extends()
             yield self._extends
 
-    def set_extends(self, extends:StructContext|None):
-        if self._extends:
-            self._extends.signal_value_updated.disconnect(self.signal_value_updated)
-        ##TODO: DIF THIS SHIT TO EXTEND!!
-        old = {} 
-        for e in self._iter_extends():
-            old.update(e._get_filled_slots())
+    def _get_local_elements(self,)->dict[str,Any]:
+        ''' Return a dict that only contains slots fullfilled locally '''
+        res = {}
+        t = self.default_null.set(_UNSET)
+        _dir = dir(self)
+        for attr in filter(lambda x: x in _dir, self._slots_):
+            res[attr] = getattr(self, attr)
+        self.default_null.reset(t)
+        return res
 
+    def _get_all_elements(self,)->dict[str,Any]:
+        ''' Return a dict that contains all slots fullfilled in extends chain '''
+        res = self._get_local_elements()
+        t = self.default_null.set(_UNSET)
+        for c in reversed(tuple(self._iter_extends())):
+            search = filter(lambda x: not (x in res.keys()), c._slots_)
+            for attr in search:
+                if not (getattr(c, attr) is _UNSET):
+                    res[attr] = getattr(self, attr)
+        self.default_null.reset(t)
+        return res
+
+    def set_extends(self, extends:Context|None, supress_changes:bool=False):
+        ''' Set or clear extends, manage signal forwarding, and signal diffed values '''
+        old = self._get_all_elements()
+        cur = self._get_local_elements()
+
+        if not(extends is None):
+            _cur = extends._get_all_elements()
+            _cur.update(cur)
+            cur = _cur
+
+        if not (self._extends is None):
+            self._extends.element_changed.disconnect(self.element_changed)
         self._extends = extends
-        new = {}
-        for e in self._iter_extends():
-            new.update(e._get_filled_slots())
+        if not (self._extends is None):
+            self._extends.element_changed.connect(self.element_changed)
 
-        _old_keys = old.keys()
-        _new_keys = new.keys()
+        if supress_changes:
+            return
 
-        rem = filter(lambda k: not k in _new_keys, _old_keys)
-        add = filter(lambda k: not k in _old_keys, _new_keys)
-        change = filter(lambda k: (k in _old_keys) and not (getattr(new,k) is getattr(old,k)), _new_keys)
+        _old_keys = tuple(old.keys())
+        _cur_keys = tuple(cur.keys())
 
-        for k in (*rem, *add, *change):
-            self.signal_value_updated(k, getattr(self,k))
+        rem = {k:None for k,v in old.items() if not (k in _cur_keys)}
+        add = {k:v for k,v in cur.items() if not (k in _old_keys)}
+        # set(_old_keys) & set(_cur_keys)
+        changed = {k:cur.get(k) for k in (set(_old_keys) & set(_cur_keys)) }
+        # changed = {k:v for k,v in cur.items() if (not (v is old.get(k, None)))}
 
-        if extends:
-            extends.signal_value_updated.connect(self.signal_value_updated)
+        for k,v in {**rem, **add, **changed}.items():
+            self.element_changed(k, v)
+        return add, rem, changed
 
-    def callback(self, key:str, callback:Callable, once:bool=False, local_only=False):
-        # raise Exception(key)
-        def func(origin, attr, val):
-            if (not (origin is self)) and local_only:
-                return
-            if attr != key:
-                return
-            res = callback(val)
-            if once:
-                return Signal.REMOVE
-            return res
-        
-        self.signal_value_updated.connect(func, include_owner=True)
+    def callback(self, attribute:str, callback:Callable, **kwargs)->None:
+        ''' Shortcut to filtered signal '''
+        return self.element_changed.connect(callback, **kwargs, filter=lambda attr, *args: attr == attribute)
+            
