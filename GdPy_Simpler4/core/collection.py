@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Callable, Self
+from typing import Any, Iterable, Callable, Self, Type
 from collections import UserDict
 from string import digits, ascii_letters
 from enum import Enum
@@ -46,22 +46,20 @@ class CollectionKey[K:str|int]():
         self.src = src
         self._key = key
 
-# class CollectionKeyProperty():
-#     attr : str
-    
-#     def __init__(self, attr):
-#         self.attr = attr
+class CollectionKeyProperty:
+    ty : Type
+    attr : str
+    callback_id : str
 
-#     def __get__(self, instance, owner):
-#         promise : None|CollectionKey = getattr(instance, self.attr, None)
-#         if promise is None:
-#             return None
-#         return promise.key
+    def __init__(self, ty, attr:str):
+        self.ty = ty
+        self.attr = attr
 
-#     def __set__(self, instance, value):
-#         promise : None|CollectionKey = getattr(instance, self.attr, None)
-#         if promise is None:
-#             return setattr(instance, self.attr, CollectionKey(instance, key = value))
+    def __get__(self, instance, owner):
+        return getattr(instance, self.attr).key
+
+    def __set__(self, instance, value ):
+        getattr(instance, self.attr).key = value
 
 from enum import Enum
 

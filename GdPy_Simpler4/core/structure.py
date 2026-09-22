@@ -1,26 +1,244 @@
+''' This version of the structure focuses on
+- promises as temporary helper objects that are replaced at first possible state where it can be done so 
+- Removing requirement for nodes to attach self to `resource.nodes`
+    - SubResources should still be attached to resource.sub_resources for namespace reasons
+- Simplifying interfaces via @properties and objects that act as properties
+'''
+
 from __future__ import annotations
 
-from collections import UserDict, UserString
+from .collection import Collection, CollectionKey, CollectionKeyProperty
+from .context import Context as _Context
+from .signals import Signal, DISCONNECT
+
+from string import ascii_letters
+from random import randint, sample
+from typing import Any, Self, Iterable, Type
+from enum import Enum
+from collections import UserDict
+from weakref import ref as wref, ReferenceType
 
 from fsspec import AbstractFileSystem
-from typing import Iterable, Any, Type
-
-from copy import copy
-
-from .signals import Signal
-from .context import Context as _Context
-from .collection import Collection, CollectionKey
-from .structure_promise import RefType, StructReference, StructReferenceProperty 
-from .defininitions import GdDefType, GdDefProperty, GdDefSignal
-
 
 class _UNSET:...
 
 class Context(_Context):
     _slots_ = ("project", "resource", "subresource", "ext_resource")
 
+class Users(list):
+    ''' List with weak values '''
+    def append(self, object):
+        object = wref(object)
+        return super().append(object)
+    
+    def remove(self, value):
+        for ref in tuple(self):
+            if (res:=ref()) is value:
+                super().remove(value)
+                return
+            elif res is None:
+                super().remove(res)
+
+    def __contains__(self, key):
+        for ref in tuple(self):
+            if ref() is key:
+                return True
+        return super().__contains__(key)
+
+class Promise[T:Any]:
+    class Type(Enum):
+        FILE = "FILE"
+        RESOURCE = "RESOURCE"
+        SUB_RESOURCE = "SUB_RESOURCE"
+        EXT_RESOURCE = "EXT_RESOURCE" ## Resolves to a resource
+        EXT_RESOURCE_DIRECT = "EXT_RESOURCE_DIRECT" ## As in actual Ext_Resource object. Used pretty mmuch only in construction!
+
+    key : str|int|dict
+    p_type : Promise.Type
+
+    def __init__(self, key:str|int|dict, p_type:Promise.Type):
+        match p_type:
+            case Promise.Type.EXT_RESOURCE:
+                assert isinstance(key, dict)
+            case _:
+                assert isinstance(key, str)
+        self.key = key
+        self.p_type = p_type
+
+    def __repr__(self):
+        return f"Promise({self.p_type.lower()}, {self.key})"
+
+    def resolve[D](self, context:Context, /, default:D=None)->D|T:
+        match self.p_type:
+            case Promise.Type.FILE:
+                container = context.project 
+                if (container is None): return default
+                result = container.files.get(self.key,default=None)
+
+            case Promise.Type.RESOURCE:
+                container = context.project
+                if (container is None): return default
+                result = container.resources.get(self.key,default=None)
+
+            case Promise.Type.EXT_RESOURCE:
+                container = context.project 
+                if (container is None): return default
+                result = container.resolve_ext_resource(**self.key, default=None)
+
+            case Promise.Type.SUB_RESOURCE:
+                container = context.resource
+                if (container is None): return default
+                result = container.sub_resources.get(self.key, default=None)
+
+            case Promise.Type.EXT_RESOURCE_DIRECT:
+                container = context.resource
+                if (container is None): return default
+                result = container.ext_resources.get(self.key, default=None)
+
+        if result is None:
+            return default
+        return result
+
+class PromiseContextual(Promise):
+    ''' Container for replace callback from context, used in Properties
+    Also Basic for PromiseProperty, acting as a callback.
+    '''
+    context : Context
+    replace : Signal
+
+    _cached_collection : ReferenceType[Collection] = wref(_UNSET())
+    _cached_collection_b : ReferenceType[Collection] = wref(_UNSET())
+
+    _map = {
+        Promise.Type.FILE : ["project", "files"],
+        Promise.Type.RESOURCE : ["project", "resources"],
+        Promise.Type.EXT_RESOURCE : ["project", None],
+        Promise.Type.SUB_RESOURCE : ["resource", "sub_resources"],
+        Promise.Type.EXT_RESOURCE_DIRECT : ["resource", "ext_resources"],
+    }
+
+    def __init__(self, key, p_type, context:Context|None=None, _extra_args:Iterable=tuple()):
+        self.__setup__()
+        self._extra_args = _extra_args
+        super().__init__(key, p_type)
+        if context is None: 
+            return
+
+        self.context.element_changed.connect(self._on_element_changed)
+        self.connect()
+        self.context.set_extends(context)
+        # if not ((val:=self.resolve(context)) is None):
+        #     self.replace(val, *self._extra_args)
+        
+    def __setup__(self):
+        self.context = Context()
+        self.replace = Signal(self)
+        self.context.element_changed(self._on_element_changed)
+
+    def _on_element_changed(self, elem, obj):
+        if elem != self._map[self.p_type][0]:
+            return
+        if not ((val:=self.resolve(self.context)) is None):
+            self.replace(val, *self._extra_args)
+        self.disconnect()
+        if obj:
+            self.connect()
+
+    def disconnect(self):
+        ''' disconnect from cached collection if/a '''
+        if (self.p_type is Promise.Type.EXT_RESOURCE):
+            col = self._cached_collection()
+            if not (col is None):
+                col.appended.disconnect(self._check_appended)
+                col.renamed.disconnect(self._check_renamed)
+            col = self._cached_collection_b()
+            if not (col is None):
+                col.appended.disconnect(self._check_appended)
+                col.renamed.disconnect(self._check_renamed)
+        else:
+            col = self._cached_collection()
+            if not (col is None):
+                col.appended.disconnect(self._check_appended)
+                col.renamed.disconnect(self._check_renamed)
+
+    def connect(self):
+        ''' Fetch from local context (owners's context), connect if/a '''
+        container = getattr(self.context, self._map[self.p_type][0], None)
+        if container is None: 
+            return
+
+        if (self.p_type is Promise.Type.EXT_RESOURCE):
+            container : Project
+            self._cached_collection = wref(container.files)
+            self._cached_collection_b = wref(container.resources)
+            container.files.appended.connect(self._check_appended, weak=True, prepend_source=True)
+            container.files.renamed.connect(self._check_renamed, weak=True, prepend_source=True)
+            container.resources.appended.connect(self._check_appended, weak=True, prepend_source=True)
+            container.resources.renamed.connect(self._check_renamed, weak=True, prepend_source=True)
+        else:
+            col : Collection = getattr(container, self._map[self.p_type][1])
+            self._cached_collection = wref(col)
+            col.appended.connect(self._check_appended, weak=True, prepend_source=True)
+            col.renamed.connect(self._check_renamed, weak=True, prepend_source=True)
+
+    def _check_renamed(self, col, o_key, n_key, obj):
+        self._check_appended(col,n_key, obj)
+
+    def _check_appended(self, col, key, obj):
+        ''' Non-optimal, but is alright for now '''
+        if key == self.key:
+            self.replace(obj, *self._extra_args)
+
+class PromiseProperty():
+    obj : Any
+    attr : str
+    callback_id : str
+
+    def __init__(self, attr:str, callback_id:str, p_type:Promise.Type):
+        self.attr = attr
+        self.callback_id = callback_id
+        self.p_type = p_type
+
+    def __get__(self, instance, owner):
+        return getattr(instance, self.attr)
+
+    #     if obj:=getattr(self.obj, self.attr, None) is None:
+    #         return None
+    #     elif isinstance(obj, Promise):
+    #         return obj.resolve(self.obj.context, default=obj)
+    #     else:
+    #         return obj
+
+
+    def __set__(self, instance, value:str|int|Promise|Any|None):
+        o_val = getattr(instance, self.attr, None)
+
+        if isinstance(o_val, PromiseContextual):
+            o_val.replace.disconnect(self.replace, not_exist_ok=True)
+
+        if isinstance(value, str|int):
+            value = Promise(value, self.p_type)
+
+        if isinstance(value, Promise):
+            if not ((val:=value.resolve(instance.context)) is None):
+                value = val
+            else:
+                value = PromiseContextual(value.key, value.p_type, context=instance.context, _extra_args = (instance,))
+                value.replace.connect(self.replace, weak=True)
+        
+        setattr(instance, self.attr, value)
+        getattr(instance, self.callback_id)(o_val, value)
+
+
+    def replace(self, value, instance):
+        setattr(instance, self.attr, value)
 
 class Properties(UserDict):
+    ''' Overlayable dict, any subresource, subresource promises will be localized at fetch 
+    Direct references are rendered to indirect on transformation to text w/a
+    Promises can exist in a dict, but are replaced when applicable
+    '''
+    
     context : Context
 
     overlay : Properties|None = None
@@ -36,28 +254,85 @@ class Properties(UserDict):
         self.updated = Signal(self)
         self.data = {}
 
-    def __init__(self, iterable=tuple(), /, context:Context=None):
+    def __init__(self, iterable:Iterable=tuple(), context:Context=None):
         self.__setup__()
         self.context.set_extends(context)
-        self.update(iterable)
-        # super().__init__(iterable)
+        super().__init__(iterable)
 
-    def overlay_chain(self, depth_first:bool=False):
-        if self.overlay is None:
-            yield self
-            return
-        if depth_first:
-            yield from self.overlay.overlay_chain(depth_first=depth_first)
-            yield self
+
+    ## SET ITEM ## 
+
+    def __setitem__(self, key, item):
+        return self.set(key, item)
+
+    def set(self, key:str, item:Any):
+        o_item :Any|_UNSET = self.data.get(key, _UNSET)
+
+        if isinstance(item, Promise):
+            item = item.resolve(self.context, default=item)
+
+        if isinstance(item, Promise) and (not isinstance(item, PromiseContextual)):
+            item = PromiseContextual(item.key, p_type=item.p_type, context=self.context)
+            item.replace.connect(self.replace_value, prepend_source=True)
+
+        if not ((callback:=getattr(item, "reference_callback",None)) is None):
+            callback(self)
+
+        super().__setitem__(key, item)
+
+        if o_item is _UNSET:
+            self.added(key, item)
         else:
-            yield self
-            yield from self.overlay.overlay_chain(depth_first=depth_first)
+            self.updated(key, o_item, item)
+
+
+    ## GET ITEM ## 
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def get[D:Any](self, key:str, /, default:D=_UNSET, use_overlay:bool=True, localize:bool=True)->Any|D:
+        result = self.data.get(key, _UNSET)
+
+        if not (result is _UNSET):
+            return result
+        elif not use_overlay:
+            return default
+
+        sources = [(o.context, o.data) for o in self.overlay_chain()] 
+        result = _UNSET
+        for (o_context, data) in sources:
+            result = data.get(key, _UNSET)
+            if not (result is _UNSET):
+                if localize:
+                    return self.localize(o_context, result)
+                return result
+        return default
+
+    ## DEL ITEM ##
+
+    def __delitem__(self,key):
+        self.delitem(key)
+
+    def delitem(self, key):
+        o_item = self.get(key, default=_UNSET, unset_ok=True)
+        super().__delitem__(key)
+        self.deleted(key, o_item)    
+        if not ((callback:=getattr(o_item, "reference_callback",None)) is None):
+            callback(self)
+
+
+    ### OVERALY 
+    
+    def overlay_chain(self, ):
+        if not (self.overlay is None): 
+            yield from self.overlay.overlay_chain()
+            yield self.overlay
 
     def set_overlay(self, overlay:Properties|None, supress_diff:bool=False)->tuple[list,list,list]:
         if self.overlay is overlay: 
             return 
-        o_items = dict(self.items(resolve_reference=False, localize=False, use_overlay=True))
-        # raise Exception(o_items)
+        o_items = dict(self.items(localize=True, use_overlay=True))
         
         if not (self.overlay is None):
             self.overlay.added.disconnect(self._on_overlay_added)
@@ -74,7 +349,7 @@ class Properties(UserDict):
         if supress_diff:
             return
 
-        n_items = dict(self.items(resolve_reference=False, localize=False, use_overlay=True))
+        n_items = dict(self.items(localize=True, use_overlay=True))
 
         added = {k:v for k,v in n_items.items() if (not (k in o_items.keys()))}
         removed = {k:v for k,v in o_items.items() if (not (k in n_items.keys()))}
@@ -86,25 +361,9 @@ class Properties(UserDict):
             self.removed(k, v)
         for k,(v0,v) in updated.items():
             self.updated(k,v0, v)
-
-        #TODO: Try to optimize via caching keys or dict slices.
-        # added   = tuple(((k,v) for k,v in n_items.items() if not (k in o_items.keys())))
-        # removed = tuple(((k,v) for k,v in o_items.items() if not (k in n_items.keys())))
-        # updated = tuple(((k, o_items[k], v) for k,v in n_items.items() if (k in o_items.keys() and (o_items[k] != v))))
-
-        # for k,v in added:
-        #     self.added(k,v)
-        
-        # for k,v in removed:
-        #     self.removed(k,v)
-        
-        # for k,v0,v in updated:
-        #     self.updated(k,v0,v)
         
         return {"added":added, "removed":removed, "updated":updated}
-
-        
-
+ 
     def _on_overlay_added(self, key, value):
         if key in self.data.keys():
             return
@@ -120,73 +379,8 @@ class Properties(UserDict):
             return
         self.updated(key, v0, value)
 
-    def __getitem__(self, key):
-        return self._get(key)
 
-    def get[D](self, key:str, default:D=None, localize:bool=True, use_overlay:bool=True, resolve_reference:bool=True)->Any|D:
-        return self._get(key, default, localize, use_overlay, resolve_reference)
-    
-    def _get[D](self, key:str, default:D=_UNSET, localize:bool=True, use_overlay:bool=True, resolve_reference:bool=True, unset_ok:bool=False)->Any|D:
-        """ Converts promises outgoing, unless required to return direct """
-        if use_overlay:
-            chain : Iterable[Properties] = self.overlay_chain()
-        else:
-            chain : Iterable[Properties] = tuple([self])
-
-        traversed : list[Properties] = []
-
-        for p in chain:
-            traversed.append(p)
-
-            v = p.data.get(key, _UNSET)
-            if v is _UNSET:
-                continue
-
-            if (not isinstance(v, StructReference)) or (not resolve_reference):
-                return v
-
-            if not localize:
-                return v.resolve(p.context)
-
-            for _p in traversed:
-                ## Look (local -> Src) for matching ID to return
-                r = v.resolve(_p.context, v)
-                if not (r is v):
-                    return r
-                
-            return v
-
-        if (default is _UNSET) and (not unset_ok):
-            raise KeyError(key)
-        
-        return default
-
-    def __delitem__(self, key):        
-        o_item = self._get(key, default=_UNSET, unset_ok=True)
-        super().__delitem__(key)
-        self.deleted(key, o_item)    
-
-    def __setitem__(self, key, item):
-        return self._set(key, item)
-
-    def set(self, key:str, item:Any):
-        self._set(key, item)
-
-    def _set(self, key:str, item:Any):
-        o_item = self._get(key, default=_UNSET, unset_ok=True)
-
-        if isinstance(item, StructReference):
-            self.data[key] = item
-            # self.data[key] = copy(item)
-        elif isinstance(item, (Project,Resource,File)):
-            self.data[key] = StructReference(obj = item)
-        else:
-            self.data[key] = item
-
-        if o_item is _UNSET:
-            self.added(key, item)
-        else:
-            self.updated(key, o_item, item)
+    ## GENERATORS
 
     def keys(self, use_overlay:bool=True):
         yielded : list[str] = []
@@ -199,456 +393,287 @@ class Properties(UserDict):
             yielded.append(k)
             yield k
 
-        for _p in self.overlay_chain():
+        for _p in (self, *self.overlay_chain()):
             for k in _p.data.keys():
                 if k in yielded: 
                     continue
                 yielded.append(k)
                 yield k
 
-    def values(self, localize:bool=True, use_overlay:bool=True, resolve_reference:bool=True):
+    def values(self, localize:bool=True, use_overlay:bool=True):
         for k in self.keys(use_overlay=use_overlay):
-            yield self._get(k, localize=localize, use_overlay=use_overlay, resolve_reference=resolve_reference)
+            yield self.get(k, localize=localize, use_overlay=use_overlay)
         
-    def items(self, localize:bool=True, use_overlay:bool=True, resolve_reference:bool=True):
+    def items(self, localize:bool=True, use_overlay:bool=True):
         for k in self.keys(use_overlay=use_overlay):
-            yield (k, self._get(k, localize=localize, use_overlay=use_overlay, resolve_reference=resolve_reference))
+            yield (k, self.get(k, localize=localize, use_overlay=use_overlay))
         
+    def localize[V:Any](self, original_context, value:V)->V:
+        if isinstance(value, Promise):
+            return value.resolve(self.context, default=value)
+
+        elif isinstance(value, Resource) and (not isinstance(value,Node)):
+            if self.context.resource:
+                return self.context.resource.sub_resources.get(value.name, default=value)
+
+        elif not ((func:=getattr(value, "localize", None)) is None):
+            ## Array / Dict copy
+            return func(self.context)
+
+        return value
+        
+    def replace_value(self, o_value, n_value):
+        for k,v in dict(self.data):
+            if (v is o_value):
+                self[k] = n_value
+
+    def __len__(self):
+        return len((*self.keys(),))
+
 class Project():
     context : Context
-    files : Collection[str, File]
+
+    fs : AbstractFileSystem
+
+    users: Users
+
     resources : Collection[str, Resource]
-    types : Collection[str, GdDefType]
+    files : Collection[str, File]
+    # resource_types : Collection[str, GdType] #DEFER
 
-    file_system : AbstractFileSystem
-    file_system_Signals : type
+    def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
+        self.__setup__()
+        self.fs = fs
+        self.files.extend(files)
+        self.resources.extend(resources)
 
     def __setup__(self):
-        self.context = Context(project = self)
-        self.files = Collection(key_attr="path", context=self.context)
-        self.resources = Collection(key_attr="uid", context=self.context)
-        self.types = Collection(key_attr="composite", context=self.context)
+        self.users = Users()
+        self.context = Context(project=self)
+        self.resources = Collection(key_attr="_name", context = self.context)
+        self.files = Collection(key_attr="_path", context = self.context)
 
-    def __init__(self, fs:AbstractFileSystem):
-        self.__setup__()
-        self.file_system = fs
-
-class ExtResource():
-    context : Context
-    id : CollectionKey[str]
-
-    fullfill_references : Signal[RefType, str]
-
-    _file : StructReference[str, File] = None
-    _resource : StructReference[str, Resource] = None
-    file = StructReferenceProperty("_file", RefType.FILE)
-    resource = StructReferenceProperty("_resource", RefType.RID)
-
-    _gdtype : StructReference[str, GdDefType]
-    gdtype = StructReferenceProperty("_file", RefType.FILE)
-
-    def __setup__(self):
-        self.context = Context(ext_resource=self)
-        self.id = CollectionKey(src = self, key = None)
-        self.fullfill_references = Signal(self)
-
-    def __init__(self, type:GdDefType|str|None=None, id:str|None=None, path:str|File|None=None, uid:str|Resource|None=None):
-        self.__setup__()
-        self.id.key = id
-        self.gdtype = type
-
-        self.file = path
-        if isinstance(uid, str):
-            uid = uid.split("uid//")[-1]
-        self.resource = uid
-
-
-    def provide_reftype_key(self)->tuple[None,None]:
-        if not (self.id.key is None):
-            return (RefType.EXT_RESOURCE, self.id.key)
-        return (None,None)
-
-    def _reference_callback(self):
-        self.fullfillreferences(RefType.EXT_RESOURCE, self.id.key)
-
-    def __eq__(self, value:Any|ExtResource):
-        if not isinstance(value, self.__class__):
-            return super().__eq__(value)
-        return all([
-            self.id.key == value.id.key,
-            self.gdtype == value.gdtype,
-            self.file == value.file,
-            self.resource == value.resource,
-        ])
-
+    def reference_callback(self, obj):
+        self.users.append(obj)
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
 
 class File():
     context : Context
 
-    path : CollectionKey[str]
+    filetype : FileIO|None = None
 
-    fullfill_references : Signal[RefType, str]
+    users: Users
 
-    _resource : StructReference[Resource]
-    resource = StructReferenceProperty("_resource", RefType.RID)
+    _path : CollectionKey[str]
+    path = CollectionKeyProperty(str, "_path")
+    path_set : Signal[str|None]
 
-    def __init__(self, path:str, resource:str|Resource|None=None):
+    _resource : Promise[Resource]|Resource|None = None
+    resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
+    resource_set : Signal[str|None]
+
+    def __init__(self, filetype:str|FileIO|None=None , resource:Resource|None=None):
         self.__setup__()
-        self.path.key = path
+        self.filetype = filetype
         self.resource = resource
 
     def __setup__(self):
-        self.context = Context()
-        self.path = CollectionKey(src=self)
-        self.fullfill_references = Signal(self)
+        self.context = Context(file=self)
+        self.users = Users()
 
-    def provide_reftype_key(self)->tuple[RefType|None,str|None]:
-        if (not (self.path.key is None)) and (not (self.context.project is None)):
-            return (RefType.FILE, self.id.key)
-        return RefType.DEFER, None
+        self.path_set = Signal(self)
+        self.resource_set = Signal(self)
 
-class FileContents():
-    context : Context
-    uid : CollectionKey[str]
-    _file : StructReference[str, File]
-    file = StructReferenceProperty("_file", RefType.FILE)
+    def reference_callback(self, obj):
+        self.users.append(obj)
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
 
-    def __init__(self, uid:str|None=None, file:File|None=None,):
-        self.__setup__()
-        if uid or file:
-            self.__setup_file__(uid=uid, file=file)
+## IMPORT AND SETTINGS ##
 
-    def __setup__(self):
-        self.context = Context(resource = self)
-        self.uid = CollectionKey(src=self,key=None)
-        self.properties = Properties(context=self.context)
-
-    def __setup_file__(self, uid:str|None=None, file:str|File|None=None):
-        if not (uid is None):
-            uid = uid.split("uid://")[-1]
-
-        self.file = file
-        self.uid.key = uid
-        self.context.resource = self
-
-
-class Settings(FileContents):
+class Settings:
     ''' Simple file contents object '''
-    categories : Collection
+    context : Context 
+    
+    categories : Collection[str, Category]
+    properties : Properties
 
-    def __init__(self, uid = None, file = None, categories:Iterable[Category]=tuple(), properties:Iterable=tuple()):
-        super().__init__(uid, file)
+    def __init__(self, categories:Iterable[Category]=tuple(), properties:Iterable=tuple()):
+        self.__setup__()
         self.categories.extend(categories)
         self.properties.update(properties)
 
     def __setup__(self):
-        super().__setup__()
-        self.categories = Collection(key_attr = "name")
+        self.context = Context(resource = self)
+        self.categories = Collection(key_attr = "name", context=self.context)
         self.properties = Properties(context=self.context)
 
-class Category():
+class Category:
     context : Context
-    name : CollectionKey[str]
+    _name : CollectionKey[str]
+    name = CollectionKeyProperty(str, '_name')
     properties : Properties
 
-    def __init__(self, name, properties):
+    users : list[ReferenceType]
+
+    def __init__(self, name:str, properties=tuple()):
         self.__setup__()
-        self.name.key = name
+        self.name = name
         self.properties.update(properties)
 
     def __setup__(self):
         self.context = Context(subresouce=self)
-        self.name = CollectionKey(self)
+        self._name = CollectionKey(self)
         self.properties = Properties(context=self.context)
-        
 
-class Resource(FileContents):
+    def reference_callback(self, obj):
+        self.users.append(obj)
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
+
+
+class FileIO[ResourceType:Resource](Settings):
+    ## TODO Matched globally via file type, somehow.
+    
+    def create_resource()->ResourceType:
+        ''' Create a from-scratch resource matching specified type '''
+
+    def file_import()->ResourceType:
+        pass
+
+    def file_export()->tuple[tuple[str],bytes]:
+        ''' return file extension(s) and disc-byte rep '''
+        pass
+
+## RESOURCE STRUCTURE ##
+
+class Resource():
+    ''' Baseclass for resources, mostly equivilent to Godot eq 
+    Due to desire for simplicity, and non-uniform trees, tree normalization is done via external means
+    '''
+
+    ## ALL INSTANCES ##
     context : Context
+    users : list[ReferenceType]
 
-    ## as file:
-    _format : int = 4
-    uid : CollectionKey[str]
-    _file : StructReference[str, File]
-    file = StructReferenceProperty("_file", RefType.FILE)
-    sub_resources : None|Collection[str, Resource] = None
-    ext_resources : None|Collection[str, ExtResource] = None
+    _name : CollectionKey[str]
+    name = CollectionKeyProperty(str, "_name")
+    name_set : Signal[str|Node|None]
 
-    _instance : StructReference[str, ExtResource]
-    instance = StructReferenceProperty("_instance", RefType.EXT_RESOURCE)
-    overlay : Resource|None = None
-    overlay_updated : Signal[Resource|None]
-
-    ## All:
-    id : CollectionKey[str]
-
-    _gdtype : StructReference[str, GdDefType]
-    gdtype = StructReferenceProperty("_file", RefType.FILE)
+    _instance : Promise[Self]|Self|None = None # Specifically ExtResource promise
+    instance = PromiseProperty("_instance", "instance_set", Promise.Type.EXT_RESOURCE)
+    # instance = PromiseProperty(self, "_instance", self.context, "instance_set", Promise.Type.EXT_RESOURCE)
+    instance_set : Signal[str|Self|None]
+    instance_editable : bool = False
 
     properties : Properties
 
-    fullfill_references : Signal[RefType, str]
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:File|None=None, properties:Iterable|dict=tuple(), sub_resources:Iterable[Resource]=None, ext_resources:Iterable[ExtResource]=None, instance:Resource|File|ExtResource|None=None, setup_overlay:bool=True, type:GdDefType|str|None=None, format:int=4):
+    ## SCENE/FILE ONLY ##
+    constructed: bool|None = None
+
+    uid_set : Signal[str|None]
+    file_set : Signal[str|File|None]
+
+    _uid : CollectionKey[str]|None = None
+    uid = CollectionKeyProperty(str, "_uid") #callback = "uid_set"
+
+    _file : Promise[File]|File|None = None
+    file = PromiseProperty("_file", "file_set", Promise.Type.FILE)
+
+    sub_resources : Collection[str, Resource] 
+        ## Inclusionary, 
+            # only "cleaned" for unreferenced if tree is constructed/loaded fully
+            # At write also remove instances converted to external files. 
+        ## references to subresources should append to this subresource
+        ## Promises draw from this "pool" 
+
+    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Subresource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
-        self._format = format
-        self.id.key = id
-        if uid or file:
-            self.__setup_file__(uid=uid, file=file)
+
+        self.instance = instance
+        self.instance_editable = instance_editable
+
+        self.name = id 
+
+        self.sub_resources.extend(subresources)
         self.properties.update(properties)
-
-        self.gdtype = type
-
-        if not (sub_resources is None):
-            self.sub_resources.extend(sub_resources)
-        if not (ext_resources is None):
-            self.ext_resources.extend(ext_resources)
-
-        self.set_instance(instance, set_overlay=setup_overlay)
-
-    def set_instance(self, instance:Resource|File|ExtResource|None, set_overlay:bool=False):
-        o_val = self.instance
-        if instance is o_val:
-            return
-        if instance is None:
-            self.instance = None
-        elif isinstance(instance, ExtResource):
-            self.instance = instance
-        elif isinstance(instance, Resource):
-            self.instance = ExtResource(id=None, resource=instance)
-        elif isinstance(instance, File):
-            self.instance = ExtResource(id=None, file=instance)
-        else:
-            raise TypeError(instance, "expected:", Resource|File|ExtResource|None) 
-
-        if not (self.overlay is None):
-            self.set_overlay(None)
-        if set_overlay and (not (instance is None)):
-            assert not isinstance(self.instance.resource, StructReference)
-            self.set_overlay(self.instance.resource)
-
-        self.instance_updated(self.instance)
-
-    def set_overlay(self, overlay:Resource|None):
-        self.overlay = overlay
-
-        if not (overlay is None):
-            self.properties.set_overlay(overlay.properties)
-            if not self.is_subresource():
-                self.sub_resources.set_overlay(overlay.sub_resources)
-        else:
-            self.properties.set_overlay(None)
-            if not self.is_subresource():
-                self.sub_resources.set_overlay(None)
-
-        self.overlay_updated(overlay)
 
     def __setup__(self):
-        self.context = Context(resource = self)
-        self.instance_updated = Signal(self)
-        self.overlay_updated = Signal(self)
-        self.fullfill_references = Signal(self)
-
-        self.id = CollectionKey(src=self,key=None)
-        self.uid = CollectionKey(src=self,key=None)
+        self.context = Context(subresource=self)
+        self.sub_resources = Collection(key_attr = "name", context=self.context)
         self.properties = Properties(context=self.context)
+        self.users = Users()
 
-    def __setup_file__(self, uid:str|None=None, file:str|File|None=None):
-        self.sub_resources = Collection(key_attr = "id", context=self.context)
-        self.ext_resources = Collection(key_attr = "id", context=self.context)        
+        self._uid = CollectionKey(self) 
+        self.uid_set = Signal(self) 
+        self._uid.key_updated.connect(self.uid_set)
+        # self.uid_set.connect(self._on_uid_set)
 
-        if not (uid is None):
-            uid = uid.split("uid://")[-1]
+        self._name = CollectionKey(self)
+        self.name_set = Signal(self)
+        self._name.key_updated.connect(self.name_set)
 
-        self.file = file
-        self.uid.key = uid
-        self.context.resource = self
+        self.instance_set = Signal(self) 
+        # self.instance_set.connect(self._on_instance_set)
 
-    def is_subresource(self)->bool:
-        return (self.uid.key is None) and (self.file is None)
-    
-    def is_resource(self)->bool:
-        return (not (self.uid.key is None)) or (not (self.file is None))
+        self.file_set = Signal(self) 
+        self.file_set.connect(self._on_file_set)
 
-    def provide_reftype_key(self)->tuple[RefType|None,str|None]:
-        if self.is_subresource() and (not (self.id.key is None)) and (not (self.context.resource is None)):
-            return (RefType.SUB_RESOURCE, self.id.key)
-        elif (not self.is_subresource()) and (not (self.uid.key is None)) and (not (self.context.project is None)):
-            return (RefType.RESOURCE, self.uid.key)
-        return (RefType.DEFER, None)
+    def _on_file_set(self, file:Promise|File|None):
+        ''' Generate UID if one doesn't already exist'''
+        if (file is None) or (not (self.uid is None)): 
+            return
+        self.uid = "".join(sample(ascii_letters, 9))
 
-    def __eq__(self, other):
-        if not isinstance(other, Resource):
-            return False
-        other : Resource
-        return all ([
-            self.sub_resources == other.sub_resources,
-            self.ext_resources == other.ext_resources,
-            self.uid.key == other.uid.key,
-            self.id.key == other.id.key,
-            self.file == other.file,
-            self.gdtype == other.gdtype,
-            self.properties == other.properties,
-            self.instance == other.instance,
-        ])
+    ## STD TOOLS:
+    def construct_and_load(self):
+        ''' Normalize references/ownership and construct tree, loading everything. Multipass in-place transformer. Load dependencies as well. '''
+        if self.uid is None: 
+            raise TypeError()
+        raise NotImplementedError()
 
-    def _dif(self, other)->dict:
-        return {
-            "uid"           : (self.uid.key == other.uid.key,             self.uid.key, other.uid.key),
-            "id"            : (self.id.key == other.id.key,               self.id.key, other.id.key),
-            "sub_resources" : (self.sub_resources == other.sub_resources, self.sub_resources, other.sub_resources),
-            "ext_resources" : (self.ext_resources == other.ext_resources, self.ext_resources, other.ext_resources),
-            "properties"    : (self.properties == other.properties,       self.properties, other.properties),
-            "instance"      : (self.instance == other.instance,           self.instance, other.instance),
-            "file"          : (self.file == other.file,                   self.file, other.file),
-            "gdtype"        : (self.gdtype == other.gdtype,               self.gdtype, other.gdtype),
-        }
-        
+    def reference_callback(self, obj):
+        self.users.append(obj)
+    def dereference_callback(self, obj):
+        self.users.remove(obj)
 
-class NodePath(UserString):
+class NodePath(str):...
 
-    def __init__(self, seq, typing:GdDefType|None=None):
-        super().__init__(seq)
-        self._typing = typing
-    _typing : GdDefType = None
-    
-
-class GdSignal():
-    context : Context
-
-    signal : str
-    fr : NodePath
-    to : NodePath
-    options: dict
-
-    def __init__(self, signal:str, fr:NodePath|str, to:NodePath|str, **options):
-        self.signal = signal
-        self.fr = fr
-        self.to = to
-        self.options = options
-        self.context = Context()
-    
 class Node(Resource):
+    ## UNIVERSAL:
+    unique_id : int ## Generate at instanciation if not provided
 
-    _instance : StructReference[str, Node]
-    instance = StructReferenceProperty("_instance", RefType.EXT_RESOURCE)
-    gdtype = StructReferenceProperty("_type", RefType.TYPE)
-    overlay : None|Node = None
+    ## TEMP/CACHED ONLY ##
+    # Node only
+    _parent : None|str = None
 
-    name : CollectionKey[str]
-    children : Collection[str, Node]
-    signals : Collection[str, GdSignal]
+    # Scene only - Pre Construction
+    unclaimed_nodes : None | dict[str, Node] = None
+    unclaimed_edits : None | dict[str, NodePath] = None
 
-    ## temp-construction only:
-    _parent : NodePath|None = None ## Cached on fresh node when interpretted
-    nodes_unclaimed : dict[str, Node] | None = None ## on dump and load, any instance nodes's children that are edited will produce nodes & Edits that cannot be consumed until instances are loaded in file_construction  
-    edits_unclaimed : list[NodePath] | None = None
+    # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
+    #     super().__init__(name, uid, file, properties, subresources)
+    def __init__(self, name:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_edits:dict[str,str]=tuple(), unclaimed_nodes:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+        
+        super().__init__(id=name, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
 
-    ## File only:
-    ext_resources : Collection[str, ExtResource] | None
-    # +++ From Resource baseclass
+        if not (unique_id is None):
+            self.unique_id = unique_id
+        else:
+            self.unique_id = randint(100000, 1000000)
 
-    def __init__(self, name:str, id = None, uid = None, format:int=4, file = None, type = None, properties = tuple(), sub_resources = tuple(), ext_resources = tuple(), instance = None, setup_overlay = True, children:Iterable[Node]=tuple(), instance_editable:bool=False):
-        self.__setup__()
-        self.format = format
-        self.name.key = name
-        self.id.key = id
+        if unclaimed_edits: 
+            self.unclaimed_edits = dict(unclaimed_edits)
+        if unclaimed_nodes: 
+            self.unclaimed_nodes = dict(unclaimed_nodes)
 
-        self.gdtype = type
-
-        if uid or file:
-            self.__setup_file__(uid=uid, file=file)
-            
-        self.properties.update(properties)
-        self.sub_resources.extend(sub_resources)
-        self.ext_resources.extend(ext_resources)
         self.children.extend(children)
-
-        self.set_instance(instance, set_overlay=setup_overlay)
 
     def __setup__(self):
         super().__setup__()
-        self.name = CollectionKey(src = self)
-        self.children = Collection(key_attr="name", context=self.context, key_resolve_incriment=True)
-        self.signals = Collection(key_attr="id", context=self.context)
+        self.children = Collection(key_attr = "_name", context = self.context)
 
-    def set_overlay(self, overlay:Resource|None):
-        self.overlay = overlay
-
-        if not (overlay is None):
-            self.properties.set_overlay(overlay.properties.overlay)
-            self.children.set_overlay(overlay.children)
-            if not self.is_subresource():
-                self.sub_resources.set_overlay(overlay.sub_resources)
-        else:
-            self.properties.set_overlay(None)
-            self.children.set_overlay(None)
-            if not self.is_subresource():
-                self.sub_resources.set_overlay(None)
-
-        self.overlay_updated(overlay)
-
-    def setup_instance(self):
-        raise NotImplementedError()
-
-    def file_construction(self):
-        ''' load all dependency-instances and construct instance-overlay system, pulling from nodes_cache as required'''
-        raise NotImplementedError()
-        
-
-# class NormalizeSession():
-#     memo : dict
-
-#     def normalize[N:Project|ExtResource|Resource|Node](self, 
-#             node            : N,
-#             /, 
-#             singulate        : bool = False, 
-#             localize         : bool = True,
-#             instanciate_load : bool = False,
-#             fix_instanciate  : bool = True,
-#             check_recursion  : bool = True, 
-#             in_place         : bool = True, 
-#             scope            : Type  = None,
-#             )->N: 
-#         ''' 
-#         :param singulate: 
-#         Ensures that every node that is referenced in multiple scopes is copied into those scopes (w/a)
-#         - IE: (R1.subresources["sr1"] is R2.subresources["sr1"]) ->> (R1.subresources["sr1"] == R2.subresources["sr1_copy"])
-#         :param localize:
-#         Ensures that every referenced node that *doesn't* exist in the scope is placed within that scope
-#         - IE: 
-#             - (R1.subresources["sr1"].properties["ref"] is sr2(free)) ->> (R1.subresources["sr1"].properties["ref"] -> R1.subresources["sr2"])
-#             - (R1.subresources["sr1"].properties["ref"] is R2(Free)   ->> (R1.subresources["sr1"].properties["ref"] -> R1.ExtResources[...] -> P.Resources["R2"] is R2)
-#         - Copies to local w/ singulate w/a
-#         :param instanciate_load:
-#         Ensures that all instances referenced are loaded
-#         - IE 
-#             - (R1.instance is StructRef(R0)) ->> (R1.instance is R0)
-#         If project is not set, an error will occur
-#         :param fix_instanciate: 
-#         Ensures that any instanciate structure is fully initialized
-#         - IE 
-#             - (R1.instance is R0 && R1.overlay is None) ->> (R1.instance is R0 && R1.overlay is R0, R1.nodes...ect...)
-#         :param check_recursion:
-#         Checks that recursion rules within the godot structure are not broken;
-#         OK:
-#             Node <-> Node (As ref via nodepath)
-#         NOT_OK:
-#             Sr1 <-> Sr2 (Same scope)
-#             R1 -> R2 -> R1
-#         #TODO: Double check recurision & co-dependency rules.
-
-#         :param in_place:
-#         Manipulate tree in place, or return a deepcopy. 
-#         A deepcopy will *not* be attached to a project/outer scope;
-#             - a copy will not exist in outer scopes collections
-#             - a copy will not have the context extended from the parent
-#         Typically only used in exports
-
-#         :param scope:
-#         Limitiation in lateral action, usually set by first node's type.
-#         - IE 
-#             - R1.normalize(in_place=False, localize=True) ; where (R1.p["ref"]->R2) ; R2 is not coppied, but is localized w/a 
-#         '''
-        
-#         raise NotImplementedError()
-    
+    def resolve_nodepath(self, path:str|NodePath):
+        pass
