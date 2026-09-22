@@ -16,6 +16,7 @@ from ....GdPy.core.structure import (
     Promise as PyPromise,
     Node as PyNode,
     Resource as PyResource,
+    File as PyFile,
 )
 
 from ....GdPy.core.values import (
@@ -65,6 +66,7 @@ from ...core.primitives.pointer_collection import (
     BlPointerArrayWrapper as BlArrayWrapper,
     BlPointerDictionaryItemWrapper as BlDictionaryItemWrapper,
     BlPointerArrayItemWrapper as BlArrayItemWrapper,
+    BlPointerArrayItem as BlArrayItem,
 )
 
 
@@ -130,10 +132,10 @@ class BlToGd_Vector(BlToGd_Transformer):
 
 class Macros:
     @staticmethod
-    def transform_kv_generator(gen:Generator)->dict:
+    def transform_kv_generator(gen):
         res = {}
         for k,v in gen:
-            _k,_v = yield TRANSFORM_CHILDREN(gen) 
+            _k,_v = yield TRANSFORM_CHILDREN([k,v]) 
             res[_k] = v
         return res
 
@@ -147,7 +149,7 @@ class GdToBl_Dictionary(GdToBl_Transformer):
 
         obj, ptr = propcol.store_value(bin_id="bin_dict", wrap=True)
         obj : BlDictionaryWrapper
-        children = yield from Macros.transform_kv_generator(obj.items())
+        children = yield from Macros.transform_kv_generator(node.items())
         ## All GdToBl_Properties::Transformers return pointers to the local value
 
         for k,v in children.items():
@@ -167,32 +169,97 @@ class BlToGd_Dictionary(BlToGd_Transformer):
     contextual = False
     memoized = False
 
+    def transform(self, session, node:BlDictionaryWrapper):
+        src : BlGdDictionary = node.data
+        items = yield from Macros.transform_kv_generator(node.items())
+
+        if not (src.objtype == ""):
+            return PyObject(src.objtype, **items)
+        
+        typing = yield TRANSFORM(src.typing)
+        return PyDictionary(items, typing=typing)
 
     
 class GdToBl_Array(GdToBl_Transformer):
     _keys = (PyArray, PyPackedInt32Array, PyPackedInt64Array, PyPackedFloat32Array, PyPackedFloat64Array, PyPackedStringArray, PyPackedVector2Array, PyPackedVector3Array, PyPackedVector4Array, PyPackedColorArray, PyPackedByteArray, )
     contextual = False
     memoized = False
+
+    def transform(self, session, node):
+        propcol : BlGdPropertyCollection = session.options["properties"].bl_property_structure.get()
+
+        obj, ptr = propcol.store_value(bin_id="bin_array", wrap=True)
+        obj : BlArrayWrapper
+
+        children = TRANSFORM_CHILDREN(node.__iter__(), as_generator=True)
+        for v in children:
+            e = obj.items.new()
+            e: BlArrayItem
+            e.ptr = v
+
+        obj.src.typing = typing
+        typing = yield TRANSFORM(node.typing)
+            
+        return ptr
+
+
 class BlToGd_Array(BlToGd_Transformer):
     _keys = (BlArrayWrapper, )
     contextual = False
     memoized = False
 
+    def transform(self, session, node:BlArrayWrapper):
+        src = node.data
+        typing = yield TRANSFORM(src.typing)
+
+        children = yield TRANSFORM_CHILDREN(node.values())
+        return PyArray(*children, typing=typing)
+
 
 ## OBJECT REFS ##
 
 class GdToBl_Reference(GdToBl_Transformer):
-    _keys = (PyPromise,)
+    _keys = (PyPromise, PyResource, PyNode, PyFile)
     contextual = False
     memoized = False
+
     def match(self, session, node):
         return any([
-            isinstance(node, self._keys),
-            isinstance(node, PyResource) and (not (node.uid is None)),
+            isinstance(node, PyPromise),
+            isinstance(node, PyResource),
+            isinstance(node, PyFile),
         ])
-    def transform(self, session, node):
-        return super().transform(session, node)
 
+    def transform(self, session, node):
+        propcol : BlGdPropertyCollection = session.options["properties"].bl_property_structure.get()
+
+        if isinstance(node, PyPromise):
+            res = yield from self.transform_PyPromise(session, node, propcol)
+            return res
+        elif isinstance(node, PyResource):
+            res = yield from self.transform_PyResource(session, node, propcol)
+            return res
+        elif isinstance(node, PyFile):
+            res = yield from self.transform_PyFile(session, node, propcol)
+            return res
+        raise TypeError(node)
+
+    def transform_PyPromise(self, session, node:PyPromise, propcol:BlGdPropertyCollection):
+        ''' Convert object rep to str promise, *or* reference w/a '''
+        raise NotImplementedError()
+        yield
+
+    def transform_PyResource(self, session, node:PyResource, propcol:BlGdPropertyCollection):
+        ''' Convert object rep to str promise, *or* reference w/a '''
+        raise NotImplementedError()
+        yield
+
+    def transform_PyFile(self, session, node:PyFile, propcol:BlGdPropertyCollection):
+        ''' Convert object rep to str promise, *or* reference w/a '''
+        raise NotImplementedError()
+        yield
+
+        
 class BlToGd_Reference(BlToGd_Transformer):
     _keys = (BlGdReference,)
     _subtype_map = {x.__class__.__name__:x for x in GdToBl_Reference._keys}
