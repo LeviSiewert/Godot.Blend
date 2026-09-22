@@ -81,7 +81,7 @@ class TRANSFORM_CHILDREN(Flag):
         return False, None, tuple(_generator())    
 
 class Transformer[I:Any, O:Any]():
-    contextual : ContextVar|bool = True
+    contextual : ContextVar|bool = True ## Copies or doesnt copy the current context
     memoized : ContextVar|bool = True
     caching : ContextVar|bool = True
     identifier : str|None = None
