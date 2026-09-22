@@ -589,7 +589,7 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Subresource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
 
         self.instance = instance
