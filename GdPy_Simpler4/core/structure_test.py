@@ -1,8 +1,7 @@
-from .new_structure import (
+from .structure import (
     Collection,
     Context,
     Promise,
-    Type,
     PromiseContextual,
     PromiseProperty,
     Properties,
@@ -232,7 +231,7 @@ class Test_Settings:
 
 class Test_Category:
     def test_construction(self):
-        Category()
+        Category("")
 
 class Test_Resource:
     def test_construction(self):
