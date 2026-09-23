@@ -110,21 +110,21 @@ class GdReference(_GenericBinItem):
     TODO: behavior maintance of coll.gd.sub_resources stored subresources.
     '''
 
-    _subtypes = ("ExtResourceRef", "SubResourceRef", "RID", "ResourceRef")
-    _caster = lambda x: x.cached_addr
-    _cast_types = {"ExtResourceRef":_caster, "SubResourceRef":_caster, "RID":_caster, "ResourceRef":_caster}
+    _subtypes = ("FILE","RESOURCE","SUB_RESOURCE","EXT_RESOURCE","EXT_RESOURCE_DIRECT")
+
+    ptr_type : bpy.props.StringProperty() #type:ignore
 
     typing : bpy.props.StringProperty() #type:ignore
+    subtype : bpy.props.StringProperty() #type:ignore
+    addr_resource : bpy.props.StringProperty() #type:ignore
+    addr_filepath : bpy.props.StringProperty(subtype="FILEPATH") #type:ignore
 
-    ## Use as cached val addr:
-    cached_addr : bpy.props.StringProperty() #type:ignore
-
-    ## Use as cached val ref, takes priority over cached_addr:
-    ptr_type : bpy.props.StringProperty() #type:ignore
     ptr_node : bpy.props.PointerProperty(type=bpy.types.Object) #type:ignore
+        #If NodePath
     ptr_mesh : bpy.props.PointerProperty(type=bpy.types.Mesh) #type:ignore
+        #If SubResource :: Arraymesh
     ptr_coll : bpy.props.PointerProperty(type=bpy.types.Collection )#type:ignore
-    
+        #If Scene
 
     @property
     def value(self,):

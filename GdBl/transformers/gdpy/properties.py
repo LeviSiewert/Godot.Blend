@@ -246,18 +246,93 @@ class GdToBl_Reference(GdToBl_Transformer):
 
     def transform_PyPromise(self, session, node:PyPromise, propcol:BlGdPropertyCollection):
         ''' Convert object rep to str promise, *or* reference w/a '''
-        raise NotImplementedError()
-        yield
+
+        session.promises.declare(node)
+
+        obj, ptr = propcol.store_value("",bin_id="bin_reference")
+        obj : BlGdReference
+        obj.ptr_type = node.p_type
+
+        match node.p_type:
+            case PyPromise.Type.FILE:
+                obj.addr_filepath = node.key 
+            case _:
+                obj.addr_resource = node.key 
+
+
+        def callback():
+            ''' Callback for formatting the reference with additional information and references w/a '''
+            match node.p_type:
+                case PyPromise.Type.EXT_RESOURCE:
+                    raise NotImplementedError()
+                case PyPromise.Type.SUB_RESOURCE:
+                    raise NotImplementedError()
+                case PyPromise.Type.RESOURCE:
+                    raise NotImplementedError()
+                case PyPromise.Type.FILE:
+                    raise NotImplementedError()
+                case PyPromise.Type.EXT_RESOURCE_DIRECT:
+                    raise NotImplementedError()
+
+        session.reference_callbacks.append(callback)
+
+        return ptr
 
     def transform_PyResource(self, session, node:PyResource, propcol:BlGdPropertyCollection):
         ''' Convert object rep to str promise, *or* reference w/a '''
-        raise NotImplementedError()
-        yield
+        # assert node.uid or node.file
+
+        if node.uid or node.file:
+            obj, ptr = propcol.store_value("",bin_id="bin_reference")
+            
+            _target = yield TRANSFORM(node)
+
+            obj : BlGdReference
+
+            obj.ptr_type = "EXT_RESOURCE"
+            if node.uid:
+                obj.addr_resource = node.uid
+            if node.file:
+                obj.addr_filepath = node.file
+
+            if isinstance(node,PyNode):
+                obj.gdtype = "Scene"
+            else:
+                obj.gdtype = "Resource"
+            return ptr
+
+        elif isinstance(node,PyNode):
+            _target = yield TRANSFORM(node) ## Memoized, OOPs should mean that we have an actual object
+
+            obj, ptr = propcol.store_value("", bin_id="bin_primitive")
+            obj : BlGdPrimitive
+            obj.subtype = "NodePath"
+            obj.val_nodepath = session.options["structure"].node.get().get_path(node.name)
+            return ptr
+
+        elif isinstance(node,PyResource):
+            _target = yield TRANSFORM(node) ## Memoized
+
+            obj, ptr = propcol.store_value("",bin_id="bin_reference")
+            obj.ptr_type = "SUB_RESOUCE"
+            obj.addr_resource  = node.name
+            return ptr
+
+        raise Exception()
+
 
     def transform_PyFile(self, session, node:PyFile, propcol:BlGdPropertyCollection):
         ''' Convert object rep to str promise, *or* reference w/a '''
-        raise NotImplementedError()
-        yield
+
+        _target = yield TRANSFORM(node) 
+        ## Memoized, may or may not be localize?
+        ## consider macro for implimenting central incorperation options?
+
+        obj, ptr = propcol.store_value("",bin_id="bin_reference")
+        obj.ptr_type = "FILE"
+        obj.addr_filepath = node.path
+
+        return ptr
 
         
 class BlToGd_Reference(BlToGd_Transformer):
@@ -265,45 +340,78 @@ class BlToGd_Reference(BlToGd_Transformer):
     _subtype_map = {x.__class__.__name__:x for x in GdToBl_Reference._keys}
     contextual = False
     memoized = False
-    def transform(self, session, node):
-        return super().transform(session, node)
+    def transform(self, session, node:BlGdReference):
+        '''For simplicity, all but references are promises going outwards. Structure will accomidate at earliest if/a via signals.'''
 
+        match node.ptr_type:
+            case PyPromise.Type.SUB_RESOURCE:
+                return PyPromise(node.addr_resource, p_type=node.ptr_type)
+            case PyPromise.Type.RESOURCE:
+                return PyPromise(node.addr_resource, p_type=node.ptr_type)
+            case PyPromise.Type.FILE:
+                return PyPromise(node.addr_filepath, p_type=node.ptr_type)
+            case PyPromise.Type.EXT_RESOURCE:
+                return PyPromise({"path":node.addr_filepath, "uid":node.addr_resource}, p_type=node.ptr_type)
+            case PyPromise.Type.EXT_RESOURCE_DIRECT:
+                return PyPromise(node.addr_resource, p_type=node.ptr_type)
 
-## BODY ## 
-
-class GdToBl_PropertyCollection(GdToBl_Transformer):
-    _keys = (PyProperties,)
-    contextual = False
-    memoized = False
-class BlToGd_PropertyCollection(BlToGd_Transformer):
-    _keys = (BlGdPropertyCollection,)
-    contextual = False
-    memoized = False
-
-
-## GROUPINGS ##
-
-gd_to_bl = GdToBl_TransformerSet("Properties", [
+PROPCOL_gd_to_bl = GdToBl_TransformerSet("Properties::SUBMODE", [
     GdToBl_Primitive,
     GdToBl_Vector,
     GdToBl_Reference,
     GdToBl_Dictionary,
     GdToBl_Array,
-    GdToBl_PropertyCollection,
-], 
-options={
-    "properties":GdToBl_Options,
-})
-
-bl_to_gd = BlToGd_TransformerSet("Properties", [
+    # GdToBl_PropertyCollection,
+])
+PROPCOL_bl_to_gd = BlToGd_TransformerSet("Properties::SUBMODE", [
     BlToGd_Primitive,
     BlToGd_Vector,
     BlToGd_Reference,
     BlToGd_Dictionary,
     BlToGd_Array,
-    BlToGd_PropertyCollection,
+    # BlToGd_PropertyCollection,
+])
+
+
+## CORE ## 
+
+class GdToBl_PropertyCollection(GdToBl_Transformer):
+    _keys = (PyProperties,)
+    contextual = True
+    memoized = False
+    def transform(self, session, node:PyProperties):
+        assert session.options["properties"].gd_property_collection.get()
+
+        t = session.options["properties"].original_transformer_sets.set(session.transformer_sets)
+        t1 = session.transformer_sets.set(PROPCOL_bl_to_gd)
+
+        res = yield from Macros.transform_kv_generator(node)
+
+        session.transformer_sets.reset(t)
+        session.transformer_sets.reset(t1)
+
+        return session.options["properties"].gd_property_collection.get()
+
+class BlToGd_PropertyCollection(BlToGd_Transformer):
+    _keys = (BlGdPropertyCollection,)
+    contextual = True
+    memoized = False
+    def transform(self, session, node:BlGdPropertyCollection):
+        res = yield from Macros.transform_kv_generator(node.items())
+        return PyProperties(res)
+
+
+## GROUPINGS ##
+PROPCOL_gd_to_bl = GdToBl_TransformerSet("Properties", [
+    GdToBl_PropertyCollection
+],
+options={
+    "properties":GdToBl_Options,
+})
+
+PROPCOL_bl_to_gd = BlToGd_TransformerSet("Properties", [
+    BlToGd_PropertyCollection
 ],
 options={
     "properties":BlToGd_Options,
 })
-
