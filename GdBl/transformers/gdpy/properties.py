@@ -70,21 +70,6 @@ from ...core.primitives.pointer_collection import (
 )
 
 
-## OPTIONS ##
-
-class GdToBl_Options(GdToBl_TransformerOptions):
-    use_bl_property_structure : ContextVar[bool] = False
-    bl_property_structure : ContextVar[BlGdPropertyCollection]
-    def __init__(self, session):
-        self.use_bl_property_structure = ContextVar("", default = False)
-        self.bl_property_structure = ContextVar("")
-
-class BlToGd_Options(BlToGd_TransformerOptions):
-    use_bl_property_structure : ContextVar[bool] = False
-    bl_property_structure : ContextVar[BlGdPropertyCollection] = False
-    def __init__(self, session):
-        self.use_bl_property_structure = ContextVar("", default = False)
-        self.bl_property_structure = ContextVar("")
 
 
 ## TYPES ## 
@@ -372,6 +357,19 @@ PROPCOL_bl_to_gd = BlToGd_TransformerSet("Properties::SUBMODE", [
     # BlToGd_PropertyCollection,
 ])
 
+
+
+## OPTIONS ##
+
+class GdToBl_Options(GdToBl_TransformerOptions):
+    bl_property_structure : ContextVar[BlGdPropertyCollection]
+    def __init__(self, session):
+        self.bl_property_structure = ContextVar("")
+
+class BlToGd_Options(BlToGd_TransformerOptions):
+    bl_property_structure : ContextVar[BlGdPropertyCollection] = False
+    def __init__(self, session):
+        self.bl_property_structure = ContextVar("")
 
 ## CORE ## 
 
