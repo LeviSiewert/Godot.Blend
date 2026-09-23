@@ -115,7 +115,7 @@ class GdReference(_GenericBinItem):
     ptr_type : bpy.props.StringProperty() #type:ignore
 
     typing : bpy.props.StringProperty() #type:ignore
-    subtype : bpy.props.StringProperty() #type:ignore
+    gdtype : bpy.props.StringProperty() #type:ignore
     addr_resource : bpy.props.StringProperty() #type:ignore
     addr_filepath : bpy.props.StringProperty(subtype="FILEPATH") #type:ignore
 
