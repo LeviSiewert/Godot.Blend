@@ -655,6 +655,7 @@ class Node(Resource):
     unclaimed_nodes : None | dict[str, Node] = None
     unclaimed_edits : None | dict[str, NodePath] = None
     unclaimed_extresources : None | dict[str, Promise] = None
+    unclaimed_signals : None | dict[str, Promise] = None
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
