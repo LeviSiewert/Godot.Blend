@@ -1,10 +1,7 @@
 from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions, cvar_as
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
 from ...core.structure import (
-    Properties,
-    Project,
-    ExtResource,
-    File,
+    Promise,
     Resource,
     NodePath,
     GdSignal,
@@ -13,14 +10,12 @@ from ...core.structure import (
     Category,
 )
 
-
 from contextvars import ContextVar
 from typing import Generator, Any
 from lark import (
     Token as LarkToken, 
     Tree as LarkTree,
     )
-
     
 
 class MACROS:
@@ -52,24 +47,6 @@ class MACROS:
 class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creation.
 class PyToGd_Options(TransformerOptions): ...
 
-# class _Properties():
-#     class GdToPy(GdToPy_Transformer):
-#         keys = ["properties"]
-#         def transform(self, session, node:LarkTree):
-#             result = yield from MACROS.gdtopy_pairs_to_dict(node.children.children)
-#             return Properties(result)
-
-#     class PyToGd(PyToGd_Transformer):
-#         types = [Properties]
-#         def transform(self, session, node:Properties):
-#             result = yield from MACROS.pytogd_dict_to_str(node, join="\n")
-#             return result
-
-# class _Project():
-#     class GdToPy(GdToPy_Transformer):
-#         keys = ["project"]            
-#     class PyToGd(PyToGd_Transformer):
-#         types = [Project]
 
 class _ExtResource():
     class GdToPy(GdToPy_Transformer):
@@ -77,10 +54,11 @@ class _ExtResource():
         def transform(self, session, node):
             _options = node.children[0]
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            return ExtResource(**options)
+            return Promise(options, Promise.Type.EXT_RESOURCE)
 
-    class PyToGd(PyToGd_Transformer):
-        types = [ExtResource]
+    # class PyToGd(PyToGd_Transformer): ## Handled by promises module
+    #     types = [Promise]
+    #     
 
 class _Resource():
     class GdToPy(GdToPy_Transformer):
@@ -97,7 +75,7 @@ class _Resource():
             _options, _ext_resources, _sub_resources, _properties = node.children
 
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            ext_resources : tuple[ExtResource] = yield TRANSFORM_CHILDREN(_ext_resources)
+            ext_resources : tuple[Promise] = yield TRANSFORM_CHILDREN(_ext_resources)
             sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources)
             properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
 
@@ -147,7 +125,7 @@ class _Node():
             result.__setup_file__(uid=options["uid"])
             result.format= options["format"]
 
-            ext_resources : tuple[ExtResource] = yield TRANSFORM_CHILDREN(_ext_resources.children)
+            ext_resources : tuple[Promise] = yield TRANSFORM_CHILDREN(_ext_resources.children)
             sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources.children)
 
             edit_flags = [] 
@@ -218,12 +196,9 @@ class _Category():
         
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
-    # _Properties.GdToPy,
-    # _Project.GdToPy,
     _ExtResource.GdToPy,
     _Resource.GdToPy,
     _Resource.GdToPy_File,
-    # _NodePath.GdToPy,
     _GdSignal.GdToPy,
     _Node.GdToPy,
     _Node.GdToPy_File,
@@ -234,11 +209,8 @@ options = {"structure":GdToPy_Options}
 )
 
 py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
-    # _Properties.PyToGd,
-    # _Project.PyToGd,
-    _ExtResource.PyToGd,
+    # _ExtResource.PyToGd,
     _Resource.PyToGd,
-    # _NodePath.PyToGd,
     _GdSignal.PyToGd,
     _Node.PyToGd,
     _Settings.PyToGd,

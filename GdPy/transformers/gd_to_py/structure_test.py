@@ -1,10 +1,7 @@
 from __future__ import annotations
 from ._test_utils import _StructureTest
 from ...core.structure import (
-    Properties,
-    Project,
-    # ExtResource,
-    File,
+    Promise,
     Resource,
     GdSignal,
     Node,
@@ -21,29 +18,12 @@ from .values import PackedStringArray
 from ._test_utils import _StructureTest
 
 
-# class Test_Properties(_StructureTest):
-#     _type = Properties
-#     _parser_key = "properties"
-#     def data(self, session):
-#         txt = '''
-#             A="a"
-#         '''
-#         res = Properties({"A":"a"})
-#         yield txt, res
-
-#         txt = '''
-#             A="a"
-#             B="b"
-#         '''
-#         res = Properties({"A":"a", "B":"b"})
-#         yield txt, res
-
 class Test_ExtResource(_StructureTest):
-    _type = ExtResource
+    _type = Promise
     _parser_key = "ext_resource"
     def data(self, session):
         txt = ''' [ext_resource type="PackedScene" uid="uid" path="res" id="id"] '''
-        res = ExtResource(id="id",path="res", uid="uid", type="PackedScene")
+        res = Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
         yield txt, res
 
 class Test_GdSignal(_StructureTest):
