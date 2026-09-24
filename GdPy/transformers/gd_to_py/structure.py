@@ -105,18 +105,15 @@ class _Resource():
     class PyToGd(PyToGd_Transformer):
         types = [Resource]
 
-class _GdSignal():
-    class GdToPy(GdToPy_Transformer):
-        keys = ["connection"]
-        def transform(self, session, node):
-            _options = node.children[0]
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            options["fr"] = options["from"]
-            del options["from"]
-            return GdSignal(**options)
-
-    class PyToGd(PyToGd_Transformer):
-        types = [GdSignal]
+        def transform(self, session, node:Resource):
+            if not (session.options["structure"].properties.get() is None):
+                ## Operating within properties, declare dependencies and return a references
+                if node.file or node.uid:
+                    res = yield TRANSFORM(session.options["structure"].declare_extres.get()(self)) # -> promise -> rendered
+                    return res
+                else:
+                    res = yield TRANSFORM(session.options["structure"].declare_subres.get()(self)) # -> promise -> rendered
+                    return res
 
 class _Node():
     class GdToPy(GdToPy_Transformer):
@@ -158,7 +155,11 @@ class _Node():
             result.sub_resources.extend(sub_resources)
 
             node_namespace = {".": result}
-            nodes_unclaimed = {}
+            unclaimed_nodes = {} ## TODO!
+            unclaimed_extres = {} ## TODO!
+            unclaimed_edits = [] ## TODO!
+            unclaimed_signals = {} ## TODO!
+
             node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children[1:], as_generator=True)
 
             for n in node_resources:
@@ -178,14 +179,15 @@ class _Node():
                         node_namespace[fullpath] = n
                     else:
                         ## Instance-Overlay edited 
-                        nodes_unclaimed[fullpath] = n
+                        unclaimed_nodes[fullpath] = n
 
-                if fullpath in edit_flags:
-                    edit_flags.remove(fullpath)
+                if fullpath in unclaimed_edits:
+                    unclaimed_edits.remove(fullpath)
                     n.instance_editable = True
 
-            result.nodes_unclaimed = nodes_unclaimed
-            result.edits_unclaimed = edit_flags
+            result.unclaimed_nodes = unclaimed_nodes
+            result.unclaimed_edits = unclaimed_edits
+            result.unclaimed_signals = unclaimed_signals
 
             return result
         
@@ -196,11 +198,13 @@ class _Node():
             if not (session.options["structure"].properties.get() is None):
                 ## Operating within properties, declare dependencies and return a references
                 if node.file or node.uid:
-                    res = yield TRANSFORM(session.options["structure"].declare_extres.get()(self))
+                    res = yield TRANSFORM(session.options["structure"].declare_extres.get()(self)) ## -> promise -> rendered
                     return res
-                else:
-                    res = yield TRANSFORM(session.options["structure"].declare_subres.get()(self))
+                elif p_node:=session.options["structure"].node():
+                    res = yield TRANSFORM(p_node.get_path(node)) # -> path -> rendered
                     return res 
+                else:
+                    raise Exception() ## Non-normalized structure, non-rectifiable with current info. Consider cached nodepath as bullwark? What is another method?
 
             if node.file or node.uid:
                 res = yield from self.transform_scene(session, node)
@@ -450,6 +454,20 @@ class _Category():
     class PyToGd(PyToGd_Transformer):
         types = [Category]
         
+class _GdSignal():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["connection"]
+        def transform(self, session, node):
+            _options = node.children[0]
+            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+            options["fr"] = options["from"]
+            del options["from"]
+            return GdSignal(**options)
+
+    class PyToGd(PyToGd_Transformer):
+        types = [GdSignal]
+
+
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _ExtResource.GdToPy,
