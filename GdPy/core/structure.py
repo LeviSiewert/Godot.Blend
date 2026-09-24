@@ -680,3 +680,8 @@ class Node(Resource):
 
     def resolve_nodepath(self, path:str|NodePath):
         pass
+
+class GdSignal():
+    def __init__(self,**kwargs):
+        self.kwargs=kwargs
+    
