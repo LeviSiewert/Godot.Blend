@@ -2,6 +2,7 @@ from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Sessi
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
 from ...core.structure import (
     Promise,
+    Properties,
     File,
     Resource,
     NodePath,
@@ -53,6 +54,20 @@ class MACROS:
 class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creation.
 class PyToGd_Options(TransformerOptions): ...
 
+class _Properties():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["properties"]
+        def transform(self, session, node:LarkTree):
+            res = yield MACROS.gdtopy_pairs_to_dict(node.children)
+            return Properties(res)
+
+    class PyToGd(PyToGd_Transformer):
+        _types = [Properties]
+        def transform(self, session, node:Properties):
+            t = session.options["structure"].properties.set(node)
+            res = yield MACROS.pytogd_dict_to_str(node, join = "\n")
+            session.options["structure"].properties.reset(t)
+            return res
 
 class _ExtResource():
     class GdToPy(GdToPy_Transformer):
@@ -178,6 +193,15 @@ class _Node():
         types = [Node]
 
         def transform(self, session, node:Node):
+            if not (session.options["structure"].properties.get() is None):
+                ## Operating within properties, declare dependencies and return a references
+                if node.file or node.uid:
+                    res = yield TRANSFORM(session.options["structure"].declare_extres.get()(self))
+                    return res
+                else:
+                    res = yield TRANSFORM(session.options["structure"].declare_subres.get()(self))
+                    return res 
+
             if node.file or node.uid:
                 res = yield from self.transform_scene(session, node)
                 return res
@@ -288,14 +312,14 @@ class _Node():
                         ## Key collission, alter object. Object is altered instead of just session dict-key due to desire for stability.
                         x.name = x.type+"_"+"".join(sample(ascii_letters, 9))
                     declared_subres[x.name] = x
-                return x.name
+                return Promise(x.name, Promise.Type.SUB_RESOURCE)
 
             unclaimed_extres = node.unclaimed_extres if (not (node.unclaimed_extres is None)) else tuple()
             _required_extres = [] ## Cache-check deps.
             extres_by_id = {}
             declared_extres = {} ## By UID
-            def _declare_extres(value:Resource|Promise)->str:
-                ''' Declare a node into this session, returns an ascociated ID from the mapped namespace, prioritized by uid '''
+            def _declare_extres(value:File|Resource|Promise)->Promise:
+                ''' Declare a node into this session, returns an ascociated direct promise from the mapped namespace, prioritized by uid '''
                 if isinstance(value, (Resource,File)):
                     if value.uid in declared_extres():
                         return
@@ -307,7 +331,8 @@ class _Node():
                     type = value.key["type"]
 
                     if p:=declared_extres.get(uid,None): ## Return cached
-                        return p.value["id"]
+                        # return p.value["id"]
+                        return Promise(p.value["id"], Promise.Type.EXT_RESOURCE_DIRECT)
 
                     id = value.key.get("id", None)
                     if (id is None):
@@ -316,12 +341,14 @@ class _Node():
                          
                     declared_extres[uid] = value
                     extres_by_id[id] = value
-                    return id
+                    return Promise(id, Promise.Type.EXT_RESOURCE_DIRECT)
 
                 elif isinstance(value, Promise) and (value.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
                     _required_extres.append(value.key)
-                    return value.key
+                    return value
+                
                 raise TypeError()
+            
             def integrate_unclaimed_extres():
                 ''' Append unclaimed_extres to declared_extres, only after all tree extres have been found'''
                 for x in unclaimed_extres: 
@@ -433,6 +460,7 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _Node.GdToPy_File,
     _Settings.GdToPy,
     _Category.GdToPy,
+    _Properties.GdToPy,
 ], 
 options = {"structure":GdToPy_Options}
 )
@@ -444,6 +472,7 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _Node.PyToGd,
     _Settings.PyToGd,
     _Category.PyToGd,
+    _Properties.PyToGd,
 ], 
 options = {"structure":PyToGd_Options} 
 )
