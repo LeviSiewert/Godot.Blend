@@ -589,8 +589,10 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, id:str|None=None, format:int=None, type:str|None=None, script:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
+        self.gdtype = type
+        self.gdscript = script
 
         self.instance = instance
         self.instance_editable = instance_editable
@@ -656,9 +658,9 @@ class Node(Resource):
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
-    def __init__(self, name:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extresources:dict[str,Promise|Resource]=tuple(), unclaimed_edits:dict[str,str]=tuple(), unclaimed_nodes:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, name:str|None=None, format:int=None, type:str|None=None, script:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extresources:dict[str,Promise|Resource]=tuple(), unclaimed_edits:dict[str,str]=tuple(), unclaimed_nodes:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         
-        super().__init__(id=name, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
+        super().__init__(id=name, type=type, script=script, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
 
         if not (unique_id is None):
             self.unique_id = unique_id
