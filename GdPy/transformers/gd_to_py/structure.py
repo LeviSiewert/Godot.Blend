@@ -3,7 +3,6 @@ from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_T
 from ...core.structure import (
     Properties,
     Project,
-    ExtResource,
     File,
     Resource,
     NodePath,

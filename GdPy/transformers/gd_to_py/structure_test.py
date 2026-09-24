@@ -3,20 +3,21 @@ from ._test_utils import _StructureTest
 from ...core.structure import (
     Properties,
     Project,
-    ExtResource,
+    # ExtResource,
     File,
     Resource,
     GdSignal,
     Node,
     Settings,
     Category,
+    Promise,
 )
 
 from .values import PackedStringArray
 
-from ...core.structure_promise import StructReference, RefType
+# from ...core.structure_promise import corePromise.TypeRefType
 
-from ...core.structure import Resource, ExtResource, Node
+# structure import Resource, ExtResource, Node
 from ._test_utils import _StructureTest
 
 
@@ -182,7 +183,7 @@ class Test_Node():
                 [node name="Node" type="Node" parent="." unique_id=1]
                 script = ExtResource("ExtResourceID")
             '''
-            res = Node(name="Node", type="Node", id = 1, parent = ".", properties={"script":StructReference(ref_type=RefType.EXT_RESOURCE, key="ExtResouurceID")})
+            res = Node(name="Node", type="Node", id = 1, parent = ".", properties={"script":Promise("ExtResouurceID", Promise.Type.EXT_RESOURCE)})
             yield txt, res ## Typed & ExtResource 
 
             txt = '''
@@ -313,10 +314,10 @@ class Test_Node():
             '''
             res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab",
                 ext_resources=[
-                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
+                    Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
                ],
                 properties={
-                    "ref":StructReference(ref_type=RefType.EXT_RESOURCE, key="id"),
+                    "ref":Promise("id", Promise.Type.EXT_RESOURCE),
                 },
             )
             
@@ -332,10 +333,10 @@ class Test_Node():
             '''
             res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
                 ext_resources=[
-                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
+                    Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
                ],
                 properties={
-                    "ref":StructReference(ref_type=RefType.EXT_RESOURCE, key="id"),
+                    "ref":Promise("id", Promise.Type.EXT_RESOURCE),
                 },
             )
             yield txt, res ## Root Instance w/ ExtResource
@@ -352,7 +353,7 @@ class Test_Node():
             '''
             res = Node(name="A", type="Node", id=1936822026, uid="uid://bi8mq3bc2koab", instance="id", instance_editable=True,
                 ext_resources=[
-                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
+                    Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
                ],
             )
             yield txt, res ## Root Instance editable w/ ExtResource
@@ -372,7 +373,7 @@ class Test_Node():
                     Node(name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id"), 
             ],
                 ext_resources=[
-                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
+                    Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
                ],
             )
             yield txt, res ## Nested Instance
@@ -393,7 +394,7 @@ class Test_Node():
                     Node(name="C", properties={"prop":"C"}, type="Node", id=1360691913, instance="id", instance_editable=True), 
             ],
                 ext_resources=[
-                    ExtResource(id="id",path="res", uid="uid", type="PackedScene"),
+                    Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
                ],
             )
             

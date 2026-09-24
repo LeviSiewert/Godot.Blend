@@ -383,9 +383,9 @@ class GdToBl_PropertyCollection(GdToBl_Transformer):
         t = session.options["properties"].original_transformer_sets.set(session.transformer_sets)
         t1 = session.transformer_sets.set(PROPCOL_bl_to_gd)
 
-        res = yield from Macros.transform_kv_generator(node)
+        res = yield from Macros.transform_kv_generator(node.items())
 
-        session.transformer_sets.reset(t)
+        t = session.options["properties"].original_transformer_sets.reset(t)
         session.transformer_sets.reset(t1)
 
         return session.options["properties"].gd_property_collection.get()

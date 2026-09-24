@@ -1,7 +1,8 @@
 from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
-from ...core.structure_promise import StructReference, RefType
+# from ...core.structure_promise import Promise, RefType
 
+from ...core.structure import Promise
 
 from contextvars import ContextVar
 from typing import Generator, Any
@@ -16,39 +17,37 @@ class PyToGd_Options(TransformerOptions): ...
 class _Promises():
     class GdToPy(GdToPy_Transformer):
         keys = ["ref_subresource", "ref_extresource", "ref_resource",]
-        def transform(self, session, node:LarkTree)->Generator[Flag,str,StructReference]:
+        def transform(self, session, node:LarkTree)->Generator[Flag,str,Promise]:
             address = yield TRANSFORM(node.children[0])
             match str(node.type):
                 case "ref_subresource":
-                    return StructReference(address, ref_type=RefType.SUB_RESOURCE)
+                    return Promise(address, ref_type=Promise.RefType.SUB_RESOURCE)
                 case "ref_extresource":
-                    return StructReference(address, ref_type=RefType.EXT_RESOURCE)
+                    return Promise(address, ref_type=Promise.RefType.EXT_RESOURCE)
                 case "ref_resource":
-                    return StructReference(address, ref_type=RefType.RID)
+                    return Promise(address, ref_type=Promise.RefType.RID)
             raise KeyError(node)
 
     class PyToGd(PyToGd_Transformer):
-        types = [StructReference]
+        types = [Promise]
 
-        def transform(self, session:Session, node:StructReference)->Generator[Flag,Any,str]:
+        def transform(self, session:Session, node:Promise)->Generator[Flag,Any,str]:
             match node.ref_type:
-                case RefType.SUB_RESOURCE:
+                case Promise.RefType.SUB_RESOURCE:
                     return f'SubResource("{node.key}")'
-                case RefType.EXT_RESOURCE:
+                case Promise.RefType.EXT_RESOURCE_DIRECT:
                     return f'ExtResource("{node.key}")'
-                case RefType.RESOURCE:
-                    # FutureWarning("Non-Normalized Structure")
+                case Promise.RefType.RESOURCE:
                     return f'RID("{node.key}")'
-                case RefType.RID:
+                case Promise.RefType.RID:
                     return f'RID("{node.key}")'
-                case RefType.FILE:
-                    # FutureWarning("Non-Normalized Structure")
-                    raise Exception()
-                case RefType.DEFER:
-                    # FutureWarning("Non-Normalized Structure")
-                    raise Exception()
-                case _:
-                    raise KeyError(node.ref_type)
+                case Promise.RefType.FILE:
+                    # return f'FILE("{node.key}")'
+                    raise Exception("Unknown how file should be rendered.")
+                case Promise.RefType.EXT_RESOURCE:
+                    ## TODO : Need to find contextexual id, unknown otherwise
+                    raise NotImplementedError() 
+
 
 gd_to_py = GdToPy_TransformerSet("STD::promises.py", [  
     _Promises.GdToPy,

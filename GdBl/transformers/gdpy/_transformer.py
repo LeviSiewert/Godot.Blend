@@ -4,7 +4,8 @@ from ....GdPy.core.transformer import (
     TransformerOptions, 
     TransformerSet, 
     TRANSFORM, 
-    TRANSFORM_CHILDREN
+    TRANSFORM_CHILDREN,
+    STEP,
 )
 GdToBl_Session = Session
 GdToBl_Transformer = Transformer

@@ -16,13 +16,13 @@ from . import (
     properties
 )
 
-def make_gd_to_py[TS:BlToGd_TransformerSet[BlToGd_Transformer]](insert:Iterable[TS]=tuple())->Session[BlToGd_TransformerSet[BlToGd_Transformer]|TS]:
+def make_bl_to_gd[TS:BlToGd_TransformerSet[BlToGd_Transformer]](insert:Iterable[TS]=tuple())->Session[BlToGd_TransformerSet[BlToGd_Transformer]|TS]:
     return BlToGd_Session([
         properties.bl_to_gd,
         *insert
     ])
 
-def make_py_to_gd[TS:GdToBl_TransformerSet[GdToBl_Transformer]](insert:Iterable[TS]=tuple())->Session[GdToBl_TransformerSet[BlToGd_Transformer]|TS]:
+def make_gd_to_bl[TS:GdToBl_TransformerSet[GdToBl_Transformer]](insert:Iterable[TS]=tuple())->Session[GdToBl_TransformerSet[BlToGd_Transformer]|TS]:
     return GdToBl_Session([
         properties.gd_to_bl,
         *insert
