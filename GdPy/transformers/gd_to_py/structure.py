@@ -69,6 +69,47 @@ class _Properties():
             session.options["structure"].properties.reset(t)
             return res
 
+
+class _Promise():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["ref_subresource","ref_extresource","ref_resource"]
+        def transform(self, session, node:LarkTree):
+            ## Promises will fullfill themselves at earliest context when applied to any structure object. No need to callback stuff here
+            match node.value:
+                case "ref_subresource":
+                    return Promise(str(node.children[0]), Promise.Type.SUB_RESOURCE)
+                case "ref_extresource":
+                    return Promise(str(node.children[0]), Promise.Type.EXT_RESOURCE_DIRECT)
+                case "ref_resource":
+                    return Promise(str(node.children[0]), Promise.Type.RESOURCE).split("uid://")[-1]
+            raise NotImplementedError()
+
+    class PyToGd(GdToPy_Transformer):
+        types = [Promise] 
+        def transform(self, session, node:Promise):
+            match node.p_type:
+                case Promise.Type.RESOURCE:
+                    session.options["structure"].declare_rid.get()(node)
+                    return f'RID("uid://{node.key}")'
+                
+                case Promise.Type.SUB_RESOURCE:
+                    session.options["structure"].declare_subres.get()(node)
+                    return f'SubResource("{node.key}")'
+                    
+                case Promise.Type.EXT_RESOURCE_DIRECT:
+                    session.options["structure"].declare_extres.get()(node)
+                    return f'ExtResource("{node.key}")'
+                
+                case Promise.Type.EXT_RESOURCE:
+                    pr = session.options["structure"].declare_extres.get()(node)
+                    return f'ExtResource({pr})'
+                    
+                case Promise.Type.FILE:
+                    raise Exception("Unknown how to render, as string, or as res:// filepath?")
+            
+            raise TypeError()
+                    
+
 class _ExtResource():
     class GdToPy(GdToPy_Transformer):
         keys = ["ext_resource"]
@@ -77,9 +118,7 @@ class _ExtResource():
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
             return Promise(options, Promise.Type.EXT_RESOURCE)
 
-    # class PyToGd(PyToGd_Transformer): ## Handled by promises module ++ Node/Resource via declaration incorperation
-    #     types = [Promise]
-    #     
+    # class PyToGd(PyToGd_Transformer): ## Handled by _Promise
 
 class _Resource():
     class GdToPy(GdToPy_Transformer):
@@ -474,6 +513,7 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _Resource.GdToPy,
     _Resource.GdToPy_File,
     _GdSignal.GdToPy,
+    _Promise.GdToPy,
     _Node.GdToPy,
     _Node.GdToPy_File,
     _Settings.GdToPy,
@@ -487,6 +527,7 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     # _ExtResource.PyToGd,
     _Resource.PyToGd,
     _GdSignal.PyToGd,
+    _Promise.PyToGd,
     _Node.PyToGd,
     _Settings.PyToGd,
     _Category.PyToGd,
