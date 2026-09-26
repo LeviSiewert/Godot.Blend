@@ -172,6 +172,24 @@ class _Node():
         keys = ["file_scene"]
 
         def transform(self, session, node):
+            ''' Process is: 
+            - Determine format ## FOR LATER
+            - Convert(ExtRes) -> "Buffer"
+            - Convert(EditFlags) -> "Buffer"
+            - Convert(Subresources, Step=Initial) -> "Buffer"
+            - Set "find" closures of (ExtRes|EditFlags|Subresources) to context
+            - Convert(SubResources, Step=Complete)
+            - Convert(Nodes, Step=Initial)
+                -> Assign to Access "Buffer" of _tree_namespace
+            - Create Tree structure via .children.append(...)
+            - Convert Connections
+            - Assign Connections to tree
+                - remainder unclaimed
+            - Assign Edits to tree
+                - remainder unclaimed
+            - Return tree root
+            '''
+
             _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
             assert len(_node_resources.children) > 0
 
@@ -185,9 +203,6 @@ class _Node():
             ext_resources = yield TRANSFORM_CHILDREN(_ext_resources) 
             ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
             _ext_resources_used = [False*len(ext_resources)] 
-
-            edit_flags = yield TRANSFORM_CHILDREN(_edit_flags)
-            _edit_flags_used = [False*len(edit_flags)] 
 
             sub_resources = yield TRANSFORM_CHILDREN(_sub_resources, step="INITIAL")
             sub_resources = {x.name:x for x in sub_resources}
@@ -249,6 +264,17 @@ class _Node():
                     c.fr.signals.append(c)
                 else:
                     _unclaimed_connections.append(c)
+
+            edit_flags = yield TRANSFORM_CHILDREN(_edit_flags)
+            _edit_flags_used = [False*len(edit_flags)] 
+
+            for k,i in enumerate(edit_flags):
+                if n:=_tree_namespace.get(k,None):
+                    n.instance_editable = True
+                    _edit_flags_used[i] = True
+                elif n:=_unclaimed_nodes.get(k,None):
+                    n.instance_editable = True
+                    _edit_flags_used[i] = True
 
             yield TRANSFORM_CHILDREN(_node_resources)  ## Complete node loading, all properties, promises, references, ect
             ## -> Mutates _..._used
