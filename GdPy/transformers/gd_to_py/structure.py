@@ -18,7 +18,7 @@ from random import sample, randint
 from string import ascii_letters
 
 from contextvars import ContextVar
-from typing import Generator, Any
+from typing import Generator, Any, Callable
 from lark import (
     Token as LarkToken, 
     Tree as LarkTree,
@@ -51,8 +51,114 @@ class MACROS:
             res.append(k + seperator + v)
         return join.join(res)
 
-class GdToPy_Options(TransformerOptions): ... ## Instanciated at session creation.
-class PyToGd_Options(TransformerOptions): ...
+class GdToPy_Options(TransformerOptions): 
+    def __init__(self, session):
+        self.resource = ContextVar("resource", default = None)
+        self.subresource = ContextVar("subresource", default = None)
+        self.properties = ContextVar("properties", default = None)
+
+        self.fetch_subres = ContextVar("fetch_subres",default = self._fetch_subres)
+        self.fetch_subres_reqs = ContextVar("fetch_subres_reqs", default = []) 
+        self.fetch_extres = ContextVar("fetch_extres",default = self._fetch_extres)
+        self.fetch_extres_reqs = ContextVar("fetch_extres_reqs", default = []) 
+        self.fetch_node = ContextVar("fetch_node",default = self._fetch_node)
+        self.fetch_node_reqs = ContextVar("fetch_node_reqs", default = []) 
+
+    resource : ContextVar[Resource|None] = None
+    subresource : ContextVar[Resource|None] = None
+    properties : ContextVar[Properties|None] = None
+
+    def _fetch_subres(self,promise:Promise)->Promise|Resource:
+        ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
+        if not (promise in self.fetch_subres_reqs.get()):
+            self.fetch_subres_reqs.get().append(promise)
+        return promise
+    fetch_subres : ContextVar[Callable] = _fetch_subres
+    fetch_subres_reqs : ContextVar[None|list] = None 
+    
+    def _fetch_extres(self,promise:Promise)->Promise|Resource:
+        ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
+        if not (promise in self.fetch_subres_reqs.get()):
+            self.fetch_subres_reqs.get().append(promise)
+        return promise
+    fetch_extres : ContextVar[Callable] = _fetch_extres
+    fetch_extres_reqs : ContextVar[None|list] = None 
+    
+    def _fetch_node(self,path:str|NodePath)->NodePath|Node:
+        ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
+        if not (path in self.fetch_subres_reqs.get()):
+            self.fetch_subres_reqs.get().append(path)
+        return path
+    fetch_node : ContextVar[Callable] = _fetch_node
+    fetch_node_reqs : ContextVar[None|list] = None 
+
+class PyToGd_Options(TransformerOptions): 
+    def __init__(self, session):
+        self.resource = ContextVar("resource", default = None)
+        self.subresource = ContextVar("subresource", default = None)
+        self.properties = ContextVar("properties", default = None)
+
+        self.declare_edit = ContextVar("declare_edit", default=self._declare_edit)
+        self.declare_edit_requests = ContextVar("declare_edit_requests", default = [])
+        self.declare_signal = ContextVar("declare_signal", default=self._declare_signal)
+        self.declare_signal_requests = ContextVar("declare_signal_requests", default = [])
+        self.declare_subres = ContextVar("declare_subres", default=self._declare_subres)
+        self.declare_subres_requests = ContextVar("declare_subres_requests", default = [])
+        self.declare_extres = ContextVar("declare_extres", default=self._declare_extres)
+        self.declare_extres_requests = ContextVar("declare_extres_requests", default = [])
+
+    resource : ContextVar[Resource|None] = None
+    subresource : ContextVar[Resource|None] = None
+    properties : ContextVar[Properties|None] = None
+
+    def _declare_edit(self, _node:str)->None:
+        ''' Override with contextual insertions as req. record to _declared to push warnings as req
+        Used by session to push warning as req '''
+        if not (_node in self.declare_edit_requests.get()):
+            self.declare_edit_requests.get().append(_node)
+        return
+    declare_edit : ContextVar[Callable] = _declare_edit
+    declare_edit_requests : ContextVar[list] = None
+        
+    def _declare_signal(self, signal:GdSignal)->None:
+        ''' Override with contextual insertions as req. record to _declared to push warnings as req
+        Used by session to push warning as req '''
+        return
+    declare_signal : ContextVar[Callable] = _declare_signal
+    declare_signal_requests : ContextVar[list] = None
+
+    def _declare_subres(self, object:Resource|Promise)->Promise:
+        ''' Override with contextual insertions as req. Default return a promise with the ID
+        Used by session to push warning as req '''
+        if isinstance(object, Promise):
+            return object
+        return Promise(object.name, Promise.Type.SUB_RESOURCE)
+    declare_subres : ContextVar[Callable] = _declare_subres
+    declare_subres_requests : ContextVar[list] = None
+
+    def _declare_extres(self, value:File|Resource|Promise)->Promise:
+        ''' Override with contextual insertions as req. Default return a promise of the value.uid or value.path.
+        Used by session to push warning as req '''
+        ## TODO: Consider procedural session mappings
+        if isinstance(value, Promise):
+            if value.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
+                return Promise
+            elif value.p_type is Promise.Type.EXT_RESOURCE:
+                return Promise(value.key.get("id", value.key["uid"]), Promise.Type.EXT_RESOURCE)
+            else:
+                return Promise(value.key, Promise.Type.EXT_RESOURCE)
+        elif isinstance(value, Resource):
+            if value.uid is None:
+                value.uid = "".join(sample(ascii_letters, 9))
+            return Promise(value.uid, Promise.Type.EXT_RESOURCE)
+        elif isinstance(value, File):
+            if value.path is None:
+                raise Exception()
+            return Promise(value.path, Promise.Type.FILE)
+        else:
+            raise TypeError()
+    declare_extres : ContextVar[Callable] = _declare_extres
+    declare_extres_requests : ContextVar[list] = None
 
 class _Properties():
     class GdToPy(GdToPy_Transformer):
@@ -202,19 +308,25 @@ class _Node():
             
             ext_resources = yield TRANSFORM_CHILDREN(_ext_resources) 
             ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
-            _ext_resources_used = [False*len(ext_resources)] 
+            _ext_resources_used = dict({k:False for k in ext_resources.keys()})
 
             sub_resources = yield TRANSFORM_CHILDREN(_sub_resources, step="INITIAL")
-            sub_resources = {x.name:x for x in sub_resources}
-            _sub_resources_used = [False*len(sub_resources)]
+            sub_resources : dict[Resource] = dict({x.name:x for x in sub_resources})
+            _sub_resources_used = dict({k:False for k in sub_resources.keys()})
 
             def fetch_subres(self, promise:Promise)->Promise|Resource:
                 ''' Return subres or original promise, mark as used so as to not cache '''
-                raise NotImplementedError()
+                if not ((res:=sub_resources.get(promise.key, None)) is None):
+                    _sub_resources_used[promise.key] = True
+                    return res
+                return promise 
                 
             def fetch_extres(self, promise:Promise)->Promise|Resource:
                 ''' Return copy in full promise, mark as used so as to not cache '''
-                raise NotImplementedError()
+                if not ((res:=ext_resources.get(promise.key, None)) is None):
+                    _ext_resources_used[promise.key] = True
+                    return res
+                return promise 
 
             t2 = session.options["structure"].fetch_subres.set(fetch_subres)
             t3 = session.options["structure"].fetch_extres.set(fetch_extres)
@@ -252,7 +364,7 @@ class _Node():
 
             def fetch_node(self, path:str|NodePath)->NodePath|Node:
                 ''' Return node from scene path '''
-                raise NotImplementedError()
+                return _tree_namespace.get(path, path)
 
             t4 = session.options["structure"].fetch_node.set(fetch_node)
 
@@ -324,6 +436,8 @@ class _Node():
             Yield Properties
             '''
 
+            t = session.options["structure"].subresource.set(self)
+
             if not node.unique_id:
                 node.unique_id = randint(1000000, 10000000)
 
@@ -352,6 +466,8 @@ class _Node():
 
             txt_header = f'[node {" ".join([f'{k}={v}' for k,v in header_props.items() if not (v is None)])}]'
             txt_options = yield TRANSFORM(node.properties)
+
+            session.options["structure"].subresource.reset(t)
 
             return "\n".join(
                 txt_header,
@@ -415,7 +531,7 @@ class _Node():
 
             unclaimed_subres = node.unclaimed_subres if (not (node.unclaimed_subres is None)) else {}
             declared_subres = {}
-            def _declare_subres(x)->str:
+            def _declare_subres(x)->Promise:
                 if not (x in declared_subres.values()):
                     if (x.name is None) or (x.name in declared_subres.keys()):
                         ## Key collission, alter object. Object is altered instead of just session dict-key due to desire for stability.
