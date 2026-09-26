@@ -172,12 +172,15 @@ class _Node():
         keys = ["file_scene"]
 
         def transform(self, session, node):
+            _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
+            assert len(_node_resources.children) > 0
+
+            options = yield MACROS.gdtopy_pairs_to_dict(_options.children)
+
+            t = session.options["FORMAT"].format.set(options.get("format", 4))
 
             t0 = session.options["structure"].resource.set(node)
             t1 = session.options["structure"].subresource.set(node)
-
-            _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
-            assert len(_node_resources.children) > 0
             
             ext_resources = yield TRANSFORM_CHILDREN(_ext_resources) 
             ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
@@ -185,10 +188,6 @@ class _Node():
 
             edit_flags = yield TRANSFORM_CHILDREN(_edit_flags)
             _edit_flags_used = [False*len(edit_flags)] 
-            
-            connections = yield TRANSFORM_CHILDREN(_connections)
-            connections = {x.fr:x for x in sub_resources}
-            _connections_used = [False*len(connections)]
 
             sub_resources = yield TRANSFORM_CHILDREN(_sub_resources, step="INITIAL")
             sub_resources = {x.name:x for x in sub_resources}
@@ -205,12 +204,15 @@ class _Node():
             t2 = session.options["structure"].fetch_subres.set(fetch_subres)
             t3 = session.options["structure"].fetch_extres.set(fetch_extres)
 
-            yield TRANSFORM_CHILDREN(_sub_resources) ## Complete transforming the tree.
-
+            yield TRANSFORM_CHILDREN(_sub_resources) ## Complete transforming subresources. Should *not* be dependent on node tree.
+            ## -> Mutates _..._used
+            
             ## Intial transformation for tree creation:
             root_node = yield TRANSFORM(_node_resources[0], step="INITIAL")
+            root_node.uid = options["uid"]
+
             node_resources = yield TRANSFORM_CHILDREN(_node_resources[1:], step="INITIAL")
-            # node_resources = sorted(node_resources, lambda x: x._parent ) ## Consider for ensuring load order.
+            # node_resources = sorted(node_resources, lambda x: x._parent ) ## Consider for ensuring load orde??
 
             _tree_namespace = {"":root_node}
             _unclaimed_nodes = {}
@@ -232,9 +234,39 @@ class _Node():
                     else:
                         ## Instance-Overlay edited, reconstructed later
                         _unclaimed_nodes[fullpath] = n
-            
-            yield TRANSFORM_CHILDREN(_node_resources) ## Complete node loading, all properties, promises, references, ect
 
+            def fetch_node(self, path:str|NodePath)->NodePath|Node:
+                ''' Return node from scene path '''
+                raise NotImplementedError()
+
+            t4 = session.options["structure"].fetch_node.set(fetch_node)
+
+            connections = yield TRANSFORM_CHILDREN(_connections)
+            _unclaimed_connections = []
+
+            for c in connections:
+                if isinstance(c.fr,Node) and isinstance(c.to,Node):
+                    c.fr.signals.append(c)
+                else:
+                    _unclaimed_connections.append(c)
+
+            yield TRANSFORM_CHILDREN(_node_resources)  ## Complete node loading, all properties, promises, references, ect
+            ## -> Mutates _..._used
+
+            root_node.unclaimed_extres = dict({k:v for (k,v),b in zip(ext_resources.items(), _ext_resources_used) if b})
+            root_node.unclaimed_subres = dict({k:v for (k,v),b in zip(sub_resources.items(), _sub_resources_used) if b})
+            root_node.unclaimed_edits = list([v for v,b in zip(edit_flags,_edit_flags_used) if (b)])
+            root_node.unclaimed_nodes = _unclaimed_nodes
+            root_node.unclaimed_signals = _unclaimed_connections
+
+            session.options["FORMAT"].format.reset(t)
+            session.options["structure"].resource.reset(t0)
+            session.options["structure"].subresource.reset(t1)
+            session.options["structure"].fetch_subres.reset(t2)
+            session.options["structure"].fetch_extres.reset(t3)
+            session.options["structure"].fetch_node.reset(t4)
+
+            
             return root_node
 
         
