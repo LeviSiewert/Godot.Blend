@@ -172,63 +172,71 @@ class _Node():
         keys = ["file_scene"]
 
         def transform(self, session, node):
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+
             _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
-            # _options, _ext_resources, _sub_resources, _properties = node.children
             assert len(_node_resources.children) > 0
-            result : Node = yield TRANSFORM(_node_resources.children[0])
+            
+            ext_resources = yield TRANSFORM_CHILDREN(_ext_resources) 
+            ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
+            _ext_resources_used = [False*len(ext_resources)] 
 
+            edit_flags = yield TRANSFORM_CHILDREN(_edit_flags)
+            _edit_flags_used = [False*len(edit_flags)] 
+            
+            connections = yield TRANSFORM_CHILDREN(_connections)
+            connections = {x.fr:x for x in sub_resources}
+            _connections_used = [False*len(connections)]
 
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            result.__setup_file__(uid=options["uid"])
-            result.format= options["format"]
+            sub_resources = yield TRANSFORM_CHILDREN(_sub_resources, step="INITIAL")
+            sub_resources = {x.name:x for x in sub_resources}
+            _sub_resources_used = [False*len(sub_resources)]
 
-            ext_resources : tuple[Promise] = yield TRANSFORM_CHILDREN(_ext_resources.children)
-            sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources.children)
+            def fetch_subres(self, promise:Promise)->Promise|Resource:
+                ''' Return subres or original promise, mark as used so as to not cache '''
+                raise NotImplementedError()
+                
+            def fetch_extres(self, promise:Promise)->Promise|Resource:
+                ''' Return copy in full promise, mark as used so as to not cache '''
+                raise NotImplementedError()
 
-            edit_flags = [] 
-            for n in _edit_flags.children:
-                edit_flags.append(NodePath(n.children[0][0]))
+            t2 = session.options["structure"].fetch_subres.set(fetch_subres)
+            t3 = session.options["structure"].fetch_extres.set(fetch_extres)
 
-            ## Prepare tree dependencies:
-            result.ext_resources.extend(ext_resources)
-            result.sub_resources.extend(sub_resources)
+            yield TRANSFORM_CHILDREN(_sub_resources) ## Complete transforming the tree.
 
-            node_namespace = {".": result}
-            unclaimed_nodes = {} ## TODO!
-            unclaimed_extres = {} ## TODO!
-            unclaimed_edits = [] ## TODO!
-            unclaimed_signals = {} ## TODO!
+            ## Intial transformation for tree creation:
+            root_node = yield TRANSFORM(_node_resources[0], step="INITIAL")
+            node_resources = yield TRANSFORM_CHILDREN(_node_resources[1:], step="INITIAL")
+            # node_resources = sorted(node_resources, lambda x: x._parent ) ## Consider for ensuring load order.
 
-            node_resources : tuple[Node] = yield TRANSFORM_CHILDREN(_node_resources.children[1:], as_generator=True)
-
+            _tree_namespace = {"":root_node}
+            _unclaimed_nodes = {}
             for n in node_resources:
-                ## Construct node structure from paths, remove temp variable from node.
+                ## Build tree structure
                 p_path = n._parent
                 del n._parent
                 fullpath : str|None = None
 
                 if p_path == ".":
-                    result.children.append(n)
+                    root_node.children.append(n)
                     fullpath = n.name.key
-                    node_namespace[fullpath] = n
+                    _tree_namespace[fullpath] = n
                 else:
                     fullpath = (p_path + "/" + n.name.key)
-                    if p_path in node_namespace.keys():
-                        node_namespace[p_path].children.append(n)
-                        node_namespace[fullpath] = n
+                    if p_path in _tree_namespace.keys():
+                        _tree_namespace[p_path].children.append(n)
+                        _tree_namespace[fullpath] = n
                     else:
-                        ## Instance-Overlay edited 
-                        unclaimed_nodes[fullpath] = n
+                        ## Instance-Overlay edited, reconstructed later
+                        _unclaimed_nodes[fullpath] = n
+            
+            yield TRANSFORM_CHILDREN(_node_resources) ## Complete node loading, all properties, promises, references, ect
 
-                if fullpath in unclaimed_edits:
-                    unclaimed_edits.remove(fullpath)
-                    n.instance_editable = True
+            return root_node
 
-            result.unclaimed_nodes = unclaimed_nodes
-            result.unclaimed_edits = unclaimed_edits
-            result.unclaimed_signals = unclaimed_signals
-
-            return result
         
     class PyToGd(PyToGd_Transformer):
         types = [Node]
