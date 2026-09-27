@@ -72,8 +72,11 @@ class TRANSFORM_CHILDREN(Flag):
     def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
 
         def _generator():
-            for i in self.children:
-                yield session.transform(i, **self.settings)
+            try:
+                for i in self.children:
+                    yield session.transform(i, **self.settings)
+            except TypeError as e:
+                raise TypeError(self.children, "is not Iterable!")
 
         if self.as_generator:
             return False, None, _generator()

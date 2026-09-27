@@ -495,7 +495,7 @@ class File():
 class Settings:
     ''' Simple file contents object '''
     context : Context 
-    
+    users : Users 
     categories : Collection[str, Category]
     properties : Properties
 
@@ -505,14 +505,16 @@ class Settings:
         self.properties.update(properties)
 
     def __setup__(self):
+        self.users = Users()
         self.context = Context(resource = self)
-        self.categories = Collection(key_attr = "name", context=self.context)
+        self.categories = Collection(key_attr = "_name", context=self.context)
         self.properties = Properties(context=self.context)
 
 class Category:
     context : Context
     _name : CollectionKey[str]
     name = CollectionKeyProperty(str, '_name')
+    users : Users 
     properties : Properties
 
     users : list[ReferenceType]
@@ -523,6 +525,7 @@ class Category:
         self.properties.update(properties)
 
     def __setup__(self):
+        self.users = Users()
         self.context = Context(subresouce=self)
         self._name = CollectionKey(self)
         self.properties = Properties(context=self.context)
@@ -589,7 +592,7 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, format:int=None, type:str|None=None, script:str|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, id:str|None=None, format:int=None, type:str|None=None, script:str|None=None, uid:str|None=None, file:str|File|None=None, unclaimed_extres=tuple(), unclaimed_subres=tuple(), properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
         self.gdtype = type
         self.gdscript = script
@@ -601,6 +604,11 @@ class Resource():
 
         self.sub_resources.extend(subresources)
         self.properties.update(properties)
+
+        if unclaimed_extres:
+            self.unclaimed_extres = dict(unclaimed_extres)
+        if unclaimed_subres:
+            self.unclaimed_subres = dict(unclaimed_subres)
 
     def __setup__(self):
         self.context = Context(subresource=self)
@@ -652,28 +660,30 @@ class Node(Resource):
     _parent : None|str = None
 
     # Scene only - Pre Construction
-    unclaimed_nodes : None | dict[str, Node] = None
-    unclaimed_edits : None | dict[str, NodePath] = None
-    unclaimed_extresources : None | dict[str, Promise] = None
-    unclaimed_signals : None | dict[str, Promise] = None
+    unclaimed_extres : None | dict[str, Promise|Resource] = None
+    unclaimed_subres : None | dict[str, Resource] = None
+    unclaimed_signal : None | dict[str, Signal] = None
+    unclaimed_editable : None | dict[str, NodePath] = None
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
-    def __init__(self, name:str|None=None, format:int=None, type:str|None=None, script:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extresources:dict[str,Promise|Resource]=tuple(), unclaimed_edits:dict[str,str]=tuple(), unclaimed_nodes:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
-        
-        super().__init__(id=name, type=type, script=script, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
+    def __init__(self, name:str|None=None, format:int=None, type:str|None=None, script:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]=tuple(), unclaimed_subres:dict[str,str]=tuple(), unclaimed_signal:dict[str,str]=tuple(), unclaimed_editable:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+
+        super().__init__(id=name, format=format, type=type, script=script, unclaimed_extres=unclaimed_extres, unclaimed_subres=unclaimed_subres, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable )
 
         if not (unique_id is None):
             self.unique_id = unique_id
         else:
             self.unique_id = randint(100000, 1000000)
 
-        if unclaimed_edits: 
-            self.unclaimed_edits = dict(unclaimed_edits)
-        if unclaimed_nodes: 
-            self.unclaimed_nodes = dict(unclaimed_nodes)
-        if unclaimed_extresources: 
-            self.unclaimed_extresources = dict(unclaimed_extresources)
+        if unclaimed_extres:
+            self.unclaimed_extres = dict(unclaimed_extres)
+        if unclaimed_subres:
+            self.unclaimed_subres = dict(unclaimed_subres)
+        if unclaimed_signal:
+            self.unclaimed_signal = dict(unclaimed_signal)
+        if unclaimed_editable:
+            self.unclaimed_editable = dict(unclaimed_editable)
 
         self.children.extend(children)
 

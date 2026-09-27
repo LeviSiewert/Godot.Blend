@@ -495,7 +495,7 @@ class Test_Import():
     class Test_File(_StructureTest):
         _type = Settings
         _parser_key = "file_settings"
-        def data(self,sesson):
+        def data(self, sesson):
             txt = '''
                 [remap]
 
@@ -515,8 +515,9 @@ class Test_Import():
                 nodes/root_type=""
                 nodes/root_name=""
             '''
+
             res = Settings(
-                uid = "cocfi2vsn5qt2",
+                # uid = "cocfi2vsn5qt2",
                 categories=[
                     Category(name="remap", properties={
                         "importer":"scene",

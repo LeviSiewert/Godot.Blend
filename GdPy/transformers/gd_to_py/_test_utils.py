@@ -39,6 +39,8 @@ class _StructureTest[T:Type]():
             
             ## FOR SOME REASON id(LarkToken) is reusing/producing a non-unique ID between parsing sessions, or id() is evaluating form (not recursive content) 
             py_to_gd.memo.clear()
+            from ._transformer import PyToGd_Session
+            assert isinstance(py_to_gd, PyToGd_Session) 
             res = py_to_gd.transform(obj)
             
             yield txt, res

@@ -57,40 +57,42 @@ class GdToPy_Options(TransformerOptions):
         self.subresource = ContextVar("subresource", default = None)
         self.properties = ContextVar("properties", default = None)
 
-        self.fetch_subres = ContextVar("fetch_subres",default = self._fetch_subres)
         self.fetch_subres_reqs = ContextVar("fetch_subres_reqs", default = []) 
-        self.fetch_extres = ContextVar("fetch_extres",default = self._fetch_extres)
         self.fetch_extres_reqs = ContextVar("fetch_extres_reqs", default = []) 
-        self.fetch_node = ContextVar("fetch_node",default = self._fetch_node)
         self.fetch_node_reqs = ContextVar("fetch_node_reqs", default = []) 
+
+        self.fetch_subres = ContextVar("fetch_subres",default = self._fetch_subres)
+        self.fetch_extres = ContextVar("fetch_extres",default = self._fetch_extres)
+        self.fetch_node = ContextVar("fetch_node",default = self._fetch_node)
 
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
     properties : ContextVar[Properties|None] = None
 
+
+    fetch_subres : ContextVar[Callable] = None
+    fetch_subres_reqs : ContextVar[None|list] = None 
     def _fetch_subres(self,promise:Promise)->Promise|Resource:
         ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
         if not (promise in self.fetch_subres_reqs.get()):
             self.fetch_subres_reqs.get().append(promise)
         return promise
-    fetch_subres : ContextVar[Callable] = _fetch_subres
-    fetch_subres_reqs : ContextVar[None|list] = None 
-    
+
+    fetch_extres : ContextVar[Callable] = None
+    fetch_extres_reqs : ContextVar[None|list] = None     
     def _fetch_extres(self,promise:Promise)->Promise|Resource:
         ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
         if not (promise in self.fetch_subres_reqs.get()):
             self.fetch_subres_reqs.get().append(promise)
         return promise
-    fetch_extres : ContextVar[Callable] = _fetch_extres
-    fetch_extres_reqs : ContextVar[None|list] = None 
-    
+ 
+    fetch_node : ContextVar[Callable] = None
+    fetch_node_reqs : ContextVar[None|list] = None
     def _fetch_node(self,path:str|NodePath)->NodePath|Node:
         ''' Override with contextual insertions as req. Default here is to return the input & record to _fetch_requested to push warnings as req'''
         if not (path in self.fetch_subres_reqs.get()):
             self.fetch_subres_reqs.get().append(path)
         return path
-    fetch_node : ContextVar[Callable] = _fetch_node
-    fetch_node_reqs : ContextVar[None|list] = None 
 
 class PyToGd_Options(TransformerOptions): 
     def __init__(self, session):
@@ -99,47 +101,57 @@ class PyToGd_Options(TransformerOptions):
         self.properties = ContextVar("properties", default = None)
 
         self.declare_edit = ContextVar("declare_edit", default=self._declare_edit)
-        self.declare_edit_requests = ContextVar("declare_edit_requests", default = [])
         self.declare_signal = ContextVar("declare_signal", default=self._declare_signal)
-        self.declare_signal_requests = ContextVar("declare_signal_requests", default = [])
         self.declare_subres = ContextVar("declare_subres", default=self._declare_subres)
-        self.declare_subres_requests = ContextVar("declare_subres_requests", default = [])
         self.declare_extres = ContextVar("declare_extres", default=self._declare_extres)
+
+        self.declare_edit_requests = ContextVar("declare_edit_requests", default = [])
+        self.declare_signal_requests = ContextVar("declare_signal_requests", default = [])
+        self.declare_subres_requests = ContextVar("declare_subres_requests", default = [])
         self.declare_extres_requests = ContextVar("declare_extres_requests", default = [])
 
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
     properties : ContextVar[Properties|None] = None
 
+    declare_edit : ContextVar[Callable] = None
+    declare_edit_requests : ContextVar[list] = None
     def _declare_edit(self, _node:str)->None:
         ''' Override with contextual insertions as req. record to _declared to push warnings as req
         Used by session to push warning as req '''
         if not (_node in self.declare_edit_requests.get()):
             self.declare_edit_requests.get().append(_node)
         return
-    declare_edit : ContextVar[Callable] = _declare_edit
-    declare_edit_requests : ContextVar[list] = None
         
+    declare_signal : ContextVar[Callable] = None
+    declare_signal_requests : ContextVar[list] = None
     def _declare_signal(self, signal:GdSignal)->None:
         ''' Override with contextual insertions as req. record to _declared to push warnings as req
         Used by session to push warning as req '''
+        if not (signal in self.declare_signal_requests.get()):
+            self.declare_signal_requests.get().append(signal)
         return
-    declare_signal : ContextVar[Callable] = _declare_signal
-    declare_signal_requests : ContextVar[list] = None
 
-    def _declare_subres(self, object:Resource|Promise)->Promise:
+    declare_subres : ContextVar[Callable] = None
+    declare_subres_requests : ContextVar[list] = None
+    def _declare_subres(self, obj:Resource|Promise)->Promise:
         ''' Override with contextual insertions as req. Default return a promise with the ID
         Used by session to push warning as req '''
-        if isinstance(object, Promise):
-            return object
-        return Promise(object.name, Promise.Type.SUB_RESOURCE)
-    declare_subres : ContextVar[Callable] = _declare_subres
-    declare_subres_requests : ContextVar[list] = None
+        if not (obj in self.declare_subres_requests.get()):
+            self.declare_subres_requests.get().append(obj)
+        if isinstance(obj, Promise):
+            return obj
+        return Promise(obj.name, Promise.Type.SUB_RESOURCE)
 
+    declare_extres : ContextVar[Callable] = None
+    declare_extres_requests : ContextVar[list] = None
     def _declare_extres(self, value:File|Resource|Promise)->Promise:
         ''' Override with contextual insertions as req. Default return a promise of the value.uid or value.path.
         Used by session to push warning as req '''
         ## TODO: Consider procedural session mappings
+        if not (value in self.declare_subres_requests.get()):
+            self.declare_subres_requests.get().append(value)
+
         if isinstance(value, Promise):
             if value.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
                 return Promise
@@ -147,18 +159,20 @@ class PyToGd_Options(TransformerOptions):
                 return Promise(value.key.get("id", value.key["uid"]), Promise.Type.EXT_RESOURCE)
             else:
                 return Promise(value.key, Promise.Type.EXT_RESOURCE)
+
         elif isinstance(value, Resource):
             if value.uid is None:
                 value.uid = "".join(sample(ascii_letters, 9))
             return Promise(value.uid, Promise.Type.EXT_RESOURCE)
+
         elif isinstance(value, File):
             if value.path is None:
                 raise Exception()
             return Promise(value.path, Promise.Type.FILE)
+
         else:
             raise TypeError()
-    declare_extres : ContextVar[Callable] = _declare_extres
-    declare_extres_requests : ContextVar[list] = None
+
 
 class _Properties():
     class GdToPy(GdToPy_Transformer):
@@ -237,15 +251,15 @@ class _Resource():
 
     class GdToPy_File(GdToPy_Transformer):
         keys = ["file_resource"]
-        def transform(self, session, node):
-            _options, _ext_resources, _sub_resources, _properties = node.children
+    #     def transform(self, session, node):
+    #         _options, _ext_resources, _sub_resources, _properties = node.children
 
-            options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            ext_resources : tuple[Promise] = yield TRANSFORM_CHILDREN(_ext_resources)
-            sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources)
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
+    #         options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
+    #         ext_resources : tuple[Promise] = yield TRANSFORM_CHILDREN(_ext_resources.children)
+    #         sub_resources : tuple[Resource] = yield TRANSFORM_CHILDREN(_sub_resources.children)
+    #         properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
 
-            return Resource(**options, ext_resources=ext_resources, sub_resources=sub_resources, properties = properties)
+    #         return Resource(**options, ext_resources=ext_resources, sub_resources=sub_resources, properties = properties)
         
     class PyToGd(PyToGd_Transformer):
         types = [Resource]
@@ -299,18 +313,18 @@ class _Node():
             _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _connections = node.children
             assert len(_node_resources.children) > 0
 
-            options = yield MACROS.gdtopy_pairs_to_dict(_options.children)
+            options = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
 
             t = session.options["FORMAT"].format.set(options.get("format", 4))
 
             t0 = session.options["structure"].resource.set(node)
             t1 = session.options["structure"].subresource.set(node)
             
-            ext_resources = yield TRANSFORM_CHILDREN(_ext_resources) 
+            ext_resources = yield TRANSFORM_CHILDREN(_ext_resources.children) 
             ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
             _ext_resources_used = dict({k:False for k in ext_resources.keys()})
 
-            sub_resources = yield TRANSFORM_CHILDREN(_sub_resources, step="INITIAL")
+            sub_resources = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL")
             sub_resources : dict[Resource] = dict({x.name:x for x in sub_resources})
             _sub_resources_used = dict({k:False for k in sub_resources.keys()})
 
@@ -331,14 +345,14 @@ class _Node():
             t2 = session.options["structure"].fetch_subres.set(fetch_subres)
             t3 = session.options["structure"].fetch_extres.set(fetch_extres)
 
-            yield TRANSFORM_CHILDREN(_sub_resources) ## Complete transforming subresources. Should *not* be dependent on node tree.
+            yield TRANSFORM_CHILDREN(_sub_resources.children) ## Complete transforming subresources. Should *not* be dependent on node tree.
             ## -> Mutates _..._used
             
             ## Intial transformation for tree creation:
-            root_node = yield TRANSFORM(_node_resources[0], step="INITIAL")
+            root_node = yield TRANSFORM(_node_resources.children[0], step="INITIAL")
             root_node.uid = options["uid"]
 
-            node_resources = yield TRANSFORM_CHILDREN(_node_resources[1:], step="INITIAL")
+            node_resources = yield TRANSFORM_CHILDREN(_node_resources.children[1:], step="INITIAL")
             # node_resources = sorted(node_resources, lambda x: x._parent ) ## Consider for ensuring load orde??
 
             _tree_namespace = {"":root_node}
@@ -368,7 +382,7 @@ class _Node():
 
             t4 = session.options["structure"].fetch_node.set(fetch_node)
 
-            connections = yield TRANSFORM_CHILDREN(_connections)
+            connections = yield TRANSFORM_CHILDREN(_connections.children)
             _unclaimed_connections = []
 
             for c in connections:
@@ -377,7 +391,7 @@ class _Node():
                 else:
                     _unclaimed_connections.append(c)
 
-            edit_flags = yield TRANSFORM_CHILDREN(_edit_flags)
+            edit_flags = yield TRANSFORM_CHILDREN(_edit_flags.children)
             _edit_flags_used = [False*len(edit_flags)] 
 
             for k,i in enumerate(edit_flags):
@@ -388,7 +402,7 @@ class _Node():
                     n.instance_editable = True
                     _edit_flags_used[i] = True
 
-            yield TRANSFORM_CHILDREN(_node_resources)  ## Complete node loading, all properties, promises, references, ect
+            yield TRANSFORM_CHILDREN(_node_resources.children)  ## Complete node loading, all properties, promises, references, ect
             ## -> Mutates _..._used
 
             root_node.unclaimed_extres = dict({k:v for (k,v),b in zip(ext_resources.items(), _ext_resources_used) if b})
