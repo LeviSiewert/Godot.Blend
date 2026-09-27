@@ -35,7 +35,7 @@ class Test_GdSignal(_StructureTest):
         res = GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
         yield txt, res
 
-        res = '''[connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]'''
+        txt = '''[connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]'''
         res = GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
         yield txt, res
 

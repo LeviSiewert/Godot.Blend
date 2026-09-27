@@ -72,11 +72,13 @@ class TRANSFORM_CHILDREN(Flag):
     def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
 
         def _generator():
-            try:
-                for i in self.children:
-                    yield session.transform(i, **self.settings)
-            except TypeError as e:
-                raise TypeError(self.children, "is not Iterable!")
+            # try:
+            for i in self.children:
+                yield session.transform(i, **self.settings)
+            # except TypeError as e:
+            #     raise TypeError(self.children, "is not Iterable!")
+            # except:
+            #     raise
 
         if self.as_generator:
             return False, None, _generator()
@@ -312,3 +314,6 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 
             except:
                 raise
+            
+    def __repr__(self):
+        return self.__class__.__name__+"()"

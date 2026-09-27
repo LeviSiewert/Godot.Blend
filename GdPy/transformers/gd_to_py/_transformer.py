@@ -1,6 +1,8 @@
 from ...core.transformer import Transformer, TransformerSet, Session
 from typing import Iterable, Any, Type
 
+from inspect import isclass
+
 from lark import (
     Token as LarkToken, 
     Tree as LarkTree,
@@ -10,7 +12,7 @@ from lark import (
 class GdToPy_Session(Session):
     get_id = hash
 
-GdToPy_TransformerSet = TransformerSet
+class GdToPy_TransformerSet(TransformerSet): ...
 
 class GdToPy_Transformer(Transformer):
     keys : Iterable[str] = tuple()
@@ -23,12 +25,12 @@ class GdToPy_Transformer(Transformer):
         raise KeyError("Node not supported;", node)
 
 
-PyToGd_Session = Session
+class PyToGd_Session(Session):...
 
-PyToGd_TransformerSet = TransformerSet
+class PyToGd_TransformerSet(TransformerSet): ...
 
 class PyToGd_Transformer(Transformer):
-    types : Iterable[Type]
+    types : Iterable[Type] = tuple()
 
     def __repr__(self,):
         return f"PyToGd_Transformer{self.types}"

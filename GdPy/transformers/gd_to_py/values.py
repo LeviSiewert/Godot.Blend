@@ -184,7 +184,7 @@ class _String:
         
     class PyToGd(PyToGd_Transformer):
         types = [str]
-        # caching = False ##TODO! as rendering options change contextually
+        memoized = False ##TODO! as rendering options change contextually
         def transform(self, session:PyToGd_Session, node:str)->str:
             if session.options["values"].str_use_quotations.get():
                 return f'"{node}"'

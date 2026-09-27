@@ -46,6 +46,7 @@ class Users(list):
         return super().__contains__(key)
 
 class Promise[T:Any]:
+
     class Type(Enum):
         FILE = "FILE"
         RESOURCE = "RESOURCE"
@@ -53,8 +54,8 @@ class Promise[T:Any]:
         EXT_RESOURCE = "EXT_RESOURCE" ## Resolves to a resource
         EXT_RESOURCE_DIRECT = "EXT_RESOURCE_DIRECT" ## As in actual Ext_Resource object. Used pretty mmuch only in construction!
 
-    key : str|int|dict
-    p_type : Promise.Type
+    key : str|int|dict = None
+    p_type : Promise.Type = None
 
     def __init__(self, key:str|int|dict, p_type:Promise.Type):
         match p_type:
@@ -66,7 +67,7 @@ class Promise[T:Any]:
         self.p_type = p_type
 
     def __repr__(self):
-        return f"Promise({self.p_type.lower()}, {self.key})"
+        return f"Promise({self.p_type}, {self.key})"
 
     def resolve[D](self, context:Context, /, default:D=None)->D|T:
         match self.p_type:
@@ -98,6 +99,16 @@ class Promise[T:Any]:
         if result is None:
             return default
         return result
+
+    def __eq__(self, value):
+        if isinstance(value, (dict, str)):
+            return self.key == value
+        elif isinstance(value, Promise):
+            return all([
+                value.p_type == self.p_type,
+                value.key == self.key
+            ])
+        return super().__eq__(value)
 
 class PromiseContextual(Promise):
     ''' Container for replace callback from context, used in Properties
@@ -430,6 +441,9 @@ class Properties(UserDict):
     def __len__(self):
         return len((*self.keys(),))
 
+    def __eq__(self, other):
+        return super().__eq__(other)
+
 class Project():
     context : Context
 
@@ -457,6 +471,14 @@ class Project():
         self.users.append(obj)
     def dereference_callback(self, obj):
         self.users.remove(obj)
+
+    def __eq__(self, other):
+        if isinstance(other, Project):
+            return all([
+                other.self.resources == self.resources,
+                other.self.files == self.files,
+            ])
+        return super().__eq__(other)
 
 class File():
     context : Context
@@ -490,6 +512,19 @@ class File():
     def dereference_callback(self, obj):
         self.users.remove(obj)
 
+    def __eq__(self, value):
+        if isinstance(value, File):
+            return all([
+                value.self.filetype == self.filetype, 
+                value.self.resource == self.resource,
+            ])
+        elif isinstance(value, Resource):
+            return any([
+                self.resource is value,
+                self.resource == value,
+            ])
+        return False
+
 ## IMPORT AND SETTINGS ##
 
 class Settings:
@@ -509,6 +544,14 @@ class Settings:
         self.context = Context(resource = self)
         self.categories = Collection(key_attr = "_name", context=self.context)
         self.properties = Properties(context=self.context)
+
+    def __eq__(self, value):
+        if isinstance(value, Settings):
+            return all([
+                self.categories==value.categories, 
+                self.properties==value.properties,
+            ])
+        return False
 
 class Category:
     context : Context
@@ -535,7 +578,15 @@ class Category:
     def dereference_callback(self, obj):
         self.users.remove(obj)
 
-
+    def __eq__(self, value):
+        if isinstance(value, Category):
+            return all([
+                self.properties==value.properties,
+                # self.name==value.name,
+            ])
+        return False
+        # return super().__eq__(value)
+    
 class FileIO[ResourceType:Resource](Settings):
     ## TODO Matched globally via file type, somehow.
     
@@ -548,6 +599,10 @@ class FileIO[ResourceType:Resource](Settings):
     def file_export()->tuple[tuple[str],bytes]:
         ''' return file extension(s) and disc-byte rep '''
         pass
+
+    def __eq__(self, value):
+        ## Instances of this class should be "singletons"
+        return (value is self)
 
 ## RESOURCE STRUCTURE ##
 
@@ -646,8 +701,26 @@ class Resource():
 
     def reference_callback(self, obj):
         self.users.append(obj)
+        
     def dereference_callback(self, obj):
         self.users.remove(obj)
+
+    def __eq__(self, value):
+        if isinstance(value, Resource):
+            return all([
+                value.name == self.name,
+                value.properties == self.properties,
+                value.instance == self.instance,
+                value.instance_editable == self.instance_editable,
+            ])
+        return False
+    def _dif(self, value):
+        return {
+               "name"              : (value.name == self.name, value.name , self.name),
+               "properties"        : (value.properties == self.properties, value.properties , self.properties),
+               "instance"          : (value.instance == self.instance, value.instance , self.instance),
+               "instance_editable" : (value.instance_editable == self.instance_editable, value.instance_editable , self.instance_editable),
+        }
 
 class NodePath(str):...
 
@@ -694,7 +767,14 @@ class Node(Resource):
     def resolve_nodepath(self, path:str|NodePath):
         pass
 
+    def __eq__(self, value):
+        return super().__eq__(value)
+
 class GdSignal():
     def __init__(self,**kwargs):
         self.kwargs=kwargs
+    def __eq__(self, value):
+        return self.kwargs == value
+    def __repr__(self):
+        return f"GdSignal({self.kwargs})"
     

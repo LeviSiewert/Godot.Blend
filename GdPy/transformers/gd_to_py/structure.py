@@ -44,13 +44,18 @@ class MACROS:
             res[k] = v
         return res
 
-    def pytogd_dict_to_str(item:dict, seperator="=", join=",", ordering:tuple[str]=None)->Generator:
+    def pytogd_dict_to_str(item:dict, seperator="=", join=",",strip_key=False, filter_func:Callable=lambda *args: True, ordering:tuple[str]=None)->Generator:
         res = {}
-        for pair in item.items():
-            k,v = yield TRANSFORM_CHILDREN(pair) 
+        for pair in filter(filter_func, item.items()):
+            k,v = yield TRANSFORM_CHILDREN(pair)
+            if strip_key:
+                k = k.strip('"\'')
             res[k] = (k + seperator + v)
+
         if ordering:
-            return join.join(sorted(res.items(), key = lambda k,v: ordering.index(k) ))
+            ordered = [v for k,v in sorted(res.items(), key= lambda kv: ordering.index(kv[0]))]
+            return join.join(ordered) 
+
         return join.join(res.values())
 
 class GdToPy_Options(TransformerOptions): 
@@ -158,14 +163,14 @@ class PyToGd_Options(TransformerOptions):
             if value.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
                 return Promise
             elif value.p_type is Promise.Type.EXT_RESOURCE:
-                return Promise(value.key.get("id", value.key["uid"]), Promise.Type.EXT_RESOURCE)
+                return Promise(value.key.get("id", value.key["uid"]), Promise.Type.EXT_RESOURCE_DIRECT)
             else:
-                return Promise(value.key, Promise.Type.EXT_RESOURCE)
+                return Promise(value.key, Promise.Type.EXT_RESOURCE_DIRECT)
 
         elif isinstance(value, Resource):
             if value.uid is None:
                 value.uid = "".join(sample(ascii_letters, 9))
-            return Promise(value.uid, Promise.Type.EXT_RESOURCE)
+            return Promise(value.uid, Promise.Type.EXT_RESOURCE_DIRECT)
 
         elif isinstance(value, File):
             if value.path is None:
@@ -184,10 +189,10 @@ class _Properties():
             return Properties(res)
 
     class PyToGd(PyToGd_Transformer):
-        _types = [Properties]
+        types = [Properties]
         def transform(self, session, node:Properties):
             t = session.options["structure"].properties.set(node)
-            res = yield MACROS.pytogd_dict_to_str(node, join = "\n")
+            res = yield from MACROS.pytogd_dict_to_str(node, join = "\n", strip_key = True)
             session.options["structure"].properties.reset(t)
             return res
 
@@ -206,7 +211,7 @@ class _Promise():
                     return Promise(str(node.children[0]), Promise.Type.RESOURCE).split("uid://")[-1]
             raise NotImplementedError()
 
-    class PyToGd(GdToPy_Transformer):
+    class PyToGd(PyToGd_Transformer):
         types = [Promise] 
         def transform(self, session, node:Promise):
             match node.p_type:
@@ -223,6 +228,9 @@ class _Promise():
                     return f'ExtResource("{node.key}")'
                 
                 case Promise.Type.EXT_RESOURCE:
+                    if session.options["structure"].properties.get() is None:
+                        di = yield from MACROS.pytogd_dict_to_str(node.key, join=" ", strip_key = True, ordering=["type", "uid", "path", "id"] )
+                        return f'[ext_resource {di}]'
                     pr = session.options["structure"].declare_extres.get()(node)
                     return f'ExtResource({pr})'
                     
@@ -275,6 +283,135 @@ class _Resource():
                 else:
                     res = yield TRANSFORM(session.options["structure"].declare_subres.get()(self)) # -> promise -> rendered
                     return res
+            if node.file or node.uid:
+                res = yield from self.transform_file(session,node)
+                return res
+            res = yield from self.transform_subresource(session, node)
+            return res
+
+        def transform_file(self, session, node:Resource):
+            
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+            
+            unclaimed_subres = node.unclaimed_subres if (not (node.unclaimed_subres is None)) else {}
+            declared_subres = {}
+            def _declare_subres(x)->Promise:
+                if not (x in declared_subres.values()):
+                    if (x.name is None) or (x.name in declared_subres.keys()):
+                        ## Key collission, alter object. Object is altered instead of just session dict-key due to desire for stability.
+                        x.name = x.type+"_"+"".join(sample(ascii_letters, 9))
+                    declared_subres[x.name] = x
+                return Promise(x.name, Promise.Type.SUB_RESOURCE)
+            
+            unclaimed_extres = node.unclaimed_extres if (not (node.unclaimed_extres is None)) else tuple()
+            _required_extres = [] ## Cache-check deps.
+            extres_by_id = {}
+            declared_extres = {} ## By UID
+            def _declare_extres(value:File|Resource|Promise)->Promise:
+                ''' Declare a node into this session, returns an ascociated direct promise from the mapped namespace, prioritized by uid '''
+                if isinstance(value, (Resource,File)):
+                    if value.uid in declared_extres():
+                        return
+                    value = value.as_extres_promise()
+
+                if isinstance(value, Promise) and (value.p_type is Promise.Type.EXT_RESOURCE):
+                    uid = value.key["uid"]
+                    path = value.key["path"]
+                    type = value.key["type"]
+
+                    if p:=declared_extres.get(uid,None): ## Return cached
+                        # return p.value["id"]
+                        return Promise(p.value["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+
+                    id = value.key.get("id", None)
+                    if (id is None):
+                        id = "".join(sample(ascii_letters, 5)) ## Generate non-matching
+                        value.key["id"] = id 
+                         
+                    declared_extres[uid] = value
+                    extres_by_id[id] = value
+                    return Promise(id, Promise.Type.EXT_RESOURCE_DIRECT)
+
+                elif isinstance(value, Promise) and (value.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
+                    _required_extres.append(value.key)
+                    return value
+                
+                raise TypeError()
+            
+            def integrate_unclaimed_extres():
+                ''' Append unclaimed_extres to declared_extres, only after all tree extres have been found'''
+                for x in unclaimed_extres: 
+                    _declare_extres(x)
+
+            t2 = session.options["structure"].declare_extres.set(_declare_extres)
+            t3 = session.options["structure"].declare_subres.set(_declare_subres)
+
+            ## TRAVERSAL TOOLS ##
+            def mutating_unyielded_generator(yielded:dict[str,Resource], unyielded_src:dict[str,Resource]):
+                ''' mutates yielded in place, yield anything not already yielded by dict key
+                unyielded_src is being added to during yield intermission via tree traversal discovery
+                '''
+                unyielded = {k:v for k,v in unyielded_src.items() if not (k in yielded.keys())}
+                while len(unyielded.values()) > 0:
+                    yield from unyielded.values()
+                    yielded.update(unyielded)
+                    unyielded = {k:v for k,v in unyielded_src.items() if not (k in yielded.keys())}
+
+            txt_props = yield TRANSFORM_CHILDREN(node.properties)
+
+            ## EXECUTION ###
+
+            # Subres
+            _yielded_subres = {} #Mutated in place by Subres Generator
+            txt_subres = yield TRANSFORM_CHILDREN(mutating_unyielded_generator(_yielded_subres, declared_subres,))
+            txt_subres_unclaimed = yield TRANSFORM_CHILDREN(mutating_unyielded_generator(_yielded_subres, unclaimed_subres))
+            del _yielded_subres
+
+            integrate_unclaimed_extres() #-> Mutates declared_extres
+            txt_extres = yield TRANSFORM_CHILDREN(declared_extres)
+
+            ## JOIN
+            result = "\n".join([
+                f'[gd_scene format=4 uid="{node.uid}"]',
+                "\n".join(txt_extres),
+                "\n".join(txt_subres),
+                "\n".join(txt_subres_unclaimed),
+                '[resource]\n'+txt_props if len(node.properties) > 0 else "",
+            ])
+
+            t0 = session.options["structure"].resource.reset(t0)
+            t1 = session.options["structure"].subresource.reset(t1)
+            t2 = session.options["structure"].declare_extres.reset(t2)
+            t3 = session.options["structure"].declare_subres.reset(t3)
+            t4 = session.options["structure"].declare_signal.reset(t4)
+            t4 = session.options["structure"].declare_editable.reset(t4)
+
+            return result
+            
+        def transform_subresource(self, session, node:Resource):
+            t = session.options["structure"].subresource.set(node)
+            
+            header_props = {
+                            "id":node.name,
+                            "script":node.gdscript if node.gdscript else None,
+                            "type":node.gdtype if node.gdtype else "Resource",
+
+                            # "id":f'"{node.name}"',
+                            # "script":f'"{node.gdscript}"' if node.gdscript else None,
+                            # "type":f'"{node.gdtype}"' if node.gdtype else "Resource",
+            }
+
+            txt_header_vars = yield from MACROS.pytogd_dict_to_str(header_props, seperator="=", join=" ", strip_key=True, filter_func=lambda kv: not (kv[1] is None) ,ordering=["type", "script", "id"])
+            txt_header = f'[sub_resource {txt_header_vars}]'
+            txt_options = yield TRANSFORM(node.properties)
+
+            session.options["structure"].subresource.reset(t)
+
+            return "\n".join([
+                txt_header,
+                txt_options,
+            ])
 
 class _Node():
     class GdToPy(GdToPy_Transformer):
@@ -485,10 +622,10 @@ class _Node():
 
             session.options["structure"].subresource.reset(t)
 
-            return "\n".join(
+            return "\n".join([
                 txt_header,
                 txt_options,
-            )
+            ])
             
 
         def transform_scene(self, session, node:Node):
@@ -598,7 +735,7 @@ class _Node():
             t2 = session.options["structure"].declare_extres.set(_declare_extres)
             t3 = session.options["structure"].declare_subres.set(_declare_subres)
             t4 = session.options["structure"].declare_signal.set(_declare_signal)
-            t4 = session.options["structure"].declare_editable.set(_declare_edit)
+            t5 = session.options["structure"].declare_editable.set(_declare_edit)
 
 
 
@@ -646,7 +783,9 @@ class _Node():
             
             integrate_unclaimed_edits() #-> Mutates declared_edits
             txt_edits = yield TRANSFORM_CHILDREN(declared_edits)
-            
+
+
+            ## JOIN
             result = "\n".join([
                 f'[gd_scene format=4 uid="{node.uid}"]',
                 txt_node_root,
@@ -664,7 +803,7 @@ class _Node():
             t2 = session.options["structure"].declare_extres.reset(t2)
             t3 = session.options["structure"].declare_subres.reset(t3)
             t4 = session.options["structure"].declare_signal.reset(t4)
-            t4 = session.options["structure"].declare_editable.reset(t4)
+            t4 = session.options["structure"].declare_editable.reset(t5)
 
             return result
 
