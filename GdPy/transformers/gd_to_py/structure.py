@@ -44,12 +44,14 @@ class MACROS:
             res[k] = v
         return res
 
-    def pytogd_dict_to_str(item:dict, seperator="=", join=",")->Generator:
-        res = []
+    def pytogd_dict_to_str(item:dict, seperator="=", join=",", ordering:tuple[str]=None)->Generator:
+        res = {}
         for pair in item.items():
             k,v = yield TRANSFORM_CHILDREN(pair) 
-            res.append(k + seperator + v)
-        return join.join(res)
+            res[k] = (k + seperator + v)
+        if ordering:
+            return join.join(sorted(res.items(), key = lambda k,v: ordering.index(k) ))
+        return join.join(res.values())
 
 class GdToPy_Options(TransformerOptions): 
     def __init__(self, session):
