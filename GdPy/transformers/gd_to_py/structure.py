@@ -437,9 +437,7 @@ class _Node():
         def transform(self, session, node):
             _options, _properties = node.children
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
-            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
 
-            # options["id"] = options.pop("unique_id")
             _parent = None
             if "parent" in options.keys():
                 _parent = options.pop("parent")
@@ -447,6 +445,7 @@ class _Node():
             res = Node(**options)
             yield STEP("INITIAL", res)
 
+            properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
             res.properties.update(properties)
             res._parent = _parent
             return res
@@ -514,7 +513,7 @@ class _Node():
             ## -> Mutates _..._used
             
             ## Intial transformation for tree creation:
-            root_node = yield TRANSFORM(_node_resources.children[0], step="INITIAL")
+            root_node : Node = yield TRANSFORM(_node_resources.children[0], step="INITIAL")
             root_node.uid = options["uid"]
             yield STEP("INTIAL", root_node)
 
@@ -524,9 +523,6 @@ class _Node():
             _tree_namespace = {"":root_node}
             _unclaimed_nodes = {}
 
-            if len(root_node.children) != 0:
-                raise Exception(session.memo[hash(node)])
-
             for n in node_resources:
                 ## Build tree structure
                 p_path = n._parent if n._parent else ""
@@ -534,13 +530,16 @@ class _Node():
                 fullpath : str|None = None
 
                 if p_path == ".":
-                    root_node.children.append(n)
+                    if not (n in root_node.children): 
+                        root_node.children.append(n)
                     fullpath = n.name
                     _tree_namespace[fullpath] = n
                 else:
                     fullpath = (p_path + "/" + n.name)
                     if p_path in _tree_namespace.keys():
-                        _tree_namespace[p_path].children.append(n)
+                        p = _tree_namespace[p_path] 
+                        if not (n in p.children): 
+                            p.children.append(n)
                         _tree_namespace[fullpath] = n
                     else:
                         ## Instance-Overlay edited, reconstructed later

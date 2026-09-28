@@ -26,7 +26,7 @@ class _StructureTest[T:Type]():
     def _yield_gd_to_py(self,)->Generator[tuple[Any,Any]]:
         for txt, obj in self.data(gd_to_py):
             parsed = make_parser_cached(self._parser_key).parse(txt)
-            # gd_to_py.memo.clear()         
+            gd_to_py.memo.clear()
             
             ## FOR SOME REASON id(LarkToken) is reusing/producing a non-unique ID between parsing sessions, or id() is evaluating form (not recursive content) 
             res = gd_to_py.transform(parsed)
@@ -64,4 +64,4 @@ class _StructureTest[T:Type]():
         g = ground.replace("\n","").replace("\t","").replace(" ","")
         n = new.replace("\n","").replace("\t","").replace(" ","")
         if not ( g == n ):
-            raise AssertionError(g, n, obj, session.get_id(obj), session.memo.get(session.get_id(obj))) 
+            raise AssertionError(ground, new, obj, session.get_id(obj), session.memo.get(session.get_id(obj))) 
