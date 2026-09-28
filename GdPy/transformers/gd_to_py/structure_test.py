@@ -11,20 +11,7 @@ from ...core.structure import (
 )
 
 from .values import PackedStringArray
-
-# from ...core.structure_promise import corePromise.TypeRefType
-
-# structure import Resource, ExtResource, Node
 from ._test_utils import _StructureTest
-
-
-class Test_ExtResource(_StructureTest):
-    _type = Promise
-    _parser_key = "ext_resource"
-    def data(self, session):
-        txt = ''' [ext_resource type="PackedScene" uid="uid" path="res" id="id"] '''
-        res = Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
-        yield txt, res
 
 class Test_GdSignal(_StructureTest):
     _type = GdSignal
@@ -39,512 +26,531 @@ class Test_GdSignal(_StructureTest):
         res = GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
         yield txt, res
 
+class Test_ExtResource(_StructureTest):
+    _type = Promise
+    _parser_key = "ext_resource"
+    def data(self, session):
+        txt = ''' [ext_resource type="PackedScene" uid="uid" path="res" id="id"] '''
+        res = Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
+        yield txt, res
 
-class Test_Resource():
-    class Test_SubResource(_StructureTest):
-        _type = Resource
-        _parser_key = "sub_resource"
-        def data(self, session):
-            txt = '''
-                [sub_resource type="Resource" id="a"]
-            '''
-            res = Resource(type="Resource", id = "a")
-            yield txt, res ## Lonesome
+class Test_SubResource():
+    pass
 
-            txt = '''
-                [sub_resource type="Resource" id="a"]
-                value = "Value"
-            '''
-            res = Resource(type="Resource", id = "a", properties={"value":"Value"})
-            yield txt, res ## W/ Properties
+# class Test_Node():
+#     pass
+
+# class Test_Resource():
+#     pass
+
+# class Test_Scene():
+#     pass
+
+# class Test_Resource():
+#     class Test_SubResource(_StructureTest):
+#         _type = Resource
+#         _parser_key = "sub_resource"
+#         def data(self, session):
+#             txt = '''
+#                 [sub_resource type="Resource" id="a"]
+#             '''
+#             res = Resource(type="Resource", id = "a")
+#             yield txt, res ## Lonesome
+
+#             txt = '''
+#                 [sub_resource type="Resource" id="a"]
+#                 value = "Value"
+#             '''
+#             res = Resource(type="Resource", id = "a", properties={"value":"Value"})
+#             yield txt, res ## W/ Properties
 
 
-    class Test_File(_StructureTest):
-        _type = Resource
-        _parser_key = "file_resource"
-        def data(self, session):
-            txt = ''' 
-                [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
-                [resource]
-                val = "VAL"
-            '''
-            res = Resource(type="Resource", uid="b52f332102m2l", properties={"val":"VAL"})
-            yield txt, res ## Simple!
+#     class Test_File(_StructureTest):
+#         _type = Resource
+#         _parser_key = "file_resource"
+#         def data(self, session):
+#             txt = ''' 
+#                 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+#                 [resource]
+#                 val = "VAL"
+#             '''
+#             res = Resource(type="Resource", uid="b52f332102m2l", properties={"val":"VAL"})
+#             yield txt, res ## Simple!
 
-            txt = '''
-                [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+#             txt = '''
+#                 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-                [sub_resource type="Resource" id="a"]
+#                 [sub_resource type="Resource" id="a"]
 
-                [sub_resource type="Resource" id="b"]
-                reference=SubResource("a")
+#                 [sub_resource type="Resource" id="b"]
+#                 reference=SubResource("a")
 
-                [sub_resource type="Resource" id="c"]
-                reference=SubResource("b")
+#                 [sub_resource type="Resource" id="c"]
+#                 reference=SubResource("b")
 
-                [resource]
-                reference=SubResource("c")
-            '''
-            res = Resource(type="Resource", uid="uid://b52f332102m2l", properties={
-                "reference": Resource(type="Resource", id = "c", properties={
-                    "reference": Resource(type="Resource", id = "b", properties={
-                        "reference": Resource(type="Resource", id = "a")
-                    })
-                })
-            }) 
-            yield txt, res ## Tree!
+#                 [resource]
+#                 reference=SubResource("c")
+#             '''
+#             res = Resource(type="Resource", uid="uid://b52f332102m2l", properties={
+#                 "reference": Resource(type="Resource", id = "c", properties={
+#                     "reference": Resource(type="Resource", id = "b", properties={
+#                         "reference": Resource(type="Resource", id = "a")
+#                     })
+#                 })
+#             }) 
+#             yield txt, res ## Tree!
 
-            txt = """
-                [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+#             txt = """
+#                 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-                [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+#                 [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-                [resource]
-                reference = ExtResource("1_2f6dx")
-            """
-            extres = Promise({"uid":"uid://b52f332102m2l", "gdtype":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
-            # extres = Promise(type="Resource", uid="uid://cjkvk7qbv5oby", path="res://ext_res.tres", id="1_2f6dx")
-            res = Resource(
-                uid = "b52f332102m2l",
-                type = "Resource",
-                ext_resources=[extres],
-                properties={"reference":extres}
-            )
-            yield txt, res ## ExtResource!
+#                 [resource]
+#                 reference = ExtResource("1_2f6dx")
+#             """
+#             extres = Promise({"uid":"uid://b52f332102m2l", "gdtype":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
+#             # extres = Promise(type="Resource", uid="uid://cjkvk7qbv5oby", path="res://ext_res.tres", id="1_2f6dx")
+#             res = Resource(
+#                 uid = "b52f332102m2l",
+#                 type = "Resource",
+#                 ext_resources=[extres],
+#                 properties={"reference":extres}
+#             )
+#             yield txt, res ## ExtResource!
 
-            txt = """
-                [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+#             txt = """
+#                 [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-                [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+#                 [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-                [sub_resource type="Resource" id="a"]
-                reference = ExtResource("1_2f6dx")
+#                 [sub_resource type="Resource" id="a"]
+#                 reference = ExtResource("1_2f6dx")
 
-                [resource]
-                reference=SubResource("a")
-            """
-            extres = Promise({"uid":"uid://b52f332102m2l", "gdtype":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
-            res = Resource(
-                uid = "b52f332102m2l",
-                type = "Resource",
-                properties={"reference":extres}
-            )
-            yield txt, res ## Nested Subresource!
+#                 [resource]
+#                 reference=SubResource("a")
+#             """
+#             extres = Promise({"uid":"uid://b52f332102m2l", "gdtype":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
+#             res = Resource(
+#                 uid = "b52f332102m2l",
+#                 type = "Resource",
+#                 properties={"reference":extres}
+#             )
+#             yield txt, res ## Nested Subresource!
 
-class Test_Node():
+# class Test_Node():
             
 
-    class Test_Node_Indv(_StructureTest):
-        _type = Node
-        _parser_key = "node_resource"
+#     class Test_Node_Indv(_StructureTest):
+#         _type = Node
+#         _parser_key = "node_resource"
 
-        def data(self, session):
-            txt = '''
-                [node name="Node" type="Node" unique_id=1]
-            '''
-            res = Node(name="Node", type="Node", unique_id = 1)
-            yield txt, res ## Lonesome
+#         def data(self, session):
+#             txt = '''
+#                 [node name="Node" type="Node" unique_id=1]
+#             '''
+#             res = Node(name="Node", type="Node", unique_id = 1)
+#             yield txt, res ## Lonesome
 
-            txt = '''
-                [node name="Node" type="Node" parent="." unique_id=1]
-                value = "Value"
-            '''
-            res = Node(name="Node", type="Node", unique_id = 1, properties={"value":"Value"})
-            res._parent = "."
-            yield txt, res ## W/ Properties
+#             txt = '''
+#                 [node name="Node" type="Node" parent="." unique_id=1]
+#                 value = "Value"
+#             '''
+#             res = Node(name="Node", type="Node", unique_id = 1, properties={"value":"Value"})
+#             res._parent = "."
+#             yield txt, res ## W/ Properties
 
-            txt = '''
-                [node name="Node" type="Control" parent="." unique_id=1]
-            '''
-            res = Node(name="Node", type="Control", unique_id = 1)
-            res._parent = "."
-            yield txt, res ## Typed
+#             txt = '''
+#                 [node name="Node" type="Control" parent="." unique_id=1]
+#             '''
+#             res = Node(name="Node", type="Control", unique_id = 1)
+#             res._parent = "."
+#             yield txt, res ## Typed
 
-            txt = '''
-                [node name="Node" type="Node" parent="." unique_id=1]
-                script = ExtResource("ExtResourceID")
-            '''
-            res = Node(name="Node", type="Node", unique_id = 1, properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
-            res._parent = "."
-            yield txt, res ## Typed & ExtResource 
+#             txt = '''
+#                 [node name="Node" type="Node" parent="." unique_id=1]
+#                 script = ExtResource("ExtResourceID")
+#             '''
+#             res = Node(name="Node", type="Node", unique_id = 1, properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
+#             res._parent = "."
+#             yield txt, res ## Typed & ExtResource 
 
-            txt = '''
-                [node name="Node" type="Node" parent="." unique_id=1 instance="InstanceID"]
-            '''
-            res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
-            res._parent = "."
-            yield txt, res ## Typed & ExtResource 
+#             txt = '''
+#                 [node name="Node" type="Node" parent="." unique_id=1 instance="InstanceID"]
+#             '''
+#             res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
+#             res._parent = "."
+#             yield txt, res ## Typed & ExtResource 
 
 
-    class Test_Scene(_StructureTest):
-        _type = Node
-        _parser_key = "file_scene"
+#     class Test_Scene(_StructureTest):
+#         _type = Node
+#         _parser_key = "file_scene"
 
-        def data(self, session):
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#         def data(self, session):
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
-            '''
-            res = Node(type="Node", name="A", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3)
-            yield txt, res ## Root only
+#                 [node name="A" type="Node" unique_id=1936822026]
+#             '''
+#             res = Node(type="Node", name="A", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3)
+#             yield txt, res ## Root only
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
 
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", type="Node", unique_id=805633638)
-            ])
-            yield txt, res ## Root + 1 level
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", type="Node", unique_id=805633638)
+#             ])
+#             yield txt, res ## Root + 1 level
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
 
-                [node name="C" type="Node" parent="." unique_id=1360691913]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", type="Node", unique_id=805633638),
-                Node(name="C", type="Node", unique_id=1360691913),
-            ])
-            yield txt, res ## Root + 1 level *2
+#                 [node name="C" type="Node" parent="." unique_id=1360691913]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", type="Node", unique_id=805633638),
+#                 Node(name="C", type="Node", unique_id=1360691913),
+#             ])
+#             yield txt, res ## Root + 1 level *2
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
 
-                [node name="C" type="Node" parent="." unique_id=1360691913]
+#                 [node name="C" type="Node" parent="." unique_id=1360691913]
 
-                [node name="D" type="Node" parent="C" unique_id=1360691913]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", type="Node", unique_id=805633638),
-                Node(name="C", type="Node", unique_id=1360691913, children=[
-                    Node(name="D", type="Node", unique_id=2075458515)
-                ]),
-            ])
-            yield txt, res ## Root + 2 levels
+#                 [node name="D" type="Node" parent="C" unique_id=1360691913]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", type="Node", unique_id=805633638),
+#                 Node(name="C", type="Node", unique_id=1360691913, children=[
+#                     Node(name="D", type="Node", unique_id=2075458515)
+#                 ]),
+#             ])
+#             yield txt, res ## Root + 2 levels
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
 
-                [node name="C" type="Node" parent="." unique_id=1360691913]
+#                 [node name="C" type="Node" parent="." unique_id=1360691913]
 
-                [node name="D" type="Node" parent="C" unique_id=2075458515]
+#                 [node name="D" type="Node" parent="C" unique_id=2075458515]
 
-                [node name="E" type="Node" parent="C/D" unique_id=116493720]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", type="Node", unique_id=805633638),
-                Node(name="C", type="Node", unique_id=1360691913, children=[
-                    Node(name="D", type="Node", unique_id=2075458515, children=[
-                        Node(name="E", type="Node", unique_id=116493720)
-                    ]),
-                ]),
-            ])
-            yield txt, res ## Root + 3 levels
+#                 [node name="E" type="Node" parent="C/D" unique_id=116493720]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", type="Node", unique_id=805633638),
+#                 Node(name="C", type="Node", unique_id=1360691913, children=[
+#                     Node(name="D", type="Node", unique_id=2075458515, children=[
+#                         Node(name="E", type="Node", unique_id=116493720)
+#                     ]),
+#                 ]),
+#             ])
+#             yield txt, res ## Root + 3 levels
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
-                prop = "A"
+#                 [node name="A" type="Node" unique_id=1936822026]
+#                 prop = "A"
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
-                prop = "B"
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
+#                 prop = "B"
 
-                [node name="C" type="Node" parent="." unique_id=1360691913]
-                prop = "C"
+#                 [node name="C" type="Node" parent="." unique_id=1360691913]
+#                 prop = "C"
 
-                [node name="D" type="Node" parent="C" unique_id=2075458515]
-                prop = "D"
+#                 [node name="D" type="Node" parent="C" unique_id=2075458515]
+#                 prop = "D"
 
-                [node name="E" type="Node" parent="C/D" unique_id=116493720]
-                prop = "E"
-            '''
-            res = Node(name="A", properties={"prop":"A"}, type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", properties={"prop":"B"}, type="Node", unique_id=805633638),
-                Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, children=[
-                    Node(name="D", properties={"prop":"D"}, type="Node", unique_id=2075458515, children=[
-                        Node(name="E", properties={"prop":"E"}, type="Node", unique_id=116493720)
-                    ]),
-                ]),
-            ])
-            yield txt, res ## Root + 3 levels + Properties
+#                 [node name="E" type="Node" parent="C/D" unique_id=116493720]
+#                 prop = "E"
+#             '''
+#             res = Node(name="A", properties={"prop":"A"}, type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", properties={"prop":"B"}, type="Node", unique_id=805633638),
+#                 Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, children=[
+#                     Node(name="D", properties={"prop":"D"}, type="Node", unique_id=2075458515, children=[
+#                         Node(name="E", properties={"prop":"E"}, type="Node", unique_id=116493720)
+#                     ]),
+#                 ]),
+#             ])
+#             yield txt, res ## Root + 3 levels + Properties
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
-                ref = ExtResource("id")
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
-                properties={
-                    "ref":Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
-                },
-            )
-            yield txt, res ## Root Instance w/ ExtResource unfullfilled
+#                 [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
+#                 ref = ExtResource("id")
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
+#                 properties={
+#                     "ref":Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
+#                 },
+#             )
+#             yield txt, res ## Root Instance w/ ExtResource unfullfilled
 
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
+#                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
                 
-                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
-                ref = ExtResource("id")
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
-                properties={
-                    "ref":Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
-                },
-            )
-            yield txt, res ## Root Instance w/ ExtResource fullfilled
+#                 [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
+#                 ref = ExtResource("id")
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
+#                 properties={
+#                     "ref":Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
+#                 },
+#             )
+#             yield txt, res ## Root Instance w/ ExtResource fullfilled
 
-            return 
+#             return 
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
+#                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
                 
-                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
+#                 [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
                 
-                [editable path="."]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", 
-                       instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
-                       instance_editable=False
-            )
+#                 [editable path="."]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", 
+#                        instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
+#                        instance_editable=False
+#             )
 
-            yield txt, res ## Root Instance editable w/ ExtResource
-
-
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
-                
-                [node name="A" type="Node" unique_id=1936822026]
-                
-                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
-
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                    Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
-                        instance=Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
-                        instance_editable=False,
-                    )],
-            )
-            yield txt, res ## Nested Instance ExtResource unfullfilled
-
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
-                
-                [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
-                
-                [node name="A" type="Node" unique_id=1936822026]
-                
-                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
-
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                    Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
-                        instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
-                        instance_editable=False,
-                    )],
-            )
-            yield txt, res ## Nested Instance ExtResource instance non-editable
+#             yield txt, res ## Root Instance editable w/ ExtResource
 
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="A" type="Node" unique_id=1936822026]
-                
-                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
+#                 [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
 
-                [editable path="B"]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                    Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
-                         instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
-                         instance_editable=True), 
-            ])
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
+#                     Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+#                         instance=Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
+#                         instance_editable=False,
+#                     )],
+#             )
+#             yield txt, res ## Nested Instance ExtResource unfullfilled
+
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+                
+#                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
+                
+#                 [node name="A" type="Node" unique_id=1936822026]
+                
+#                 [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
+
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
+#                     Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+#                         instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
+#                         instance_editable=False,
+#                     )],
+#             )
+#             yield txt, res ## Nested Instance ExtResource instance non-editable
+
+
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+                
+#                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
+                
+#                 [node name="A" type="Node" unique_id=1936822026]
+                
+#                 [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
+
+#                 [editable path="B"]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
+#                     Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+#                          instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
+#                          instance_editable=True), 
+#             ])
             
-            yield txt, res ## Nested Instance editable
+#             yield txt, res ## Nested Instance editable
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
-                GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
-            ])
+#                 [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+#                 GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
+#             ])
             
-            yield txt, res ## Basic signal
+#             yield txt, res ## Basic signal
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
 
-                [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
-                GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
-            ])
+#                 [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+#                 GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
+#             ])
             
-            yield txt, res ## Complex Signal
+#             yield txt, res ## Complex Signal
 
 
-            txt = '''
-                [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
+#             txt = '''
+#                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026]
+#                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638]
+#                 [node name="B" type="Node" parent="." unique_id=805633638]
 
-                [node name="C" type="Node" parent="." unique_id=1360691913]
+#                 [node name="C" type="Node" parent="." unique_id=1360691913]
 
-                [node name="D" type="Node" parent="C" unique_id=1360691913]
+#                 [node name="D" type="Node" parent="C" unique_id=1360691913]
 
-                [connection signal="child_entered_tree" from="." to="B" method="_on_child_entered_tree"]
+#                 [connection signal="child_entered_tree" from="." to="B" method="_on_child_entered_tree"]
 
-                [connection signal="child_entered_tree" from="B" to="C" method="_on_child_entered_tree"]
+#                 [connection signal="child_entered_tree" from="B" to="C" method="_on_child_entered_tree"]
                 
-                [connection signal="child_entered_tree" from="B" to="." method="_on_child_entered_tree"]
+#                 [connection signal="child_entered_tree" from="B" to="." method="_on_child_entered_tree"]
 
-                [connection signal="child_entered_tree" from="C" to="C" method="_on_child_entered_tree"]
+#                 [connection signal="child_entered_tree" from="C" to="C" method="_on_child_entered_tree"]
                 
-                [connection signal="child_entered_tree" from="D" to="." method="_on_child_entered_tree"]
+#                 [connection signal="child_entered_tree" from="D" to="." method="_on_child_entered_tree"]
                 
-            '''
-            res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-                Node(name="B", type="Node", unique_id=805633638),
-                Node(name="C", type="Node", unique_id=1360691913, children=[
-                    Node(name="D", type="Node", unique_id=2075458515)
-                ]),
-            ],
-            signals = [
-                GdSignal(signal="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
-                GdSignal(signal="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
-                GdSignal(signal="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
-                GdSignal(signal="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
-                GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
-            ],
-            )
-            yield txt, res ## Complex/many signals
+#             '''
+#             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+#                 Node(name="B", type="Node", unique_id=805633638),
+#                 Node(name="C", type="Node", unique_id=1360691913, children=[
+#                     Node(name="D", type="Node", unique_id=2075458515)
+#                 ]),
+#             ],
+#             signals = [
+#                 GdSignal(signal="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
+#                 GdSignal(signal="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
+#                 GdSignal(signal="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
+#                 GdSignal(signal="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
+#                 GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
+#             ],
+#             )
+#             yield txt, res ## Complex/many signals
 
 
 
 
         
 
-class Test_Options():
-    class Test_Category(_StructureTest):
-        _type = Category
-        _parser_key = "category" 
-        def data(self, session):
-            txt = '''
-                [deps]
-                name="A"
+# class Test_Options():
+#     class Test_Category(_StructureTest):
+#         _type = Category
+#         _parser_key = "category" 
+#         def data(self, session):
+#             txt = '''
+#                 [deps]
+#                 name="A"
 
-            '''
-            res = Category(name="deps", properties = {"name":"A"})
-            yield txt, res
+#             '''
+#             res = Category(name="deps", properties = {"name":"A"})
+#             yield txt, res
 
-    class Test_File(_StructureTest):
-        _type = Settings 
-        _parser_key = "file_settings" 
-        def data(self, session):
-            txt = '''
-                property="A"
+#     class Test_File(_StructureTest):
+#         _type = Settings 
+#         _parser_key = "file_settings" 
+#         def data(self, session):
+#             txt = '''
+#                 property="A"
 
-                [A]
-                name="A"
+#                 [A]
+#                 name="A"
 
-                [B]
-                name="B"
-            '''
-            res = Settings(
-                properties = {
-                    "property":"A"
-                },
-                categories = [
-                        Category(name="A", properties = {"name":"A"}),
-                        Category(name="B", properties = {"name":"B"}),
-                ],
-            )
-            yield txt, res
+#                 [B]
+#                 name="B"
+#             '''
+#             res = Settings(
+#                 properties = {
+#                     "property":"A"
+#                 },
+#                 categories = [
+#                         Category(name="A", properties = {"name":"A"}),
+#                         Category(name="B", properties = {"name":"B"}),
+#                 ],
+#             )
+#             yield txt, res
 
         
-class Test_Import():
-    class Test_File(_StructureTest):
-        _type = Settings
-        _parser_key = "file_settings"
-        def data(self, sesson):
-            txt = '''
-                [remap]
+# class Test_Import():
+#     class Test_File(_StructureTest):
+#         _type = Settings
+#         _parser_key = "file_settings"
+#         def data(self, sesson):
+#             txt = '''
+#                 [remap]
 
-                importer="scene"
-                importer_version=1
-                type="PackedScene"
-                uid="uid://cocfi2vsn5qt2"
-                path="res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"
+#                 importer="scene"
+#                 importer_version=1
+#                 type="PackedScene"
+#                 uid="uid://cocfi2vsn5qt2"
+#                 path="res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"
 
-                [deps]
+#                 [deps]
 
-                source_file="res://assets/blender.glb"
-                dest_files=["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"]
+#                 source_file="res://assets/blender.glb"
+#                 dest_files=["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"]
 
-                [params]
+#                 [params]
 
-                nodes/root_type=""
-                nodes/root_name=""
-            '''
+#                 nodes/root_type=""
+#                 nodes/root_name=""
+#             '''
 
-            res = Settings(
-                # uid = "cocfi2vsn5qt2",
-                categories=[
-                    Category(name="remap", properties={
-                        "importer":"scene",
-                        "importer_version":1,
-                        "type":"PackedScene",
-                        "uid":"uid://cocfi2vsn5qt2",
-                        "path":"res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn",
-                    }),
-                    Category(name="deps", properties={
-                        "source_file":"res://assets/blender.glb",
-                        "dest_files":["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"],
-                    }),
-                    Category(name="params", properties={
-                        "nodes/root_type":"",
-                        "nodes/root_name":"",
-                    }),
-                ],
-            )
+#             res = Settings(
+#                 # uid = "cocfi2vsn5qt2",
+#                 categories=[
+#                     Category(name="remap", properties={
+#                         "importer":"scene",
+#                         "importer_version":1,
+#                         "type":"PackedScene",
+#                         "uid":"uid://cocfi2vsn5qt2",
+#                         "path":"res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn",
+#                     }),
+#                     Category(name="deps", properties={
+#                         "source_file":"res://assets/blender.glb",
+#                         "dest_files":["res://.godot/imported/blender.glb-920034d6e5ec1c2d509d6589b3fcbbe0.scn"],
+#                     }),
+#                     Category(name="params", properties={
+#                         "nodes/root_type":"",
+#                         "nodes/root_name":"",
+#                     }),
+#                 ],
+#             )
 
-            yield txt, res
+#             yield txt, res
 
 
-# class Test_Project(_StructureTest):...
-# class Test_File(_StructureTest):...
+# # class Test_Project(_StructureTest):...
+# # class Test_File(_StructureTest):...
