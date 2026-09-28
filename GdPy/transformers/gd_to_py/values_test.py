@@ -36,6 +36,16 @@ from ...core.values import (
 
 from .values import GdToPy_Options, PyToGd_Options, cvar_as
 
+from ._core import make_py_to_gd
+
+class Test_FUCKING_HASH():
+    def test_case(self):
+        session = make_py_to_gd()
+        assert session.get_id(Vector3i(0,1,2)) != session.get_id(PackedColorArray(Color(0,1,2,3)))
+        res = session.transform(Vector3i(0,1,2))
+        res2 = session.transform(PackedColorArray(Color(0,1,2,3)))
+        assert res != res2
+        
 class Test_Options():
     def test_render_basic(self):
         options = PyToGd_Options(None)

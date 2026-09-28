@@ -38,29 +38,30 @@ class _StructureTest[T:Type]():
             # parsed = make_parser_cached(self._parser_key).parse(txt)
             
             ## FOR SOME REASON id(LarkToken) is reusing/producing a non-unique ID between parsing sessions, or id() is evaluating form (not recursive content) 
-            py_to_gd.memo.clear()
+            # py_to_gd.memo.clear()
             from ._transformer import PyToGd_Session
             assert isinstance(py_to_gd, PyToGd_Session) 
             res = py_to_gd.transform(obj)
             
-            yield txt, res
+            yield txt, res, obj
     
     def test_py_to_gd(self,):
-        for a,b in self._yield_py_to_gd():
-            self.gd_compare(a,b)
+        for a,b, obj in self._yield_py_to_gd():
+            self.gd_compare(a, b, obj, py_to_gd)
     
     def test_gd_to_py(self,):
         for a,b in self._yield_gd_to_py():
-            self.py_compare(a,b)
+            self.py_compare(a,b, gd_to_py)
 
-    def py_compare(self, ground:T, new:T):
+    def py_compare(self, ground:T, new:T, session):
         assert (isinstance(new, self._type))
         if (ground != new):
             if hasattr(ground, "_dif"):
                 raise Exception({k:v for k,v in ground._dif(new).items() if not v[0]})
             raise Exception("(ground != new)")
         
-    def gd_compare(self, ground:str, new:str):
+    def gd_compare(self, ground:str, new:str, obj, session):
         g = ground.replace("\n","").replace("\t","").replace(" ","")
         n = new.replace("\n","").replace("\t","").replace(" ","")
-        assert( g == n ) 
+        if not ( g == n ):
+            raise AssertionError(g, n, obj, session.get_id(obj), session.memo.get(session.get_id(obj))) 

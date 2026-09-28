@@ -142,6 +142,7 @@ class _Float:
             return float(node)
 
     class PyToGd(PyToGd_Transformer):
+        memoized = False
         types = [float]
         def transform(self, session:PyToGd_Session, node:float)->str:
             return session.options["values"].render_float(node) 
@@ -155,6 +156,7 @@ class _Int:
 
     class PyToGd(PyToGd_Transformer):
         types = [int]
+        # memoized = False
         def transform(self, session:PyToGd_Session, node:int)->str:
             return str(node)
 

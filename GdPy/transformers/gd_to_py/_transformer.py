@@ -10,13 +10,16 @@ from lark import (
 
 
 class GdToPy_Session(Session):
-    get_id = hash
+    def __init__(self, transformer_sets):
+        self.preproc_hashes = {}
+        super().__init__(transformer_sets)
 
+    get_id = hash
+    
 class GdToPy_TransformerSet(TransformerSet): ...
 
 class GdToPy_Transformer(Transformer):
     keys : Iterable[str] = tuple()
-
     def match(self, session:Session, node:LarkToken|LarkTree)->bool:
         if isinstance(node, LarkToken):
             return (str(node.type) in self.keys)
@@ -25,7 +28,15 @@ class GdToPy_Transformer(Transformer):
         raise KeyError("Node not supported;", node)
 
 
-class PyToGd_Session(Session):...
+class PyToGd_Session(Session):
+    def get_id(self,node:Any):
+        # from .values import Object, Dictionary, Array
+        ''' provide a unique namespace for any object '''
+        if isinstance(node, (str,int,float)):
+            return str(node)
+        elif h := getattr(node, "__hash__", None):
+            return h()
+        return id(node)
 
 class PyToGd_TransformerSet(TransformerSet): ...
 

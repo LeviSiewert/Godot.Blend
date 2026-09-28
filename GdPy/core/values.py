@@ -135,6 +135,9 @@ class Array(UserList):
         r = super().__delattr__(key)
         self.removed(key, value)
 
+    def __hash__(self):
+        return id(self.__class__) + sum(hash(x) for x in self.data)
+
 class _FixedLenArray():
     val : array = None
     _type_str : str = "f"
@@ -160,6 +163,9 @@ class _FixedLenArray():
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.val.__repr__()})"
+
+    def __hash__(self):
+        return id(self.__class__) + sum(hash(x) for x in self.val)
 
 class Vector2i(_FixedLenArray):
     _type_str : str = "i"
@@ -227,7 +233,10 @@ class _PackedListSimple(UserList, ):
         if len(other) != len(self.data):
             return False
         return all(a==b for a,b in zip(other,self.data))
-        
+
+    def __hash__(self):
+        return id(self.__class__) + sum(hash(x) for x in self.data)
+
 
 class PackedInt32Array(_PackedListSimple):
     _types = (int,)
@@ -271,9 +280,13 @@ class _PackedListComplex(UserList, ):
             return False
         return all(a==b for a,b in zip(other,self.data))
         
-            
     def __repr__(self):
         return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+
+    def __hash__(self):
+        return id(self.__class__) + sum(hash(x) for x in self.data)
+        # return id(self.__class__)+int("".join(str(abs(hash(x))) for x in self.data))
+        
 
 class PackedVector2Array(_PackedListComplex):
     _type = Vector2
@@ -290,5 +303,5 @@ class PackedByteArray(bytearray):
     def __init__(self, string, /, encoding="utf-8", errors = "strict"):
         super().__init__(string, encoding, errors)
 
-    # def __repr__(self):
-    #     return f"{self.__class__.__name__}({super().__repr__().strip("[]")})"
+    def __hash__(self):
+        return id(self)

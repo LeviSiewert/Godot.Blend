@@ -143,9 +143,11 @@ MemoEntry = namedtuple("Memo", ["result", "cache", "generator", "context"])
 
 class Session[T:TransformerSet, O:TransformerOptions]():
     memo : dict[int, MemoEntry]
-    get_id : Callable = id
     transformer_sets : tuple[T]
     options: dict[str, O]
+    
+    def get_id (self, obj): 
+        return id(obj)
 
     def set_cache(self, uid:int, data:dict)->None:
         memo = self.memo[uid]
