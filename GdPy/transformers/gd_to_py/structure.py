@@ -215,11 +215,11 @@ class _Promise():
             
             match node.data:
                 case "ref_subresource":
-                    return Promise(key, Promise.Type.SUB_RESOURCE, typing=typing)
+                    return session.options["structure"].fetch_subres.get()(Promise(key, Promise.Type.SUB_RESOURCE, typing=typing))
                 case "ref_extresource":
-                    return Promise(key, Promise.Type.EXT_RESOURCE_DIRECT, typing=typing)
+                    return session.options["structure"].fetch_extres.get()(promise=Promise(key, Promise.Type.EXT_RESOURCE_DIRECT, typing=typing))
                 case "ref_resource":
-                    return Promise(key.split("uid://")[-1], Promise.Type.RESOURCE, typing=typing)
+                    return session.options["structure"].fetch_resource.get()(Promise(key.split("uid://")[-1], Promise.Type.RESOURCE, typing=typing))
             raise NotImplementedError()
 
     class PyToGd(PyToGd_Transformer):
@@ -492,14 +492,14 @@ class _Node():
             sub_resources : dict[Resource] = dict({x.name:x for x in sub_resources})
             _sub_resources_used = dict({k:False for k in sub_resources.keys()})
 
-            def fetch_subres(self, promise:Promise)->Promise|Resource:
+            def fetch_subres(promise:Promise)->Promise|Resource:
                 ''' Return subres or original promise, mark as used so as to not cache '''
                 if not ((res:=sub_resources.get(promise.key, None)) is None):
                     _sub_resources_used[promise.key] = True
                     return res
                 return promise 
                 
-            def fetch_extres(self, promise:Promise)->Promise|Resource:
+            def fetch_extres(promise:Promise)->Promise|Resource:
                 ''' Return copy in full promise, mark as used so as to not cache '''
                 if not ((res:=ext_resources.get(promise.key, None)) is None):
                     _ext_resources_used[promise.key] = True
@@ -545,7 +545,7 @@ class _Node():
                         ## Instance-Overlay edited, reconstructed later
                         _unclaimed_nodes[fullpath] = n
 
-            def fetch_node(self, path:str|NodePath)->NodePath|Node:
+            def fetch_node(path:str|NodePath)->NodePath|Node:
                 ''' Return node from scene path '''
                 return _tree_namespace.get(path, path)
 
@@ -587,7 +587,6 @@ class _Node():
             session.options["structure"].fetch_extres.reset(t3)
             session.options["structure"].fetch_node.reset(t4)
 
-            
             return root_node
 
         
