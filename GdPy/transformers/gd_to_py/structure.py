@@ -445,8 +445,9 @@ class _Node():
             res = Node(**options)
             yield STEP("INITIAL", res)
 
-            if p:=options.get("instance",None):
-                res.instance = session.options["structure"].fetch_extres.get()(p)
+            if not (res.instance is None):
+                # raise Exception(res.instance)
+                res.instance = session.options["structure"].fetch_extres.get()(res.instance)
 
             properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
             res.properties.update(properties)
@@ -504,18 +505,16 @@ class _Node():
                 
             def fetch_extres(promise:str|Promise)->Promise|Resource:
                 ''' Return copy in full promise, mark as used so as to not cache '''
-
-                if isinstance(promise, Promise) and promise.p_type is Promise.Type.EXT_RESOURCE:
+                if isinstance(promise, Promise) and (promise.p_type is Promise.Type.EXT_RESOURCE):
                     _ext_resources_used[promise.key["id"]] = True
                     return ext_resources.get(promise.key["id"], promise)
-                elif isinstance(promise, Promise) and promise.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
+                elif isinstance(promise, Promise) and (promise.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
                     _ext_resources_used[promise.key] = True
-                    return promise                
+                    return ext_resources.get(promise.key, promise)
                 elif isinstance(promise, str):
                     _ext_resources_used[promise] = True
-                    return ext_resources.get(promise, Promise(promise, Promise.Type.EXT_RESOURCE))
-    
-                raise Exception() 
+                    return ext_resources.get(promise, Promise(promise, Promise.Type.EXT_RESOURCE_DIRECT))
+                raise TypeError(promise)
 
             t2 = session.options["structure"].fetch_subres.set(fetch_subres)
             t3 = session.options["structure"].fetch_extres.set(fetch_extres)
