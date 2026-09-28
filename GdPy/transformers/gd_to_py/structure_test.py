@@ -149,26 +149,30 @@ class Test_Node():
                 [node name="Node" type="Node" parent="." unique_id=1]
                 value = "Value"
             '''
-            res = Node(name="Node", type="Node", unique_id = 1, parent = ".", properties={"value":"Value"})
+            res = Node(name="Node", type="Node", unique_id = 1, properties={"value":"Value"})
+            res._parent = "."
             yield txt, res ## W/ Properties
 
             txt = '''
                 [node name="Node" type="Control" parent="." unique_id=1]
             '''
-            res = Node(name="Node", type="Control", unique_id = 1, parent = ".", properties={"value":"Value"})
+            res = Node(name="Node", type="Control", unique_id = 1)
+            res._parent = "."
             yield txt, res ## Typed
 
             txt = '''
                 [node name="Node" type="Node" parent="." unique_id=1]
                 script = ExtResource("ExtResourceID")
             '''
-            res = Node(name="Node", type="Node", unique_id = 1, parent = ".", properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
+            res = Node(name="Node", type="Node", unique_id = 1, properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
+            res._parent = "."
             yield txt, res ## Typed & ExtResource 
 
             txt = '''
                 [node name="Node" type="Node" parent="." unique_id=1, instance="InstanceID"]
             '''
-            res = Node(name="Node", type="Node", unique_id = 1, parent = ".", instance="InstanceID")
+            res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
+            res._parent = "."
             yield txt, res ## Typed & ExtResource 
 
 

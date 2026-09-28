@@ -56,8 +56,9 @@ class Promise[T:Any]:
 
     key : str|int|dict = None
     p_type : Promise.Type = None
+    typing : Any|None = None
 
-    def __init__(self, key:str|int|dict, p_type:Promise.Type):
+    def __init__(self, key:str|int|dict, p_type:Promise.Type, typing : Any|None = None):
         match p_type:
             case Promise.Type.EXT_RESOURCE:
                 assert isinstance(key, dict)
@@ -65,9 +66,10 @@ class Promise[T:Any]:
                 assert isinstance(key, str)
         self.key = key
         self.p_type = p_type
+        self.typing = typing 
 
     def __repr__(self):
-        return f"Promise({self.p_type}, {self.key})"
+        return f"Promise[{self.typing}]({self.p_type}, {self.key})"
 
     def resolve[D](self, context:Context, /, default:D=None)->D|T:
         match self.p_type:
@@ -105,6 +107,7 @@ class Promise[T:Any]:
             return self.key == value
         elif isinstance(value, Promise):
             return all([
+                value.typing == self.typing,
                 value.p_type == self.p_type,
                 value.key == self.key
             ])
@@ -228,7 +231,10 @@ class PromiseProperty():
             o_val.replace.disconnect(self.replace, not_exist_ok=True)
 
         if isinstance(value, str|int):
-            value = Promise(value, self.p_type)
+            if self.p_type is Promise.Type.EXT_RESOURCE:
+                value = Promise(value, Promise.Type.EXT_RESOURCE_DIRECT)
+            else:
+                value = Promise(value, self.p_type)
 
         if isinstance(value, Promise):
             if not ((val:=value.resolve(instance.context)) is None):
@@ -701,7 +707,7 @@ class Resource():
 
     def reference_callback(self, obj):
         self.users.append(obj)
-        
+
     def dereference_callback(self, obj):
         self.users.remove(obj)
 

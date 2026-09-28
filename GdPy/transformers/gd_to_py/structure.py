@@ -202,37 +202,47 @@ class _Promise():
         keys = ["ref_subresource","ref_extresource","ref_resource"]
         def transform(self, session, node:LarkTree):
             ## Promises will fullfill themselves at earliest context when applied to any structure object. No need to callback stuff here
-            match node.value:
+            typing = yield from MACROS.default_yield(node.children[0], flag=TRANSFORM)
+            key = yield TRANSFORM(node.children[1])
+            
+            match node.data:
                 case "ref_subresource":
-                    return Promise(str(node.children[0]), Promise.Type.SUB_RESOURCE)
+                    return Promise(key, Promise.Type.SUB_RESOURCE, typing=typing)
                 case "ref_extresource":
-                    return Promise(str(node.children[0]), Promise.Type.EXT_RESOURCE_DIRECT)
+                    return Promise(key, Promise.Type.EXT_RESOURCE_DIRECT, typing=typing)
                 case "ref_resource":
-                    return Promise(str(node.children[0]), Promise.Type.RESOURCE).split("uid://")[-1]
+                    return Promise(key.split("uid://")[-1], Promise.Type.RESOURCE, typing=typing)
             raise NotImplementedError()
 
     class PyToGd(PyToGd_Transformer):
         types = [Promise] 
         def transform(self, session, node:Promise):
+            typing = yield MACROS.default_yield(node.typing, flag = TRANSFORM)
+            if typing is None:
+                txt_typing = ""
+            else:
+                txt_typing = f"[{typing}]"
             match node.p_type:
                 case Promise.Type.RESOURCE:
                     session.options["structure"].declare_rid.get()(node)
-                    return f'RID("uid://{node.key}")'
+                    return f'RID{txt_typing}("uid://{node.key}")'
                 
                 case Promise.Type.SUB_RESOURCE:
                     session.options["structure"].declare_subres.get()(node)
-                    return f'SubResource("{node.key}")'
+                    return f'SubResource{txt_typing}("{node.key}")'
                     
                 case Promise.Type.EXT_RESOURCE_DIRECT:
                     session.options["structure"].declare_extres.get()(node)
-                    return f'ExtResource("{node.key}")'
+                    return f'ExtResource{txt_typing}("{node.key}")'
                 
                 case Promise.Type.EXT_RESOURCE:
                     if session.options["structure"].properties.get() is None:
                         di = yield from MACROS.pytogd_dict_to_str(node.key, join=" ", strip_key = True, ordering=["type", "uid", "path", "id"] )
                         return f'[ext_resource {di}]'
                     pr = session.options["structure"].declare_extres.get()(node)
-                    return f'ExtResource({pr})'
+                    res = yield TRANSFORM(pr)
+                    return res
+                    # return f'ExtResource{txt_typing}("{pr}")'
                     
                 case Promise.Type.FILE:
                     raise Exception("Unknown how to render, as string, or as res:// filepath?")
@@ -421,11 +431,14 @@ class _Node():
             options : dict = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
             properties : dict = yield from MACROS.gdtopy_pairs_to_dict(_properties.children)
 
-            options["id"] = options.pop["unique_id"]
-            _parent = options.pop("parent")
+            # options["id"] = options.pop("unique_id")
+            _parent = None
+            if "parent" in options.keys():
+                _parent = options.pop("parent")
 
             res = Node(**options, properties = properties)
             res._parent = _parent
+            return res
 
     class GdToPy_File(GdToPy_Transformer):
         keys = ["file_scene"]
