@@ -60,6 +60,8 @@ class MACROS:
 
 class GdToPy_Options(TransformerOptions): 
     def __init__(self, session):
+        self.format = ContextVar("format", default = 4)
+
         self.resource = ContextVar("resource", default = None)
         self.subresource = ContextVar("subresource", default = None)
         self.properties = ContextVar("properties", default = None)
@@ -71,6 +73,8 @@ class GdToPy_Options(TransformerOptions):
         self.fetch_subres = ContextVar("fetch_subres",default = self._fetch_subres)
         self.fetch_extres = ContextVar("fetch_extres",default = self._fetch_extres)
         self.fetch_node = ContextVar("fetch_node",default = self._fetch_node)
+
+    format : ContextVar[int] = 4
 
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
@@ -103,6 +107,8 @@ class GdToPy_Options(TransformerOptions):
 
 class PyToGd_Options(TransformerOptions): 
     def __init__(self, session):
+        self.format = ContextVar("format", default = 4)
+
         self.resource = ContextVar("resource", default = None)
         self.subresource = ContextVar("subresource", default = None)
         self.properties = ContextVar("properties", default = None)
@@ -116,6 +122,8 @@ class PyToGd_Options(TransformerOptions):
         self.declare_signal_requests = ContextVar("declare_signal_requests", default = [])
         self.declare_subres_requests = ContextVar("declare_subres_requests", default = [])
         self.declare_extres_requests = ContextVar("declare_extres_requests", default = [])
+
+    format : ContextVar[int] = 4
 
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
@@ -436,12 +444,17 @@ class _Node():
             if "parent" in options.keys():
                 _parent = options.pop("parent")
 
-            res = Node(**options, properties = properties)
+            res = Node(**options)
+            yield STEP("INITIAL", res)
+
+            res.properties.update(properties)
             res._parent = _parent
             return res
 
     class GdToPy_File(GdToPy_Transformer):
         keys = ["file_scene"]
+        # memoized = False
+        # caching = True
 
         def transform(self, session, node):
             ''' Process is: 
@@ -467,13 +480,13 @@ class _Node():
 
             options = yield from MACROS.gdtopy_pairs_to_dict(_options.children)
 
-            t = session.options["FORMAT"].format.set(options.get("format", 4))
+            t = session.options["structure"].format.set(options.get("format", 4))
 
             t0 = session.options["structure"].resource.set(node)
             t1 = session.options["structure"].subresource.set(node)
             
             ext_resources = yield TRANSFORM_CHILDREN(_ext_resources.children) 
-            ext_resources : dict[Promise] = {x.key["id"]:x for x in sub_resources}
+            ext_resources : dict[Promise] = {x.key["id"]:x for x in ext_resources}
             _ext_resources_used = dict({k:False for k in ext_resources.keys()})
 
             sub_resources = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL")
@@ -503,24 +516,29 @@ class _Node():
             ## Intial transformation for tree creation:
             root_node = yield TRANSFORM(_node_resources.children[0], step="INITIAL")
             root_node.uid = options["uid"]
+            yield STEP("INTIAL", root_node)
 
             node_resources = yield TRANSFORM_CHILDREN(_node_resources.children[1:], step="INITIAL")
             # node_resources = sorted(node_resources, lambda x: x._parent ) ## Consider for ensuring load orde??
 
             _tree_namespace = {"":root_node}
             _unclaimed_nodes = {}
+
+            if len(root_node.children) != 0:
+                raise Exception(session.memo[hash(node)])
+
             for n in node_resources:
                 ## Build tree structure
-                p_path = n._parent
-                del n._parent
+                p_path = n._parent if n._parent else ""
+                n._parent = None
                 fullpath : str|None = None
 
                 if p_path == ".":
                     root_node.children.append(n)
-                    fullpath = n.name.key
+                    fullpath = n.name
                     _tree_namespace[fullpath] = n
                 else:
-                    fullpath = (p_path + "/" + n.name.key)
+                    fullpath = (p_path + "/" + n.name)
                     if p_path in _tree_namespace.keys():
                         _tree_namespace[p_path].children.append(n)
                         _tree_namespace[fullpath] = n
@@ -563,7 +581,7 @@ class _Node():
             root_node.unclaimed_nodes = _unclaimed_nodes
             root_node.unclaimed_signals = _unclaimed_connections
 
-            session.options["FORMAT"].format.reset(t)
+            session.options["structure"].format.reset(t)
             session.options["structure"].resource.reset(t0)
             session.options["structure"].subresource.reset(t1)
             session.options["structure"].fetch_subres.reset(t2)
@@ -616,7 +634,7 @@ class _Node():
 
             if scene:=session.options["structure"].resource.get() and (not (scene is node)): 
                 header_props["parent"] = f'"{scene.get_path(self, get_rendering_parent=True)}"'
-            else:
+            elif not (node._parent is None):
                 header_props["parent"] = f'"{node._parent}"' 
                 ## Cached value
 
