@@ -290,7 +290,7 @@ class Test_Node():
             txt = '''
                 [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
                 
-                [node name="A" type="Node" unique_id=1936822026, instance=ExtResource("id")]
+                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
                 ref = ExtResource("id")
             '''
             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
@@ -305,7 +305,7 @@ class Test_Node():
                 
                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
                 
-                [node name="A" type="Node" unique_id=1936822026, instance=ExtResource("id")]
+                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
                 ref = ExtResource("id")
             '''
             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
@@ -321,7 +321,7 @@ class Test_Node():
                 
                 [ext_resource type="PackedScene" uid="uid" path="res" id="id"]
                 
-                [node name="A" type="Node" unique_id=1936822026, instance=ExtResource("id")]
+                [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
                 
                 [editable path="."]
             '''
@@ -338,7 +338,7 @@ class Test_Node():
                 
                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638, instance=ExtResource("id")]
+                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
 
             '''
             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
@@ -356,7 +356,7 @@ class Test_Node():
                 
                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638, instance=ExtResource("id")]
+                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
 
             '''
             res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
@@ -375,7 +375,7 @@ class Test_Node():
                 
                 [node name="A" type="Node" unique_id=1936822026]
                 
-                [node name="B" type="Node" parent="." unique_id=805633638, instance=ExtResource("id")]
+                [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
 
                 [editable path="B"]
             '''
