@@ -24,8 +24,16 @@ from ...core.structure import (
 class OPTIONS_GdToPy(TransformerOptions):
     def __init__(self, session):
         self.properties = ContextVar("properties", default = None)
-    properties : ContextVar[Properties|None] = None
+        self.subresource = ContextVar("subresource", default = None)
+        
+        self.find_extres = ContextVar("find_extres", default = self._find_extres)
+    properties : ContextVar[Properties|bool|None] = None
+    subresource : ContextVar[Resource|None] = None
 
+    find_extres : ContextVar[Callable] = None
+    def _find_extres(self, promise:Promise|str):
+        return promise
+    
 class MACROS_GdToPy:
     def pairs_to_dict(session, obj:Iterable):
         r = {}
@@ -34,12 +42,26 @@ class MACROS_GdToPy:
             r[k] = v
         return r
 
+class MACROS:
+    def Default(value, default:Any=None, flag:Any=TRANSFORM_CHILDREN, conditional:Callable=lambda x: not (x is None), kwargs:dict=tuple()):
+        if not conditional(value):
+            return value
+        res = yield flag(value, **kwargs)
+        return res
 
 class OPTIONS_PyToGd(TransformerOptions):
     def __init__(self, session):
         self.properties = ContextVar("properties", default = None)
-    properties : ContextVar[Properties|None] = None
+        self.subresource = ContextVar("subresource", default = None)
+        
+        self.declare_extres = ContextVar("declare_extres", default = self._declare_extres)
+    properties : ContextVar[Properties|bool|None] = None
+    subresource : ContextVar[Resource|None] = None
 
+    declare_extres : ContextVar[Callable] = None
+    def _declare_extres(self, promise:Promise|str):
+        return promise
+    
 class MACROS_PyToGd:
     def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = lambda kv: kv[0]):
         key_gen = yield TRANSFORM_CHILDREN(obj.keys(),   as_generator=True)
@@ -100,7 +122,9 @@ class _Promise():
                 case "ref_subresource":
                     raise NotImplementedError()
                 case "ref_extresource":
-                    raise NotImplementedError()
+                    typing = yield from MACROS.Default(node.children[0])
+                    key = yield TRANSFORM(node.children[1])
+                    return session.options["structure"].find_extres.get()(Promise(key, Promise.Type.EXT_RESOURCE_DIRECT, typing=typing))
                 case "ref_resource":
                     raise NotImplementedError()
     class PyToGd(PyToGd_Transformer):
@@ -127,7 +151,7 @@ class _SubResource():
         keys = ["sub_resource"]
         def transform(self, session, node:LarkTree):
             _options, _properties = node.children
-            options : dict = yield from MACROS_GdToPy.pairs_to_dict(_options.children)
+            options : dict = yield from MACROS_GdToPy.pairs_to_dict(session, _options.children)
 
             res = Resource(**options)
             yield STEP("INTIAL", res)
@@ -137,7 +161,7 @@ class _SubResource():
                 ## find_editable is tempting, but better suited to the file level.
             
             properties : Properties = yield TRANSFORM(_properties)
-            properties.context.set_extends(res.context)
+            res.properties.update(properties)
             return res
     
     class PyToGd(PyToGd_Transformer):
@@ -148,62 +172,93 @@ class _SubResource():
             "id",
         )
         def match(self, session, node):
+            ''' Match only Non-Node SubResource '''
             if (not isinstance(node,Resource)) or isinstance(node,Node):
                 return False
-            return not any([
+            return all([
                 not (node.uid is None),
                 not (node.file is None),
             ])
-        def transform(self, session, node:Resource):
+        def transform(self, session, node:Resource)->Generator[Any,Any,str]:
+            t0 = session.options["structure"].subresource.set(node)
+
+            # Contextually a Promise #
             if not (session.options["structure"].properties.get() is None):
+                # Escape to promise if within context of properties #
                 p : Promise = session.options["structure"].declare_subres(node)
                 r : str = yield TRANSFORM(p)
                 return r
 
+            # Ensure #
             self.ensure_fmt(node)
 
-            header = {
+            # Header #
+            header = {k:v for k,v in {
                 "type" : node.gdtype if node.gdtype else "Resource",
                 "script" : node.gdscript,
                 "instance" : node.instance,
                 "id" : node.name,
-            }
+            }.items() if (not (v is None))}
 
             t = session.options["structure"].properties.set(True)
-            txt_header = yield MACROS_PyToGd.dict_to_str(session,{k:v for k,v in header if (not(v is None))}, leading=" ")
+            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+            
             session.options["structure"].properties.reset(t)
-
+            
+            # Properties #
             txt_properties = yield TRANSFORM(node.properties)
 
+            # Context Declarations #
             if node.instance_editable:
                 session.options["structure"].declare_editable.get()(node)
 
-            return txt_header+"\n"+txt_properties
+            # Compile #
+            result = f"[sub_resource{txt_header_options}]"+"\n"+txt_properties
+            
+            # Reset Context #
+            session.options["structure"].subresource.reset(t0)
 
-        def ensure_fmt(self,node:Resource):
-            if node.id is None:
-                node.id = "".join(ascii_letters, 9)
+            # Return #
+            return result
+
+        def ensure_fmt(self, node:Resource)->None:
+            if node.name is None:
+                node.name = "".join(sample(ascii_letters, 9))
+
+class _Resource():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["file_resource"]
+
+    class PyToGd(PyToGd_Transformer):
+        def match(self, session, node):
+            ''' Match only Non-Node SubResource '''
+            if (not isinstance(node,Resource)) or isinstance(node,Node):
+                return False
+            return any([
+                (node.uid is None),
+                (node.file is None),
+            ])
 
 class _Properties():
     class PyToGd(PyToGd_Transformer):
         types = [Properties]
         def transform(self, session, node):
-            t = session.option["structure"].properties.set(node)
+            t = session.options["structure"].properties.set(node)
 
-            data = yield MACROS_GdToPy.pairs_to_dict(session, node.children)
-            res = Properties(data)
+            res = yield from MACROS_PyToGd.dict_to_str(session, node.data, entry_join="\n")
 
-            session.option["structure"].properties.reset(t) 
+            session.options["structure"].properties.reset(t) 
             return res
 
     class GdToPy(GdToPy_Transformer):
         keys = ["properties"]
         def transform(self, session, node:Properties):
-            t = session.option["structure"].properties.set(node)
+            t = session.options["structure"].properties.set(node)
 
-            res = yield MACROS_PyToGd.dict_to_str(session, node, entry_join="\n")
+            data = yield from MACROS_GdToPy.pairs_to_dict(session, node.children)
+            res = Properties(data)
 
-            session.option["structure"].properties.reset(t) 
+            session.options["structure"].properties.reset(t) 
             return res
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
@@ -211,6 +266,8 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _SubResource.GdToPy,
     _Properties.GdToPy,
     _ExtResource.GdToPy,
+    _Promise.GdToPy,
+    _Resource.GdToPy,
 ], 
 options = {"structure":OPTIONS_GdToPy}
 )
@@ -221,6 +278,7 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _Properties.PyToGd,
     # _ExtResource.GdToPy,
     _Promise.PyToGd,
+    _Resource.PyToGd,
 ], 
 options = {"structure":OPTIONS_PyToGd} 
 )

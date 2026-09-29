@@ -639,12 +639,21 @@ class Resource():
 
     uid_set : Signal[str|None]
     file_set : Signal[str|File|None]
+    gdtype_set : Signal[Promise|Any]
+    gdscript_set : Signal[Promise|Any]
 
     _uid : CollectionKey[str]|None = None
     uid = CollectionKeyProperty(str, "_uid") #callback = "uid_set"
 
     _file : Promise[File]|File|None = None
     file = PromiseProperty("_file", "file_set", Promise.Type.FILE)
+
+    # _gdtype : Promise[File]|File|None = None
+    # gdtype = PromiseProperty("_gdtype", "gdtype_set", Promise.Type.EXT_RESOURCE)
+    ## TODO: turn into type-promise and accomidate.
+
+    _gdscript : Promise[File]|File|None = None
+    gdscript = PromiseProperty("_gdscript", "gdscript_set", Promise.Type.EXT_RESOURCE)
 
     sub_resources : Collection[str, Resource] 
         ## Inclusionary, 
@@ -653,7 +662,7 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, format:int=None, type:str|None=None, script:str|None=None, uid:str|None=None, file:str|File|None=None, unclaimed_extres=tuple(), unclaimed_subres=tuple(), properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, id:str|None=None, format:int=None, type:Promise|str|None=None, script:Promise|str|None=None, uid:str|None=None, file:str|File|None=None, unclaimed_extres=tuple(), unclaimed_subres=tuple(), properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
         self.gdtype = type
         self.gdscript = script
@@ -680,14 +689,17 @@ class Resource():
         self._uid = CollectionKey(self) 
         self.uid_set = Signal(self) 
         self._uid.key_updated.connect(self.uid_set)
-        # self.uid_set.connect(self._on_uid_set)
+
 
         self._name = CollectionKey(self)
         self.name_set = Signal(self)
         self._name.key_updated.connect(self.name_set)
 
+        self.gdtype_set = Signal(self)
+
+        self.gdscript_set = Signal(self)
+
         self.instance_set = Signal(self) 
-        # self.instance_set.connect(self._on_instance_set)
 
         self.file_set = Signal(self) 
         self.file_set.connect(self._on_file_set)
@@ -746,7 +758,7 @@ class Node(Resource):
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
-    def __init__(self, name:str|None=None, format:int=None, type:str|None=None, script:str|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]=tuple(), unclaimed_subres:dict[str,str]=tuple(), unclaimed_signal:dict[str,str]=tuple(), unclaimed_editable:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, name:str|None=None, format:int=None, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]=tuple(), unclaimed_subres:dict[str,str]=tuple(), unclaimed_signal:dict[str,str]=tuple(), unclaimed_editable:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
 
         super().__init__(id=name, format=format, type=type, script=script, unclaimed_extres=unclaimed_extres, unclaimed_subres=unclaimed_subres, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable )
 

@@ -51,7 +51,7 @@ class _StructureTest[T:Type]():
     
     def test_gd_to_py(self,):
         for a,b in self._yield_gd_to_py():
-            self.py_compare(a,b, gd_to_py)
+            self.py_compare(a, b, gd_to_py)
 
     def py_compare(self, ground:T, new:T, session):
         assert (isinstance(new, self._type))
