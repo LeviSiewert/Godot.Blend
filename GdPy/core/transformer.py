@@ -86,6 +86,7 @@ class TRANSFORM_CHILDREN(Flag):
         return False, None, tuple(_generator())    
 
 class Transformer[I:Any, O:Any]():
+    ''' A container for evaluating matches against a node and returning a "inner generator" that yields flags and a result '''
     contextual : ContextVar|bool = True ## Copies or doesnt copy the current context
     memoized : ContextVar|bool = True
     caching : ContextVar|bool = True
@@ -100,17 +101,38 @@ class Transformer[I:Any, O:Any]():
         return self.__class__.__name__
 
     def transform(self, session:Session, node:I)->Generator[Flag, Any, O]:
-        """AKA : Inner Generator"""
+        ''' AKA : Inner Generator
+        A generator that yields flags for the session (via 'Middle Generator') and finally returns a result. 
+        
+        Notes:
+        - The generator itself is cached in a memo until a result is returned if `memoized` and `caching` (See session)
+        - The context is copy-on-start of generator, and re-entered whenever the generator is stepped. 
+
+        Instructions:
+        - yield flags such as TRANSFORM for all components that can be changed by other session transformers.
+            - the 'return' of the `yield flag` via send(transform()) is the resulting changed object
+        - yield flags such as STEP for allowing construction interuption, such as width-first transformation.
+            - `session.transform(node, step='...')` will refer to cached, otherwise run until step yielded OR transformer completes. 
+        - use session.options[...].contextvar to change session state contextually w/a
+        - only `Tranformer.memoized = True` if `session.get_id` is unique in session for this object type && it's faster to get_id -> return memo.result 
+        - only `Tranformer.caching = True` if Steps are yielded 
+        - only `Tranformer.contextual = True` if ContextVars are set && Interupts/Steps are yielded.
+
+        Suggestions:
+        - consider `yield from` for repeated operations 
+            - ie `res = yield from MACROS_CLASS.Macro(...)`
+        '''
         raise NotImplementedError("Abstract class!")
         yield
 
-    def match(self, session:Session, node:Any)->bool:
+    def match(self, session:Session, node:Any|I)->bool:
+        ''' When part of a TransformerSet this will be checked to see  '''
         raise NotImplementedError("Abstract class!")
 
 class TransformerOptions():
-    ''' TODO
-    Class that is instancated at session creation, and has a factory method to generate context vars from type annotations
-    IE: `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
+    ''' Class that is instanciated at session creation
+    TODO: a factory method to generate context vars from type annotations
+        IE: `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
     '''
     def __init__(self, session:Session):
         pass
