@@ -116,6 +116,7 @@ class TransformerOptions():
         pass
 
     def get_id_contributer(self, session:Session, obj:Any)->int:
+        ''' Cache id space "shifting", called per get_id '''
         return 0
 
 class TransformerSet[T:Transformer, O:TransformerOptions]():

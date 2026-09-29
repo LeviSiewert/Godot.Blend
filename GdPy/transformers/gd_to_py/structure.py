@@ -63,7 +63,6 @@ class OPTIONS_PyToGd(TransformerOptions):
         return promise
     
     def get_id_contributer(self, session, obj):
-        ''' Cache id space "shifting", called per get_id '''
         if not isinstance(obj, Resource):
             return 0
         return hash ([
