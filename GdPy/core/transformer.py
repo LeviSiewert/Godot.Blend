@@ -15,10 +15,20 @@ def cvar_as(cvar:ContextVar, value):
     cvar.set(t)
 
 class Flag():
-    def intigrate(self, session, uid, memo, settings, contextual:bool, memoized:bool, caching:bool)->Any:
+    ''' Am abstract class who's implimentations are yielded by a `Transformer.transform` ('Inner Generator') to a `Session._transform` ("Middle Generator")
+    The Middle Generator then calls `{Flag}.integrate(...)` and recieves (do_yield, yield_val, send_val)
+    '''
+    def intigrate(self, session:Session, uid:Any, memo:MemoEntry, settings:dict, contextual:bool, memoized:bool, caching:bool)->Any:
+        ''' Called by 'Middle Generator', returns tuple(do_yield, yield_val, send_val)
+        Returns
+        - do_yield : bool -> escapes the 'Middle Generator' with the yield_val 
+        - yield_val : Any -> step value of the 'Middle Generator' when `do_yield`
+        - send_val : Any -> value sent back to 'Inner Generator' unless 'Middle Generator' settings override this value. 
+        '''
         raise NotImplementedError(self.__class__)
 
 class STEP(Flag):
+    ''' Allows for a caller to interupt construction, and cache w/a '''
     __slots__ = tuple()
     # __slots__ = ("caching","step","value") 
     caching : bool = True
@@ -45,6 +55,7 @@ class STEP(Flag):
         return do_yield, self.value, self.step
         
 class TRANSFORM(Flag):
+    ''' Essentially a macro for session.transform(...), but is prefered in use for clarity '''
     __slots__ = tuple()
     # __slots__ = ("item", "settings")
     item : Any
@@ -58,6 +69,7 @@ class TRANSFORM(Flag):
         return False, None, session.transform(self.item, **self.settings)
 
 class TRANSFORM_CHILDREN(Flag):
+    ''' Essentially a macro for session.transform(...), but is prefered in use for clarity '''
     __slots__ = tuple()
     # __slots__ = ("children", "as_generator", "settings")
     children : Iterable
@@ -130,7 +142,7 @@ class Transformer[I:Any, O:Any]():
         raise NotImplementedError("Abstract class!")
 
 class TransformerOptions():
-    ''' Class that is instanciated at session creation
+    ''' Class that is instanciated at session creation to hold ContextVars and 'shift' the Cache id space, allowing for context dependent caching.
     TODO: a factory method to generate context vars from type annotations
         IE: `value : ContextVar = False` ->> `self.value = ContextVar(...+"value",default=False)` 
     '''
@@ -299,11 +311,12 @@ class Session[T:TransformerSet, O:TransformerOptions]():
         _memo.context.run(func, *args, **kwargs)
 
     def iterator(self, uid:int, transform:Generator, /, contextual:bool=True, memoized:bool=True, caching:bool=True, send_val:Any=None, **settings)->Generator:
-        ''' iterators through child transformer and integrates flags  
-        Adds to Memo
-        Returns None if step not met, even if internal generator completes
-        Will clean self from memo at completion if `memoized` 
-        settings are sent from every yield
+        ''' AKA: 'Middle Generator' 
+        - iterators through child transformer and integrates flags  
+        - Added to Memo
+        - Returns None if step not met, even if internal generator completes
+        - Will clean self from memo at completion if `memoized` 
+        - Settings are sent at/from every yield
         '''
 
         send_value = None
@@ -315,35 +328,32 @@ class Session[T:TransformerSet, O:TransformerOptions]():
         while c:
 
             try:
+                ## Send value fr settings
                 send_value = settings.get("send_value", send_value)
 
+                ## Actual operation of 'Inner Generator'
                 flag = transform.send(send_val)
 
-                if memoized:             
+                if memoized:
+                    ## MemoEntry is immutable and entry may have changed per iter as flags integrate.
                     memo = self.memo[uid]
 
                 if isinstance(flag, Flag):
                     do_yield, yield_val, send_val = flag.intigrate(self, uid, memo, settings, contextual=contextual, memoized=memoized, caching=caching)
 
                     if do_yield:
+                        ## return yield_val, recieve settings from Session.Transform call
                         _settings = yield yield_val
                         if not (_settings is None):
                             settings = _settings
                         del _settings
-
-                # elif isinstance(flag, TRANSFORM):
-                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
-                # elif isinstance(flag, TRANSFORM_CHILDREN):
-                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
-                # elif isinstance(flag, Flag):
-                #     send_val = flag.intigrate(self, uid, memo, contextual=contextual, memoized=memoized, caching=caching)
-
                 else: 
                     raise Exception("UNKNOWN Flag:", flag)
 
             except StopIteration as e:
                 c = False
-                if memoized:             
+                if memoized:  
+                    ## clean self from memo             
                     memo = self.memo[uid]
                     self.memo[uid] = MemoEntry(result=e.value, cache=memo.cache, generator=None, context=None)
                 return e.value
