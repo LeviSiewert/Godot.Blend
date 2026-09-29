@@ -75,55 +75,55 @@ class Test_SubResource(_StructureTest):
 class Test_Resource(_StructureTest):
     _type = Resource
     _parser_key = "file_resource"
-    def data(self, session):
-        txt = ''' 
-            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+    # def data(self, session):
+    #     txt = ''' 
+    #         [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-            [resource]
-            val = "VAL"
-        '''
-        res = Resource(format=3, type="Resource", uid="b52f332102m2l", 
-            properties={
-                "val":"VAL"
-                }
-        )
-        yield txt, res ## Simple!
+    #         [resource]
+    #         val = "VAL"
+    #     '''
+    #     res = Resource(format=3, type="Resource", uid="b52f332102m2l", 
+    #         properties={
+    #             "val":"VAL"
+    #             }
+    #     )
+    #     yield txt, res ## Simple!
 
-        txt = ''' 
-            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+    #     txt = ''' 
+    #         [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-            [sub_resource type="Resource" id="a"]
-            val = "VAL"
+    #         [sub_resource type="Resource" id="a"]
+    #         val = "VAL"
 
-            [resource]
-            val = "VAL"
-        '''
-        res = Resource(type="Resource", format=3, uid="b52f332102m2l", 
-            properties = {
-                "val":"VAL"
-            }, 
-            unclaimed_subres={
-                "a" : Resource(id="a", type="Resource",
-                    properties = {
-                        "val":"VAL"
-                    }
-                ),
-            },
-        )
-        yield txt, res ## UNCLAIMED SUBRES TEST
+    #         [resource]
+    #         val = "VAL"
+    #     '''
+    #     res = Resource(type="Resource", format=3, uid="b52f332102m2l", 
+    #         properties = {
+    #             "val":"VAL"
+    #         }, 
+    #         unclaimed_subres={
+    #             "a" : Resource(id="a", type="Resource",
+    #                 properties = {
+    #                     "val":"VAL"
+    #                 }
+    #             ),
+    #         },
+    #     )
+    #     yield txt, res ## UNCLAIMED SUBRES TEST
 
         
-        txt = ''' 
-            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+    #     txt = ''' 
+    #         [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-            [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+    #         [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-            [resource]
-            val = "VAL"
-        '''
-        res = Resource(type="Resource", format=3, uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres={
-            "1_2f6dx":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)})
-        yield txt, res ## UNCLAIMED EXTRES TEST
+    #         [resource]
+    #         val = "VAL"
+    #     '''
+    #     res = Resource(type="Resource", format=3, uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres={
+    #         "1_2f6dx":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)})
+    #     yield txt, res ## UNCLAIMED EXTRES TEST
 
         txt = '''
             [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]

@@ -403,6 +403,8 @@ class _Resource():
             txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
             txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
 
+            raise Exception(_declared_subres)
+
             session.options["structure"].resource.reset(t0)
             session.options["structure"].subresource.reset(t1)
             session.options["structure"].declare_subres.reset(t2)
