@@ -329,7 +329,7 @@ class Session[T:TransformerSet, O:TransformerOptions]():
 
             try:
                 ## Send value fr settings
-                send_value = settings.get("send_value", send_value)
+                send_val = settings.get("send_value", send_val)
 
                 ## Actual operation of 'Inner Generator'
                 flag = transform.send(send_val)
