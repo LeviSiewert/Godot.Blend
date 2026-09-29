@@ -180,7 +180,6 @@ class _SubResource():
                 not (node.file is None),
             ])
         def transform(self, session, node:Resource)->Generator[Any,Any,str]:
-            t0 = session.options["structure"].subresource.set(node)
 
             # Contextually a Promise #
             if not (session.options["structure"].properties.get() is None):
@@ -189,6 +188,7 @@ class _SubResource():
                 r : str = yield TRANSFORM(p)
                 return r
 
+            t0 = session.options["structure"].subresource.set(node)
             # Ensure #
             self.ensure_fmt(node)
 
@@ -230,6 +230,13 @@ class _Resource():
         keys = ["file_resource"]
 
     class PyToGd(PyToGd_Transformer):
+        header_order = (
+            "format",
+            "type",
+            "script",
+            "instance",
+            "uid",
+        )
         def match(self, session, node):
             ''' Match only Non-Node SubResource '''
             if (not isinstance(node,Resource)) or isinstance(node,Node):
@@ -237,6 +244,140 @@ class _Resource():
             return any([
                 (node.uid is None),
                 (node.file is None),
+            ])
+        def transform(self, session, node:Resource):
+            ''' Discovery during transformation requires context escape. declare_extres, declare_subres, declare_edit, ect are that method 
+            For FUCKING SANITY, we are assuming the structure is somewhat normalized.
+            later I'll consider implications of non-normalized a bit more. 
+            '''
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+
+            # Contextually a Promise #
+            if not (session.options["structure"].resource.get() is None):
+                # Escape to promise if within context of properties #
+                p : Promise = session.options["structure"].declare_extres(node)
+                r : str = yield TRANSFORM(p)
+                return r
+
+            _declared_subres : dict[str, Resource] = node.unclaimed_subres if node.unclaimed_subres else {} ## By Id 
+            _promised_subres : dict[str, Promise] = dict({p.key["id"]:Promise(p.key["id"] for p in _declared_subres.items())}) ## By Id, sanity check obj for errors/warnings 
+
+            _declared_extres : dict[str, Promise] = node.unclaimed_extres if node.unclaimed_extres else {} ## By Uid
+            _promised_extres : dict[str, Promise] = dict({p.key["id"]:Promise(p.key["id"] for p in _declared_extres.items())}) ## By Id, sanity check obj for errors/warnings 
+            
+            def declare_subres(obj:Resource|Promise)->Promise:
+                if isinstance(obj,Promise):
+                    _promised_subres[obj.key] = obj
+                    return obj
+                elif not isinstance(obj, Resource):
+                    raise TypeError(obj)
+
+                # Ensure Format #
+                if obj.name is None:
+                    obj.name = "".join(sample(ascii_letters,9))
+
+                # Declare Subres # 
+                _declared_subres[obj.name] = obj
+
+                # Create and store promise #
+                promise = Promise(obj.name, Promise.Type.SUB_RESOURCE)
+                _promised_subres[obj.name] = promise
+
+                return promise
+
+            def declare_extres(obj:Resource|Promise)->Promise:
+                if isinstance(obj, Resource):
+                    if obj.uid is None:
+                        obj.uid = "".join(sample(ascii_letters, 9))
+                    
+                    if (res:=_declared_extres.get(obj.uid, None)) is None:
+                        ## DEFER TODO:  If a tree is fully  constructed or partly constructed and this is found first, IDs are regerenated. Cache them on obj?
+                        i = "".join(sample(ascii_letters, 5))
+
+                        p = Promise({"uid":obj.uid, "path":obj.path, "id":i}, Promise.Type.EXT_RESOURCE)
+                        pd = Promise(i, Promise.Type.EXT_RESOURCE_DIRECT)
+
+                        if isinstance(obj,Node):
+                            p.key["type"] = "scene"
+                        # DEFER TODO : GdScript
+                        # elif isinstance(obj, GdScript):
+                        #     p.key["type"] = "Script"
+                        elif isinstance(obj,Resource):
+                            p.key["type"] = "Resource"
+
+                        _declared_extres[i] = p
+                        _promised_extres[i] = pd
+                        return pd
+
+                if isinstance(obj,Promise):
+                    if obj.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
+                        _promised_extres[obj.key] = obj
+                        return obj
+
+                    if obj.p_type is Promise.Type.EXT_RESOURCE:
+
+                        if (res:=_declared_extres.get(obj.key["uid"], None)) is None:
+                            ## Generate key, id if doesnt exist or isnt unique.
+                            _declared_extres[obj.key["uid"]] = obj
+
+                            k = obj.key.get("id",None)
+                            if (k is None) or (k in _promised_extres.keys()):
+                                obj.key["id"] = "".join(sample(ascii_letters,9))
+                            
+                            p = Promise(obj.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+                            _promised_extres[obj.key["id"]] = p
+                            return p
+                            
+                        else:
+                            return Promise(res.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+
+                raise TypeError(obj)
+
+            from collections import OrderedDict
+            def yield_mutating_dict(di:dict, keys:list, flag=TRANSFORM_CHILDREN, kwargs:dict=tuple()):
+                result = []
+                to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
+                while len(to_yield) > 0:
+                    res = yield flag(to_yield.values(), **kwargs)
+                    result.extend(res)
+                    keys.extend(to_yield.keys())
+                    to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
+
+            # Header #
+            header = {k:v for k,v in {
+                "format" : node.format if node.format else 4,
+                "type" : node.gdtype if node.gdtype else "Resource",
+                "script" : node.gdscript,
+                "instance" : node.instance,
+                "uid" : node.gdtype if node.gdtype else "Resource",
+            }.items() if (not (v is None))}
+        
+            _yielded_subres = []
+            _yielded_extres = []
+
+            t2 = session.options["structure"].declare_subres.set(declare_subres)
+            t3 = session.options["structure"].declare_extres.set(declare_extres)
+
+            t4 = session.options["structure"].properties.set(True)
+            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+            session.options["structure"].properties.reset(t4)
+
+            txt_properties  : str = yield TRANSFORM(node.properties)
+            txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
+            txt_extresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_extres)
+
+            session.options["structure"].resource.reset(t0)
+            session.options["structure"].subresource.reset(t1)
+            session.options["structure"].declare_subres.reset(t2)
+            session.options["structure"].declare_extres.reset(t3)
+
+            return "\n".join([
+                f"[gd_resource{txt_header_options}]\n",
+                "\n".join(txt_extresource),
+                "\n".join(txt_subresource),
+                "[resource]\n"+txt_properties if len(node.properties) else ""
             ])
 
 class _Properties():
