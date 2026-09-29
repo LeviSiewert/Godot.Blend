@@ -251,15 +251,15 @@ class _Resource():
             later I'll consider implications of non-normalized a bit more. 
             '''
 
-            t0 = session.options["structure"].resource.set(node)
-            t1 = session.options["structure"].subresource.set(node)
-
             # Contextually a Promise #
             if not (session.options["structure"].resource.get() is None):
                 # Escape to promise if within context of properties #
                 p : Promise = session.options["structure"].declare_extres(node)
                 r : str = yield TRANSFORM(p)
                 return r
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
 
             _declared_subres : dict[str, Resource] = node.unclaimed_subres if node.unclaimed_subres else {} ## By Id 
             _promised_subres : dict[str, Promise] = dict({p.key["id"]:Promise(p.key["id"] for p in _declared_subres.items())}) ## By Id, sanity check obj for errors/warnings 
