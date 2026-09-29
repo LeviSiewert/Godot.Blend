@@ -115,6 +115,9 @@ class TransformerOptions():
     def __init__(self, session:Session):
         pass
 
+    def get_id_contributer(self, session:Session, obj:Any)->int:
+        return 0
+
 class TransformerSet[T:Transformer, O:TransformerOptions]():
     identifier : str|None = None
     transformers : tuple[T]
@@ -146,8 +149,16 @@ class Session[T:TransformerSet, O:TransformerOptions]():
     transformer_sets : tuple[T]
     options: dict[str, O]
     
-    def get_id (self, obj): 
-        return id(obj)
+    def get_id (self, obj:Any|None)->int:
+        return id(obj) + self.get_id_contributor_sum(obj)
+
+    def get_id_contributor_sum(self, obj:Any|None):
+        ''' Contibution from active TransformerOptions objects for caching ids, usually from options itself, 
+        more effecient proportion than matching transformers again and asking them, same effect. '''
+        contr_sum = 0
+        for v in self.options.values():
+            contr_sum = contr_sum+v.get_id_contributer(self, obj)
+        return contr_sum
 
     def set_cache(self, uid:int, data:dict)->None:
         memo = self.memo[uid]

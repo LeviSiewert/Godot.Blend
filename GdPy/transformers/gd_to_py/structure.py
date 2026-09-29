@@ -62,6 +62,16 @@ class OPTIONS_PyToGd(TransformerOptions):
     def _declare_extres(self, promise:Promise|str):
         return promise
     
+    def get_id_contributer(self, session, obj):
+        ''' Cache id space "shifting", called per get_id '''
+        if not isinstance(obj, Resource):
+            return 0
+        return hash ([
+            not (self.resource.get() is None),
+            not (self.subresource.get() is None),
+            not (self.properties.get() is None),
+        ])
+    
 class MACROS_PyToGd:
     def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = lambda kv: kv[0]):
         key_gen = yield TRANSFORM_CHILDREN(obj.keys(),   as_generator=True)
