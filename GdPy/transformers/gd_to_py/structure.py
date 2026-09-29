@@ -187,14 +187,23 @@ class _SubResource():
 class _Properties():
     class PyToGd(PyToGd_Transformer):
         types = [Properties]
+        def transform(self, session, node):
+            t = session.option["structure"].properties.set(node)
+
+            data = yield MACROS_GdToPy.pairs_to_dict(session, node.children)
+            res = Properties(data)
+
+            session.option["structure"].properties.reset(t) 
+            return res
+
     class GdToPy(GdToPy_Transformer):
         keys = ["properties"]
-        def transform(self, session, node:LarkTree):
-            res = yield MACROS_GdToPy.pairs_to_dict(session, node.children)
-            return Properties(res)
-
         def transform(self, session, node:Properties):
-            res = yield MACROS_PyToGd.dict_to_str(session, node, entry_join="\n", leading=" ")
+            t = session.option["structure"].properties.set(node)
+
+            res = yield MACROS_PyToGd.dict_to_str(session, node, entry_join="\n")
+
+            session.option["structure"].properties.reset(t) 
             return res
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
