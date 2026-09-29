@@ -375,8 +375,8 @@ class _Resource():
 
             return "\n".join([
                 f"[gd_resource{txt_header_options}]\n",
-                "\n".join(txt_extresource),
-                "\n".join(txt_subresource),
+                *txt_extresource,
+                *txt_subresource,
                 "[resource]\n"+txt_properties if len(node.properties) else ""
             ])
 
