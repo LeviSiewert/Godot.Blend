@@ -637,6 +637,9 @@ class Resource():
     ## SCENE/FILE ONLY ##
     constructed: bool|None = None
 
+    unclaimed_extres : dict[str,Promise|Resource] = None
+    unclaimed_subres : dict[str,Resource] = None
+
     uid_set : Signal[str|None]
     file_set : Signal[str|File|None]
     gdtype_set : Signal[Promise|Any]
@@ -662,8 +665,14 @@ class Resource():
         ## references to subresources should append to this subresource
         ## Promises draw from this "pool" 
 
-    def __init__(self, id:str|None=None, format:int=None, type:Promise|str|None=None, script:Promise|str|None=None, uid:str|None=None, file:str|File|None=None, unclaimed_extres=tuple(), unclaimed_subres=tuple(), properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, id:str|None=None, type:Promise|str|None=None, script:Promise|str|None=None,  uid:str=None, file:str|Promise|File=None, format:int=4, unclaimed_extres:None|dict=None, unclaimed_subres:None|dict=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
+
+        self.uid = uid
+        self.file = file
+        
+        self.format = format
+
         self.gdtype = type
         self.gdscript = script
 
@@ -675,10 +684,10 @@ class Resource():
         self.sub_resources.extend(subresources)
         self.properties.update(properties)
 
-        if unclaimed_extres:
-            self.unclaimed_extres = dict(unclaimed_extres)
-        if unclaimed_subres:
-            self.unclaimed_subres = dict(unclaimed_subres)
+        if not (unclaimed_extres is None):
+            self.unclaimed_extres = unclaimed_extres
+        if not (unclaimed_subres is None):
+            self.unclaimed_subres = unclaimed_subres
 
     def __setup__(self):
         self.context = Context(subresource=self)
@@ -704,7 +713,7 @@ class Resource():
         self.file_set = Signal(self) 
         self.file_set.connect(self._on_file_set)
 
-    def _on_file_set(self, file:Promise|File|None):
+    def _on_file_set(self, old_val:Promise|File|None, file:Promise|File|None):
         ''' Generate UID if one doesn't already exist'''
         if (file is None) or (not (self.uid is None)): 
             return
@@ -740,6 +749,24 @@ class Resource():
                "instance_editable" : (value.instance_editable == self.instance_editable, value.instance_editable , self.instance_editable),
         }
 
+    def __repr__(self):
+        data = {k:v for k,v in {
+            "name":self.name,
+            "uid":self.uid,
+            "file":self.file,
+            "gdtype":self.gdtype,
+            "gdscript":self.gdscript,
+            "format":self.format,
+            "instance":self.instance,
+            "instance_editable":self.instance_editable if self.instance_editable else None,
+        }.items() if not (v is None)}
+
+        if self.file or self.uid:
+            return f'{self.__class__.__name__}({data})'
+        else:
+            return f'Sub{self.__class__.__name__}({data})'
+
+
 class NodePath(str):...
 
 class Node(Resource):
@@ -758,23 +785,23 @@ class Node(Resource):
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
-    def __init__(self, name:str|None=None, format:int=None, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]=tuple(), unclaimed_subres:dict[str,str]=tuple(), unclaimed_signal:dict[str,str]=tuple(), unclaimed_editable:dict[str,str]=tuple(), uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, name:str|None=None, format:int=4, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]|None=None, unclaimed_subres:dict[str,str]|None=None, unclaimed_signal:dict[str,str]|None=None, unclaimed_editable:dict[str,str]|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
 
-        super().__init__(id=name, format=format, type=type, script=script, unclaimed_extres=unclaimed_extres, unclaimed_subres=unclaimed_subres, uid=uid, file=file, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable )
+        super().__init__(self, id=name, type=type, script=script,  uid=uid, file=file, format=format, properties=properties, subresources=subresources, instance=instance, instance_editable=instance)
 
-        if not (unique_id is None):
-            self.unique_id = unique_id
-        else:
+        if (unique_id is None):
             self.unique_id = randint(100000, 1000000)
+        else:
+            self.unique_id = unique_id
 
-        if unclaimed_extres:
-            self.unclaimed_extres = dict(unclaimed_extres)
-        if unclaimed_subres:
-            self.unclaimed_subres = dict(unclaimed_subres)
-        if unclaimed_signal:
-            self.unclaimed_signal = dict(unclaimed_signal)
-        if unclaimed_editable:
-            self.unclaimed_editable = dict(unclaimed_editable)
+        if not (unclaimed_extres is None):
+            self.unclaimed_extres = unclaimed_extres
+        if not (unclaimed_subres is None):
+            self.unclaimed_subres = unclaimed_subres
+        if not (unclaimed_signal is None):
+            self.unclaimed_signal = unclaimed_signal
+        if not (unclaimed_editable is None):
+            self.unclaimed_editable = unclaimed_editable
 
         self.children.extend(children)
 
@@ -787,6 +814,23 @@ class Node(Resource):
 
     def __eq__(self, value):
         return super().__eq__(value)
+
+    def __repr__(self):
+        data = {k:v for k,v in {
+            "name":self.name,
+            "uid":self.uid,
+            "file":self.file,
+            "gdtype":self.gdtype,
+            "gdscript":self.gdscript,
+            "format":self.format,
+            "instance":self.instance,
+            "instance_editable":self.instance_editable if self.instance_editable else None,
+        }.items() if not (v is None)}
+
+        if self.file or self.uid:
+            return f'Scene({data})'
+        else:
+            return f'Node({data})'
 
 class GdSignal():
     def __init__(self,**kwargs):

@@ -82,7 +82,11 @@ class Test_Resource(_StructureTest):
             [resource]
             val = "VAL"
         '''
-        res = Resource(type="Resource", uid="b52f332102m2l", properties={"val":"VAL"})
+        res = Resource(format=3, type="Resource", uid="b52f332102m2l", 
+            properties={
+                "val":"VAL"
+                }
+        )
         yield txt, res ## Simple!
 
         txt = ''' 
@@ -94,9 +98,21 @@ class Test_Resource(_StructureTest):
             [resource]
             val = "VAL"
         '''
-        res = Resource(type="Resource", uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_subres=[Resource(id = "a", type="Resource", properties={"val":"VAL"})])
+        res = Resource(type="Resource", format=3, uid="b52f332102m2l", 
+            properties = {
+                "val":"VAL"
+            }, 
+            unclaimed_subres={
+                "a" : Resource(id="a", type="Resource",
+                    properties = {
+                        "val":"VAL"
+                    }
+                ),
+            },
+        )
         yield txt, res ## UNCLAIMED SUBRES TEST
 
+        
         txt = ''' 
             [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
@@ -105,31 +121,32 @@ class Test_Resource(_StructureTest):
             [resource]
             val = "VAL"
         '''
-        res = Resource(type="Resource", uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres=[Promise({"uid":"uid://b52f332102m2l", "gdtype":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)])
+        res = Resource(type="Resource", format=3, uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres={
+            "1_2f6dx":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)})
         yield txt, res ## UNCLAIMED EXTRES TEST
 
-        # txt = '''
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+        txt = '''
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-        #     [sub_resource type="Resource" id="a"]
+            [sub_resource type="Resource" id="a"]
 
-        #     [sub_resource type="Resource" id="b"]
-        #     reference=SubResource("a")
+            [sub_resource type="Resource" id="b"]
+            reference=SubResource("a")
 
-        #     [sub_resource type="Resource" id="c"]
-        #     reference=SubResource("b")
+            [sub_resource type="Resource" id="c"]
+            reference=SubResource("b")
 
-        #     [resource]
-        #     reference=SubResource("c")
-        # '''
-        # res = Resource(type="Resource", uid="uid://b52f332102m2l", properties={
-        #     "reference": Resource(type="Resource", id = "c", properties={
-        #         "reference": Resource(type="Resource", id = "b", properties={
-        #             "reference": Resource(type="Resource", id = "a")
-        #         })
-        #     })
-        # }) 
-        # yield txt, res ## Tree!
+            [resource]
+            reference=SubResource("c")
+        '''
+        res = Resource(type="Resource", uid="uid://b52f332102m2l", format=3, properties={
+            "reference": Resource(type="Resource", id = "c", properties={
+                "reference": Resource(type="Resource", id = "b", properties={
+                    "reference": Resource(type="Resource", id = "a")
+                })
+            })
+        }) 
+        yield txt, res ## Tree!
 
         # txt = """
         #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]

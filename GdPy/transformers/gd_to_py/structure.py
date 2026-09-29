@@ -19,19 +19,28 @@ from ...core.structure import (
     Category,
 )
 
+EMPTY_DICT = {}
+# EMPTY_DICT.__setitem__ = None
 
 
 class OPTIONS_GdToPy(TransformerOptions):
     def __init__(self, session):
-        self.properties = ContextVar("properties", default = None)
+        self.resource = ContextVar("subresource", default = None)
         self.subresource = ContextVar("subresource", default = None)
+        self.properties = ContextVar("properties", default = None)
         
         self.find_extres = ContextVar("find_extres", default = self._find_extres)
-    properties : ContextVar[Properties|bool|None] = None
+        self.find_subres = ContextVar("find_subres", default = self._find_subres)
+    resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
+    properties : ContextVar[Properties|bool|None] = None
 
     find_extres : ContextVar[Callable] = None
     def _find_extres(self, promise:Promise|str):
+        return promise
+
+    find_subres : ContextVar[Callable] = None
+    def _find_subres(self, promise:Promise|str):
         return promise
     
 class MACROS_GdToPy:
@@ -43,7 +52,7 @@ class MACROS_GdToPy:
         return r
 
 class MACROS:
-    def Default(value, default:Any=None, flag:Any=TRANSFORM_CHILDREN, conditional:Callable=lambda x: not (x is None), kwargs:dict=tuple()):
+    def Default(value, default:Any=None, flag:Any=TRANSFORM_CHILDREN, conditional:Callable=lambda x: not (x is None), kwargs:dict=EMPTY_DICT):
         if not conditional(value):
             return value
         res = yield flag(value, **kwargs)
@@ -51,15 +60,22 @@ class MACROS:
 
 class OPTIONS_PyToGd(TransformerOptions):
     def __init__(self, session):
-        self.properties = ContextVar("properties", default = None)
+        self.resource = ContextVar("subresource", default = None)
         self.subresource = ContextVar("subresource", default = None)
+        self.properties = ContextVar("properties", default = None)
         
         self.declare_extres = ContextVar("declare_extres", default = self._declare_extres)
-    properties : ContextVar[Properties|bool|None] = None
+        self.declare_subres = ContextVar("declare_subres", default = self._declare_subres)
+    resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
+    properties : ContextVar[Properties|bool|None] = None
 
     declare_extres : ContextVar[Callable] = None
     def _declare_extres(self, promise:Promise|str):
+        return promise
+
+    declare_subres : ContextVar[Callable] = None
+    def _declare_subres(self, promise:Promise|str):
         return promise
     
     def get_id_contributer(self, session, obj):
@@ -149,7 +165,7 @@ class _Promise():
                     options = yield from MACROS_PyToGd.dict_to_str(session, node.key, pair_join="=", entry_join=" ", sort_func=lambda kv:self.extres_options_order.index(kv[0])) 
                     return f'[ext_resource {options}]'
                 case Promise.Type.SUB_RESOURCE:
-                    raise NotImplementedError()
+                    return f'SubResource("{node.key}")'
                 case Promise.Type.RESOURCE:
                     raise NotImplementedError()
                 case Promise.Type.FILE:
@@ -184,16 +200,18 @@ class _SubResource():
             ''' Match only Non-Node SubResource '''
             if (not isinstance(node,Resource)) or isinstance(node,Node):
                 return False
+            
             return all([
-                not (node.uid is None),
-                not (node.file is None),
+                node.uid is None,
+                node.file is None,
             ])
+            
         def transform(self, session, node:Resource)->Generator[Any,Any,str]:
 
             # Contextually a Promise #
             if not (session.options["structure"].properties.get() is None):
                 # Escape to promise if within context of properties #
-                p : Promise = session.options["structure"].declare_subres(node)
+                p : Promise = session.options["structure"].declare_subres.get()(node)
                 r : str = yield TRANSFORM(p)
                 return r
 
@@ -240,8 +258,8 @@ class _Resource():
 
     class PyToGd(PyToGd_Transformer):
         header_order = (
-            "format",
             "type",
+            "format",
             "script",
             "instance",
             "uid",
@@ -251,9 +269,11 @@ class _Resource():
             if (not isinstance(node,Resource)) or isinstance(node,Node):
                 return False
             return any([
-                (node.uid is None),
-                (node.file is None),
+                not (node.uid is None),
+                not (node.file is None),
             ])
+
+
         def transform(self, session, node:Resource):
             ''' Discovery during transformation requires context escape. declare_extres, declare_subres, declare_edit, ect are that method 
             For FUCKING SANITY, we are assuming the structure is somewhat normalized.
@@ -271,10 +291,15 @@ class _Resource():
             t1 = session.options["structure"].subresource.set(node)
 
             _declared_subres : dict[str, Resource] = node.unclaimed_subres if node.unclaimed_subres else {} ## By Id 
-            _promised_subres : dict[str, Promise] = dict({p.key["id"]:Promise(p.key["id"] for p in _declared_subres.items())}) ## By Id, sanity check obj for errors/warnings 
+            _promised_subres : dict[str, Promise] = dict({k:Promise(k, Promise.Type.SUB_RESOURCE) for k,_ in _declared_subres.items()})
 
-            _declared_extres : dict[str, Promise] = node.unclaimed_extres if node.unclaimed_extres else {} ## By Uid
-            _promised_extres : dict[str, Promise] = dict({p.key["id"]:Promise(p.key["id"] for p in _declared_extres.items())}) ## By Id, sanity check obj for errors/warnings 
+            _declared_extres : dict[str, Promise|Resource] = node.unclaimed_extres if node.unclaimed_extres else {} ## By Uid
+            _promised_extres : dict[str, Promise] = {}
+            for v in _declared_extres.values():
+                if isinstance(v, Promise):
+                    _promised_extres[v.key["id"]] = Promise(v.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+                else:
+                    _promised_extres[v.key["id"]] = Promise(v.uid, Promise.Type.EXT_RESOURCE_DIRECT)
             
             def declare_subres(obj:Resource|Promise)->Promise:
                 if isinstance(obj,Promise):
@@ -345,7 +370,7 @@ class _Resource():
                 raise TypeError(obj)
 
             from collections import OrderedDict
-            def yield_mutating_dict(di:dict, keys:list, flag=TRANSFORM_CHILDREN, kwargs:dict=tuple()):
+            def yield_mutating_dict(di:dict, keys:list, flag=TRANSFORM_CHILDREN, kwargs:dict=EMPTY_DICT):
                 result = []
                 to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
                 while len(to_yield) > 0:
@@ -353,14 +378,15 @@ class _Resource():
                     result.extend(res)
                     keys.extend(to_yield.keys())
                     to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
+                return result
 
             # Header #
             header = {k:v for k,v in {
-                "format" : node.format if node.format else 4,
                 "type" : node.gdtype if node.gdtype else "Resource",
+                "format" : node.format if node.format else 4,
                 "script" : node.gdscript,
                 "instance" : node.instance,
-                "uid" : node.gdtype if node.gdtype else "Resource",
+                "uid" : "uid://"+node.uid,
             }.items() if (not (v is None))}
         
             _yielded_subres = []
@@ -375,7 +401,7 @@ class _Resource():
 
             txt_properties  : str = yield TRANSFORM(node.properties)
             txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
-            txt_extresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_extres)
+            txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
 
             session.options["structure"].resource.reset(t0)
             session.options["structure"].subresource.reset(t1)
