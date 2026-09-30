@@ -185,8 +185,47 @@ class Test_Resource(_StructureTest):
         yield txt, res ## Nested Subresource!
 
 
-# class Test_Node():
-#     pass
+
+class Test_Node(_StructureTest):
+    _type = Node
+    _parser_key = "node_resource"
+
+    def data(self, session):
+        txt = '''
+            [node name="Node" type="Node" unique_id=1]
+        '''
+        res = Node(name="Node", type="Node", unique_id = 1)
+        yield txt, res ## Lonesome
+
+        txt = '''
+            [node name="Node" type="Node" parent="." unique_id=1]
+            value = "Value"
+        '''
+        res = Node(name="Node", type="Node", unique_id = 1, properties={"value":"Value"})
+        res._parent = "."
+        yield txt, res ## W/ Properties
+
+        txt = '''
+            [node name="Node" type="Control" parent="." unique_id=1]
+        '''
+        res = Node(name="Node", type="Control", unique_id = 1)
+        res._parent = "."
+        yield txt, res ## Typed
+
+        txt = '''
+            [node name="Node" type="Node" parent="." unique_id=1]
+            script = ExtResource("ExtResourceID")
+        '''
+        res = Node(name="Node", type="Node", unique_id = 1, properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
+        res._parent = "."
+        yield txt, res ## Typed & ExtResource 
+
+        txt = '''
+            [node name="Node" type="Node" parent="." unique_id=1 instance="InstanceID"]
+        '''
+        res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
+        res._parent = "."
+        yield txt, res ## Typed & ExtResource 
 
 # class Test_Resource():
 #     pass
@@ -200,46 +239,6 @@ class Test_Resource(_StructureTest):
 # class Test_Node():
             
 
-#     class Test_Node_Indv(_StructureTest):
-#         _type = Node
-#         _parser_key = "node_resource"
-
-#         def data(self, session):
-#             txt = '''
-#                 [node name="Node" type="Node" unique_id=1]
-#             '''
-#             res = Node(name="Node", type="Node", unique_id = 1)
-#             yield txt, res ## Lonesome
-
-#             txt = '''
-#                 [node name="Node" type="Node" parent="." unique_id=1]
-#                 value = "Value"
-#             '''
-#             res = Node(name="Node", type="Node", unique_id = 1, properties={"value":"Value"})
-#             res._parent = "."
-#             yield txt, res ## W/ Properties
-
-#             txt = '''
-#                 [node name="Node" type="Control" parent="." unique_id=1]
-#             '''
-#             res = Node(name="Node", type="Control", unique_id = 1)
-#             res._parent = "."
-#             yield txt, res ## Typed
-
-#             txt = '''
-#                 [node name="Node" type="Node" parent="." unique_id=1]
-#                 script = ExtResource("ExtResourceID")
-#             '''
-#             res = Node(name="Node", type="Node", unique_id = 1, properties={"script":Promise("ExtResourceID", Promise.Type.EXT_RESOURCE_DIRECT)})
-#             res._parent = "."
-#             yield txt, res ## Typed & ExtResource 
-
-#             txt = '''
-#                 [node name="Node" type="Node" parent="." unique_id=1 instance="InstanceID"]
-#             '''
-#             res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
-#             res._parent = "."
-#             yield txt, res ## Typed & ExtResource 
 
 
 #     class Test_Scene(_StructureTest):
