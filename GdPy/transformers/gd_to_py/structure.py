@@ -155,6 +155,7 @@ class _Promise():
                 case "ref_resource":
                     raise NotImplementedError()
     class PyToGd(PyToGd_Transformer):
+        memoized = False ##TODO: Determine root of bug that's causing this to be a fix
         types = [Promise]
         extres_options_order = ("type","uid","path","id")
         def transform(self, session, node:Promise):
@@ -163,10 +164,12 @@ class _Promise():
                     return f'ExtResource("{node.key}")'
                 case Promise.Type.EXT_RESOURCE:
                     if not (session.options["structure"].properties.get() is None):
+                        session.options["structure"].declare_extres.get()(node)
                         return f'ExtResource("{node.key["id"]}")'
                     options = yield from MACROS_PyToGd.dict_to_str(session, node.key, pair_join="=", entry_join=" ", sort_func=lambda kv:self.extres_options_order.index(kv[0])) 
                     return f'[ext_resource {options}]'
                 case Promise.Type.SUB_RESOURCE:
+                    session.options["structure"].declare_subres.get()(node)
                     return f'SubResource("{node.key}")'
                 case Promise.Type.RESOURCE:
                     raise NotImplementedError()
@@ -323,7 +326,10 @@ class _Resource():
                 return promise
 
             def declare_extres(obj:Resource|Promise)->Promise:
+                ''' Declare Extres into local scope and return an escape (Promise.Type.EXT_RESOURCE_DIRECT)'''
+                
                 if isinstance(obj, Resource):
+                    ## Convert object reference to promise
                     if obj.uid is None:
                         obj.uid = "".join(sample(ascii_letters, 9))
                     
@@ -331,44 +337,45 @@ class _Resource():
                         ## DEFER TODO:  If a tree is fully  constructed or partly constructed and this is found first, IDs are regerenated. Cache them on obj?
                         i = "".join(sample(ascii_letters, 5))
 
-                        p = Promise({"uid":obj.uid, "path":obj.path, "id":i}, Promise.Type.EXT_RESOURCE)
-                        pd = Promise(i, Promise.Type.EXT_RESOURCE_DIRECT)
-
+                        promise : Promise
                         if isinstance(obj,Node):
-                            p.key["type"] = "scene"
-                        # DEFER TODO : GdScript
-                        # elif isinstance(obj, GdScript):
+                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
+                        # elif isinstance(obj, GdScript): ## TODO
                         #     p.key["type"] = "Script"
-                        elif isinstance(obj,Resource):
-                            p.key["type"] = "Resource"
+                        else: # isinstance(obj,Resource):
+                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"Resource"}, Promise.Type.EXT_RESOURCE)
 
-                        _declared_extres[i] = p
-                        _promised_extres[i] = pd
-                        return pd
-                    
-                    return res
+                        promise_direct = Promise(i, Promise.Type.EXT_RESOURCE_DIRECT)
+                        
+                        _declared_extres[obj.uid] = promise
+                        _promised_extres[i] = promise_direct
+                        return promise_direct
+                    else:
+                        return _promised_extres[res.key["id"]]
 
-                if isinstance(obj,Promise):
-                    if obj.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
-                        _promised_extres[obj.key] = obj
-                        return obj
+                if isinstance(obj,Promise) and (obj.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
+                    ## Store in sanity check for later, return
+                    _promised_extres[obj.key] = obj
+                    return obj
 
-                    if obj.p_type is Promise.Type.EXT_RESOURCE:
+                if isinstance(obj,Promise) and (obj.p_type is Promise.Type.EXT_RESOURCE):
+                    if (res:=_declared_extres.get(obj.key["uid"], None)) is None:
+                        ## Assign and generate returned promise
 
-                        if (res:=_declared_extres.get(obj.key["uid"], None)) is None:
-                            ## Generate key, id if doesnt exist or isnt unique.
-                            _declared_extres[obj.key["uid"]] = obj
+                        ## Ensure it has an id
+                        k = obj.key.get("id",None)
+                        if (k is None) or (k in _promised_extres.keys()):
+                            obj.key["id"] = "".join(sample(ascii_letters,9))
 
-                            k = obj.key.get("id",None)
-                            if (k is None) or (k in _promised_extres.keys()):
-                                obj.key["id"] = "".join(sample(ascii_letters,9))
-                            
-                            p = Promise(obj.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
-                            _promised_extres[obj.key["id"]] = p
-                            return p
-                            
-                        else:
-                            return Promise(res.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+                        p = Promise(obj.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+
+                        _declared_extres[obj.key["uid"]] = obj
+                        _promised_extres[obj.key["id"]] = p
+                        return p
+                        
+                    else:
+                        ## If it does exist, return the promise that references this promise
+                        return _promised_extres[obj.key["id"]]
 
                 raise TypeError(obj)
 
@@ -395,6 +402,7 @@ class _Resource():
             _yielded_subres = []
             _yielded_extres = []
 
+
             t2 = session.options["structure"].declare_subres.set(declare_subres)
             t3 = session.options["structure"].declare_extres.set(declare_extres)
 
@@ -406,6 +414,9 @@ class _Resource():
             txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
             txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
 
+            # if len(_declared_extres)>0:
+            #     # raise Exception(_declared_extres)
+            #     raise Exception(session.memo[session.get_id(_declared_extres["cjkvk7qbv5oby"])])
 
             session.options["structure"].resource.reset(t0)
             session.options["structure"].subresource.reset(t1)
