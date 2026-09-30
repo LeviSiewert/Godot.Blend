@@ -193,6 +193,7 @@ class _SubResource():
                 ## find_editable is tempting, but better suited to the file level.
             
             properties : Properties = yield TRANSFORM(_properties)
+            # raise Exception(res.name, properties)
             res.properties.update(properties)
             return res
     
@@ -294,25 +295,28 @@ class _Resource():
             
             t2 = session.options["structure"].find_extres.set(find_extres)
             
-            _sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
-            sub_resources : dict[str, Resource] = dict({v.name:v for v in _sub_resources_gen})
+            sub_resources = {}
+            # sub_resources : dict[str, Resource] = dict({v.name:v for v in _sub_resources_gen})
             sub_resources_missing : list[Promise] = []
             sub_resources_claimed : list[str] = []
-
-            # raise Exception(sub_resources)
 
             def find_subres(promise:Promise)->Promise|Resource:
                 r = sub_resources.get(promise.key,None)
                 if r is None:
                     sub_resources_missing.append(promise)
-                    return r
+                    return promise
                 sub_resources_claimed.append(promise.key)
                 return r
                 
             t3 = session.options["structure"].find_subres.set(find_subres)
-
-            yield TRANSFORM_CHILDREN(_sub_resources.children)
             
+            _sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
+            ## WARNING: Initial transform sets the context and does not *currently* allow mutation, thus
+            ## t3 is set before accessing and updating 
+            sub_resources.update({v.name:v for v in _sub_resources_gen})
+            
+            yield TRANSFORM_CHILDREN(_sub_resources.children)
+        
             t = session.options["structure"].properties.set(True)
             options = yield from MACROS_GdToPy.pairs_to_dict(session, _options.children)
             properties = yield TRANSFORM(_properties)

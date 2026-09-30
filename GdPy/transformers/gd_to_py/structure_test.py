@@ -80,41 +80,41 @@ class Test_Resource(_StructureTest):
     _parser_key = "file_resource"        
     
     def data(self, session):
-        # txt = ''' 
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+        txt = ''' 
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-        #     [resource]
-        #     val = "VAL"
-        # '''
-        # res = Resource(format=3, type="Resource", uid="b52f332102m2l", 
-        #     properties={
-        #         "val":"VAL"
-        #         }
-        # )
-        # yield txt, res ## Simple!
+            [resource]
+            val = "VAL"
+        '''
+        res = Resource(format=3, type="Resource", uid="b52f332102m2l", 
+            properties={
+                "val":"VAL"
+                }
+        )
+        yield txt, res ## Simple!
 
-        # txt = ''' 
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+        txt = ''' 
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-        #     [sub_resource type="Resource" id="a"]
-        #     val = "VAL"
+            [sub_resource type="Resource" id="a"]
+            val = "VAL"
 
-        #     [resource]
-        #     val = "VAL"
-        # '''
-        # res = Resource(type="Resource", format=3, uid="b52f332102m2l", 
-        #     properties = {
-        #         "val":"VAL"
-        #     }, 
-        #     unclaimed_subres={
-        #         "a" : Resource(id="a", type="Resource",
-        #             properties = {
-        #                 "val":"VAL"
-        #             }
-        #         ),
-        #     },
-        # )
-        # yield txt, res ## UNCLAIMED SUBRES TEST
+            [resource]
+            val = "VAL"
+        '''
+        res = Resource(type="Resource", format=3, uid="b52f332102m2l", 
+            properties = {
+                "val":"VAL"
+            }, 
+            unclaimed_subres={
+                "a" : Resource(id="a", type="Resource",
+                    properties = {
+                        "val":"VAL"
+                    }
+                ),
+            },
+        )
+        yield txt, res ## UNCLAIMED SUBRES TEST
 
         txt = '''
             [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
@@ -139,50 +139,50 @@ class Test_Resource(_StructureTest):
         }) 
         yield txt, res ## Tree!
 
-        # txt = ''' 
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
+        txt = ''' 
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"] 
 
-        #     [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+            [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-        #     [resource]
-        #     val = "VAL"
-        # '''
-        # res = Resource(type="Resource", format=3, uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres={
-        #     "cjkvk7qbv5oby":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)})
-        # yield txt, res ## UNCLAIMED EXTRES TEST
+            [resource]
+            val = "VAL"
+        '''
+        res = Resource(type="Resource", format=3, uid="b52f332102m2l", properties={"val":"VAL"}, unclaimed_extres={
+            "cjkvk7qbv5oby":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)})
+        yield txt, res ## UNCLAIMED EXTRES TEST
 
 
-        # txt = """
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+        txt = """
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-        #     [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+            [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-        #     [resource]
-        #     reference = ExtResource("1_2f6dx")
-        # """
-        # res = Resource(uid = "b52f332102m2l", type = "Resource", format=3,
-        #     properties={
-        #         "reference":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)
-        #     }
-        # )
-        # yield txt, res ## ExtResource!
+            [resource]
+            reference = ExtResource("1_2f6dx")
+        """
+        res = Resource(uid = "b52f332102m2l", type = "Resource", format=3,
+            properties={
+                "reference":Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE)
+            }
+        )
+        yield txt, res ## ExtResource!
 
-        # txt = """
-        #     [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
+        txt = """
+            [gd_resource type="Resource" format=3 uid="uid://b52f332102m2l"]
 
-        #     [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
+            [ext_resource type="Resource" uid="uid://cjkvk7qbv5oby" path="res://ext_res.tres" id="1_2f6dx"]
 
-        #     [sub_resource type="Resource" id="a"]
-        #     reference = ExtResource("1_2f6dx")
+            [sub_resource type="Resource" id="a"]
+            reference = ExtResource("1_2f6dx")
 
-        #     [resource]
-        #     reference=SubResource("a")
-        # """
-        # extres = Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
-        # res = Resource(uid="b52f332102m2l", format=3, type = "Resource",
-        #     properties={"reference":Resource(id="a", properties={"reference":extres})}
-        # )
-        # yield txt, res ## Nested Subresource!
+            [resource]
+            reference=SubResource("a")
+        """
+        extres = Promise({"uid":"uid://cjkvk7qbv5oby", "type":"Resource", "path":"res://ext_res.tres", "id":"1_2f6dx"}, Promise.Type.EXT_RESOURCE) #End product.
+        res = Resource(uid="b52f332102m2l", format=3, type = "Resource",
+            properties={"reference":Resource(id="a", properties={"reference":extres})}
+        )
+        yield txt, res ## Nested Subresource!
 
 
 # class Test_Node():
