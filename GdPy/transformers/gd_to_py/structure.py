@@ -67,7 +67,8 @@ class OPTIONS_PyToGd(TransformerOptions):
         self.declare_extres = ContextVar("declare_extres", default = self._declare_extres)
         self.declare_subres = ContextVar("declare_subres", default = self._declare_subres)
         self.declare_editable = ContextVar("declare_editable", default = self._declare_editable)
-        self.declare_node = ContextVar("declare_editable", default = self._declare_editable)
+        self.declare_node = ContextVar("declare_editable", default = self._declare_node)
+        self.declare_signal = ContextVar("declare_editable", default = self._declare_signal)
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
     properties : ContextVar[Properties|bool|None] = None
@@ -97,9 +98,17 @@ class OPTIONS_PyToGd(TransformerOptions):
 
     declare_node : ContextVar[Callable] = None
     def _declare_node(self, promise:Promise|Node)->None:
-        if isinstance(promise, Promise):
-            return promise
-        raise Exception()
+        ''' return string path of parent, consider seperating that to a dif call'''
+        # if isinstance(promise, Promise):
+        #     return promise
+        return None
+
+    declare_signal : ContextVar[Callable] = None
+    def _declare_signal(self, promise:Promise|Node)->None:
+        ''' return string path of parent, consider seperating that to a dif call'''
+        # if isinstance(promise, Promise):
+        #     return promise
+        return None
         
 
     
@@ -600,14 +609,21 @@ class _Node():
             self.ensure_fmt(node)
 
             # Header #
+            _parent = session.options["structure"].declare_node.get()(node)
             header = {k:v for k,v in {
                 "type" : node.gdtype if node.gdtype else "Node",
                 "script" : node.gdscript,
                 "instance" : node.instance,
                 "name" : node.name,
-                "parent" : node._parent,
+                "parent" : _parent if _parent else node._parent,
                 "unique_id" : node.unique_id,
             }.items() if (not (v is None))}
+
+            if header.get("parent", None) is None:
+                ## Sanity check
+                _c_res = session.options["structure"].resource.get()
+                assert (_c_res is node) or (_c_res is None)
+                del _c_res
 
             t = session.options["structure"].properties.set(True)
             txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
@@ -619,6 +635,10 @@ class _Node():
             # Context Declarations #
             if node.instance_editable:
                 session.options["structure"].declare_editable.get()(node)
+            for c in node.children.values():
+                session.options["structure"].declare_node(c)
+            for c in node.signals:
+                session.options["structure"].declare_connection(c)
 
             # Compile #
             result = f"[node{txt_header_options}]"+"\n"+txt_properties
@@ -633,7 +653,189 @@ class _Node():
             if node.name is None:
                 node.name = "".join(sample(ascii_letters, 9))
 
-    
+class _Scene():
+    class GdToPy(PyToGd_Transformer):
+        keys = ["file_scene"]
+
+    class PyToGd(_Node.PyToGd):
+        header_order = (
+            "uid",
+            "format",
+        )
+        def match(self, session, node):
+            ''' Match only Non-Node SubResource '''
+            if (not isinstance(node,Node)):
+                return False
+            return any([
+                not (node.uid is None),
+                not (node.file is None),
+            ])
+
+        def transform(self, session, node:Node):
+            if not (session.options["structure"].resource.get() is None):
+                # Escape to promise if within context of properties #
+                p : Promise = session.options["structure"].declare_extres(node)
+                r : str = yield TRANSFORM(p)
+                return r
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+            
+            _declared_subres : dict[str, Resource] = node.unclaimed_subres if node.unclaimed_subres else {} ## By Id 
+            _promised_subres : dict[str, Promise] = dict({k:Promise(k, Promise.Type.SUB_RESOURCE) for k,_ in _declared_subres.items()})
+            
+            _declared_extres : dict[str, Promise|Resource] = node.unclaimed_extres if node.unclaimed_extres else {} ## By Uid
+            _promised_extres : dict[str, Promise] = {}
+
+            _declared_nodes : dict[str, Node] = node.unclaimed_nodes if node.unclaimed_nodes else {} 
+
+            _declared_editable : list[str] = node.unclaimed_editable if node.unclaimed_editable else []
+            _declared_signals : list[GdSignal] = node.unclaimed_signals if node.unclaimed_signals else []
+
+            for v in _declared_extres.values():
+                if isinstance(v, Promise):
+                    _promised_extres[v.key["id"]] = Promise(v.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+                else:
+                    _promised_extres[v.key["id"]] = Promise(v.uid, Promise.Type.EXT_RESOURCE_DIRECT)
+            
+            def declare_subres(obj:Resource|Promise)->Promise:
+                if isinstance(obj,Promise):
+                    _promised_subres[obj.key] = obj
+                    return obj
+                elif not isinstance(obj, Resource):
+                    raise TypeError(obj)
+
+                # Ensure Format #
+                if obj.name is None:
+                    obj.name = "".join(sample(ascii_letters,9))
+
+                # Declare Subres # 
+                _declared_subres[obj.name] = obj
+
+                # Create and store promise #
+                promise = Promise(obj.name, Promise.Type.SUB_RESOURCE)
+                _promised_subres[obj.name] = promise
+
+                return promise
+
+            def declare_extres(obj:Resource|Promise)->Promise:
+                ''' Declare Extres into local scope and return an escape (Promise.Type.EXT_RESOURCE_DIRECT)'''
+                
+                if isinstance(obj, Resource):
+                    ## Convert object reference to promise
+                    if obj.uid is None:
+                        obj.uid = "".join(sample(ascii_letters, 9))
+                    
+                    if (res:=_declared_extres.get(obj.uid, None)) is None:
+                        ## DEFER TODO:  If a tree is fully  constructed or partly constructed and this is found first, IDs are regerenated. Cache them on obj?
+                        i = "".join(sample(ascii_letters, 5))
+
+                        promise : Promise
+                        if isinstance(obj,Node):
+                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
+                        # elif isinstance(obj, GdScript): ## TODO
+                        #     p.key["type"] = "Script"
+                        else: # isinstance(obj,Resource):
+                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"Resource"}, Promise.Type.EXT_RESOURCE)
+
+                        promise_direct = Promise(i, Promise.Type.EXT_RESOURCE_DIRECT)
+                        
+                        _declared_extres[obj.uid] = promise
+                        _promised_extres[i] = promise_direct
+                        return promise_direct
+                    else:
+                        return _promised_extres[res.key["id"]]
+
+                if isinstance(obj,Promise) and (obj.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
+                    ## Store in sanity check for later, return
+                    _promised_extres[obj.key] = obj
+                    return obj
+
+                if isinstance(obj,Promise) and (obj.p_type is Promise.Type.EXT_RESOURCE):
+                    if (res:=_declared_extres.get(obj.key["uid"], None)) is None:
+                        ## Assign and generate returned promise
+
+                        ## Ensure it has an id
+                        k = obj.key.get("id",None)
+                        if (k is None) or (k in _promised_extres.keys()):
+                            obj.key["id"] = "".join(sample(ascii_letters,9))
+
+                        p = Promise(obj.key["id"], Promise.Type.EXT_RESOURCE_DIRECT)
+
+                        _declared_extres[obj.key["uid"]] = obj
+                        _promised_extres[obj.key["id"]] = p
+                        return p
+                        
+                    else:
+                        ## If it does exist, return the promise that references this promise
+                        return _promised_extres[obj.key["id"]]
+
+                raise TypeError(obj)
+
+            def declare_node(obj:Node)->None:
+                _declared_nodes[node.get_path(obj)] = obj
+                return node.get_parent_path(obj)
+
+            def declare_editable(obj:Node)->None:
+                _declared_editable.append(node.get_path(obj))
+
+            def declare_signal(obj:GdSignal)->None:
+                _declared_signals.append(obj)
+                
+            from collections import OrderedDict
+            def yield_mutating_dict(di:dict, keys:list, flag=TRANSFORM_CHILDREN, kwargs:dict=EMPTY_DICT):
+                result = []
+                to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
+                while len(to_yield) > 0:
+                    res = yield flag(to_yield.values(), **kwargs)
+                    result.extend(res)
+                    keys.extend(to_yield.keys())
+                    to_yield = OrderedDict((k,v) for k,v in di.items() if not (k in keys))
+                return result
+
+            header = {k:v for k,v in {
+                    "format" : node.format if node.format else 4,
+                    "uid" : "uid://"+node.uid,
+                }.items() if (not (v is None))}
+            
+            _yielded_nodes = []
+            _yielded_subres = []
+            _yielded_extres = []
+
+            t2 = session.options["structure"].declare_subres.set(declare_subres)
+            t3 = session.options["structure"].declare_extres.set(declare_extres)
+            t4 = session.options["structure"].declare_editable.set(declare_editable)
+            t5 = session.options["structure"].declare_node.set(declare_node)
+            t6 = session.options["structure"].declare_signal.set(declare_signal)
+
+            t7 = session.options["structure"].properties.set(True)
+            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+            session.options["structure"].properties.reset(t7)
+
+
+            txt_root : str  = yield from super().transform(session, node)
+            txt_nodes : list = yield from yield_mutating_dict(_declared_nodes, _yielded_nodes)
+            txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
+            txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
+            txt_editables : list = [f"[editable {x}]" for x in _declared_editable]
+            txt_signals : list = yield TRANSFORM_CHILDREN(_declared_signals)
+
+            session.options["structure"].declare_subres.reset(t2)
+            session.options["structure"].declare_extres.reset(t3)
+            session.options["structure"].declare_editable.reset(t4)
+            session.options["structure"].declare_node.reset(t5)
+            session.options["structure"].declare_signal.reset(t6)
+
+            return "\n".join([
+                f"[scene{txt_header_options}]\n",
+                *reversed(txt_extresource),
+                *reversed(txt_subresource),
+                txt_root,
+                *reversed(txt_nodes),
+                *reversed(txt_editables),
+                *reversed(txt_signals),
+            ])
+
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _GdSignal.GdToPy,
@@ -643,6 +845,7 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _Promise.GdToPy,
     _Resource.GdToPy,
     _Node.GdToPy,
+    _Scene.GdToPy,
 ], 
 options = {"structure":OPTIONS_GdToPy}
 )
@@ -655,6 +858,7 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _Promise.PyToGd,
     _Resource.PyToGd,
     _Node.PyToGd,
+    _Scene.PyToGd,
 ], 
 options = {"structure":OPTIONS_PyToGd} 
 )
