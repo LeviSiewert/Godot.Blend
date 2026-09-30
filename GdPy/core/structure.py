@@ -785,6 +785,7 @@ class Node(Resource):
     ## TEMP/CACHED ONLY ##
     # Node only
     _parent : None|str = None
+    parents : Users
 
     # Scene only - Pre Construction
     unclaimed_extres : None | dict[str, Promise|Resource] = None
@@ -792,6 +793,7 @@ class Node(Resource):
     unclaimed_signals : None | dict[str, Signal] = None
     unclaimed_editable : None | dict[str, NodePath] = None
     unclaimed_nodes : None | dict[str, Node] = None
+
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
@@ -821,7 +823,10 @@ class Node(Resource):
 
     def __setup__(self):
         super().__setup__()
+        self.parents = Users()
         self.children = Collection(key_attr = "_name", context = self.context)
+        self.children.append.connect(self._on_child_appended)
+        self.children.removed.connect(self._on_child_removed)
 
     def resolve_nodepath(self, path:str|NodePath):
         pass
@@ -845,6 +850,53 @@ class Node(Resource):
             return f'Scene({data})'
         else:
             return f'Node({data})'
+    
+    def _on_child_appended(self, key:str, child:Node):
+        child.parents.append(self)
+
+    def _on_child_removed(self, key:str, child:Node):
+        child.parents.remove(self)
+
+    def get_path(self, other_node:Node):
+        if other_node is self:
+            return NodePath("")
+        
+        o_parents = tuple(other_node._yield_parent_chain())
+        if self in o_parents:
+            return NodePath("/".join("." , "/".join(n.name for n in o_parents[0:o_parents.index(self)])))
+
+        l_parents = tuple(self._yield_parent_chain())
+        if other_node in l_parents:
+            return NodePath("/".join("." , "/".join(".."*len(l_parents[l_parents.index(other_node):0]))))
+
+        ## Search for common anscestor, create nodepaths and return 
+        ## Could be more effecient if each check was intersperced.
+        for i,p in enumerate(l_parents):
+            if p in o_parents:
+                return "/".join(".","/".join(*(len(p.get_path(self).split("/"))-1 * ".."), p.get_path(other_node).split(".")[-1]))
+
+        for i,p in enumerate(o_parents):
+            if p in l_parents:
+                return "/".join(".","/".join(*(len(p.get_path(self).split("/"))-1 * ".."), p.get_path(other_node).split(".")[-1]))
+                
+        raise KeyError(other_node)
+
+    def _yield_parent_chain(self, err:bool=True):
+        if len(self.parents) > 1:
+            if err:
+                raise Exception("Non-normalized tree!", self, self.parents)
+            else:
+                return
+        
+        if len(self.parents) == 0:
+            return
+        
+        p = self.parents[0].get()
+        if p is None:
+            return
+        yield p
+        yield from p._yield_parent_chain()
+        
 
 class GdSignal():
     def __init__(self,**kwargs):

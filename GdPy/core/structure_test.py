@@ -251,6 +251,24 @@ class Test_Resource:
         assert (sr in r.sub_resources)
         assert (r.sub_resources in sr.users)
 
+class Test_NodePath():
+    def test_union(self):
+        ''' Union should find right path relative to left path, assuming both have the same base "." '''
+        assert NodePath(".") | NodePath("./A") == NodePath("./A")
+        assert NodePath("./..") | NodePath("./A") == NodePath("./?/A")
+
+        assert NodePath("./A/B/C") | NodePath("./A/B/C/D") == NodePath("./D")
+        assert NodePath("./A/B/C") | NodePath("./A/B/D") == NodePath("./D")
+        assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+        assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+        # assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+
+    def test_join(self):
+        ''' Inline with Path.Path, `/` is used to join '''
+        assert NodePath("./A/B/C") / NodePath("./A/B/C/D") == NodePath("./A/B/C/A/B/C/D")
+        
+    pass
+
 class Test_Node:
     def test_construction(self):
         Node()
@@ -402,3 +420,30 @@ class Test_Node:
         assert sr1_1.children["a"].overaly is sr0_a
         assert sr1_1.children["b"].overaly is sr0_b
         assert sr1_1.children["c"].overaly is None
+
+    def test_get_path_simple(self):
+        sr1 = Node("B")
+        sr0 = Node("A",children=[sr1])
+        assert sr0.get_path(sr1) == NodePath("./B")
+        assert sr1.get_path(sr0) == NodePath("./..")
+
+    def test_get_path_nested(self):
+        sr2 = Node("C")
+        sr1 = Node("B",children=[sr2])
+        sr0 = Node("A",children=[sr1])
+        assert sr0.get_path(sr2) == NodePath("./B/C")
+        assert sr2.get_path(sr0) == NodePath("./../..")
+
+    def test_get_siblings_simple(self):
+        sr1_b = Node("B_b")
+        sr1_a = Node("B_a")
+        sr0 = Node("A",children=[sr1_a,sr1_b])
+        assert sr1_b.get_path(sr1_a) == NodePath("./../B_a")
+
+    def test_get_siblings_nested(self):
+        sr2_b = Node("C_b")
+        sr1_b = Node("B_b", children=[sr2_b])
+        sr2_a = Node("C_a")
+        sr1_a = Node("B_a", children=[sr2_a])
+        sr0 = Node("A",children=[sr1_a,sr1_b])
+        assert sr2_b.get_path(sr2_a) == NodePath("./../../B_a/C_a")
