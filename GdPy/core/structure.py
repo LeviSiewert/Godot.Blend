@@ -767,7 +767,7 @@ class Resource():
             "format":self.format,
             "instance":self.instance,
             "instance_editable":self.instance_editable if self.instance_editable else None,
-            "properties_len":len(self.properties),
+            "properties":self.properties,
         }.items() if not (v is None)}
 
         if self.file or self.uid:

@@ -186,10 +186,10 @@ class _SubResource():
             options : dict = yield from MACROS_GdToPy.pairs_to_dict(session, _options.children)
 
             res = Resource(**options)
-            yield STEP("INTIAL", res)
+            yield STEP("INITIAL", res)
 
-            if not (res.instance is None):
-                res.instance = session.options["structure"].find_extres.get()(res.instance)
+            # if not (res.instance is None):
+            #     res.instance = session.options["structure"].find_extres.get()(res.instance)
                 ## find_editable is tempting, but better suited to the file level.
             
             properties : Properties = yield TRANSFORM(_properties)
@@ -284,11 +284,6 @@ class _Resource():
             ext_resources_missing : list[Promise] = []
             ext_resources_claimed : list[str] = []
             
-            _sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
-            sub_resources : dict[str, Resource] = dict({v.name:v for v in _sub_resources_gen})
-            sub_resources_missing : list[Promise] = []
-            sub_resources_claimed : list[str] = []
-
             def find_extres(promise:Promise)->Promise|Promise:
                 r = ext_resources.get(promise.key,None)
                 if r is None:
@@ -296,6 +291,15 @@ class _Resource():
                     return r
                 ext_resources_claimed.append(promise.key)
                 return r
+            
+            t2 = session.options["structure"].find_extres.set(find_extres)
+            
+            _sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
+            sub_resources : dict[str, Resource] = dict({v.name:v for v in _sub_resources_gen})
+            sub_resources_missing : list[Promise] = []
+            sub_resources_claimed : list[str] = []
+
+            # raise Exception(sub_resources)
 
             def find_subres(promise:Promise)->Promise|Resource:
                 r = sub_resources.get(promise.key,None)
@@ -305,7 +309,6 @@ class _Resource():
                 sub_resources_claimed.append(promise.key)
                 return r
                 
-            t2 = session.options["structure"].find_extres.set(find_extres)
             t3 = session.options["structure"].find_subres.set(find_subres)
 
             yield TRANSFORM_CHILDREN(_sub_resources.children)
@@ -325,6 +328,7 @@ class _Resource():
             session.options["structure"].subresource.reset(t1)
             session.options["structure"].find_extres.reset(t2)
             session.options["structure"].find_subres.reset(t3)
+
 
             return res
 
