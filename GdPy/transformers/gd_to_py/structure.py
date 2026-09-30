@@ -528,6 +528,63 @@ class _Properties():
             session.options["structure"].properties.reset(t) 
             return res
 
+class _Node():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["node_resource"]
+
+    class PyToGd(PyToGd_Transformer):
+        def match(self, session, node):
+            ''' Match only Non-Node SubResource '''
+            if (not isinstance(node,Node)):
+                return False
+            return all([
+                node.uid is None,
+                node.file is None,
+            ])
+        def transform(self, session, node):
+            if not (session.options["structure"].properties.get() is None):
+                # Escape to promise if within context of properties #
+                p : Promise = session.options["structure"].declare_node.get()(node)
+                r : str = yield TRANSFORM(p)
+                return r
+
+            t0 = session.options["structure"].subresource.set(node)
+
+            self.ensure_fmt(node)
+
+            header = {k:v for k,v in {
+                "type" : node.gdtype if node.gdtype else "Node",
+                "script" : node.gdscript,
+                "instance" : node.instance,
+                "id" : node.name,
+            }.items() if (not (v is None))}
+
+            t = session.options["structure"].properties.set(True)
+            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+            session.options["structure"].properties.reset(t)
+            
+            # Properties #
+            txt_properties = yield TRANSFORM(node.properties)
+
+            # Context Declarations #
+            if node.instance_editable:
+                session.options["structure"].declare_editable.get()(node)
+
+            # Compile #
+            result = f"[node{txt_header_options}]"+"\n"+txt_properties
+            
+            # Reset Context #
+            session.options["structure"].subresource.reset(t0)
+
+            # Return #
+            return result
+        
+        def ensure_fmt(self, node:Node):
+            if node.name is None:
+                node.name = "".join(sample(ascii_letters, 9))
+
+    
+
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _GdSignal.GdToPy,
     _SubResource.GdToPy,
