@@ -794,9 +794,11 @@ class Node(Resource):
 
     # def __init__(self, name:str=None, unique_id:str=None,  uid = None, file = None, properties = tuple(), subresources = tuple(), unclaimed_nodes:Iterable=tuple(), unclaimed_edits:Iterable=tuple(), children:Iterable=tuple()):
     #     super().__init__(name, uid, file, properties, subresources)
-    def __init__(self, name:str|None=None, format:int=4, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]|None=None, unclaimed_subres:dict[str,str]|None=None, unclaimed_signal:dict[str,str]|None=None, unclaimed_editable:dict[str,str]|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
+    def __init__(self, name:str|None=None, format:int=4, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]|None=None, unclaimed_subres:dict[str,str]|None=None, unclaimed_signal:dict[str,str]|None=None, unclaimed_editable:dict[str,str]|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False, _parent:str|None=None):
 
         super().__init__(id=name, type=type, script=script,  uid=uid, file=file, format=format, properties=properties, subresources=subresources, instance=instance, instance_editable=instance)
+
+        self._parent = _parent ## Cached value only
 
         if (unique_id is None):
             self.unique_id = randint(100000, 1000000)

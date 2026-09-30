@@ -545,6 +545,28 @@ class _Properties():
 class _Node():
     class GdToPy(GdToPy_Transformer):
         keys = ["node_resource"]
+        def transform(self, session, node:LarkTree):
+            _options, _properties = node.children
+            options : dict = yield from MACROS_GdToPy.pairs_to_dict(session, _options.children)
+
+            if "nodepaths" in options.keys():
+                ## discard, used in tscn fmt 3 as an load optimization
+                del options["nodepaths"]
+
+            if "parent" in options.keys():
+                options["_parent"] = options.pop("parent")
+            
+            res = Node(**options)
+            yield STEP("INITIAL", res)
+
+            # if not (res.instance is None):
+            #     res.instance = session.options["structure"].find_extres.get()(res.instance)
+                ## find_editable is tempting, but better suited to the file level.
+            
+            properties : Properties = yield TRANSFORM(_properties)
+            # raise Exception(res.name, properties)
+            res.properties.update(properties)
+            return res
 
     class PyToGd(PyToGd_Transformer):
         header_order = (
