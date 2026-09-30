@@ -77,15 +77,17 @@ class OPTIONS_PyToGd(TransformerOptions):
     declare_subres : ContextVar[Callable] = None
     def _declare_subres(self, promise:Promise|str):
         return promise
-    
+
     def get_id_contributer(self, session, obj):
+    # def get_id_contributer(self, session, obj):
         if not isinstance(obj, Resource):
             return 0
-        return hash ([
+
+        return hash ((
             not (self.resource.get() is None),
             not (self.subresource.get() is None),
             not (self.properties.get() is None),
-        ])
+        ))
     
 class MACROS_PyToGd:
     def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = lambda kv: kv[0]):
@@ -229,7 +231,6 @@ class _SubResource():
 
             t = session.options["structure"].properties.set(True)
             txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
-            
             session.options["structure"].properties.reset(t)
             
             # Properties #
@@ -344,6 +345,8 @@ class _Resource():
                         _declared_extres[i] = p
                         _promised_extres[i] = pd
                         return pd
+                    
+                    return res
 
                 if isinstance(obj,Promise):
                     if obj.p_type is Promise.Type.EXT_RESOURCE_DIRECT:
@@ -403,7 +406,6 @@ class _Resource():
             txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
             txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
 
-            raise Exception(_declared_subres)
 
             session.options["structure"].resource.reset(t0)
             session.options["structure"].subresource.reset(t1)
@@ -412,8 +414,8 @@ class _Resource():
 
             return "\n".join([
                 f"[gd_resource{txt_header_options}]\n",
-                *txt_extresource,
-                *txt_subresource,
+                *reversed(txt_extresource),
+                *reversed(txt_subresource),
                 "[resource]\n"+txt_properties if len(node.properties) else ""
             ])
 

@@ -668,8 +668,16 @@ class Resource():
     def __init__(self, id:str|None=None, type:Promise|str|None=None, script:Promise|str|None=None,  uid:str=None, file:str|Promise|File=None, format:int=4, unclaimed_extres:None|dict=None, unclaimed_subres:None|dict=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False):
         self.__setup__()
 
-        self.uid = uid
-        self.file = file
+        if isinstance(uid, str):
+            self.uid = uid.split("uid://")[-1]
+        else:
+            self.uid = uid
+
+        if isinstance(file, str):
+            self.file = file.split("res://")[-1]
+        else:
+            self.file = file
+       
         
         self.format = format
 

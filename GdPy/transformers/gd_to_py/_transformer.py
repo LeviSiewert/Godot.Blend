@@ -36,7 +36,7 @@ class PyToGd_Session(Session):
             return str(node)
         elif h := getattr(node, "__hash__", None):
             return h()
-        return id(node)
+        return id(node) + self.get_id_contributor_sum(node)
 
 class PyToGd_TransformerSet(TransformerSet): ...
 
@@ -51,6 +51,7 @@ class PyToGd_Transformer(Transformer):
             if isinstance(node, t):
                 return True
         return False
+        
 
 
 
