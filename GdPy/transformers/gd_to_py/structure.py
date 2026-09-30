@@ -66,6 +66,8 @@ class OPTIONS_PyToGd(TransformerOptions):
         
         self.declare_extres = ContextVar("declare_extres", default = self._declare_extres)
         self.declare_subres = ContextVar("declare_subres", default = self._declare_subres)
+        self.declare_editable = ContextVar("declare_editable", default = self._declare_editable)
+        self.declare_node = ContextVar("declare_editable", default = self._declare_editable)
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
     properties : ContextVar[Properties|bool|None] = None
@@ -88,6 +90,18 @@ class OPTIONS_PyToGd(TransformerOptions):
             not (self.subresource.get() is None),
             not (self.properties.get() is None),
         ))
+
+    declare_editable : ContextVar[Callable] = None
+    def _declare_editable(self, promise:Node)->None:
+        pass
+
+    declare_node : ContextVar[Callable] = None
+    def _declare_node(self, promise:Promise|Node)->None:
+        if isinstance(promise, Promise):
+            return promise
+        raise Exception()
+        
+
     
 class MACROS_PyToGd:
     def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = lambda kv: kv[0]):
@@ -533,6 +547,15 @@ class _Node():
         keys = ["node_resource"]
 
     class PyToGd(PyToGd_Transformer):
+        header_order = (
+            "name",
+            "type",
+            "script",
+            "parent",
+            "unique_id",
+            "instance",
+        )
+
         def match(self, session, node):
             ''' Match only Non-Node SubResource '''
             if (not isinstance(node,Node)):
@@ -541,7 +564,9 @@ class _Node():
                 node.uid is None,
                 node.file is None,
             ])
-        def transform(self, session, node):
+        
+        def transform(self, session, node:Node)->Generator[Any,Any,str]:
+            # Contextually a Promise #
             if not (session.options["structure"].properties.get() is None):
                 # Escape to promise if within context of properties #
                 p : Promise = session.options["structure"].declare_node.get()(node)
@@ -549,14 +574,17 @@ class _Node():
                 return r
 
             t0 = session.options["structure"].subresource.set(node)
-
+            # Ensure #
             self.ensure_fmt(node)
 
+            # Header #
             header = {k:v for k,v in {
                 "type" : node.gdtype if node.gdtype else "Node",
                 "script" : node.gdscript,
                 "instance" : node.instance,
-                "id" : node.name,
+                "name" : node.name,
+                "parent" : node._parent,
+                "unique_id" : node.unique_id,
             }.items() if (not (v is None))}
 
             t = session.options["structure"].properties.set(True)
@@ -578,8 +606,8 @@ class _Node():
 
             # Return #
             return result
-        
-        def ensure_fmt(self, node:Node):
+
+        def ensure_fmt(self, node:Resource)->None:
             if node.name is None:
                 node.name = "".join(sample(ascii_letters, 9))
 
@@ -592,6 +620,7 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _ExtResource.GdToPy,
     _Promise.GdToPy,
     _Resource.GdToPy,
+    _Node.GdToPy,
 ], 
 options = {"structure":OPTIONS_GdToPy}
 )
@@ -603,6 +632,7 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     # _ExtResource.GdToPy,
     _Promise.PyToGd,
     _Resource.PyToGd,
+    _Node.PyToGd,
 ], 
 options = {"structure":OPTIONS_PyToGd} 
 )

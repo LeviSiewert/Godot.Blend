@@ -221,7 +221,7 @@ class Test_Node(_StructureTest):
         yield txt, res ## Typed & ExtResource 
 
         txt = '''
-            [node name="Node" type="Node" parent="." unique_id=1 instance="InstanceID"]
+            [node name="Node" type="Node" parent="." unique_id=1 instance=ExtResource("InstanceID")]
         '''
         res = Node(name="Node", type="Node", unique_id = 1, instance="InstanceID")
         res._parent = "."
