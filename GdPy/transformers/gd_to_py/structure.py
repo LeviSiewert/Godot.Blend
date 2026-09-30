@@ -147,7 +147,9 @@ class _Promise():
         def transform(self, session, node:LarkTree)->Generator:
             match node.data:
                 case "ref_subresource":
-                    raise NotImplementedError()
+                    typing = yield from MACROS.Default(node.children[0])
+                    key = yield TRANSFORM(node.children[1])
+                    return session.options["structure"].find_subres.get()(Promise(key, Promise.Type.SUB_RESOURCE, typing=typing))
                 case "ref_extresource":
                     typing = yield from MACROS.Default(node.children[0])
                     key = yield TRANSFORM(node.children[1])
@@ -259,6 +261,72 @@ class _SubResource():
 class _Resource():
     class GdToPy(GdToPy_Transformer):
         keys = ["file_resource"]
+
+        def transform(self, session, node):
+            ''' Process is:
+            - Convert Extres
+            - Convert SubRes INITIAL
+            - set structure.find_...
+            - Convert Properties
+            - Create Result
+            - Convert SubRes complete
+            - Gather unclaimed, set to result
+            - return result
+            '''
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+
+            _options, _ext_resources, _sub_resources, _properties = node.children
+
+            _ext_resources_gen = yield TRANSFORM_CHILDREN(_ext_resources.children, as_generator=True)
+            ext_resources : dict[str, Promise] = dict({v.key["id"]:v for v in _ext_resources_gen}) 
+            ext_resources_missing : list[Promise] = []
+            ext_resources_claimed : list[str] = []
+            
+            _sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
+            sub_resources : dict[str, Resource] = dict({v.name:v for v in _sub_resources_gen})
+            sub_resources_missing : list[Promise] = []
+            sub_resources_claimed : list[str] = []
+
+            def find_extres(promise:Promise)->Promise|Promise:
+                r = ext_resources.get(promise.key,None)
+                if r is None:
+                    ext_resources_missing.append(promise)
+                    return r
+                ext_resources_claimed.append(promise.key)
+                return r
+
+            def find_subres(promise:Promise)->Promise|Resource:
+                r = sub_resources.get(promise.key,None)
+                if r is None:
+                    sub_resources_missing.append(promise)
+                    return r
+                sub_resources_claimed.append(promise.key)
+                return r
+                
+            t2 = session.options["structure"].find_extres.set(find_extres)
+            t3 = session.options["structure"].find_subres.set(find_subres)
+
+            yield TRANSFORM_CHILDREN(_sub_resources.children)
+            
+            t = session.options["structure"].properties.set(True)
+            options = yield from MACROS_GdToPy.pairs_to_dict(session, _options.children)
+            properties = yield TRANSFORM(_properties)
+            session.options["structure"].properties.reset(t)
+
+            res = Resource(**options, 
+                properties=properties,
+                unclaimed_extres=dict({k:v for k,v in ext_resources.items() if not (k in ext_resources_claimed)}), 
+                unclaimed_subres=dict({k:v for k,v in sub_resources.items() if not (k in sub_resources_claimed)}), 
+            )
+
+            session.options["structure"].resource.reset(t0)
+            session.options["structure"].subresource.reset(t1)
+            session.options["structure"].find_extres.reset(t2)
+            session.options["structure"].find_subres.reset(t3)
+
+            return res
 
     class PyToGd(PyToGd_Transformer):
         header_order = (
