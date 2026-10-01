@@ -825,7 +825,7 @@ class Node(Resource):
         super().__setup__()
         self.parents = Users()
         self.children = Collection(key_attr = "_name", context = self.context)
-        self.children.append.connect(self._on_child_appended)
+        self.children.appended.connect(self._on_child_appended)
         self.children.removed.connect(self._on_child_removed)
 
     def resolve_nodepath(self, path:str|NodePath):
@@ -863,21 +863,21 @@ class Node(Resource):
         
         o_parents = tuple(other_node._yield_parent_chain())
         if self in o_parents:
-            return NodePath("/".join("." , "/".join(n.name for n in o_parents[0:o_parents.index(self)])))
+            return NodePath("/".join(["." , "/".join(n.name for n in o_parents[0:o_parents.index(self)])]))
 
         l_parents = tuple(self._yield_parent_chain())
         if other_node in l_parents:
-            return NodePath("/".join("." , "/".join(".."*len(l_parents[l_parents.index(other_node):0]))))
+            return NodePath("/".join(["." , "/".join(".."*len(l_parents[l_parents.index(other_node):0]))]))
 
         ## Search for common anscestor, create nodepaths and return 
         ## Could be more effecient if each check was intersperced.
         for i,p in enumerate(l_parents):
             if p in o_parents:
-                return "/".join(".","/".join(*(len(p.get_path(self).split("/"))-1 * ".."), p.get_path(other_node).split(".")[-1]))
+                return "/".join([".","/".join([*((len(p.get_path(self).split("/"))-1) * ".."), p.get_path(other_node).split(".")[-1]])])
 
         for i,p in enumerate(o_parents):
             if p in l_parents:
-                return "/".join(".","/".join(*(len(p.get_path(self).split("/"))-1 * ".."), p.get_path(other_node).split(".")[-1]))
+                return "/".join([".","/".join([*((len(p.get_path(self).split("/"))-1) * ".."), p.get_path(other_node).split(".")[-1]])])
                 
         raise KeyError(other_node)
 
@@ -891,7 +891,7 @@ class Node(Resource):
         if len(self.parents) == 0:
             return
         
-        p = self.parents[0].get()
+        p = self.parents[0]()
         if p is None:
             return
         yield p

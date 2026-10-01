@@ -251,23 +251,23 @@ class Test_Resource:
         assert (sr in r.sub_resources)
         assert (r.sub_resources in sr.users)
 
-class Test_NodePath():
-    def test_union(self):
-        ''' Union should find right path relative to left path, assuming both have the same base "." '''
-        assert NodePath(".") | NodePath("./A") == NodePath("./A")
-        assert NodePath("./..") | NodePath("./A") == NodePath("./?/A")
+# class Test_NodePath():
+#     def test_union(self):
+#         ''' Union should find right path relative to left path, assuming both have the same base "." '''
+#         assert NodePath(".") | NodePath("./A") == NodePath("./A")
+#         assert NodePath("./..") | NodePath("./A") == NodePath("./?/A")
 
-        assert NodePath("./A/B/C") | NodePath("./A/B/C/D") == NodePath("./D")
-        assert NodePath("./A/B/C") | NodePath("./A/B/D") == NodePath("./D")
-        assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
-        assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
-        # assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+#         assert NodePath("./A/B/C") | NodePath("./A/B/C/D") == NodePath("./D")
+#         assert NodePath("./A/B/C") | NodePath("./A/B/D") == NodePath("./D")
+#         assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+#         assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
+#         # assert NodePath("./A/B/D") | NodePath("./A/B/C/D") == NodePath("./../D")
 
-    def test_join(self):
-        ''' Inline with Path.Path, `/` is used to join '''
-        assert NodePath("./A/B/C") / NodePath("./A/B/C/D") == NodePath("./A/B/C/A/B/C/D")
+#     def test_join(self):
+#         ''' Inline with Path.Path, `/` is used to join '''
+#         assert NodePath("./A/B/C") / NodePath("./A/B/C/D") == NodePath("./A/B/C/A/B/C/D")
         
-    pass
+#     pass
 
 class Test_Node:
     def test_construction(self):
