@@ -627,6 +627,7 @@ class _Node():
 
             t = session.options["structure"].properties.set(True)
             txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+
             session.options["structure"].properties.reset(t)
             
             # Properties #
@@ -658,7 +659,7 @@ class _Scene():
         keys = ["file_scene"]
 
     class PyToGd(_Node.PyToGd):
-        header_order = (
+        scene_header_order = (
             "uid",
             "format",
         )
@@ -674,7 +675,7 @@ class _Scene():
         def transform(self, session, node:Node):
             if not (session.options["structure"].resource.get() is None):
                 # Escape to promise if within context of properties #
-                p : Promise = session.options["structure"].declare_extres(node)
+                p : Promise = session.options["structure"].declare_extres.get()(node)
                 r : str = yield TRANSFORM(p)
                 return r
 
@@ -732,11 +733,13 @@ class _Scene():
 
                         promise : Promise
                         if isinstance(obj,Node):
-                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
+                            assert not (obj.file is None)
+                            promise = Promise({"uid":obj.uid, "path":obj.file, "id":i, "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
                         # elif isinstance(obj, GdScript): ## TODO
                         #     p.key["type"] = "Script"
                         else: # isinstance(obj,Resource):
-                            promise = Promise({"uid":obj.uid, "path":obj.path, "id":i, "type":"Resource"}, Promise.Type.EXT_RESOURCE)
+                            assert not (obj.file is None)
+                            promise = Promise({"uid":obj.uid, "path":obj.file, "id":i, "type":"Resource"}, Promise.Type.EXT_RESOURCE)
 
                         promise_direct = Promise(i, Promise.Type.EXT_RESOURCE_DIRECT)
                         
@@ -772,9 +775,21 @@ class _Scene():
 
                 raise TypeError(obj)
 
-            def declare_node(obj:Node)->None:
-                _declared_nodes[node.get_path(obj)] = obj
-                return node.get_parent_path(obj)
+            def declare_node(obj:Node)->str:
+                ''' contextual declaration, return parent node path '''
+
+                p = node.get_path(obj)
+                assert not (".." in p)
+
+                _declared_nodes[p] = obj
+
+                l = p.split("/")
+                if len(l) == 2:
+                    # if child, ie "./node" return "."
+                    return "."
+                else:
+                    # if nested, return "./.../node" without leading "./" or trailing "node"
+                    return "/".join(l[1:-2])
 
             def declare_editable(obj:Node)->None:
                 _declared_editable.append(node.get_path(obj))
@@ -809,7 +824,7 @@ class _Scene():
             t6 = session.options["structure"].declare_signal.set(declare_signal)
 
             t7 = session.options["structure"].properties.set(True)
-            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.header_order.index(kv[0]))
+            txt_header_options = yield from MACROS_PyToGd.dict_to_str(session, header , leading=" ", entry_join=" ", sort_func=lambda kv: self.scene_header_order.index(kv[0]))
             session.options["structure"].properties.reset(t7)
 
 

@@ -781,6 +781,7 @@ class NodePath(str):...
 class Node(Resource):
     ## UNIVERSAL:
     unique_id : int ## Generate at instanciation if not provided
+    signals : list[GdSignal]
 
     ## TEMP/CACHED ONLY ##
     # Node only
@@ -823,6 +824,7 @@ class Node(Resource):
 
     def __setup__(self):
         super().__setup__()
+        self.signals = []
         self.parents = Users()
         self.children = Collection(key_attr = "_name", context = self.context)
         self.children.appended.connect(self._on_child_appended)
@@ -859,29 +861,47 @@ class Node(Resource):
 
     def get_path(self, other_node:Node):
         if other_node is self:
-            return NodePath("")
+            return NodePath(".")
+
+        other_parents = tuple(other_node._yield_parent_chain(invert=True))
+        if self in other_parents:
+            ## path to child is ./???/other_node.name
+            # raise Exception(other_parents)
+            return NodePath("/".join([
+                ".", 
+                *(n.name for n in other_parents[0:other_parents.index(self)]), 
+                other_node.name,
+            ]))
+
+        local_parents = tuple(self._yield_parent_chain(invert=True))
+        if other_node in local_parents:
+            ## path to parent is ./..*?/..
+            return NodePath("/".join([
+                ".", 
+                *([".."] * (len(local_parents[0:local_parents.index(other_node)])+1) ),
+            ]))
+
         
-        o_parents = tuple(other_node._yield_parent_chain())
-        if self in o_parents:
-            return NodePath("/".join(["." , "/".join(n.name for n in o_parents[0:o_parents.index(self)])]))
+        # ## Search for common anscestor, create nodepaths and return 
+        # ## Could be more effecient if each check was intersperced?
 
-        l_parents = tuple(self._yield_parent_chain())
-        if other_node in l_parents:
-            return NodePath("/".join(["." , "/".join(".."*len(l_parents[l_parents.index(other_node):0]))]))
+        for p in local_parents:
+            if p in other_parents:
+                return "/".join((
+                    self.get_path(p),
+                    p.get_path(other_node)[2:], 
+                ))
 
-        ## Search for common anscestor, create nodepaths and return 
-        ## Could be more effecient if each check was intersperced.
-        for i,p in enumerate(l_parents):
-            if p in o_parents:
-                return "/".join([".","/".join([*((len(p.get_path(self).split("/"))-1) * ".."), p.get_path(other_node).split(".")[-1]])])
+        for p in other_parents:
+            if p in local_parents:
+                return "/".join((
+                    self.get_path(p),
+                    p.get_path(other_node)[2:], 
+                ))
+                                
+        raise KeyError(other_node, "No common parents!")
 
-        for i,p in enumerate(o_parents):
-            if p in l_parents:
-                return "/".join([".","/".join([*((len(p.get_path(self).split("/"))-1) * ".."), p.get_path(other_node).split(".")[-1]])])
-                
-        raise KeyError(other_node)
-
-    def _yield_parent_chain(self, err:bool=True):
+    def _yield_parent_chain(self, invert:bool=False, err:bool=True):
         if len(self.parents) > 1:
             if err:
                 raise Exception("Non-normalized tree!", self, self.parents)
@@ -894,8 +914,12 @@ class Node(Resource):
         p = self.parents[0]()
         if p is None:
             return
-        yield p
-        yield from p._yield_parent_chain()
+        if invert:
+            yield p
+            yield from p._yield_parent_chain()
+        else:
+            yield from p._yield_parent_chain()
+            yield p
         
 
 class GdSignal():
