@@ -368,8 +368,6 @@ class Test_Scene(_StructureTest):
         )
         yield txt, res ## Root Instance w/ ExtResource fullfilled
 
-        return 
-
         txt = '''
             [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
             

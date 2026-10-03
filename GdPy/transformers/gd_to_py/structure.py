@@ -660,8 +660,8 @@ class _Scene():
 
     class PyToGd(_Node.PyToGd):
         scene_header_order = (
-            "uid",
             "format",
+            "uid",
         )
         def match(self, session, node):
             ''' Match only Non-Node SubResource '''
@@ -778,6 +778,9 @@ class _Scene():
             def declare_node(obj:Node)->str:
                 ''' contextual declaration, return parent node path '''
 
+                if obj is node:
+                    return None
+
                 p = node.get_path(obj)
                 assert not (".." in p)
 
@@ -842,7 +845,7 @@ class _Scene():
             session.options["structure"].declare_signal.reset(t6)
 
             return "\n".join([
-                f"[scene{txt_header_options}]\n",
+                f"[gd_scene{txt_header_options}]\n",
                 *reversed(txt_extresource),
                 *reversed(txt_subresource),
                 txt_root,
