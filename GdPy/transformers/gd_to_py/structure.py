@@ -74,11 +74,11 @@ class OPTIONS_PyToGd(TransformerOptions):
     properties : ContextVar[Properties|bool|None] = None
 
     declare_extres : ContextVar[Callable] = None
-    def _declare_extres(self, promise:Promise|str):
-        return promise
+    def _declare_extres(self, promise:Resource|Promise|str)->Promise:
+        return None
 
     declare_subres : ContextVar[Callable] = None
-    def _declare_subres(self, promise:Promise|str):
+    def _declare_subres(self, promise:Resource|Promise|str)->Promise:
         return promise
 
     def get_id_contributer(self, session, obj):
@@ -637,9 +637,9 @@ class _Node():
             if node.instance_editable:
                 session.options["structure"].declare_editable.get()(node)
             for c in node.children.values():
-                session.options["structure"].declare_node(c)
+                session.options["structure"].declare_node.get()(c)
             for c in node.signals:
-                session.options["structure"].declare_connection(c)
+                session.options["structure"].declare_connection.get()(c)
 
             # Compile #
             result = f"[node{txt_header_options}]"+"\n"+txt_properties
@@ -673,6 +673,7 @@ class _Scene():
             ])
 
         def transform(self, session, node:Node):
+
             if not (session.options["structure"].resource.get() is None):
                 # Escape to promise if within context of properties #
                 p : Promise = session.options["structure"].declare_extres.get()(node)
@@ -721,6 +722,10 @@ class _Scene():
 
             def declare_extres(obj:Resource|Promise)->Promise:
                 ''' Declare Extres into local scope and return an escape (Promise.Type.EXT_RESOURCE_DIRECT)'''
+
+
+                if obj is node:
+                    raise Exception("Recursive!")
                 
                 if isinstance(obj, Resource):
                     ## Convert object reference to promise
@@ -838,11 +843,14 @@ class _Scene():
             txt_editables : list = [f"[editable {x}]" for x in _declared_editable]
             txt_signals : list = yield TRANSFORM_CHILDREN(_declared_signals)
 
+            session.options["structure"].resource.reset(t0)
+            session.options["structure"].subresource.reset(t1)
             session.options["structure"].declare_subres.reset(t2)
             session.options["structure"].declare_extres.reset(t3)
             session.options["structure"].declare_editable.reset(t4)
             session.options["structure"].declare_node.reset(t5)
             session.options["structure"].declare_signal.reset(t6)
+
 
             return "\n".join([
                 f"[gd_scene{txt_header_options}]\n",

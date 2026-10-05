@@ -241,6 +241,10 @@ class Test_Scene(_StructureTest):
         res = Node(type="Node", name="A", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3)
         yield txt, res ## Root only
 
+        # raise Exception(session.options["structure"].resource.get())
+        # session.options["structure"].test_flag.set(True)
+        # raise Exception(session.memo)
+
         txt = '''
             [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
             
@@ -253,6 +257,8 @@ class Test_Scene(_StructureTest):
             Node(name="B", type="Node", unique_id=805633638)
         ])
         yield txt, res ## Root + 1 level
+
+        # return
 
         txt = '''
             [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
