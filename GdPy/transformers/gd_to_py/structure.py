@@ -658,8 +658,112 @@ class _Node():
                 node.name = "".join(sample(ascii_letters, 9))
 
 class _Scene():
-    class GdToPy(GdToPy_Transformer):
+    class GdToPy(_Node.GdToPy):
         keys = ["file_scene"]
+
+        def transform(self, session, node):
+            _options, _ext_resources, _sub_resources, _node_resources, _edit_flags, _signals = node.children
+
+            t0 = session.options["structure"].resource.set(node)
+            t1 = session.options["structure"].subresource.set(node)
+            
+            ext_resources : dict[str, Promise|Resource] = {}
+            ext_resources_missing : list[str] = []
+            ext_resources_found : list[str] = []
+
+            sub_resources : dict[str, Resource] = {}
+            sub_resources_missing : list[str] = []
+            sub_resources_found : list[str] = []
+
+            signals : dict[str, list[GdSignal]]= {}
+            signals_found : list[str] = []
+
+            edit_flags : list[str] = []
+            edit_flags_found : list[str] = []
+
+            def find_extres(obj:Promise|str)->Resource|Promise:
+                ''' if found, return Resource or full promise. If not part of ext_resources, return input w/ record to missing '''
+                if isinstance(obj, Promise):
+                    key = obj.key
+                else:
+                    key = obj
+                
+                r = ext_resources.get(key,None)
+                if not (r is None):
+                    ext_resources_found.append(key)
+                    return r
+                else:
+                    ext_resources_missing.append(key)
+                    return obj
+                
+            def find_subres(obj:str)->Resource|Promise:
+                ''' if found, return Resource or full promise. If not part of ext_resources, return input w/ record to missing '''
+
+                if isinstance(obj, Promise):
+                    key = obj.key
+                else:
+                    key = obj
+                
+                r = sub_resources.get(key,None)
+                if not (r is None):
+                    sub_resources_found.append(key)
+                    return r
+                else:
+                    sub_resources_missing.append(key)
+                    return obj
+
+            t2 = session.options["structure"].find_extres.set(find_extres)
+            t3 = session.options["structure"].find_subres.set(find_subres)
+
+            signals_gen = yield TRANSFORM_CHILDREN(_signals, as_generator=True)
+            for c in signals_gen:
+                l = signals.get(c["fr"],list())
+                l.append(c)
+                signals[c["fr"]] = l
+
+            edit_flags_gen = yield TRANSFORM_CHILDREN(_edit_flags.children, as_generator=True)
+            edit_flags.extend([str(x.children[0]) for x in edit_flags_gen])
+            
+            ext_resources_gen = yield TRANSFORM_CHILDREN(_ext_resources.children)
+            ext_resources.update({x.key["uid"]:x for x in ext_resources_gen})
+            ## TODO: update w/ contextual resource inline (instead of relying on promise to update)
+
+            sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
+            sub_resources.update({x.name:x for x in sub_resources_gen})
+            
+            root = yield from super().transform(session, _node_resources._children[0])
+            options = yield from MACROS_GdToPy.pairs_to_dict(_options.children)
+            root.uid = options["uid"]
+            root.format = options["format"]
+
+            tree = {"":root}
+            node_resource_gen = yield TRANSFORM_CHILDREN(_node_resources._children[1:], step="INTIAL")
+            for n in node_resource_gen:
+                ## Construct tree
+                ## Consider optional inline construction/instanciation? Would require extres preloading.
+                if n._parent in tree.keys():
+                    tree[n._parent].children.append(n)
+                
+                f_path = n._parent+"/"+n.name
+                
+                if f_path in edit_flags:
+                    n.instance_editable = True
+
+                n.signals.extend(signals.get(f_path, tuple()))
+
+                tree[f_path] = n
+
+            ## Transform children
+            yield TRANSFORM_CHILDREN(_sub_resources.children)
+            yield TRANSFORM_CHILDREN(_node_resources.children)
+
+            session.options["structure"].resource.reset(t0)
+            session.options["structure"].subresource.reset(t1)
+            session.options["structure"].find_extres.reset(t2)
+            session.options["structure"].find_subres.reset(t3)
+
+            return root
+
 
     class PyToGd(_Node.PyToGd):
         scene_header_order = (
