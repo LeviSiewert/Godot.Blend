@@ -642,7 +642,7 @@ class _Node():
             for c in node.children.values():
                 session.options["structure"].declare_node.get()(c)
             for c in node.signals:
-                session.options["structure"].declare_connection.get()(c)
+                session.options["structure"].declare_signal.get()(c)
 
             # Compile #
             result = f"[node{txt_header_options}]"+"\n"+txt_properties
@@ -872,8 +872,8 @@ class _Scene():
                 *reversed(txt_subresource),
                 txt_root,
                 *txt_nodes,
-                *reversed(txt_editables),
-                *reversed(txt_signals),
+                *txt_editables,
+                *txt_signals,
             ])
 
 
