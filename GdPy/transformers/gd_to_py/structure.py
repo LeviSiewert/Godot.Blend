@@ -658,7 +658,7 @@ class _Node():
                 node.name = "".join(sample(ascii_letters, 9))
 
 class _Scene():
-    class GdToPy(PyToGd_Transformer):
+    class GdToPy(GdToPy_Transformer):
         keys = ["file_scene"]
 
     class PyToGd(_Node.PyToGd):
