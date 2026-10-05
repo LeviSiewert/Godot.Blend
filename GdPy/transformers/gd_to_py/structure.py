@@ -69,9 +69,11 @@ class OPTIONS_PyToGd(TransformerOptions):
         self.declare_editable = ContextVar("declare_editable", default = self._declare_editable)
         self.declare_node = ContextVar("declare_editable", default = self._declare_node)
         self.declare_signal = ContextVar("declare_editable", default = self._declare_signal)
+        self.test_flag = ContextVar("test_flag", default = False)
     resource : ContextVar[Resource|None] = None
     subresource : ContextVar[Resource|None] = None
     properties : ContextVar[Properties|bool|None] = None
+    test_flag : ContextVar[Any] = None
 
     declare_extres : ContextVar[Callable] = None
     def _declare_extres(self, promise:Resource|Promise|str)->Promise:
@@ -615,14 +617,15 @@ class _Node():
                 "script" : node.gdscript,
                 "instance" : node.instance,
                 "name" : node.name,
-                "parent" : _parent if _parent else node._parent,
+                "parent" : _parent if (not (_parent is None)) else node._parent,
                 "unique_id" : node.unique_id,
             }.items() if (not (v is None))}
 
             if header.get("parent", None) is None:
                 ## Sanity check
                 _c_res = session.options["structure"].resource.get()
-                assert (_c_res is node) or (_c_res is None)
+                if not ((_c_res is node) or (_c_res is None)):
+                    raise Exception(header)
                 del _c_res
 
             t = session.options["structure"].properties.set(True)
@@ -796,11 +799,22 @@ class _Scene():
                     # if child, ie "./node" return "."
                     return "."
                 else:
+                    # if obj.name == "E":
+                    #     raise Exception(l)
+                    # raise Exception(l[1:-1])
                     # if nested, return "./.../node" without leading "./" or trailing "node"
-                    return "/".join(l[1:-2])
+                    
+                    return "/".join(l[1:-1])
+                    # raise Exception(l)
 
             def declare_editable(obj:Node)->None:
-                _declared_editable.append(node.get_path(obj))
+                p = node.get_path(obj)
+                l = p.split("/")
+
+                if len(l) == 1:
+                    _declared_editable.append(".")
+                else:
+                    _declared_editable.append("/".join(l[1:len(l)]))
 
             def declare_signal(obj:GdSignal)->None:
                 _declared_signals.append(obj)
@@ -840,7 +854,7 @@ class _Scene():
             txt_nodes : list = yield from yield_mutating_dict(_declared_nodes, _yielded_nodes)
             txt_subresource : list = yield from yield_mutating_dict(_declared_subres, _yielded_subres)
             txt_extresource : list = yield from yield_mutating_dict(_declared_extres, _yielded_extres)
-            txt_editables : list = [f"[editable {x}]" for x in _declared_editable]
+            txt_editables : list = [f'[editable path="{x}"]' for x in _declared_editable]
             txt_signals : list = yield TRANSFORM_CHILDREN(_declared_signals)
 
             session.options["structure"].resource.reset(t0)
@@ -857,7 +871,7 @@ class _Scene():
                 *reversed(txt_extresource),
                 *reversed(txt_subresource),
                 txt_root,
-                *reversed(txt_nodes),
+                *txt_nodes,
                 *reversed(txt_editables),
                 *reversed(txt_signals),
             ])

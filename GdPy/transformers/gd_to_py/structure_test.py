@@ -284,7 +284,7 @@ class Test_Scene(_StructureTest):
 
             [node name="C" type="Node" parent="." unique_id=1360691913]
 
-            [node name="D" type="Node" parent="C" unique_id=1360691913]
+            [node name="D" type="Node" parent="C" unique_id=2075458515]
         '''
         res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
             Node(name="B", type="Node", unique_id=805633638),
@@ -351,13 +351,13 @@ class Test_Scene(_StructureTest):
             [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
             ref = ExtResource("id")
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, instance="id",
             properties={
                 "ref":Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
             },
         )
+        # raise Exception(res.instance, res.instance_editable)
         yield txt, res ## Root Instance w/ ExtResource unfullfilled
-
 
         txt = '''
             [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
@@ -367,7 +367,7 @@ class Test_Scene(_StructureTest):
             [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
             ref = ExtResource("id")
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", instance="id",
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, instance="id",
             properties={
                 "ref":Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
             },
@@ -383,9 +383,9 @@ class Test_Scene(_StructureTest):
             
             [editable path="."]
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", 
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3,
                     instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
-                    instance_editable=False
+                    instance_editable=True
         )
 
         yield txt, res ## Root Instance editable w/ ExtResource
@@ -396,13 +396,13 @@ class Test_Scene(_StructureTest):
             
             [node name="A" type="Node" unique_id=1936822026]
             
-            [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
+            [node name="C" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
+            prop = "C"
 
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="C", properties={"prop":"C"}, type="Node", unique_id=805633638, 
                     instance=Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
-                    instance_editable=False,
                 )],
         )
         yield txt, res ## Nested Instance ExtResource unfullfilled
@@ -417,10 +417,9 @@ class Test_Scene(_StructureTest):
             [node name="B" type="Node" parent="." unique_id=805633638 instance=ExtResource("id")]
 
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", unique_id=805633638, 
                     instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
-                    instance_editable=False,
                 )],
         )
         yield txt, res ## Nested Instance ExtResource instance non-editable
@@ -437,8 +436,8 @@ class Test_Scene(_StructureTest):
 
             [editable path="B"]
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", children=[
-                Node(name="C", properties={"prop":"C"}, type="Node", unique_id=1360691913, 
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
+                Node(name="B", type="Node", unique_id=805633638, 
                         instance=Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE), 
                         instance_editable=True), 
         ])
@@ -452,7 +451,7 @@ class Test_Scene(_StructureTest):
             
             [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree"]
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, signals=[
             GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree")
         ])
         
@@ -465,12 +464,13 @@ class Test_Scene(_StructureTest):
 
             [connection signal="child_entered_tree" from="." to="." method="_on_child_entered_tree" flags=23 unbinds=1 binds= [false, PackedStringArray("A")]]
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", signals=[
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, signals=[
             GdSignal(signal="child_entered_tree", fr=".", to=".", method="_on_child_entered_tree", flags=23, unbinds=1, binds= [False, PackedStringArray("A")])
         ])
         
         yield txt, res ## Complex Signal
 
+        # session.options["structure"].test_flag.set(True)
 
         txt = '''
             [gd_scene format=3 uid="uid://bi8mq3bc2koab"]
@@ -481,7 +481,7 @@ class Test_Scene(_StructureTest):
 
             [node name="C" type="Node" parent="." unique_id=1360691913]
 
-            [node name="D" type="Node" parent="C" unique_id=1360691913]
+            [node name="D" type="Node" parent="C" unique_id=2075458515]
 
             [connection signal="child_entered_tree" from="." to="B" method="_on_child_entered_tree"]
 

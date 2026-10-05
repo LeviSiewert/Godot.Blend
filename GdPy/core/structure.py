@@ -800,7 +800,7 @@ class Node(Resource):
     #     super().__init__(name, uid, file, properties, subresources)
     def __init__(self, name:str|None=None, format:int=4, type:str|Promise|None=None, script:str|Promise|None=None, unique_id:int=None, children:Iterable[Node]=tuple(), unclaimed_extres:dict[str,str]|None=None, unclaimed_subres:dict[str,str]|None=None, unclaimed_nodes:dict[str,str]=None, unclaimed_signals:dict[str,str]|None=None, unclaimed_editable:dict[str,str]|None=None, uid:str|None=None, file:str|File|None=None, properties:Iterable=tuple(), subresources:Iterable[Resource]=tuple(), instance:Resource=None, instance_editable:bool=False, _parent:str|None=None):
 
-        super().__init__(id=name, type=type, script=script,  uid=uid, file=file, format=format, properties=properties, subresources=subresources, instance=instance, instance_editable=instance)
+        super().__init__(id=name, type=type, script=script,  uid=uid, file=file, format=format, properties=properties, subresources=subresources, instance=instance, instance_editable=instance_editable)
 
         self._parent = _parent ## Cached value only
 
@@ -863,13 +863,13 @@ class Node(Resource):
         if other_node is self:
             return NodePath(".")
 
-        other_parents = tuple(other_node._yield_parent_chain(invert=True))
+        other_parents = tuple(other_node._yield_parent_chain())
         if self in other_parents:
             ## path to child is ./???/other_node.name
             # raise Exception(other_parents)
             return NodePath("/".join([
                 ".", 
-                *(n.name for n in other_parents[0:other_parents.index(self)]), 
+                *(n.name for n in other_parents[other_parents.index(self)+1:len(other_parents)]), 
                 other_node.name,
             ]))
 
@@ -916,9 +916,9 @@ class Node(Resource):
             return
         if invert:
             yield p
-            yield from p._yield_parent_chain()
+            yield from p._yield_parent_chain(invert=invert)
         else:
-            yield from p._yield_parent_chain()
+            yield from p._yield_parent_chain(invert=invert)
             yield p
         
 

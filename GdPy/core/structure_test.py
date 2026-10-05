@@ -421,29 +421,50 @@ class Test_Node:
         assert sr1_1.children["b"].overaly is sr0_b
         assert sr1_1.children["c"].overaly is None
 
-    def test_get_path_simple(self):
-        sr1 = Node("B")
-        sr0 = Node("A",children=[sr1])
-        assert sr0.get_path(sr1) == NodePath("./B")
-        assert sr1.get_path(sr0) == NodePath("./..")
+    # def test_get_path_simple(self):
+    #     sr1 = Node("B")
+    #     sr0 = Node("A",children=[sr1])
+    #     assert sr0.get_path(sr1) == NodePath("./B")
+    #     assert sr1.get_path(sr0) == NodePath("./..")
 
-    def test_get_path_nested(self):
-        sr2 = Node("C")
-        sr1 = Node("B",children=[sr2])
-        sr0 = Node("A",children=[sr1])
-        assert sr0.get_path(sr2) == NodePath("./B/C")
-        assert sr2.get_path(sr0) == NodePath("./../..")
+    # def test_get_path_nested(self):
+    #     sr2 = Node("C")
+    #     sr1 = Node("B",children=[sr2])
+    #     sr0 = Node("A",children=[sr1])
+    #     assert sr0.get_path(sr2) == NodePath("./B/C")
+    #     assert sr2.get_path(sr0) == NodePath("./../..")
 
-    def test_get_siblings_simple(self):
-        sr1_b = Node("B_b")
-        sr1_a = Node("B_a")
-        sr0 = Node("A",children=[sr1_a,sr1_b])
-        assert sr1_b.get_path(sr1_a) == NodePath("./../B_a")
+    # def test_get_siblings_simple(self):
+    #     sr1_b = Node("B_b")
+    #     sr1_a = Node("B_a")
+    #     sr0 = Node("A",children=[sr1_a,sr1_b])
+    #     assert sr1_b.get_path(sr1_a) == NodePath("./../B_a")
 
-    def test_get_siblings_nested(self):
-        sr2_b = Node("C_b")
-        sr1_b = Node("B_b", children=[sr2_b])
-        sr2_a = Node("C_a")
-        sr1_a = Node("B_a", children=[sr2_a])
-        sr0 = Node("A",children=[sr1_a,sr1_b])
-        assert sr2_b.get_path(sr2_a) == NodePath("./../../B_a/C_a")
+    # def test_get_siblings_nested(self):
+    #     sr2_b = Node("C_b")
+    #     sr1_b = Node("B_b", children=[sr2_b])
+    #     sr2_a = Node("C_a")
+    #     sr1_a = Node("B_a", children=[sr2_a])
+    #     sr0 = Node("A",children=[sr1_a,sr1_b])
+    #     assert sr2_b.get_path(sr2_a) == NodePath("./../../B_a/C_a")
+
+    def test_get_path_full(self):
+        
+        e = Node(name="E", type="Node", unique_id=116493720)
+        d = Node(name="D", type="Node", unique_id=2075458515, children=[
+            e,
+        ])
+        c = Node(name="C", type="Node", unique_id=1360691913, children=[
+            d,
+        ])
+        b = Node(name="B", type="Node", unique_id=805633638)
+        a = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children = [
+            b, c,
+        ])
+
+        # raise Exception(c.parents[0]())
+
+        assert a.get_path(e) == "./C/D/E" 
+        assert e.get_path(a) == "./../../.."
+        assert e.get_path(b) == "./../../../B"
+        assert b.get_path(e) == "./../C/D/E"
