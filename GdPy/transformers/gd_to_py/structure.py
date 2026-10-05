@@ -268,7 +268,7 @@ class _SubResource():
             txt_properties = yield TRANSFORM(node.properties)
 
             # Context Declarations #
-            if node.instance_editable:
+            if node.instance_editable and (not (node.instance is None)):
                 session.options["structure"].declare_editable.get()(node)
 
             # Compile #
