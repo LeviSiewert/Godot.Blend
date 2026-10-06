@@ -1,7 +1,7 @@
 ''' TODO: Transform json dump of types into structure. 
 Tree is:
-{
-    "name" : {
+[
+    {
         "_type"      : "T"
         "extends"    : str|None,
         "properties" : [{"_type":"P", "name":str, value:{"_type":"V", typing={"_type":"VT"} default=...}}],
@@ -11,7 +11,7 @@ Tree is:
         "path"       : str|None,
         "class_name" : str|None,
     },
-}
+]
 
 Don't worry about post-processing / incorperating extensions and the like. That will be done later.
 Relationships will be done via "on-fetch" promises.
