@@ -42,10 +42,12 @@ class OPTIONS_GdToPy(TransformerOptions):
     find_subres : ContextVar[Callable] = None
     def _find_subres(self, promise:Promise|str):
         return promise
-    
+
+from collections import OrderedDict
+
 class MACROS_GdToPy:
     def pairs_to_dict(session, obj:Iterable):
-        r = {}
+        r = OrderedDict()
         for pair in obj: 
             k,v = yield TRANSFORM_CHILDREN(pair.children)
             r[k] = v
@@ -116,15 +118,23 @@ class OPTIONS_PyToGd(TransformerOptions):
 
     
 class MACROS_PyToGd:
-    def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = lambda kv: kv[0]):
+    def dict_to_str(session, obj:dict, strip_key:bool=True, pair_join:str="=", entry_join:str=", ", leading:str="", sort_func = None):
         key_gen = yield TRANSFORM_CHILDREN(obj.keys(),   as_generator=True)
         obj_gen = yield TRANSFORM_CHILDREN(obj.values(), as_generator=True)
         
         if strip_key:
-            pairs = sorted([(k.strip('"'),v) for k,v in  zip(key_gen, obj_gen)], key = sort_func)
+            if sort_func:
+                pairs = sorted([(k.strip('"'),v) for k,v in  zip(key_gen, obj_gen)], key = sort_func)
+            else:
+                pairs = [(k.strip('"'),v) for k,v in  zip(key_gen, obj_gen)]
+
             res = entry_join.join(f"{k}{pair_join}{v}" for k,v in pairs)
         else:
-            pairs = sorted([(k,v) for k,v in  zip(key_gen, obj_gen)], key = sort_func)
+            if sort_func:
+                pairs = sorted([(k,v) for k,v in  zip(key_gen, obj_gen)], key = sort_func)
+            else:
+                pairs = [(k,v) for k,v in  zip(key_gen, obj_gen)]
+            # pairs = sorted([(k,v) for k,v in  zip(key_gen, obj_gen)], key = sort_func)
             res = entry_join.join(f"{k}{pair_join}{v}" for k,v in pairs)
     
         if res != "":
@@ -996,6 +1006,48 @@ class _Scene():
                 *txt_signals,
             ])
 
+class _Settings:
+    class GdToPy(GdToPy_Transformer):
+        keys = ["file_settings"]
+        def transform(self, session, node:LarkTree):
+            _properties, _categories = node.children
+            if _properties is None:
+                properties = tuple()
+            else:
+                properties = yield from MACROS_GdToPy.pairs_to_dict(session, _properties.children)
+            categories = yield TRANSFORM_CHILDREN(_categories.children)
+            return Settings(categories=categories, properties=properties)
+         
+    class PyToGd(PyToGd_Transformer):
+        types = [Settings]
+        def transform(self, session, node:Settings):
+            properties = yield TRANSFORM(node.properties)
+            categories = yield TRANSFORM_CHILDREN(node.categories.values())
+            # raise Exception(properties, node.categories)
+            return "\n".join([
+                properties,
+                *categories,
+            ])
+
+class _Category():
+    class GdToPy(GdToPy_Transformer):
+        keys = ["category"]
+        def transform(self, session, node):
+            _name, _properties = node.children
+            if _properties is None:
+                properties = tuple()
+            else:
+                properties = yield from MACROS_GdToPy.pairs_to_dict(session, _properties.children)
+            return Category(str(_name), properties=properties)
+            
+    class PyToGd(PyToGd_Transformer):
+        types = [Category]
+        def transform(self, session, node):
+            properties = yield TRANSFORM(node.properties)
+            return "\n".join([
+                f"[{node.name}]",
+                properties,
+            ])
 
 gd_to_py = GdToPy_TransformerSet("STD::structure.py", [  
     _GdSignal.GdToPy,
@@ -1007,6 +1059,8 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _Node.GdToPy,
     _Scene.GdToPy,
     _EditFlags.GdToPy,
+    _Settings.GdToPy,
+    _Category.GdToPy,
 ], 
 options = {"structure":OPTIONS_GdToPy}
 )
@@ -1020,6 +1074,9 @@ py_to_gd = PyToGd_TransformerSet("STD::structure.py", [
     _Resource.PyToGd,
     _Node.PyToGd,
     _Scene.PyToGd,
+    # _EditFlags.PyToGd,
+    _Settings.PyToGd,
+    _Category.PyToGd,
 ], 
 options = {"structure":OPTIONS_PyToGd} 
 )

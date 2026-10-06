@@ -41,6 +41,8 @@ from lark import (
     Tree as LarkTree,
     )
 
+from collections import OrderedDict
+
 ## Value Rendering Options:
 
 from math import modf
@@ -104,7 +106,7 @@ class MACROS:
         return res
 
     def gdtopy_pairs_to_dict(item:list[LarkTree])->Generator[Flag,tuple,dict]:
-        res = {}
+        res = OrderedDict()
         for pair in item:
             k,v = yield TRANSFORM_CHILDREN(pair.children)
             res[k] = v

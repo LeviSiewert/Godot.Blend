@@ -250,6 +250,8 @@ class PromiseProperty():
     def replace(self, value, instance):
         setattr(instance, self.attr, value)
 
+from collections import OrderedDict
+
 class Properties(UserDict):
     ''' Overlayable dict, any subresource, subresource promises will be localized at fetch 
     Direct references are rendered to indirect on transformation to text w/a
@@ -269,7 +271,7 @@ class Properties(UserDict):
         self.added = Signal(self)
         self.removed = Signal(self)
         self.updated = Signal(self)
-        self.data = {}
+        self.data = OrderedDict()
 
     def __init__(self, iterable:Iterable=tuple(), context:Context=None):
         self.__setup__()
@@ -591,7 +593,11 @@ class Category:
                 # self.name==value.name,
             ])
         return False
-        # return super().__eq__(value)
+        # return super().__eq__(value
+    
+    def __repr__(self):
+        return f"Category({self.name}, {self.properties})"
+        pass
     
 class FileIO[ResourceType:Resource](Settings):
     ## TODO Matched globally via file type, somehow.

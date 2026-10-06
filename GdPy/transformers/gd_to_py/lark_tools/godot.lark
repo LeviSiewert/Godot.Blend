@@ -5,7 +5,7 @@ start : file_resource
 
 file_resource : "[gd_resource" options "]" ext_resources sub_resources ["[resource]" properties]
 file_scene : "[gd_scene" options "]" ext_resources sub_resources node_resources edit_flags connections
-file_settings : [properties] _categories
+file_settings : properties categories
 
 ext_resources : ext_resource*
 ext_resource : "[ext_resource" options "]"
@@ -22,7 +22,7 @@ edit_flag : "[editable" options "]" properties
 connections : connection*
 connection : "[connection" options "]"
 
-_categories : category
+categories : category*
 category : "["WORD"]" properties
 
 // TYPING

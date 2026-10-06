@@ -67,12 +67,14 @@ class OverlayMode(Enum):
     COPY = 0
     PASSTHROUGH = 1
 
+from collections import OrderedDict 
+
 class Collection[K:str|int,V:Any](UserDict):
     context : Context
 
     key_attr : str
 
-    data : dict[K,V]
+    data : OrderedDict[K,V]
 
     appended : Signal[K,V]
     removed : Signal[K,V]
@@ -88,7 +90,7 @@ class Collection[K:str|int,V:Any](UserDict):
     overlay_mode : OverlayMode
 
     def __setup__(self):
-        self.data = {}
+        self.data = OrderedDict()
 
         self.context = Context()
 
