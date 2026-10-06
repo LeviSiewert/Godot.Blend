@@ -491,7 +491,7 @@ class Test_Scene(_StructureTest):
 
             [connection signal="child_entered_tree" from="C" to="C" method="_on_child_entered_tree"]
             
-            [connection signal="child_entered_tree" from="D" to="." method="_on_child_entered_tree"]
+            [connection signal="child_entered_tree" from="C/D" to="." method="_on_child_entered_tree"]
             
         '''
         res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, 
@@ -507,7 +507,7 @@ class Test_Scene(_StructureTest):
                     ],
                     children=[
                         Node(name="D", type="Node", unique_id=2075458515, signals = [
-                           GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
+                           GdSignal(signal="child_entered_tree", fr="C/D", to=".", method="_on_child_entered_tree"),   
                         ])
                     ]),
             ],

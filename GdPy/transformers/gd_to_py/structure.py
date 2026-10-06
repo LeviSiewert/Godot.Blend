@@ -746,22 +746,28 @@ class _Scene():
             root.instance_editable = ("." in edit_flags)
             root.signals.extend(signals.get(".", tuple()))
 
-            tree = {"":root}
+            tree = {"":root, ".":root}
             node_resource_gen = yield TRANSFORM_CHILDREN(_node_resources.children[1:], step="INTIAL")
             for n in node_resource_gen:
                 ## Construct tree
                 ## Consider optional inline construction/instanciation? Would require extres preloading.
                 if n._parent in tree.keys():
                     tree[n._parent].children.append(n)
+                else:
+                    raise Exception(n._parent)
                 
-                f_path = n._parent+"/"+n.name
+                if n._parent == ".":
+                    f_path = n.name
+                    tree[n.name] = n
+                else:
+                    f_path = n._parent+"/"+n.name
+                    tree[f_path] = n
                 
                 if f_path in edit_flags:
                     n.instance_editable = True
 
                 n.signals.extend(signals.get(f_path, tuple()))
 
-                tree[f_path] = n
 
             ## Transform children
             yield TRANSFORM_CHILDREN(_sub_resources.children)

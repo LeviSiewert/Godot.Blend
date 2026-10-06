@@ -755,7 +755,6 @@ class Resource():
                "properties"        : (value.properties == self.properties, value.properties , self.properties),
                "instance"          : (value.instance == self.instance, value.instance , self.instance),
                "instance_editable" : (value.instance_editable == self.instance_editable, value.instance_editable , self.instance_editable),
-               "signal"            : (value.signals == self.signals, value.signals , self.signals),
         }
 
     def __repr__(self):
@@ -846,6 +845,7 @@ class Node(Resource):
             return all([
                 super().__eq__(value),
                 value.signals == self.signals,
+                value.children == self.children,
                 ])
         return False
 
@@ -856,16 +856,27 @@ class Node(Resource):
             "file":self.file,
             "gdtype":self.gdtype,
             "gdscript":self.gdscript,
-            "format":self.format,
+            # "format":self.format,
             "instance":self.instance,
             "instance_editable":self.instance_editable if self.instance_editable else None,
-            "signals_len":len(self.signals)
+            "signals_len":len(self.signals),
+            "children":self.children,
+            # "children_ids":[*self.children.keys()],
         }.items() if not (v is None)}
 
         if self.file or self.uid:
             return f'Scene({data})'
         else:
             return f'Node({data})'
+
+    def _dif(self, value):
+        res = {
+            "signal"            : (value.signals == self.signals, value.signals , self.signals),
+            "children"          : (value.children == self.children, value.children , self.children),
+        }
+        res.update(super()._dif(value))
+        return res
+
     
     def _on_child_appended(self, key:str, child:Node):
         child.parents.append(self)
