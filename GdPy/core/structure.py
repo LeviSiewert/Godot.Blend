@@ -10,6 +10,7 @@ from __future__ import annotations
 from .collection import Collection, CollectionKey, CollectionKeyProperty
 from .context import Context as _Context
 from .signals import Signal, DISCONNECT
+from .defininitions import GdDefType
 
 from string import ascii_letters
 from random import randint, sample
@@ -459,10 +460,7 @@ class Properties(UserDict):
     def __eq__(self, other):
         return super().__eq__(other)
 
-class GdType():
-    _identifier = None
-    identifier = CollectionKeyProperty(str, "_identfier") 
-    extends : GdType|None
+
 
 class Project():
     context : Context
@@ -473,7 +471,7 @@ class Project():
 
     resources : Collection[str, Resource]
     files : Collection[str, File]
-    types : Collection[str, GdType] #DEFER
+    types : Collection[str, GdDefType] #DEFER
 
     def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
         self.__setup__()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Type, Any
 from .context import Context
+from .collection import CollectionKeyProperty
 
 class GdDefValueTyping:
     contents_a : str|GdDefType|Type|Any|None = Any
@@ -27,3 +28,6 @@ class GdDefSignal:
 class GdDefType:
     extends : GdDefType|None = None
     context : Context
+    
+    _identifier : str = None
+    identifier = CollectionKeyProperty(str, "_identifier")
