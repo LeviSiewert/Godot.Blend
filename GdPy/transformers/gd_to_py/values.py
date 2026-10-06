@@ -186,6 +186,8 @@ class _String:
         
     class PyToGd(PyToGd_Transformer):
         types = [str]
+        def match(self, session, node):
+            return isinstance(node, str) and (not isinstance(node, NodePath))
         memoized = False ##TODO! as rendering options change contextually
         def transform(self, session:PyToGd_Session, node:str)->str:
             if session.options["values"].str_use_quotations.get():
@@ -205,7 +207,7 @@ class _NodePath():
     class PyToGd(PyToGd_Transformer):
         types = [NodePath]
         def transform(self, session:PyToGd_Session, node:NodePath)->Generator[Flag, Any, str]:
-            typing = yield from MACROS.default_yield(node._typing, default="")
+            typing = yield from MACROS.default_yield(node.typing, default="")
             return f'NodePath{typing}("{node}")'
 
 

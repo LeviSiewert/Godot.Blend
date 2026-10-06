@@ -775,8 +775,13 @@ class Resource():
         else:
             return f'Sub{self.__class__.__name__}({data})'
 
+from collections import UserString
 
-class NodePath(str):...
+class NodePath(UserString):
+    typing : Any = None
+    def __init__(self, seq, /, typing=None):
+        self.typing = typing
+        super().__init__(seq)
 
 class Node(Resource):
     ## UNIVERSAL:
