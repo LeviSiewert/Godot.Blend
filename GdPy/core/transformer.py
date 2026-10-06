@@ -77,6 +77,7 @@ class TRANSFORM_CHILDREN(Flag):
     settings : dict
 
     def __init__(self, children:Iterable, /, as_generator:bool=False, **settings):
+        assert isinstance(children, Iterable)
         self.children = children
         self.settings = settings
         self.as_generator = as_generator

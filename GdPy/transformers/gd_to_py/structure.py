@@ -52,6 +52,7 @@ class MACROS_GdToPy:
         return r
 
 class MACROS:
+    @staticmethod
     def Default(value, default:Any=None, flag:Any=TRANSFORM_CHILDREN, conditional:Callable=lambda x: not (x is None), kwargs:dict=EMPTY_DICT):
         if not conditional(value):
             return value
@@ -570,9 +571,9 @@ class _Node():
             res = Node(**options)
             yield STEP("INITIAL", res)
 
-            # if not (res.instance is None):
-            #     res.instance = session.options["structure"].find_extres.get()(res.instance)
-                ## find_editable is tempting, but better suited to the file level.
+            if not (res.instance is None):
+                if isinstance(res, str) or (res.instance.p_type is Promise.Type.EXT_RESOURCE_DIRECT):
+                    res.instance = session.options["structure"].find_extres.get()(res.instance)
             
             properties : Properties = yield TRANSFORM(_properties)
             # raise Exception(res.name, properties)
@@ -657,6 +658,13 @@ class _Node():
             if node.name is None:
                 node.name = "".join(sample(ascii_letters, 9))
 
+class _EditFlags:
+    class GdToPy(GdToPy_Transformer):
+        keys = ["edit_flag"]
+        def transform(self, session, node):
+            options = yield from MACROS_GdToPy.pairs_to_dict(session, node.children[0].children)
+            return options["path"]
+
 class _Scene():
     class GdToPy(_Node.GdToPy):
         keys = ["file_scene"]
@@ -715,29 +723,30 @@ class _Scene():
             t2 = session.options["structure"].find_extres.set(find_extres)
             t3 = session.options["structure"].find_subres.set(find_subres)
 
-            signals_gen = yield TRANSFORM_CHILDREN(_signals, as_generator=True)
+            signals_gen = yield TRANSFORM_CHILDREN(_signals.children, as_generator=True)
             for c in signals_gen:
-                l = signals.get(c["fr"],list())
+                l = signals.get(c.kwargs["fr"],list())
                 l.append(c)
-                signals[c["fr"]] = l
+                signals[c.kwargs["fr"]] = l
 
             edit_flags_gen = yield TRANSFORM_CHILDREN(_edit_flags.children, as_generator=True)
-            edit_flags.extend([str(x.children[0]) for x in edit_flags_gen])
+            edit_flags.extend(edit_flags_gen)
             
             ext_resources_gen = yield TRANSFORM_CHILDREN(_ext_resources.children)
-            ext_resources.update({x.key["uid"]:x for x in ext_resources_gen})
+            ext_resources.update({x.key["id"]:x for x in ext_resources_gen})
             ## TODO: update w/ contextual resource inline (instead of relying on promise to update)
 
             sub_resources_gen = yield TRANSFORM_CHILDREN(_sub_resources.children, step="INITIAL", as_generator=True)
             sub_resources.update({x.name:x for x in sub_resources_gen})
             
-            root = yield from super().transform(session, _node_resources._children[0])
-            options = yield from MACROS_GdToPy.pairs_to_dict(_options.children)
-            root.uid = options["uid"]
-            root.format = options["format"]
+            root = yield from super().transform(session, _node_resources.children[0])
+            options = yield from MACROS_GdToPy.pairs_to_dict(session,_options.children)
+            root.uid = options["uid"].split("uid://")[-1]
+            root.format = int(options["format"])
+            root.instance_editable = ("." in edit_flags)
 
             tree = {"":root}
-            node_resource_gen = yield TRANSFORM_CHILDREN(_node_resources._children[1:], step="INTIAL")
+            node_resource_gen = yield TRANSFORM_CHILDREN(_node_resources.children[1:], step="INTIAL")
             for n in node_resource_gen:
                 ## Construct tree
                 ## Consider optional inline construction/instanciation? Would require extres preloading.
@@ -990,6 +999,7 @@ gd_to_py = GdToPy_TransformerSet("STD::structure.py", [
     _Resource.GdToPy,
     _Node.GdToPy,
     _Scene.GdToPy,
+    _EditFlags.GdToPy,
 ], 
 options = {"structure":OPTIONS_GdToPy}
 )

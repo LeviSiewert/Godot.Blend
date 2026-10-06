@@ -356,7 +356,6 @@ class Test_Scene(_StructureTest):
                 "ref":Promise("id", Promise.Type.EXT_RESOURCE_DIRECT),
             },
         )
-        # raise Exception(res.instance, res.instance_editable)
         yield txt, res ## Root Instance w/ ExtResource unfullfilled
 
         txt = '''
@@ -367,9 +366,10 @@ class Test_Scene(_StructureTest):
             [node name="A" type="Node" unique_id=1936822026 instance=ExtResource("id")]
             ref = ExtResource("id")
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, instance="id",
+        ref = Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE)
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, instance=ref,
             properties={
-                "ref":Promise({"id":"id", "path":"res", "uid":"uid", "type":"PackedScene"}, Promise.Type.EXT_RESOURCE),
+                "ref":ref,
             },
         )
         yield txt, res ## Root Instance w/ ExtResource fullfilled
