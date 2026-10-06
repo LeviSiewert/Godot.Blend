@@ -213,6 +213,9 @@ class _Promise():
                     raise NotImplementedError()
                 case Promise.Type.FILE:
                     raise NotImplementedError()
+                case Promise.Type.GDTYPE:
+                    key = yield TRANSFORM(node.key)
+                    return key
             return super().transform(session, node)
 class _SubResource():
     class GdToPy(GdToPy_Transformer):

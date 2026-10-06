@@ -53,6 +53,7 @@ class Promise[T:Any]:
         SUB_RESOURCE = "SUB_RESOURCE"
         EXT_RESOURCE = "EXT_RESOURCE" ## Resolves to a resource
         EXT_RESOURCE_DIRECT = "EXT_RESOURCE_DIRECT" ## As in actual Ext_Resource object. Used pretty mmuch only in construction!
+        GDTYPE = "GDTYPE",
 
     key : str|int|dict = None
     p_type : Promise.Type = None
@@ -98,6 +99,11 @@ class Promise[T:Any]:
                 if (container is None): return default
                 result = container.ext_resources.get(self.key, default=None)
 
+            case Promise.Type.GDTYPE:
+                container = context.project
+                if (container is None): return default
+                result = container.types.get(self.key, default=None)
+
         if result is None:
             return default
         return result
@@ -129,6 +135,7 @@ class PromiseContextual(Promise):
         Promise.Type.EXT_RESOURCE : ["project", None],
         Promise.Type.SUB_RESOURCE : ["resource", "sub_resources"],
         Promise.Type.EXT_RESOURCE_DIRECT : ["resource", "ext_resources"],
+        Promise.Type.GDTYPE : ["project", "types"],
     }
 
     def __init__(self, key, p_type, context:Context|None=None, _extra_args:Iterable=tuple()):
@@ -452,6 +459,11 @@ class Properties(UserDict):
     def __eq__(self, other):
         return super().__eq__(other)
 
+class GdType():
+    _identifier = None
+    identifier = CollectionKeyProperty(str, "_identfier") 
+    extends : GdType|None
+
 class Project():
     context : Context
 
@@ -461,7 +473,7 @@ class Project():
 
     resources : Collection[str, Resource]
     files : Collection[str, File]
-    # resource_types : Collection[str, GdType] #DEFER
+    types : Collection[str, GdType] #DEFER
 
     def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
         self.__setup__()
@@ -474,6 +486,7 @@ class Project():
         self.context = Context(project=self)
         self.resources = Collection(key_attr="_name", context = self.context)
         self.files = Collection(key_attr="_path", context = self.context)
+        self.types = Collection(key_attr="_name", context = self.context)
 
     def reference_callback(self, obj):
         self.users.append(obj)
@@ -657,12 +670,12 @@ class Resource():
     _file : Promise[File]|File|None = None
     file = PromiseProperty("_file", "file_set", Promise.Type.FILE)
 
-    # _gdtype : Promise[File]|File|None = None
-    # gdtype = PromiseProperty("_gdtype", "gdtype_set", Promise.Type.EXT_RESOURCE)
+    _gdtype : Promise[File]|File|None = None
+    gdtype = PromiseProperty("_gdtype", "gdtype_set", Promise.Type.GDTYPE)
     ## TODO: turn into type-promise and accomidate.
 
     _gdscript : Promise[File]|File|None = None
-    gdscript = PromiseProperty("_gdscript", "gdscript_set", Promise.Type.EXT_RESOURCE)
+    gdscript = PromiseProperty("_gdscript", "gdscript_set", Promise.Type.GDTYPE)
 
     sub_resources : Collection[str, Resource] 
         ## Inclusionary, 
