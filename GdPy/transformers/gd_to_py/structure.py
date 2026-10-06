@@ -744,6 +744,7 @@ class _Scene():
             root.uid = options["uid"].split("uid://")[-1]
             root.format = int(options["format"])
             root.instance_editable = ("." in edit_flags)
+            root.signals.extend(signals.get(".", tuple()))
 
             tree = {"":root}
             node_resource_gen = yield TRANSFORM_CHILDREN(_node_resources.children[1:], step="INTIAL")

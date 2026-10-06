@@ -494,19 +494,26 @@ class Test_Scene(_StructureTest):
             [connection signal="child_entered_tree" from="D" to="." method="_on_child_entered_tree"]
             
         '''
-        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, children=[
-            Node(name="B", type="Node", unique_id=805633638),
-            Node(name="C", type="Node", unique_id=1360691913, children=[
-                Node(name="D", type="Node", unique_id=2075458515)
-            ]),
-        ],
-        signals = [
-            GdSignal(signal="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
-            GdSignal(signal="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
-            GdSignal(signal="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
-            GdSignal(signal="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
-            GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
-        ],
+        res = Node(name="A", type="Node", unique_id=1936822026, uid="uid://bi8mq3bc2koab", format=3, 
+            children=[
+                Node(name="B", type="Node", unique_id=805633638, 
+                     signals = [
+                        GdSignal(signal="child_entered_tree", fr="B", to="C", method="_on_child_entered_tree"),
+                        GdSignal(signal="child_entered_tree", fr="B", to=".", method="_on_child_entered_tree"),
+                     ]),
+                Node(name="C", type="Node", unique_id=1360691913, 
+                    signals = [
+                       GdSignal(signal="child_entered_tree", fr="C", to="C", method="_on_child_entered_tree"),
+                    ],
+                    children=[
+                        Node(name="D", type="Node", unique_id=2075458515, signals = [
+                           GdSignal(signal="child_entered_tree", fr="D", to=".", method="_on_child_entered_tree"),   
+                        ])
+                    ]),
+            ],
+            signals=[
+                GdSignal(signal="child_entered_tree", fr=".", to="B", method="_on_child_entered_tree"),
+            ],
         )
         yield txt, res ## Complex/many signals
 

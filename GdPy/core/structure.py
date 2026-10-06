@@ -755,6 +755,7 @@ class Resource():
                "properties"        : (value.properties == self.properties, value.properties , self.properties),
                "instance"          : (value.instance == self.instance, value.instance , self.instance),
                "instance_editable" : (value.instance_editable == self.instance_editable, value.instance_editable , self.instance_editable),
+               "signal"            : (value.signals == self.signals, value.signals , self.signals),
         }
 
     def __repr__(self):
@@ -841,7 +842,12 @@ class Node(Resource):
         pass
 
     def __eq__(self, value):
-        return super().__eq__(value)
+        if isinstance(value, Node):
+            return all([
+                super().__eq__(value),
+                value.signals == self.signals,
+                ])
+        return False
 
     def __repr__(self):
         data = {k:v for k,v in {
@@ -853,6 +859,7 @@ class Node(Resource):
             "format":self.format,
             "instance":self.instance,
             "instance_editable":self.instance_editable if self.instance_editable else None,
+            "signals_len":len(self.signals)
         }.items() if not (v is None)}
 
         if self.file or self.uid:
