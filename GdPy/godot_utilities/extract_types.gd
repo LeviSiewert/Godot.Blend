@@ -17,12 +17,14 @@ enum Mode{
 func _run():
 	var hint_map := get_hint_map()
 	var type_map := get_type_map()
+	var usage_map:= get_property_usage_map()
 
 	if mode == Mode.SCRIPT:
 		var result := {
 			"engine":Engine.get_version_info(),
 			"hint_map":hint_map,
 			"type_map":type_map,
+			"usage_map":usage_map,
 			"classes":_run_script(),
 		}
 		var r = JSON.stringify(result, "\t")
@@ -32,6 +34,7 @@ func _run():
 			"engine":Engine.get_version_info(),
 			"hint_map":hint_map,
 			"type_map":type_map,
+			"usage_map":usage_map,
 			"classes":_run_classes(),
 		}
 		var r = JSON.stringify(result, "\t")

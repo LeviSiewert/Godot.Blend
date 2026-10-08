@@ -1,6 +1,6 @@
 from ...core.transformer import Flag, STEP, TRANSFORM, TRANSFORM_CHILDREN, Session, TransformerOptions
 from ._transformer import GdToPy_TransformerSet, PyToGd_TransformerSet, PyToGd_Transformer, GdToPy_Transformer, PyToGd_Session, GdToPy_Session
-from ...core.defininitions import GdDefValueTyping
+from ...core.structure import DefValueTyping
 
 from contextvars import ContextVar
 from contextlib import contextmanager
@@ -22,16 +22,16 @@ class PyToGd_Options(TransformerOptions): ...
 class _Typing():
     class GdToPy(GdToPy_Transformer):
         keys = ["typing"]
-        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, GdDefValueTyping]:
-            return GdDefValueTyping(*node.children)
+        def transform(self, session:GdToPy_Session, node:LarkTree)->Generator[Flag, Any, DefValueTyping]:
+            return DefValueTyping(*node.children)
         
     class PyToGd(PyToGd_Transformer):
-        types = [GdDefValueTyping]
-        def transform(self, session:PyToGd_Session, node:GdDefValueTyping)->Generator[Flag, Any, str]:
+        types = [DefValueTyping]
+        def transform(self, session:PyToGd_Session, node:DefValueTyping)->Generator[Flag, Any, str]:
             with cvar_as(session.options["values"].str_use_quotations, False):
                 children = yield TRANSFORM_CHILDREN((e for e in (node.contents_a, node.contents_b) if e))
                 return f'[{",".join(children)}]'
-                
+
 
 
 gd_to_py = GdToPy_TransformerSet("STD::values.py", [  

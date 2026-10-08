@@ -4,9 +4,9 @@ from array import array
 from typing import Any
 from collections import OrderedDict, UserString, UserList
 
-from .structure import NodePath
-from .defininitions import GdDefValue, GdDefType, GdDefValueTyping
+from .structure import NodePath, DefValue, DefType, DefValueTyping
 from .signals import Signal 
+from .enums import PrimitiveType
 
 class StringName(UserString):
     def __repr__(self):
@@ -14,9 +14,9 @@ class StringName(UserString):
 
 class Object():
     ''' Generic object, stored and accessed as a value. '''
-    type : GdDefType|str
+    type : DefType|str
     kwargs : dict
-    def __init__(self, type:GdDefType|str|None, **kwargs):
+    def __init__(self, type:DefType|str|None, **kwargs):
         self.type = type
         self.kwargs = kwargs
     
@@ -52,22 +52,22 @@ class Dictionary(OrderedDict):
     removed : Signal[str,Any]
     updated : Signal[str,Any,Any]
 
-    typing : GdDefValueTyping
+    typing : DefValueTyping
 
     def __setup__(self):
         self.added = Signal(self)
         self.removed = Signal(self) 
         self.updated = Signal(self) 
 
-    def __init__(self, map=tuple(), /, typing:GdDefValueTyping|Any=None):
+    def __init__(self, map=tuple(), /, typing:DefValueTyping|Any=None):
         self.__setup__()
 
         if (typing is None):
             self.typing = None
         elif isinstance(typing, str):
-            self.typing = GdDefValueTyping(typing)
-        elif not isinstance(typing, GdDefValueTyping):
-            self.typing = GdDefValueTyping(*typing)
+            self.typing = DefValueTyping(typing)
+        elif not isinstance(typing, DefValueTyping):
+            self.typing = DefValueTyping(*typing)
         else:
             self.typing = typing
 
@@ -93,7 +93,7 @@ class Dictionary(OrderedDict):
         self.removed(key, value)
         
 class Array(UserList):
-    typing : GdDefValueTyping
+    typing : DefValueTyping
 
     added : Signal[str,Any]
     removed : Signal[str,Any]
@@ -104,13 +104,13 @@ class Array(UserList):
         self.removed = Signal(self) 
         self.updated = Signal(self) 
 
-    def __init__(self, *values, typing:tuple[GdDefValue|Any]=None):
+    def __init__(self, *values, typing:tuple[DefValue|Any]=None):
         self.__setup__()
 
         if (typing is None):
             self.typing = None
         elif isinstance(typing, str):
-            self.typing = GdDefValueTyping(typing)
+            self.typing = DefValueTyping(typing)
         else:
             self.typing = typing
 
@@ -298,10 +298,96 @@ class PackedColorArray(_PackedListComplex):
     _type = Color
 
 
-
 class PackedByteArray(bytearray): 
     def __init__(self, string, /, encoding="utf-8", errors = "strict"):
         super().__init__(string, encoding, errors)
 
     def __hash__(self):
         return id(self)
+
+class Projection():...
+
+
+type_map = {
+    PrimitiveType.NIL : None, 
+    PrimitiveType.BOOL : bool, 
+    PrimitiveType.INT : int, 
+    PrimitiveType.FLOAT : float, 
+    PrimitiveType.STRING : str, 
+    PrimitiveType.VECTOR2 : Vector2, 
+    PrimitiveType.VECTOR2I : Vector2i, 
+    PrimitiveType.RECT2 : Rect2, 
+    PrimitiveType.RECT2I : Rect2i, 
+    PrimitiveType.VECTOR3 : Vector3, 
+    PrimitiveType.VECTOR3I : Vector3i, 
+    PrimitiveType.TRANSFORM2D : Transform2D, 
+    PrimitiveType.VECTOR4 : Vector4, 
+    PrimitiveType.VECTOR4I : Vector4i, 
+    PrimitiveType.PLANE : Plane, 
+    PrimitiveType.QUATERNION : Quaternion, 
+    PrimitiveType.AABB : AABB, 
+    PrimitiveType.BASIS : Basis, 
+    PrimitiveType.TRANSFORM3D : Transform3D, 
+    PrimitiveType.PROJECTION : Projection, 
+    PrimitiveType.COLOR : Color, 
+    PrimitiveType.STRINGNAME : StringName, 
+    PrimitiveType.NODEPATH : NodePath, 
+    PrimitiveType.RID : str, 
+    PrimitiveType.OBJECT : Object, 
+    PrimitiveType.CALLABLE : callable, 
+    PrimitiveType.SIGNAL : Signal,
+    PrimitiveType.DICTIONARY : Dictionary, 
+    PrimitiveType.ARRAY : Array, 
+    PrimitiveType.PACKEDBYTEARRAY : PackedByteArray, 
+    PrimitiveType.PACKEDINT32ARRAY : PackedInt32Array, 
+    PrimitiveType.PACKEDINT64ARRAY : PackedInt64Array, 
+    PrimitiveType.PACKEDFLOAT32ARRAY : PackedFloat32Array, 
+    PrimitiveType.PACKEDFLOAT64ARRAY : PackedFloat64Array, 
+    PrimitiveType.PACKEDSTRINGARRAY : PackedStringArray, 
+    PrimitiveType.PACKEDVECTOR2ARRAY : PackedVector2Array, 
+    PrimitiveType.PACKEDVECTOR3ARRAY : PackedVector3Array, 
+    PrimitiveType.PACKEDCOLORARRAY : PackedColorArray, 
+    PrimitiveType.PACKEDVECTOR4ARRAY : PackedVector4Array, 
+}
+
+str_map = {
+    "NIL" : None, 
+    "BOOL" : bool, 
+    "INT" : int, 
+    "FLOAT" : float, 
+    "STRING" : str, 
+    "VECTOR2" : Vector2, 
+    "VECTOR2I" : Vector2i, 
+    "RECT2" : Rect2, 
+    "RECT2I" : Rect2i, 
+    "VECTOR3" : Vector3, 
+    "VECTOR3I" : Vector3i, 
+    "TRANSFORM2D" : Transform2D, 
+    "VECTOR4" : Vector4, 
+    "VECTOR4I" : Vector4i, 
+    "PLANE" : Plane, 
+    "QUATERNION" : Quaternion, 
+    "AABB" : AABB, 
+    "BASIS" : Basis, 
+    "TRANSFORM3D" : Transform3D, 
+    "PROJECTION" : Projection, 
+    "COLOR" : Color, 
+    "STRINGNAME" : StringName, 
+    "NODEPATH" : NodePath, 
+    "RID" : str, 
+    "OBJECT" : Object, 
+    "CALLABLE" : callable, 
+    "SIGNAL" : Signal,
+    "DICTIONARY" : Dictionary, 
+    "ARRAY" : Array, 
+    "PACKEDBYTEARRAY" : PackedByteArray, 
+    "PACKEDINT32ARRAY" : PackedInt32Array, 
+    "PACKEDINT64ARRAY" : PackedInt64Array, 
+    "PACKEDFLOAT32ARRAY" : PackedFloat32Array, 
+    "PACKEDFLOAT64ARRAY" : PackedFloat64Array, 
+    "PACKEDSTRINGARRAY" : PackedStringArray, 
+    "PACKEDVECTOR2ARRAY" : PackedVector2Array, 
+    "PACKEDVECTOR3ARRAY" : PackedVector3Array, 
+    "PACKEDCOLORARRAY" : PackedColorArray, 
+    "PACKEDVECTOR4ARRAY" : PackedVector4Array, 
+}

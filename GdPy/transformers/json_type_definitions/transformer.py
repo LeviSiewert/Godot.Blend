@@ -32,7 +32,7 @@ Relationships will be done via "on-fetch" promises.
 
 '''
 
-from ...core.defininitions import GdDefType, GdDefProperty, GdDefSignal, GdDefValue, GdDefValueTyping
+from ...core.structure import DefType, DefProperty, DefSignal, DefValue, DefValueTyping, PropertyUsage, HintMap, TypeMap
 from ...core.transformer import Session, Transformer, TransformerOptions, TransformerSet, TRANSFORM, TRANSFORM_CHILDREN, STEP
 
 from typing import Type
@@ -49,29 +49,60 @@ class _Bases():
                 return False
             return node["_type"] in self.keys
 
+class Options_FrFile(TransformerOptions):
+    def __init__(self):
+        self.get_hint = ContextVar("get_hint",default=none)
+        self.get_type = ContextVar("get_type",default=none)
+        self.get_usage = ContextVar("get_usage",default=none)
+    get_hint : ContextVar[Callable] = None
+    get_type : ContextVar[Callable] = None
+    get_usage : ContextVar[Callable] = None
+
 class _Root():
     class FrFile(_Bases.FrFile_Transformer):
         def match(self, session, node:dict):
             return all([
                 "engine" in node.keys(), 
-                "classes" in node.keys(), 
-                "type_map" in node.keys(), 
-                "hint_map" in node.keys(), 
+                "classes" in node.keys(),
             ])
+        def transform(self, session, node)->Generator[Any,Any,list[DefType]]:
+            hint_map = dict({v:HintMap[k] for k,v in node["hint_map"]})
+            def get_hint(i:int):
+                return hint_map[i]
 
-class _GdDefType():
+            type_map = dict({v:TypeMap[k] for k,v in node["type_map"]})
+            def get_type(i:int):
+                return type_map[i]
+            
+            usage_map = dict({v:PropertyUsage[k] for k,v in node["usage_map"]})
+            def get_usage(i:int):
+                return usage_map[i]
+
+            t0 = session.options["lookup"].get_hint.set(get_hint)
+            t1 = session.options["lookup"].get_type.set(get_type)
+            t2 = session.options["lookup"].get_usage.set(get_usage)
+            
+            classes = yield TRANSFORM_CHILDREN(node["classes"]) 
+
+            session.options["lookup"].reset(t0)
+            session.options["lookup"].reset(t1)
+            session.options["lookup"].reset(t2)
+
+            return classes
+
+class _DefType():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Type","T"]
 
-class _GdDefProperty():
+class _DefProperty():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Property","P"]
 
-class _GdDefSignal():
+class _DefSignal():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Signal","S"]
 
-class _GdDefValueTyping():
+class _DefValueTyping():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Value","V"]
 
@@ -85,12 +116,16 @@ class Default(Transformer):
 def make_fr_file(extras:Iterable[TransformerSet]=tuple())->_Bases.FrFile_Session:
     return _Bases.FrFile_Session(
         transformer_sets=[TransformerSet("base", [
-            _GdDefType.FrFile,
-            _GdDefProperty.FrFile,
-            _GdDefSignal.FrFile,
-            _GdDefValueTyping.FrFile,
+            _DefType.FrFile,
+            _DefProperty.FrFile,
+            _DefSignal.FrFile,
+            _DefValueTyping.FrFile,
             _Root.FrFile,
             Default,
-    ]),
+        ], 
+        options = {
+            "lookup":Options_FrFile
+        }
+    ),
             *extras,
     ])

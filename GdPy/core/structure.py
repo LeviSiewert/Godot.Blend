@@ -10,13 +10,13 @@ from __future__ import annotations
 from .collection import Collection, CollectionKey, CollectionKeyProperty
 from .context import Context as _Context
 from .signals import Signal, DISCONNECT
-from .defininitions import GdDefType
+from .enums import PropertyHint, PropertyUsage, PrimitiveType
 
 from string import ascii_letters
 from random import randint, sample
 from typing import Any, Self, Iterable, Type
 from enum import Enum
-from collections import UserDict
+from collections import UserDict, OrderedDict
 from weakref import ref as wref, ReferenceType
 
 from fsspec import AbstractFileSystem
@@ -258,8 +258,6 @@ class PromiseProperty():
     def replace(self, value, instance):
         setattr(instance, self.attr, value)
 
-from collections import OrderedDict
-
 class Properties(UserDict):
     ''' Overlayable dict, any subresource, subresource promises will be localized at fetch 
     Direct references are rendered to indirect on transformation to text w/a
@@ -461,6 +459,93 @@ class Properties(UserDict):
         return super().__eq__(other)
 
 
+## Definition types
+
+class DefValue():
+    ''' Generic value argument that allows default and names '''
+    name : str
+    type : Type|PromiseContextual
+    has_default : bool = False
+    default : Any = None
+
+    def __setup__(self,):
+        self.context=Context(Value = self)
+    def __init__(self, name : str, type : Type|PromiseContextual, has_default : bool = False, default : Any = None,):
+        self.__setup__()
+        self.name = name
+        self.type = type
+        self.has_default = has_default
+        self.default = default
+
+class DefValueTyping():
+    contents_a : Any|str|PromiseContextual = None
+    contents_b : Any|str|PromiseContextual = None
+    def __init__(self, a:Any=None, b:Any=None):
+        self.contents_a = a
+        self.contents_b = b
+    
+
+class DefProperty():
+    context : Context
+
+    _name : str
+    name = CollectionKeyProperty(str,"_name")
+
+    type : Type|ContextualPromise
+
+    default_value : None
+    hint : PropertyHint
+    hint_string : str
+    usage : PropertyUsage
+
+    def __setup__(self,):
+        self.context=Context(Property = self)
+    def __init__(self, name:str, type:Type|ContextualPromise, default_value:None, hint:PropertyHint, hint_string:str, usage:PropertyUsage):
+        self.__setup__()
+        self.name = name
+        self.type = type
+        self.default_value = default_value
+        self.hint = hint
+        self.hint_string = hint_string
+        self.usage = usage
+
+class DefSignal():
+    context : Context
+    
+    _name : str
+    name = CollectionKeyProperty(str,"_name")
+    args : list[DefValue]
+    default_args : list[DefValue] 
+    flags : int
+    id : int
+    ret : DefValue|None = None
+
+    def __setup__(self):
+        self.context=Context(Signal = self)
+    def __init__(self,name : str, flags : int, id : int, args : list[DefValue] = tuple(), default_args : list[DefValue] = tuple(), ret : DefValue = None):
+        self.__setup__()
+        self.name = name
+        self.args = tuple(args)
+        self.default_args = tuple(default_args)
+        self.flags = flags
+        self.id = id
+        self.ret = ret
+
+class DefType():
+    context : Context
+    _identifier : str = None
+    identifier = CollectionKeyProperty(str, "_identifier")
+    properties : Collection[str,DefProperty]
+    signals : Collection[str,DefSignal]
+    def __setup__(self,):
+        self.context=Context(Type = self)
+        self.properties = Collection(key_attr="_name", context=self.context )
+        self.signals = Collection(key_attr="_name", context=self.context )
+    def __init__(self, identifier, properties:Iterable[DefProperties]=tuple(), signals:Iterable[DefSignal]=tuple()):
+        self.__setup__()
+        self.identifier = identifier
+        self.properties.extend(properties)
+        self.signals.extend(signals)
 
 class Project():
     context : Context
@@ -471,7 +556,7 @@ class Project():
 
     resources : Collection[str, Resource]
     files : Collection[str, File]
-    types : Collection[str, GdDefType] #DEFER
+    types : Collection[str, DefType] #DEFER
 
     def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
         self.__setup__()
