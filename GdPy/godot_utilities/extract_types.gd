@@ -79,6 +79,7 @@ func produce_engine_type(name:String)->Dictionary:
 
 func produce_class_properties(cls, prop_data:Dictionary)->Dictionary:
 	prop_data["default_value"] = ClassDB.class_get_property_default_value(cls, prop_data["name"])
+	prop_data["_type"] = "Property"
 	return prop_data
 
 
@@ -109,22 +110,22 @@ func produce_properties(script:Script, property_def:Dictionary):
 	var res := property_def
 	res["_type"] = "Property"
 	res["default_value"] = script.get_property_default_value(property_def["name"])
+	if !(property_def["default_value"] == null):
+		property_def["default_value"]["_type"] = "Value"
 	return res
 
 
 func produce_signal(_signal_def:Dictionary)->Dictionary:
 	# args, default_args, flags, id, name, return: (class_name, hint, hint_string, name, type, usage).
 	_signal_def["_type"] = "Signal"
+	for x in _signal_def["args"]:
+		x["_type"] = "Value"
+	for x in _signal_def["default_args"]:
+		x["_type"] = "Value"
+	var ret = _signal_def.get("return", null)
+	if not (ret == null):
+		ret["_type"] = "Value"
 	return _signal_def
-
-
-func produce_value(_value_def:Dictionary)->Dictionary:
-	return {
-		"_type":"Value",
-		"default":null,
-		"typing":null, # list[ValueType] | ValueType | null
-	}
-
 
 func _load_all_scripts(iter:String = "res://")->Dictionary[String,Script]:
 	var dir = DirAccess.open(iter)
