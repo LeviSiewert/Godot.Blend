@@ -1,0 +1,131 @@
+{
+	"Meta": {
+		"build": "official",
+		"hash": "60fff00a660a2aeb03f88c07fb7baed353bcb72f",
+		"hex": 263936,
+		"major": 4,
+		"minor": 7,
+		"patch": 0,
+		"status": "dev3",
+		"string": "4.7-dev3 (official)",
+		"timestamp": 0
+	},
+	"info": [
+		{
+			"_type": "Script",
+			"abstract": false,
+			"extends_class": "Node",
+			"extends_script": "<Object#null>",
+			"global_name": "",
+			"path": "res://GdPy/godot_utilities/extract_types.gd",
+			"properties": [
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": null,
+					"hint": 0,
+					"hint_string": "res://GdPy/godot_utilities/extract_types.gd",
+					"name": "extract_types.gd",
+					"type": 0,
+					"usage": 128
+				},
+				{
+					"_type": "Property",
+					"class_name": "res://GdPy/godot_utilities/extract_types.gd.Mode",
+					"default_value": 0,
+					"hint": 2,
+					"hint_string": "Script:0,Internal:1",
+					"name": "mode",
+					"type": 2,
+					"usage": 69638
+				},
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": "res://extraction.json",
+					"hint": 13,
+					"hint_string": "",
+					"name": "path",
+					"type": 4,
+					"usage": 4102
+				},
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": null,
+					"hint": 39,
+					"hint_string": "run",
+					"name": "run",
+					"type": 25,
+					"usage": 4100
+				}
+			],
+			"signals": [],
+			"uid": "uid://d2ysfw8f0dasa"
+		},
+		{
+			"_type": "Script",
+			"abstract": false,
+			"extends_class": "Node",
+			"extends_script": "<Object#null>",
+			"global_name": "",
+			"path": "res://GdPy/tests/_resources/project/assets/script.gd",
+			"properties": [
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": null,
+					"hint": 0,
+					"hint_string": "res://GdPy/tests/_resources/project/assets/script.gd",
+					"name": "script.gd",
+					"type": 0,
+					"usage": 128
+				},
+				{
+					"_type": "Property",
+					"class_name": "Resource",
+					"default_value": null,
+					"hint": 17,
+					"hint_string": "Resource",
+					"name": "resource",
+					"type": 24,
+					"usage": 4102
+				},
+				{
+					"_type": "Property",
+					"class_name": "Node",
+					"default_value": null,
+					"hint": 34,
+					"hint_string": "Node",
+					"name": "noderef",
+					"type": 24,
+					"usage": 4102
+				}
+			],
+			"signals": [],
+			"uid": "uid://cr1tpol7u62kd"
+		},
+		{
+			"_type": "Script",
+			"abstract": false,
+			"extends_class": "Node",
+			"extends_script": "<Object#null>",
+			"global_name": "GlobalNodeName",
+			"path": "res://GdPy/tests/_resources/project/assets/script_global.gd",
+			"properties": [
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": null,
+					"hint": 0,
+					"hint_string": "res://GdPy/tests/_resources/project/assets/script_global.gd",
+					"name": "script_global.gd",
+					"type": 0,
+					"usage": 128
+				}
+			],
+			"signals": [],
+			"uid": "uid://4ixpsfd7ehyv"
+		}
+	]
+}
