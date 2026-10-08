@@ -1,16 +1,30 @@
 ''' TODO: Transform json dump of types into structure. 
 Tree is:
-[
-    {
-        "_type"      : "T"
-        "extends"    : str|None,
-        "properties" : [{"_type":"P", "name":str, value:{"_type":"V", typing={"_type":"VT"} default=...}}],
-        "signals"    : [{"_type":"S", "name":str, value:{"_type":"V", typing={"_type":"VT"} default=...}}],
-        "type"       : "INTERNAL"|"SCRIPT",
-        "uid"        : str|None,
-        "path"       : str|None,
-        "class_name" : str|None,
-    },
+
+
+"meta": {...}
+"info": [
+		{
+			"_type": "Script",
+			"abstract": false,
+			"extends_class": "Node",
+			"extends_script": "<Object#null>",
+			"global_name": "",
+			"path": "res://GdPy/godot_utilities/extract_types.gd",
+			"properties": [
+				{
+					"_type": "Property",
+					"class_name": "",
+					"default_value": null,
+					"hint": 0,
+					"hint_string": "res://GdPy/godot_utilities/extract_types.gd",
+					"name": "extract_types.gd",
+					"type": 0,
+					"usage": 128
+				}],
+			"signals": [],
+			"uid": "uid://d2ysfw8f0dasa"
+		},
 ]
 
 Don't worry about post-processing / incorperating extensions and the like. That will be done later.
