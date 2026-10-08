@@ -61,14 +61,13 @@ class Options_FrFile(TransformerOptions):
 
 from ...core.values import type_map as _type_map
 
-class _Root():
-    class FrFile(_Bases.FrFile_Transformer):
-        def match(self, session, node:dict):
-            return all([
-                "engine" in node.keys(), 
-                "classes" in node.keys(),
-            ])
-        def transform(self, session, node)->Generator[Any,Any,list[DefType]]:
+class Root_FrFile(_Bases.FrFile_Transformer):
+    def match(self, session, node:dict):
+        return all([
+            "engine" in node.keys(), 
+            "classes" in node.keys(),
+        ])
+    def transform(self, session, node)->Generator[Any,Any,list[DefType]]:
             hint_map = dict({v:PropertyHint[k] for k,v in node["hint_map"].items()})
             def get_hint(i:int):
                 return hint_map[i]
@@ -91,40 +90,84 @@ class _Root():
             session.options["lookup"].get_type.reset(t1)
             session.options["lookup"].get_usage.reset(t2)
 
-            return classes
+            return dict({c.identifier:c for c in classes})
 
-class _DefType():
-    class FrFile(_Bases.FrFile_Transformer):
-        keys = ["Type","T"]
+class DefType_FrFile(_Bases.FrFile_Transformer):
+    keys = ["Class","Script","T"]
+    def transform(self, session, node:dict):
 
-class _DefProperty():
-    class FrFile(_Bases.FrFile_Transformer):
-        keys = ["Property","P"]
+            properties = yield TRANSFORM_CHILDREN(node.get("properties"))
+            signals = yield TRANSFORM_CHILDREN(node.get("signals"))
+            
+            return DefType(
+                identifier = node["global_name"],
+                properties = properties,
+                signals = signals,
+                extends = node["extends"],
+                abstract = node["abstract"],
+            )
 
-class _DefSignal():
-    class FrFile(_Bases.FrFile_Transformer):
-        keys = ["Signal","S"]
-
-class _DefValueTyping():
-    class FrFile(_Bases.FrFile_Transformer):
-        keys = ["Value","V"]
-
-class Default(Transformer):
-    memoized=False
-    def match(self, session, node):
-        return True
+class DefProperty_FrFile(_Bases.FrFile_Transformer):
+    keys = ["Property","P"]
     def transform(self, session, node):
-        return node
+        
+        if r:=node["class_name"]:
+            type = session.options["lookup"].get_type.get()(r) 
+        else:
+            type = session.options["lookup"].get_type.get()(node["type"]) 
+
+        return DefProperty(
+            name = node["name"],
+            type = type,
+            default_value = node["default_value"],
+            hint = session.options["lookup"].get_hint.get()(node["hint"]),
+            hint_string = node["hint_string"],
+            usage = session.options["lookup"].get_usage.get()(node["usage"]),
+        )
+
+class DefSignal_FrFile(_Bases.FrFile_Transformer):
+    keys = ["Signal","S"]
+    def transform(self, session, node:dict):
+        
+        args = yield TRANSFORM_CHILDREN(node["args"])
+        default_args = yield TRANSFORM_CHILDREN(node["default_args"])
+        ret = yield TRANSFORM(node["return"])
+
+        return DefSignal(
+            name = node["name"],
+            args = args,
+            default_args = default_args,
+            flags = node["flags"],
+            id = node["id"],
+            ret = ret,
+        )
+
+class DefValue_FrFile(_Bases.FrFile_Transformer):
+    keys = ["Value","V"]
+    def transform(self, session, node:dict):
+            
+            ## TODO: Clarify use envs, as different ones have different reqs for this class 
+            # (It's a bit too generic, but matches godot)
+
+            if r:=node["class_name"]:
+                type = session.options["lookup"].get_type.get()(r) 
+            else:
+                type = session.options["lookup"].get_type.get()(node["type"]) 
+
+            return DefValue(
+                name = node["name"],
+                type = type,
+                # default = node["default_value"],
+            )
 
 def make_fr_file(extras:Iterable[TransformerSet]=tuple())->_Bases.FrFile_Session:
     return _Bases.FrFile_Session(
         transformer_sets=[TransformerSet("base", [
-            _DefType.FrFile,
-            _DefProperty.FrFile,
-            _DefSignal.FrFile,
-            _DefValueTyping.FrFile,
-            _Root.FrFile,
-            Default,
+            DefType_FrFile,
+            DefProperty_FrFile,
+            DefSignal_FrFile,
+            DefValue_FrFile,
+            Root_FrFile,
         ], 
         options = {
             "lookup":Options_FrFile
