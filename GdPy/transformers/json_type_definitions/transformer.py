@@ -52,41 +52,31 @@ class _Bases():
                 return False
             return node["_type"] in self.keys
 
-    class ToFile_Transformer(Transformer):
-        memoized=False
-        types : tuple[Type] = tuple()
-        def match(self, session, node):
-            return isinstance(node, self.types)
+class _Root():
+    class FrFile(_Bases.FrFile_Transformer):
+        def match(self, session, node:dict):
+            return all([
+                "engine" in node.keys(), 
+                "classes" in node.keys(), 
+                "type_map" in node.keys(), 
+                "hint_map" in node.keys(), 
+            ])
 
 class _GdDefType():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Type","T"]
-    class ToFile(_Bases.ToFile_Transformer):
-        types = [GdDefType]
 
 class _GdDefProperty():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Property","P"]
-    class ToFile(_Bases.ToFile_Transformer):
-        types = [GdDefProperty]
 
 class _GdDefSignal():
     class FrFile(_Bases.FrFile_Transformer):
         keys = ["Signal","S"]
-    class ToFile(_Bases.ToFile_Transformer):
-        types = [GdDefSignal]
-
-class _GdDefValue():
-    class FrFile(_Bases.FrFile_Transformer):
-        keys = ["Value","V"]
-    class ToFile(_Bases.ToFile_Transformer):
-        types = [GdDefValue]
 
 class _GdDefValueTyping():
     class FrFile(_Bases.FrFile_Transformer):
-        keys = ["ValueTyping","VT"]
-    class ToFile(_Bases.ToFile_Transformer):
-        types = [GdDefValueTyping]
+        keys = ["Value","V"]
 
 class Default(Transformer):
     memoized=False
@@ -101,22 +91,9 @@ def make_fr_file(extras:Iterable[TransformerSet]=tuple())->_Bases.FrFile_Session
             _GdDefType.FrFile,
             _GdDefProperty.FrFile,
             _GdDefSignal.FrFile,
-            _GdDefValue.FrFile,
-            _GdDefValueTyping.FrFile,  
+            _GdDefValueTyping.FrFile,
+            _Root.FrFile,
             Default,
     ]),
             *extras,
     ])
-
-def make_to_file(extras:Iterable[TransformerSet]=tuple())->_Bases.ToFile_Session:
-    return _Bases.ToFile_Session(
-        transformer_sets=[TransformerSet("base", [
-            _GdDefType.ToFile,
-            _GdDefProperty.ToFile,
-            _GdDefSignal.ToFile,
-            _GdDefValue.ToFile,
-            _GdDefValueTyping.ToFile,  
-            Default,
-    ]),
-            *extras,
-    ]) 
