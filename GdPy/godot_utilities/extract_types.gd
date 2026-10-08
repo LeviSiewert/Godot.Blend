@@ -10,13 +10,6 @@ enum Mode{
 @export_file var path : String = "res://extraction.json"
 
 func _run():
-	# var custom_classes: Array = ProjectSettings.get_global_class_list() 
-		# https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-method-get-global-class-list
-	# var engine_classes: PackedStringArray = ClassDB.get_class_list()
-	# https://docs.godotengine.org/en/stable/classes/class_script.html
-	# https://docs.godotengine.org/en/stable/classes/class_classdB.html
-
-	# /ClayOfMan/bl_gd_importer/commit/a59c458305a098516ad3b379f29d3ae655207c4b#diff-fb56387dd4378fd007cd9f1a100e40d66bed7c2e
 	if mode == Mode.SCRIPT:
 		var result := {
 			"Meta":Engine.get_version_info(),
@@ -63,7 +56,6 @@ func _run_script()->Array:
 	
 	return res
 
-	## ProjectSettings.get_global_class_list()
 
 func produce_engine_type(name:String)->Dictionary:
 
@@ -84,9 +76,11 @@ func produce_engine_type(name:String)->Dictionary:
 		"abstract":ClassDB.can_instantiate(name),
 	}
 
+
 func produce_class_properties(cls, prop_data:Dictionary)->Dictionary:
 	prop_data["default_value"] = ClassDB.class_get_property_default_value(cls, prop_data["name"])
 	return prop_data
+
 
 func produce_script_type(script_path:String, script:Script)->Dictionary:
 	var signals = []
@@ -110,16 +104,19 @@ func produce_script_type(script_path:String, script:Script)->Dictionary:
 		"properties":properties,
 	}
 
+
 func produce_properties(script:Script, property_def:Dictionary):
 	var res := property_def
 	res["_type"] = "Property"
 	res["default_value"] = script.get_property_default_value(property_def["name"])
 	return res
 
+
 func produce_signal(_signal_def:Dictionary)->Dictionary:
 	# args, default_args, flags, id, name, return: (class_name, hint, hint_string, name, type, usage).
 	_signal_def["_type"] = "Signal"
 	return _signal_def
+
 
 func produce_value(_value_def:Dictionary)->Dictionary:
 	return {
@@ -127,6 +124,7 @@ func produce_value(_value_def:Dictionary)->Dictionary:
 		"default":null,
 		"typing":null, # list[ValueType] | ValueType | null
 	}
+
 
 func _load_all_scripts(iter:String = "res://")->Dictionary[String,Script]:
 	var dir = DirAccess.open(iter)
