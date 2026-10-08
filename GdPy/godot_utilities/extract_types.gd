@@ -37,9 +37,16 @@ func _run():
 
 
 func _run_classes()->Array:
-	return []
+	# TODO: export all engine classes in order for load effeciency 
+	var engine_classes: PackedStringArray = ClassDB.get_class_list()
+	var res := []
+	for x in engine_classes:
+		res.append(produce_engine_type(x))
+	return res
 
 func _run_script()->Array:
+	# TODO: export all engine classes in order for load effeciency  
+
 	var _filter_by := ClassDB.get_inheriters_from_class("Resource")
 	_filter_by.append_array(ClassDB.get_inheriters_from_class("Node"))
 	_filter_by.append("Node")
@@ -65,17 +72,22 @@ func produce_engine_type(name:String)->Dictionary:
 		signals.append(produce_signal(x))
 	
 	var properties = []
-	# for x in ClassDB.class_get_property_list(name):
-	#     properties.append(produce_properties(script, x))
+	for x in ClassDB.class_get_property_list(name, true):
+		properties.append(produce_class_properties(name, x))
 
 	return {
 		"_type":"Class",
-		# "extends":ClassDB.class_get_base_script(name), #null|str
+		"extends":ClassDB.get_parent_class(name),
 		"global_name":name,
 		"signals":signals,
 		"properties":properties,
+		"abstract":ClassDB.can_instantiate(name),
 	}
-	
+
+func produce_class_properties(cls, prop_data:Dictionary)->Dictionary:
+	prop_data["default_value"] = ClassDB.class_get_property_default_value(cls, prop_data["name"])
+	return prop_data
+
 func produce_script_type(script_path:String, script:Script)->Dictionary:
 	var signals = []
 	var properties = []
