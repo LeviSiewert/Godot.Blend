@@ -472,21 +472,39 @@ class DefValue():
 
     def __setup__(self,):
         self.context=Context(Value = self)
+    
     def __init__(self, type: Type|PromiseContextual, has_default: bool = False, default: Any = None, name: str=""):
         self.__setup__()
         self.name = name
         self.type = type
         self.has_default = has_default
         self.default = default
+    
+    def __eq__(self, value):
+        if isinstance(value, DefValue):
+            return all([
+                value.type == self.type,
+                value.has_default == self.has_default,
+                value.default == self.default,
+            ])
+        return super().__eq__(value)
 
 class DefValueTyping():
     __slots__ = [ "contents_a", "contents_b" ] 
     contents_a : Any|str|PromiseContextual
     contents_b : Any|str|PromiseContextual
+
     def __init__(self, a:Any=None, b:Any=None):
         self.contents_a = a
         self.contents_b = b
     
+    def __eq__(self, value):
+        if isinstance(value, DefValueTyping):
+            return all([
+                value.contents_a == self.contents_a,
+                value.contents_b == self.contents_b,
+            ])
+        return super().__eq__(value)
 
 class DefProperty():
     __slots__ = ["context", "_name", "type", "default_value", "hint", "hint_string", "usage",  ]
@@ -505,6 +523,7 @@ class DefProperty():
     def __setup__(self,):
         self.context = Context(Property = self)
         self._name = CollectionKey(self)
+    
     def __init__(self, name:str, type:Type|ContextualPromise, default_value:None, hint:PropertyHint, hint_string:str, usage:PropertyUsage):
         self.__setup__()
         self.name = name
@@ -513,7 +532,18 @@ class DefProperty():
         self.hint = hint
         self.hint_string = hint_string
         self.usage = usage
-
+    
+    def __eq__(self, value):
+        if isinstance(value, DefValue):
+            return all([
+                value.type == self.type,
+                value.default_value == self.default_value,
+                value.hint == self.hint,
+                value.hint_string == self.hint_string,
+                value.usage == self.usage,
+            ])
+        return super().__eq__(value)
+        
 class DefSignal():
     __slots__ = [ "context", "_name", "args", "default_args", "flags", "id", "ret" ]
     context : Context
@@ -529,7 +559,7 @@ class DefSignal():
     def __setup__(self):
         self.context=Context(Signal = self)
         self._name = CollectionKey(self) 
-
+    
     def __init__(self,name : str, flags : int, id : int, args : list[DefValue] = tuple(), default_args : list[DefValue] = tuple(), ret : DefValue = None):
         self.__setup__()
         self.name = name
@@ -538,6 +568,19 @@ class DefSignal():
         self.flags = flags
         self.id = id
         self.ret = ret
+    
+    def __eq__(self, value):
+        if isinstance(value, DefSignal):
+            return all([
+                value.name == self.name,
+                value.args == self.args,
+                value.default_args == self.default_args,
+                value.flags == self.flags,
+                value.id == self.id,
+                value.ret == self.ret,
+            ])
+        return super().__eq__(value)
+        
 
 class DefType():
     __slots__ = ["context","_identifier","properties","signals","extends","abstract"]
@@ -548,11 +591,13 @@ class DefType():
     signals : Collection[str,DefSignal]
     extends : PromiseContextual
     abstract : bool
+
     def __setup__(self,):
         self.context=Context(Type = self)
         self.properties = Collection(key_attr="_name", context=self.context )
         self.signals = Collection(key_attr="_name", context=self.context )
         self._identifier = CollectionKey(self)
+
     def __init__(self, identifier, extends:str|None=None, properties:Iterable[DefProperties]=tuple(), signals:Iterable[DefSignal]=tuple(), abstract : bool = False):
         self.__setup__()
         self.identifier = identifier
@@ -560,6 +605,17 @@ class DefType():
             self.extends=PromiseContextual(key = extends, p_type=Promise.Type.GDTYPE, context = self.context)
         self.properties.extend(properties)
         self.signals.extend(signals)
+        self.abstract = abstract
+
+    def __eq__(self, value):
+        if isinstance(value, DefType):
+            return all([
+                value.properties == self.properties,
+                value.signals == self.signals,
+                value.extends == self.extends,
+                value.abstract == self.abstract,
+            ])
+        return super().__eq__(value)
 
 class Project():
     context : Context
