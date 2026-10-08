@@ -8,33 +8,142 @@ enum Mode{
 
 @export var mode := Mode.SCRIPT
 @export_file var path : String = "res://extraction.json"
+@export_tool_button("run") var run = _run
+
+#GENERAL NOTES:
+# https://github.com/godotengine/godot/issues/76407
+# Hint map and type map 
 
 func _run():
+	var hint_map := get_hint_map()
+	var type_map := get_type_map()
+
 	if mode == Mode.SCRIPT:
 		var result := {
-			"Meta":Engine.get_version_info(),
-			"info":_run_script(),
+			"engine":Engine.get_version_info(),
+			"hint_map":hint_map,
+			"type_map":type_map,
+			"classes":_run_script(),
 		}
 		var r = JSON.stringify(result, "\t")
 		FileAccess.open(path, FileAccess.WRITE).store_string(r)
 	else:
 		var result := {
-			"Meta"=Engine.get_version_info(),
-			"info"=_run_classes(),
+			"engine":Engine.get_version_info(),
+			"hint_map":hint_map,
+			"type_map":type_map,
+			"classes":_run_classes(),
 		}
 		var r = JSON.stringify(result, "\t")
 		FileAccess.open(path, FileAccess.WRITE).store_string(r)
 
+func get_type_map()->Dictionary:
+	var type_map := {}
+	for i in TYPE_MAX:
+		type_map[i] = type_string(i)
+	return type_map
 
-@export_tool_button("run") var run = _run
+func get_hint_map()->Dictionary:
+	## Can't get keys from builtin PropertyHint enum, 
+	## Map fr https://docs.godotengine.org/en/stable/classes/class_@globalscope.html
+	## FUTURE: Different versions of this per engine version?
+	return {
+		0 : "PROPERTY_HINT_NONE",
+		1 : "PROPERTY_HINT_RANGE",
+		2 : "PROPERTY_HINT_ENUM",
+		3 : "PROPERTY_HINT_ENUM_SUGGESTION",
+		4 : "PROPERTY_HINT_EXP_EASING",
+		5 : "PROPERTY_HINT_LINK",
+		6 : "PROPERTY_HINT_FLAGS",
+		7 : "PROPERTY_HINT_LAYERS_2D_RENDER",
+		8 : "PROPERTY_HINT_LAYERS_2D_PHYSICS",
+		9 : "PROPERTY_HINT_LAYERS_2D_NAVIGATION",
+		10 : "PROPERTY_HINT_LAYERS_3D_RENDER",
+		11 : "PROPERTY_HINT_LAYERS_3D_PHYSICS",
+		12 : "PROPERTY_HINT_LAYERS_3D_NAVIGATION",
+		37 : "PROPERTY_HINT_LAYERS_AVOIDANCE",
+		13 : "PROPERTY_HINT_FILE",
+		14 : "PROPERTY_HINT_DIR",
+		15 : "PROPERTY_HINT_GLOBAL_FILE",
+		16 : "PROPERTY_HINT_GLOBAL_DIR",
+		17 : "PROPERTY_HINT_RESOURCE_TYPE",
+		18 : "PROPERTY_HINT_MULTILINE_TEXT",
+		19 : "PROPERTY_HINT_EXPRESSION",
+		20 : "PROPERTY_HINT_PLACEHOLDER_TEXT",
+		21 : "PROPERTY_HINT_COLOR_NO_ALPHA",
+		22 : "PROPERTY_HINT_OBJECT_ID",
+		23 : "PROPERTY_HINT_TYPE_STRING",
+		24 : "PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE",
+		25 : "PROPERTY_HINT_OBJECT_TOO_BIG",
+		26 : "PROPERTY_HINT_NODE_PATH_VALID_TYPES",
+		27 : "PROPERTY_HINT_SAVE_FILE",
+		28 : "PROPERTY_HINT_GLOBAL_SAVE_FILE",
+		29 : "PROPERTY_HINT_INT_IS_OBJECTID",
+		30 : "PROPERTY_HINT_INT_IS_POINTER",
+		31 : "PROPERTY_HINT_ARRAY_TYPE",
+		38 : "PROPERTY_HINT_DICTIONARY_TYPE",
+		32 : "PROPERTY_HINT_LOCALE_ID",
+		33 : "PROPERTY_HINT_LOCALIZABLE_STRING",
+		34 : "PROPERTY_HINT_NODE_TYPE",
+		35 : "PROPERTY_HINT_HIDE_QUATERNION_EDIT",
+		36 : "PROPERTY_HINT_PASSWORD",
+		39 : "PROPERTY_HINT_TOOL_BUTTON",
+		40 : "PROPERTY_HINT_ONESHOT",
+		42 : "PROPERTY_HINT_GROUP_ENABLE",
+		43 : "PROPERTY_HINT_INPUT_NAME",
+		44 : "PROPERTY_HINT_FILE_PATH",
+		45 : "PROPERTY_HINT_MAX",
+	}
 
+func get_property_usage_map()->Dictionary:
+	return {
+		0: "PROPERTY_USAGE_NONE",#|PROPERTY_USAGE_NO_EDITOR
+		2: "PROPERTY_USAGE_STORAGE",
+		4: "PROPERTY_USAGE_EDITOR",
+		6: "PROPERTY_USAGE_DEFAULT",
+		8: "PROPERTY_USAGE_INTERNAL",
+		16: "PROPERTY_USAGE_CHECKABLE",
+		32: "PROPERTY_USAGE_CHECKED",
+		64: "PROPERTY_USAGE_GROUP",
+		128: "PROPERTY_USAGE_CATEGORY",
+		256: "PROPERTY_USAGE_SUBGROUP",
+		512: "PROPERTY_USAGE_CLASS_IS_BITFIELD",
+		1024: "PROPERTY_USAGE_NO_INSTANCE_STATE",
+		2048: "PROPERTY_USAGE_RESTART_IF_CHANGED",
+		4096: "PROPERTY_USAGE_SCRIPT_VARIABLE",
+		8192: "PROPERTY_USAGE_STORE_IF_NULL",
+		16384: "PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED",
+		32768: "PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE",
+		65536: "PROPERTY_USAGE_CLASS_IS_ENUM",
+		131072: "PROPERTY_USAGE_NIL_IS_VARIANT",
+		262144: "PROPERTY_USAGE_ARRAY",
+		524288: "PROPERTY_USAGE_ALWAYS_DUPLICATE",
+		1048576: "PROPERTY_USAGE_NEVER_DUPLICATE",
+		2097152: "PROPERTY_USAGE_HIGH_END_GFX",
+		4194304: "PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT",
+		8388608: "PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT",
+		16777216: "PROPERTY_USAGE_KEYING_INCREMENTS",
+		33554432: "PROPERTY_USAGE_DEFERRED_SET_RESOURCE",
+		67108864: "PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT",
+		134217728: "PROPERTY_USAGE_EDITOR_BASIC_SETTING",
+		268435456: "PROPERTY_USAGE_READ_ONLY",
+		536870912: "PROPERTY_USAGE_SECRET",
+	}
 
 func _run_classes()->Array:
 	# TODO: export all engine classes in order for load effeciency 
 	var engine_classes: PackedStringArray = ClassDB.get_class_list()
 	var res := []
+	var _filter_by := ClassDB.get_inheriters_from_class("Resource")
+	_filter_by.append_array(ClassDB.get_inheriters_from_class("Node"))
+	
+	res.append(produce_engine_type("Resource", false))
+	res.append(produce_engine_type("Node", false))
 	for x in engine_classes:
-		res.append(produce_engine_type(x))
+		if !(x in _filter_by): 
+			continue
+		res.append(produce_engine_type(x, true))
+	
 	return res
 
 func _run_script()->Array:
@@ -57,14 +166,14 @@ func _run_script()->Array:
 	return res
 
 
-func produce_engine_type(name:String)->Dictionary:
+func produce_engine_type(name:String, limit=true)->Dictionary:
 
 	var signals:Array[Dictionary] = []
-	for x in ClassDB.class_get_signal_list(name):
+	for x in ClassDB.class_get_signal_list(name, limit):
 		signals.append(produce_signal(x))
 	
 	var properties = []
-	for x in ClassDB.class_get_property_list(name, true):
+	for x in ClassDB.class_get_property_list(name, limit):
 		properties.append(produce_class_properties(name, x))
 
 	return {
@@ -110,8 +219,6 @@ func produce_properties(script:Script, property_def:Dictionary):
 	var res := property_def
 	res["_type"] = "Property"
 	res["default_value"] = script.get_property_default_value(property_def["name"])
-	if !(property_def["default_value"] == null):
-		property_def["default_value"]["_type"] = "Value"
 	return res
 
 
