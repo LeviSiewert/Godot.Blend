@@ -41,9 +41,6 @@ class _Bases():
     class FrFile_Session(Session):
         pass
 
-    class ToFile_Session(Session):
-        pass
-
     class FrFile_Transformer(Transformer):
         memoized=False
         keys : tuple[str] = tuple()
