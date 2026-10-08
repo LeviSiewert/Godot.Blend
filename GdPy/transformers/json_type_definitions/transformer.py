@@ -32,10 +32,11 @@ Relationships will be done via "on-fetch" promises.
 
 '''
 
-from ...core.structure import DefType, DefProperty, DefSignal, DefValue, DefValueTyping, PropertyUsage, HintMap, TypeMap
+from ...core.structure import DefType, DefProperty, DefSignal, DefValue, DefValueTyping, PropertyUsage, PropertyHint, PrimitiveType
 from ...core.transformer import Session, Transformer, TransformerOptions, TransformerSet, TRANSFORM, TRANSFORM_CHILDREN, STEP
 
-from typing import Type
+from contextvars import ContextVar
+from typing import Type, Generator, Any, Iterable
 
 class _Bases():
     class FrFile_Session(Session):
@@ -47,16 +48,18 @@ class _Bases():
         def match(self, session, node):
             if not isinstance(node, dict):
                 return False
-            return node["_type"] in self.keys
+            return node.get("_type", None) in self.keys
 
 class Options_FrFile(TransformerOptions):
-    def __init__(self):
-        self.get_hint = ContextVar("get_hint",default=none)
-        self.get_type = ContextVar("get_type",default=none)
-        self.get_usage = ContextVar("get_usage",default=none)
-    get_hint : ContextVar[Callable] = None
-    get_type : ContextVar[Callable] = None
-    get_usage : ContextVar[Callable] = None
+    def __init__(self, session):
+        self.get_hint = ContextVar("get_hint",default=None)
+        self.get_type = ContextVar("get_type",default=None)
+        self.get_usage = ContextVar("get_usage",default=None)
+    get_hint : ContextVar[callable] = None
+    get_type : ContextVar[callable] = None
+    get_usage : ContextVar[callable] = None
+
+from ...core.values import type_map as _type_map
 
 class _Root():
     class FrFile(_Bases.FrFile_Transformer):
@@ -66,15 +69,15 @@ class _Root():
                 "classes" in node.keys(),
             ])
         def transform(self, session, node)->Generator[Any,Any,list[DefType]]:
-            hint_map = dict({v:HintMap[k] for k,v in node["hint_map"]})
+            hint_map = dict({v:PropertyHint[k] for k,v in node["hint_map"].items()})
             def get_hint(i:int):
                 return hint_map[i]
 
-            type_map = dict({v:TypeMap[k] for k,v in node["type_map"]})
+            type_map = dict({v:_type_map[PrimitiveType[k.upper()]] for k,v in node["type_map"].items()})
             def get_type(i:int):
                 return type_map[i]
             
-            usage_map = dict({v:PropertyUsage[k] for k,v in node["usage_map"]})
+            usage_map = dict({v:PropertyUsage[k] for k,v in node["usage_map"].items()})
             def get_usage(i:int):
                 return usage_map[i]
 
@@ -84,9 +87,9 @@ class _Root():
             
             classes = yield TRANSFORM_CHILDREN(node["classes"]) 
 
-            session.options["lookup"].reset(t0)
-            session.options["lookup"].reset(t1)
-            session.options["lookup"].reset(t2)
+            session.options["lookup"].get_hint.reset(t0)
+            session.options["lookup"].get_type.reset(t1)
+            session.options["lookup"].get_usage.reset(t2)
 
             return classes
 

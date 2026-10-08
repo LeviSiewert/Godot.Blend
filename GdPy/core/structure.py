@@ -463,14 +463,16 @@ class Properties(UserDict):
 
 class DefValue():
     ''' Generic value argument that allows default and names '''
+    __slots__ = ["context", "name", "type", "has_default", "default" ]
+    context : Context
     name : str
     type : Type|PromiseContextual
-    has_default : bool = False
-    default : Any = None
+    has_default : bool
+    default : Any
 
     def __setup__(self,):
         self.context=Context(Value = self)
-    def __init__(self, name : str, type : Type|PromiseContextual, has_default : bool = False, default : Any = None,):
+    def __init__(self, type: Type|PromiseContextual, has_default: bool = False, default: Any = None, name: str=""):
         self.__setup__()
         self.name = name
         self.type = type
@@ -478,17 +480,19 @@ class DefValue():
         self.default = default
 
 class DefValueTyping():
-    contents_a : Any|str|PromiseContextual = None
-    contents_b : Any|str|PromiseContextual = None
+    __slots__ = [ "contents_a", "contents_b" ] 
+    contents_a : Any|str|PromiseContextual
+    contents_b : Any|str|PromiseContextual
     def __init__(self, a:Any=None, b:Any=None):
         self.contents_a = a
         self.contents_b = b
     
 
 class DefProperty():
+    __slots__ = ["context", "_name", "type", "default_value", "hint", "hint_string", "usage",  ]
     context : Context
 
-    _name : str
+    _name : CollectionKey[str]
     name = CollectionKeyProperty(str,"_name")
 
     type : Type|ContextualPromise
@@ -499,7 +503,8 @@ class DefProperty():
     usage : PropertyUsage
 
     def __setup__(self,):
-        self.context=Context(Property = self)
+        self.context = Context(Property = self)
+        self._name = CollectionKey(self)
     def __init__(self, name:str, type:Type|ContextualPromise, default_value:None, hint:PropertyHint, hint_string:str, usage:PropertyUsage):
         self.__setup__()
         self.name = name
@@ -510,18 +515,21 @@ class DefProperty():
         self.usage = usage
 
 class DefSignal():
+    __slots__ = [ "context", "_name", "args", "default_args", "flags", "id", "ret" ]
     context : Context
     
-    _name : str
+    _name : CollectionKey
     name = CollectionKeyProperty(str,"_name")
     args : list[DefValue]
     default_args : list[DefValue] 
     flags : int
     id : int
-    ret : DefValue|None = None
+    ret : DefValue|None
 
     def __setup__(self):
         self.context=Context(Signal = self)
+        self._name = CollectionKey(self) 
+
     def __init__(self,name : str, flags : int, id : int, args : list[DefValue] = tuple(), default_args : list[DefValue] = tuple(), ret : DefValue = None):
         self.__setup__()
         self.name = name
@@ -532,18 +540,24 @@ class DefSignal():
         self.ret = ret
 
 class DefType():
+    __slots__ = ["context","_identifier","properties","signals","extends","abstract"]
     context : Context
-    _identifier : str = None
+    _identifier : CollectionKey
     identifier = CollectionKeyProperty(str, "_identifier")
     properties : Collection[str,DefProperty]
     signals : Collection[str,DefSignal]
+    extends : PromiseContextual
+    abstract : bool
     def __setup__(self,):
         self.context=Context(Type = self)
         self.properties = Collection(key_attr="_name", context=self.context )
         self.signals = Collection(key_attr="_name", context=self.context )
-    def __init__(self, identifier, properties:Iterable[DefProperties]=tuple(), signals:Iterable[DefSignal]=tuple()):
+        self._identifier = CollectionKey(self)
+    def __init__(self, identifier, extends:str|None=None, properties:Iterable[DefProperties]=tuple(), signals:Iterable[DefSignal]=tuple(), abstract : bool = False):
         self.__setup__()
         self.identifier = identifier
+        if extends:
+            self.extends=PromiseContextual(key = extends, p_type=Promise.Type.GDTYPE, context = self.context)
         self.properties.extend(properties)
         self.signals.extend(signals)
 
@@ -569,7 +583,7 @@ class Project():
         self.context = Context(project=self)
         self.resources = Collection(key_attr="_name", context = self.context)
         self.files = Collection(key_attr="_path", context = self.context)
-        self.types = Collection(key_attr="_name", context = self.context)
+        self.types = Collection(key_attr="_identifier", context = self.context)
 
     def reference_callback(self, obj):
         self.users.append(obj)
