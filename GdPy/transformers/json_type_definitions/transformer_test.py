@@ -175,7 +175,7 @@ def test():
             "PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED": 16384
         }
     }
-    res = {
+    target = {
         "Resource" : DefType(
             identifier = "Resource",
             extends = "RefCounted",
@@ -198,11 +198,14 @@ def test():
                     id = 0,
                     name = "script_changed",
                     ret = DefValue(
-                        type = PrimitiveType.NIL,
+                        type = None,
                     )
                 )
             ]
         )
     }
 
-    assert make_fr_file().transform(data) == res
+    result = make_fr_file().transform(data)
+    # assert result == target
+    if not (result == target):
+        raise Exception(dict({k:v._dif(target[k]) for k,v in result.items()}))

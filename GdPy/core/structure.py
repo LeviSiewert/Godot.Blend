@@ -489,6 +489,16 @@ class DefValue():
             ])
         return super().__eq__(value)
 
+    def _dif(self, value:DefType):
+        keys = ["name", "type", "has_default", "default"]
+        return {k:(getattr(value,k),getattr(self,k)) for k in keys if (getattr(value,k) != getattr(self,k))}
+
+    def __repr__(self):
+        keys = ["name", "type", "has_default", "default"]
+        gen = dict({k:(getattr(self,k)) for k in keys})
+        return f"{self.__class__.__name__}({gen})"
+        
+
 class DefValueTyping():
     __slots__ = [ "contents_a", "contents_b" ] 
     contents_a : Any|str|PromiseContextual
@@ -534,16 +544,25 @@ class DefProperty():
         self.usage = usage
     
     def __eq__(self, value):
-        if isinstance(value, DefValue):
+        if isinstance(value, DefProperty):
             return all([
-                value.type == self.type,
+                value.type is self.type,
                 value.default_value == self.default_value,
-                value.hint == self.hint,
+                value.hint is self.hint,
                 value.hint_string == self.hint_string,
-                value.usage == self.usage,
+                value.usage is self.usage,
             ])
         return super().__eq__(value)
-        
+
+    def _dif(self, value:DefType):
+        keys = ["type","default_value","hint","hint_string","usage"]
+        return {k:(getattr(value,k),getattr(self,k)) for k in keys if (getattr(value,k) != getattr(self,k))}
+
+    def __repr__(self):
+        keys = ["type","default_value","hint","hint_string","usage"]
+        gen = dict({k:(getattr(self,k)) for k in keys})
+        return f"{self.__class__.__name__}({gen})"
+
 class DefSignal():
     __slots__ = [ "context", "_name", "args", "default_args", "flags", "id", "ret" ]
     context : Context
@@ -580,7 +599,15 @@ class DefSignal():
                 value.ret == self.ret,
             ])
         return super().__eq__(value)
-        
+
+    def _dif(self, value:DefType):
+        keys = ["name", "args", "default_args", "flags", "id", "ret"]
+        return {k:(getattr(value,k),getattr(self,k)) for k in keys if (getattr(value,k) != getattr(self,k))}
+
+    def __repr__(self):
+        keys = ["name", "args", "default_args", "flags", "id", "ret"]
+        gen = dict({k:(getattr(self,k)) for k in keys})
+        return f"{self.__class__.__name__}({gen})"
 
 class DefType():
     __slots__ = ["context","_identifier","properties","signals","extends","abstract"]
@@ -601,7 +628,7 @@ class DefType():
     def __init__(self, identifier, extends:str|None=None, properties:Iterable[DefProperties]=tuple(), signals:Iterable[DefSignal]=tuple(), abstract : bool = False):
         self.__setup__()
         self.identifier = identifier
-        if extends:
+        if not (extends is None):
             self.extends=PromiseContextual(key = extends, p_type=Promise.Type.GDTYPE, context = self.context)
         self.properties.extend(properties)
         self.signals.extend(signals)
@@ -616,6 +643,15 @@ class DefType():
                 value.abstract == self.abstract,
             ])
         return super().__eq__(value)
+
+    def _dif(self, value:DefType):
+        keys = {"properties","signals","extends","abstract"}
+        return {k:(getattr(value,k),getattr(self,k)) for k in keys if (getattr(value,k) != getattr(self,k))}
+    
+    def __repr__(self):
+        keys = {"properties","signals","extends","abstract"}
+        gen = dict({k:(getattr(self,k)) for k in keys})
+        return f"{self.__class__.__name__}({gen})"
 
 class Project():
     context : Context
