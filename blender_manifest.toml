@@ -4,7 +4,7 @@ schema_version = "1.0.0"
 # Change the values according to your extension
 id = "bl_gd_importer"
 version = "1.0.0"
-name = "Bl_gd_importer"
+name = "Godot Importer-Exporter"
 tagline = "This is another extension"
 maintainer = "Levi Siewert"
 # Supported types: "add-on", "theme"
