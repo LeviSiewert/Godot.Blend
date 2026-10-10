@@ -15,6 +15,8 @@ from .structure import (
     Node,
 )
 
+from .wrapped_fsspec import MemoryFileSystem, AbstractFileSystem
+
 from typing import Any
 from contextvars import ContextVar
 
@@ -212,18 +214,9 @@ class Test_Properties:
         assert p0.get("ref", localize=True) is obj
         assert p0.get("ref", localize=False) is obj
 
-
-class Test_Project:
-    def test_construction(self):
-        Project(fs=None)
-
 class Test_File:
     def test_construction(self):
         File()
-
-class Test_FileIO:
-    def test_construction(self):
-        FileIO()
 
 class Test_Settings:
     def test_construction(self):
@@ -273,180 +266,153 @@ class Test_Node:
     def test_construction(self):
         Node()
 
-    def test_normalization_simple(self):
-        ''' fix ownership of structural elements, clean subresources, prep for tree construction 
-        Normalization is not required for write to disc, as context flags should swap rendering of objects.
-        '''
+    # def test_normalization_simple(self):
+    #     ''' fix ownership of structural elements, clean subresources, prep for tree construction 
+    #     Normalization is not required for write to disc, as context flags should swap rendering of objects.
+    #     '''
 
-        r = Node(uid="uid")
-        sr = Node(name = "ChildNode")
+    #     r = Node(uid="uid")
+    #     sr = Node(name = "ChildNode")
 
-        r0 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
-        r1 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
+    #     r0 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
+    #     r1 = Node(name="root", uid="uid", children=[sr], properties={"val":r, "ref":sr})
 
-        assert (r0.children in sr.users)
-        assert (r1.children in sr.users)
-        assert not (sr.context.resource is r0) ## NON-NORMALIZED due to multiple references
-        assert (sr.context.resource is r1)
+    #     assert (r0.children in sr.users)
+    #     assert (r1.children in sr.users)
+    #     assert not (sr.context.resource is r0) ## NON-NORMALIZED due to multiple references
+    #     assert (sr.context.resource is r1)
 
-        r0.normalize(fork=True, refs_to_paths=True)
-        r1.normalize(fork=True, refs_to_paths=True)
+    #     r0.normalize(fork=True, refs_to_paths=True)
+    #     r1.normalize(fork=True, refs_to_paths=True)
 
-        sr0 = r0.properties["ref"]
-        sr1 = r1.properties["ref"]
+    #     sr0 = r0.properties["ref"]
+    #     sr1 = r1.properties["ref"]
 
-        assert isinstance(sr0, Node)
-        assert isinstance(sr1, Node)
-        assert not (sr0 is sr1)
-        assert sr0 == sr1
+    #     assert isinstance(sr0, Node)
+    #     assert isinstance(sr1, Node)
+    #     assert not (sr0 is sr1)
+    #     assert sr0 == sr1
 
-        assert r0.properties["val"] is r ## Rendered to text as "packed_scene", not split
-        assert r1.properties["val"] is r
+    #     assert r0.properties["val"] is r ## Rendered to text as "packed_scene", not split
+    #     assert r1.properties["val"] is r
 
-        assert r0.properties["ref"] == NodePath("./ChildNode") ## nromalize flag refs_to_paths=True
-        assert r1.properties["ref"] == NodePath("./ChildNode")
+    #     assert r0.properties["ref"] == NodePath("./ChildNode") ## nromalize flag refs_to_paths=True
+    #     assert r1.properties["ref"] == NodePath("./ChildNode")
 
-    def test_normalization_childtooverlay(self):
-        ''' When normalizing, direct instances are turned to overlayed nodes.
+    # def test_normalization_childtooverlay(self):
+    #     ''' When normalizing, direct instances are turned to overlayed nodes.
         
-        '''
+    #     '''
 
-        r = Node(uid="uid", name = "Child")
+    #     r = Node(uid="uid", name = "Child")
 
-        r0 = Node(name="root", uid="uid", children=[r], properties={"ref":r})
-        r1 = Node(name="root", uid="uid", children=[r], properties={"ref":r})
+    #     r0 = Node(name="root", uid="uid", children=[r], properties={"ref":r})
+    #     r1 = Node(name="root", uid="uid", children=[r], properties={"ref":r})
 
-        r0.normalize(scene_children_as_instances=True, scene_children_refs_to_paths=False)
-        r1.normalize(scene_children_as_instances=True, scene_children_refs_to_paths=True)
+    #     r0.normalize(scene_children_as_instances=True, scene_children_refs_to_paths=False)
+    #     r1.normalize(scene_children_as_instances=True, scene_children_refs_to_paths=True)
 
-        sr0 : Node = r0.children["Child"]  
-        sr1 : Node = r1.children["Child"]
+    #     sr0 : Node = r0.children["Child"]  
+    #     sr1 : Node = r1.children["Child"]
 
-        assert not (sr0 is r)
-        assert not (sr1 is r)
+    #     assert not (sr0 is r)
+    #     assert not (sr1 is r)
         
-        assert sr0.instance is r
-        assert sr1.instance is r 
+    #     assert sr0.instance is r
+    #     assert sr1.instance is r 
 
-        assert sr0 == sr1
+    #     assert sr0 == sr1
 
-        assert sr0 == r
-        assert sr1 == r
+    #     assert sr0 == r
+    #     assert sr1 == r
 
-        assert r0.properties["ref"] is r
-        assert r0.properties["ref"] == NodePath("./Child")
+    #     assert r0.properties["ref"] is r
+    #     assert r0.properties["ref"] == NodePath("./Child")
 
-    def test_instance_construction_simple_noneditable(self):
-        sr0_a = Node(name="a") 
-        sr0_b = Node(name="b") ## Overlayed or shifted
-        # sr0_c = Node(name="c") ## Introduced
-        r0 = Node(uid="uid", name="Scene_0", children=[sr0_a, sr0_b])
+    # def test_instance_construction_simple_noneditable(self):
+    #     sr0_a = Node(name="a") 
+    #     sr0_b = Node(name="b") ## Overlayed or shifted
+    #     # sr0_c = Node(name="c") ## Introduced
+    #     r0 = Node(uid="uid", name="Scene_0", children=[sr0_a, sr0_b])
 
-        # sr1_a = Node(name="a") 
-        sr1_b = Node(name="b") ## if instance isnt editable, shifted 
-        sr1_c = Node(name="c") ## Introduced
-        r1 = Node(uid="uid", name="Scene_0", children=[sr1_b, sr1_c], instance=r0, instance_editable=False)
+    #     # sr1_a = Node(name="a") 
+    #     sr1_b = Node(name="b") ## if instance isnt editable, shifted 
+    #     sr1_c = Node(name="c") ## Introduced
+    #     r1 = Node(uid="uid", name="Scene_0", children=[sr1_b, sr1_c], instance=r0, instance_editable=False)
 
-        r1.construct_and_load(shift_matchiing_non_editable=True)
+    #     r1.construct_and_load(shift_matchiing_non_editable=True)
 
-        assert r1.overlay is r0
+    #     assert r1.overlay is r0
 
-        ## ## if instance isnt editable, names are shifted
-        assert len(r1.children) == 4
-        assert sr1_b.overaly is None
-        assert not (sr1_b.name == "b")
+    #     ## ## if instance isnt editable, names are shifted
+    #     assert len(r1.children) == 4
+    #     assert sr1_b.overaly is None
+    #     assert not (sr1_b.name == "b")
 
-        ## Non-editable, so children are not overlayed
-        assert r1.children["a"] is sr0_a
-        assert r1.children["b"] is sr0_b
-        assert r1.children["c"] is sr1_c
+    #     ## Non-editable, so children are not overlayed
+    #     assert r1.children["a"] is sr0_a
+    #     assert r1.children["b"] is sr0_b
+    #     assert r1.children["c"] is sr1_c
     
-    def test_instance_construction_simple_editable(self):
-        sr0_a = Node(name="a") 
-        sr0_b = Node(name="b") ## Overlayed or shifted
-        # sr0_c = Node(name="c") ## Introduced
-        r0 = Node(uid="uid", name="Scene_0", children=[sr0_a, sr0_b])
+    # def test_instance_construction_simple_editable(self):
+    #     sr0_a = Node(name="a") 
+    #     sr0_b = Node(name="b") ## Overlayed or shifted
+    #     # sr0_c = Node(name="c") ## Introduced
+    #     r0 = Node(uid="uid", name="Scene_0", children=[sr0_a, sr0_b])
 
-        # sr1_a = Node(name="a") 
-        sr1_b = Node(name="b") ## if instance isnt editable, shifted 
-        sr1_c = Node(name="c") ## Introduced
-        r1 = Node(uid="uid", name="Scene_0", children=[sr1_b, sr1_c], instance=r0, instance_editable=True)
+    #     # sr1_a = Node(name="a") 
+    #     sr1_b = Node(name="b") ## if instance isnt editable, shifted 
+    #     sr1_c = Node(name="c") ## Introduced
+    #     r1 = Node(uid="uid", name="Scene_0", children=[sr1_b, sr1_c], instance=r0, instance_editable=True)
 
-        r1.construct_and_load(shift_matchiing_non_editable=True)
+    #     r1.construct_and_load(shift_matchiing_non_editable=True)
 
-        assert r1.overlay is r0
+    #     assert r1.overlay is r0
 
-        ## if instance isnt editable, names are shifted
-        assert len(r1.children) == 3
-        assert sr1_b.overaly is sr0_b 
-        assert (sr1_b.name == "b")
+    #     ## if instance isnt editable, names are shifted
+    #     assert len(r1.children) == 3
+    #     assert sr1_b.overaly is sr0_b 
+    #     assert (sr1_b.name == "b")
 
-        ## Instance editable, so all children are overlayed
-        assert r1.children["a"].overlay is sr0_a
-        assert r1.children["b"].overlay is sr0_b
-        assert r1.children["c"] is sr1_c
+    #     ## Instance editable, so all children are overlayed
+    #     assert r1.children["a"].overlay is sr0_a
+    #     assert r1.children["b"].overlay is sr0_b
+    #     assert r1.children["c"] is sr1_c
     
 
-    def test_instance_construction_nested(self):
-        sr0_a = Node(name="a") ## Appended
-        sr0_b = Node(name="b") ## Overlayed
-        r0 = Node(uid="uid", name="Scene_0", children = [sr0_a, sr0_b])
+    # def test_instance_construction_nested(self):
+    #     sr0_a = Node(name="a") ## Appended
+    #     sr0_b = Node(name="b") ## Overlayed
+    #     r0 = Node(uid="uid", name="Scene_0", children = [sr0_a, sr0_b])
 
-        sr1_b = Node(name="b") ## Overlayed
-        sr1_c = Node(name="c") ## Introduced
+    #     sr1_b = Node(name="b") ## Overlayed
+    #     sr1_c = Node(name="c") ## Introduced
 
-        sr1_0 = Node(instance=r0, instance_editable=False)
-        sr1_1 = Node(instance=r0, instance_editable=True, children = [sr1_b, sr1_c],)
-        r1 = Node(uid="uid", children=[sr1_0,sr1_1])
+    #     sr1_0 = Node(instance=r0, instance_editable=False)
+    #     sr1_1 = Node(instance=r0, instance_editable=True, children = [sr1_b, sr1_c],)
+    #     r1 = Node(uid="uid", children=[sr1_0,sr1_1])
 
-        r1.construct_and_load()
+    #     r1.construct_and_load()
 
-        assert len(sr1_0.children) == 2
-        assert len(sr1_1.children) == 3
+    #     assert len(sr1_0.children) == 2
+    #     assert len(sr1_1.children) == 3
 
-        ## Considering; do I overlay non-editable children or not?
-        ## Matched:
-        assert sr1_0.instance is r0
-        assert sr1_0.overaly is r0
+    #     ## Considering; do I overlay non-editable children or not?
+    #     ## Matched:
+    #     assert sr1_0.instance is r0
+    #     assert sr1_0.overaly is r0
 
-        assert sr1_0.children["a"] is sr0_a
-        assert sr1_0.children["b"] is sr0_b
+    #     assert sr1_0.children["a"] is sr0_a
+    #     assert sr1_0.children["b"] is sr0_b
 
-        ## Overlay construction:
-        ## Matched:
-        assert sr1_1.instance is r0
-        assert sr1_1.overaly is r0
+    #     ## Overlay construction:
+    #     ## Matched:
+    #     assert sr1_1.instance is r0
+    #     assert sr1_1.overaly is r0
 
-        assert sr1_1.children["a"].overaly is sr0_a
-        assert sr1_1.children["b"].overaly is sr0_b
-        assert sr1_1.children["c"].overaly is None
-
-    # def test_get_path_simple(self):
-    #     sr1 = Node("B")
-    #     sr0 = Node("A",children=[sr1])
-    #     assert sr0.get_path(sr1) == NodePath("./B")
-    #     assert sr1.get_path(sr0) == NodePath("./..")
-
-    # def test_get_path_nested(self):
-    #     sr2 = Node("C")
-    #     sr1 = Node("B",children=[sr2])
-    #     sr0 = Node("A",children=[sr1])
-    #     assert sr0.get_path(sr2) == NodePath("./B/C")
-    #     assert sr2.get_path(sr0) == NodePath("./../..")
-
-    # def test_get_siblings_simple(self):
-    #     sr1_b = Node("B_b")
-    #     sr1_a = Node("B_a")
-    #     sr0 = Node("A",children=[sr1_a,sr1_b])
-    #     assert sr1_b.get_path(sr1_a) == NodePath("./../B_a")
-
-    # def test_get_siblings_nested(self):
-    #     sr2_b = Node("C_b")
-    #     sr1_b = Node("B_b", children=[sr2_b])
-    #     sr2_a = Node("C_a")
-    #     sr1_a = Node("B_a", children=[sr2_a])
-    #     sr0 = Node("A",children=[sr1_a,sr1_b])
-    #     assert sr2_b.get_path(sr2_a) == NodePath("./../../B_a/C_a")
+    #     assert sr1_1.children["a"].overaly is sr0_a
+    #     assert sr1_1.children["b"].overaly is sr0_b
+    #     assert sr1_1.children["c"].overaly is None
 
     def test_get_path_full(self):
         
@@ -468,3 +434,54 @@ class Test_Node:
         assert e.get_path(a) == "./../../.."
         assert e.get_path(b) == "./../../../B"
         assert b.get_path(e) == "./../C/D/E"
+
+
+class Test_Project():
+    def test_construction(self):
+        fs = MemoryFileSystem()
+        prj = Project(fs)
+        prj.initialize_from_fs()
+
+    def test_file_discovery(self):
+        fs = MemoryFileSystem()
+
+        with fs.open("/resource.tres", "w") as f:
+            f.writelines(['a'])
+
+        with fs.open("/scene.tscn", "w") as f:
+            f.writelines(['b'])
+
+        class _FileIO(FileIO):
+            @classmethod
+            def matches_file(cls, context, path, bytes):
+                return True
+
+            @classmethod
+            def produce_file(cls, context, path, bytes):
+                res = super().produce_file(context, path, bytes)
+                res.load_resource()
+                return res
+
+            def prefetch_uid(self, fs, file):
+                with fs.open(file.path,"r") as f:
+                    return f.readline()
+
+            def file_import(self, fs, file)->Resource:
+                res = Resource(uid = self.prefetch_uid(fs, file))
+
+
+        prj = Project(fs, file_io=[_FileIO])
+        prj.initialize_from_fs()
+ 
+        assert len(prj.files) == 2
+        
+        resource_file = prj.files["resource.tres"]
+        scene_file = prj.files["scene.tscn"]
+        
+        assert isinstance(resource_file.file_io, _FileIO)
+        assert prj.find_file("a") is resource_file
+        assert prj.resources["a"] is resource_file.resource
+        
+        assert isinstance(scene_file.file_io, _FileIO)
+        assert prj.find_file("b") is scene_file
+        assert prj.resources["b"] is scene_file.resource

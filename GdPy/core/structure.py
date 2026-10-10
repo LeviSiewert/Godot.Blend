@@ -660,7 +660,7 @@ class Project():
     context : Context
 
     fs : AbstractFileSystem
-    fs_io : FsSignals
+    fs_signals : FsSignals
 
     users: Users
 
@@ -678,7 +678,7 @@ class Project():
         self.types = Collection(key_attr="_identifier", context = self.context)
         self.file_io = []
         
-    def __init__(self, fs:AbstractFileSystem, fs_io:FileIO=None,  files:Iterable[File]=tuple(), resources:Iterable[Resource]=tuple(), types:Iterable[DefType]=tuple(), file_io:Iterable[FileIO]=tuple()):
+    def __init__(self, fs:AbstractFileSystem, fs_signals:FsSignals=None,  files:Iterable[File]=tuple(), resources:Iterable[Resource]=tuple(), types:Iterable[DefType]=tuple(), file_io:Iterable[FileIO]=tuple()):
         self.__setup__()
 
         self.files.extend(files)
@@ -693,13 +693,13 @@ class Project():
             fs.updated.connect(self._on_fs_updated)
             fs.deleted.connect(self._on_fs_deleted)
             fs.moved.connect(self._on_fs_moved)
-        self.fs_io = fs_io
-        if fs_io:
-            fs_io.created.connect(self._on_fs_created)
-            fs_io.removed.connect(self._on_fs_removed)
-            fs_io.updated.connect(self._on_fs_updated)
-            fs_io.deleted.connect(self._on_fs_deleted)
-            fs_io.moved.connect(self._on_fs_moved)
+        self.fs_signals = fs_signals
+        if fs_signals:
+            fs_signals.created.connect(self._on_fs_created)
+            fs_signals.removed.connect(self._on_fs_removed)
+            fs_signals.updated.connect(self._on_fs_updated)
+            fs_signals.deleted.connect(self._on_fs_deleted)
+            fs_signals.moved.connect(self._on_fs_moved)
 
 
     def reference_callback(self, obj):
@@ -739,6 +739,8 @@ class File():
 
     users: Users
 
+    sha : int ## Use to check for difs
+
     _path : CollectionKey[str]
     path = CollectionKeyProperty(str, "_path")
     path_set : Signal[str|None]
@@ -747,10 +749,12 @@ class File():
     resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
 
-    def __init__(self, filetype:str|FileIO|None=None , resource:Resource|None=None):
+    def __init__(self, filetype:str|FileIO|None=None, path:str=None, resource:Resource|None=None, sha:int=None):
         self.__setup__()
+        self.path = path
         self.filetype = filetype
         self.resource = resource
+        self.sha = sha
 
     def __setup__(self):
         self.context = Context(file=self)
@@ -843,22 +847,36 @@ class Category:
         return f"Category({self.name}, {self.properties})"
         pass
     
-class FileIO[ResourceType:Resource](Settings):
-    ## TODO Matched globally via file type, somehow.
+class FileIO[T:Resource]():
+    ''' Abstract class. FileIO implentations match files and make them "exist" within the project.
+    If the FileIo object matches a file, it will be called to produce a file, usually with an instance of itself as the FileIo object.
+    Load is *typically* defered until a seperate call. 
     
-    def create_resource()->ResourceType:
-        ''' Create a from-scratch resource matching specified type '''
+    '''
+    context : Context
 
-    def file_import()->ResourceType:
+    @classmethod    
+    def matches_file(cls, context:Context, path, bytes)->bool:
+        raise NotImplementedError("Abstract!")
+
+    @classmethod 
+    def produce_file(cls, context:Context, path, bytes)->File:
+        return File(filetype=cls(), path=path, resource=None)
+
+    def __init__(self, context=None):
         pass
 
-    def file_export()->tuple[tuple[str],bytes]:
+    def file_import(self, context:Context, data:bytes|str)->T:
+        raise NotImplementedError("Abstract!")
+
+    def prefetch_uid(self, context:Context, fs:AbstractFileSystem, file:File)->str|None:
+        return fs.read(file.path)
+
+    def file_export(self, context:Context, resource:Resource|None)->tuple[tuple[str],bytes]:
         ''' return file extension(s) and disc-byte rep '''
-        pass
+        raise NotImplementedError("Abstract!")
 
-    def __eq__(self, value):
-        ## Instances of this class should be "singletons"
-        return (value is self)
+
 
 ## RESOURCE STRUCTURE ##
 
