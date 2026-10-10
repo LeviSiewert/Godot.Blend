@@ -655,8 +655,6 @@ class DefType():
         return f"{self.__class__.__name__}({gen})"
 
 
-    
-
 class Project():
     context : Context
 
@@ -667,25 +665,24 @@ class Project():
 
     resources : Collection[str, Resource]
     files : Collection[str, File]
-    types : Collection[str, DefType] #DEFER
+    types : Collection[str, DefType] # Resource Types
     
-    file_io : list[FileIO]
-
     def __setup__(self):
         self.users = Users()
         self.context = Context(project=self)
         self.resources = Collection(key_attr="_name", context = self.context)
         self.files = Collection(key_attr="_path", context = self.context)
+        self.file_types = []
         self.types = Collection(key_attr="_identifier", context = self.context)
-        self.file_io = []
         
-    def __init__(self, fs:AbstractFileSystem, fs_signals:FsSignals=None,  files:Iterable[File]=tuple(), resources:Iterable[Resource]=tuple(), types:Iterable[DefType]=tuple(), file_io:Iterable[FileIO]=tuple()):
+    def __init__(self, fs:AbstractFileSystem, fs_signals:FsSignals=None,  files:Iterable[File]=tuple(), resources:Iterable[Resource]=tuple(), types:Iterable[DefType]=tuple(), file_types:Iterable[Type[File]]=tuple()):
         self.__setup__()
 
         self.files.extend(files)
+        self.file_types.extend(file_types)
         self.resources.extend(resources)
+        
         self.types.extend(types)
-        self.file_io.extend(file_io)
 
         self.fs = fs
         if fs:
@@ -723,33 +720,28 @@ class Project():
         for root,dirs,files in fs.walk("/"):
             for file in files:
                 fp = f"{root}/{file}"
-                if file:=self.find_file_io_produce(fp):
-                    self.files.append(file)
+                if filetype := self.find_filetype(fp):
+                    file_obj = filetype(path=fp)
+                    self.files.append(file_obj)
             for d in tuple(dirs):
                 if d.startswith("."):
                     dirs.remove(d)
 
-    def find_file_io(self, fp)->Type[FileIO]|None:
-        for fio in self.file_io:
-            with self.fs.open(fp, "r") as f:
-                if fio.matches_file(self.context, fp, f):
-                    return fio
+    def find_filetype(self, fp)->Type[File]|None:
+        for filetype in self.file_types:
+            if filetype.matches_file(self.context, self.fs, fp):
+                return filetype
         return None
 
     def find_file(self, uid:str)->File|None:
-        if res:=self.resources.get(uid,None):
+        if not ((res:=self.resources.get(uid,None)) is None) and res.file:
             return res.file
         for f in self.files.values():
-            if f.file_io.prefetch_uid() == uid:
+            if f.prefetch_uid() == uid:
                 return f
+        raise Exception(uid, self.files, self.resources)
         return None
 
-
-    def find_file_io_produce(self, fp)->File|None:
-        if fileio:=self.find_file_io(fp):
-            with self.fs.open(fp, "r") as f:
-                return fileio.produce_file(self.context, fp, f)
-        return None
 
     ## Reactionary syncing
     def _on_fs_created(self, path:str):
@@ -766,8 +758,6 @@ class Project():
 class File():
     context : Context
 
-    file_io : FileIO|None = None
-
     users: Users
 
     sha : int ## Use to check for difs
@@ -780,11 +770,13 @@ class File():
     resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
 
-    def __init__(self, path:str=None, file_io:str|FileIO|None=None, resource:Resource|None=None, sha:int=None):
+    @classmethod
+    def matches_file(cls, context:Context, fs:AbstractFileSystem, fp:str)->bool:
+        raise NotImplementedError()
+
+    def __init__(self, path:str=None, resource:Resource|None=None, sha:int=None):
         self.__setup__()
         self.path = path
-        self.file_io = file_io
-        self.file_io.context.set_extends(self.context)
         self.resource = resource
         self.sha = sha
 
@@ -798,13 +790,16 @@ class File():
 
     def reference_callback(self, obj):
         self.users.append(obj)
+        self.context.set_extends(obj.context)
+
     def dereference_callback(self, obj):
         self.users.remove(obj)
+        self.context.set_extends(None)
 
     def __eq__(self, value):
         if isinstance(value, File):
             return all([
-                value.file_io is self.file_io, 
+                value.path == self.path,
                 value.resource == self.resource,
             ])
         elif isinstance(value, Resource):
@@ -814,29 +809,28 @@ class File():
             ])
         return False
 
+    ## File Handleing:
+    def prefetch_uid(self)->str|None:
+        if res:=self.resource:
+            return res.uid
+        raise NotImplementedError("Abstract Class")
+    
     def load_resource(self):
-        res = self.file_io.file_import()
-
-        if self.context.project and self.resource:
-            self.context.project.resources.remove(self.resource)
-            ## TODO: Replace/rebuild reference tree as required !!!
-        
+        fs = self.context.project.fs
+        with fs.open(self.path,"r") as f: 
+            res = self.read(f)
+        res.file = self
         self.resource = res
+        self.context.project.resources[res.uid] = res
 
-        if self.context.project:
-            self.context.project.resources.append(self.resource)
+    def read(self, data=None)->Resource:
+        raise NotImplementedError("Abstract Class")
 
-    def save_resource(self):
-        res : bytes|str = self.file_io.file_export(self.context, self.resource)
-        if isinstance(res, str):
-            with self.fs.open(self.path, "w") as f :
-                f.writelines([res])
+    def write(self, res=None)->None:
+        raise NotImplementedError("Abstract Class")
 
-    def reference_callback(self, referencer:Any):
-        self.context.set_extends(referencer.context)
-
-    def dereference_callback(self, referencer:Any):
-        self.context.set_extends(None)
+    def reload(self)->None:
+        raise NotImplementedError("Abstract Class")
 
 ## IMPORT AND SETTINGS ##
 
@@ -888,8 +882,10 @@ class Category:
 
     def reference_callback(self, obj):
         self.users.append(obj)
+        self.context.set_extends(obj.context)
     def dereference_callback(self, obj):
         self.users.remove(obj)
+        self.context.set_extends(None)
 
     def __eq__(self, value):
         if isinstance(value, Category):
@@ -902,45 +898,6 @@ class Category:
     
     def __repr__(self):
         return f"Category({self.name}, {self.properties})"
-        pass
-    
-class FileIO[T:Resource]():
-    ''' Abstract class. FileIO implentations match files and make them "exist" within the project.
-    If the FileIo object matches a file, it will be called to produce a file, usually with an instance of itself as the FileIo object.
-    Load is *typically* defered until a seperate call. 
-    
-    '''
-    context : Context
-    
-
-    @classmethod    
-    def matches_file(cls, context:Context, path, bytes)->bool:
-        raise NotImplementedError("Abstract!")
-
-    @classmethod 
-    def produce_file(cls, context:Context, path, bytes)->File:
-        return File(file_io=cls(), path=path, resource=None)
-
-    def __init__(self):
-        self.context = Context()
-
-    def file_import(self)->T:
-        raise NotImplementedError("Abstract!")
-
-    def file_export(self)->tuple[tuple[str],bytes]:
-        ''' return file extension(s) and disc str/byte rep '''
-        raise NotImplementedError("Abstract!")
-
-    def prefetch_uid(self)->str|None:
-        return None
-
-    def __eq__(self, value:Any):
-        if isinstance(value, FileIO):
-            return any([
-                isinstance(value, self.__class__),
-                isinstance(self, value.__class__),
-            ])
-        return False
 
 
 ## RESOURCE STRUCTURE ##

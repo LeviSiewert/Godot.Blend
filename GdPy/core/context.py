@@ -112,4 +112,4 @@ class Context():
             
 
     def __repr__(self):
-        return f"Context({self._get_local_elements()})"
+        return f"Context({self._get_all_elements()})"

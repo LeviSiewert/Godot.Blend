@@ -9,7 +9,6 @@ from .structure import (
     File,
     Settings,
     Category,
-    FileIO,
     Resource,
     NodePath,
     Node,
@@ -437,6 +436,8 @@ class Test_Node:
 
 
 class Test_Project():
+    ''' Project API is under reconsideration. Tests for this v1 will then be consolidated and simple '''
+
     def test_construction(self):
         fs = MemoryFileSystem()
         prj = Project(fs)
@@ -451,24 +452,22 @@ class Test_Project():
         with fs.open("/scene.tscn", "w") as f:
             f.writelines(['b'])
 
-        class _FileIO(FileIO):
+        class _File(File):
             @classmethod
             def matches_file(cls, context, path, bytes):
                 return True
 
-            @classmethod
-            def produce_file(cls, context, path, bytes):
-                return super().produce_file(context, path, bytes)
-
-            def prefetch_uid(self):
-                with self.context.project.fs.open(self.context.file.path,"r") as f:
+            def prefetch_uid(self, fs):
+                with fs.open(self.path,"r") as f:
                     return f.readline()
 
-            def file_import(self)->Resource:
-                return Resource(uid = self.prefetch_uid(), file = self.context.file)
+            def read(self, data=None)->Resource:
+                return Resource(uid=data.readline())
 
+            def __repr__(self):
+                return f"File({self.path}, {self.resource})"
 
-        prj = Project(fs, file_io=[_FileIO])
+        prj = Project(fs, file_types=[_File])
         prj.initialize_from_fs()
  
         assert len(prj.files) == 2
@@ -476,13 +475,14 @@ class Test_Project():
         resource_file = prj.files["/resource.tres"]
         scene_file = prj.files["/scene.tscn"]
         
-        assert isinstance(resource_file.file_io, _FileIO)
-        # assert prj.find_file("a") is None
+        assert isinstance(resource_file, _File)
+        
         resource_file.load_resource()
+        # assert prj.find_file("a") is None
         assert prj.find_file("a") is resource_file
         assert prj.resources["a"] is resource_file.resource
         
-        assert isinstance(scene_file.file_io, _FileIO)
+        assert isinstance(scene_file, _File)
         # assert prj.find_file("b") is None
         scene_file.load_resource()
         assert prj.find_file("b") is scene_file

@@ -250,7 +250,7 @@ class Collection[K:str|int,V:Any](UserDict):
     def __contains__(self, key):
         if isinstance(key, (int,str)):
             return (key in self.data.keys())
-        return key in self.data.values()
+        return any((key is v) for v in self.data.values())
 
     def incriment_key(self,obj:V,key:K)->K:
         if isinstance(key, int):
