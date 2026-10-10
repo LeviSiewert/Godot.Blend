@@ -13,10 +13,10 @@
 
 from .addon_config import bl_info
 
-from . import GdBl 
+from .GdBl import preferences 
 
 def register(): 
-    GdBl.register()
+    preferences.register()
 
 def unregister(): 
-    GdBl.unregister()
+    preferences.unregister()

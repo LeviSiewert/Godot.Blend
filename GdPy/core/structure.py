@@ -19,7 +19,7 @@ from enum import Enum
 from collections import UserDict, OrderedDict
 from weakref import ref as wref, ReferenceType
 
-from fsspec import AbstractFileSystem
+from .wrapped_fsspec import AbstractFileSystem, FsSignals
 
 class _UNSET:...
 
@@ -523,7 +523,7 @@ class DefProperty():
     _name : CollectionKey[str]
     name = CollectionKeyProperty(str,"_name")
 
-    type : Type|ContextualPromise
+    type : Type|PromiseContextual
 
     default_value : None
     hint : PropertyHint
@@ -534,7 +534,7 @@ class DefProperty():
         self.context = Context(Property = self)
         self._name = CollectionKey(self)
     
-    def __init__(self, name:str, type:Type|ContextualPromise, default_value:None, hint:PropertyHint, hint_string:str, usage:PropertyUsage):
+    def __init__(self, name:str, type:Type|PromiseContextual, default_value:None, hint:PropertyHint, hint_string:str, usage:PropertyUsage):
         self.__setup__()
         self.name = name
         self.type = type
@@ -653,22 +653,22 @@ class DefType():
         gen = dict({k:(getattr(self,k)) for k in keys})
         return f"{self.__class__.__name__}({gen})"
 
+
+    
+
 class Project():
     context : Context
 
     fs : AbstractFileSystem
+    fs_io : FsSignals
 
     users: Users
 
     resources : Collection[str, Resource]
     files : Collection[str, File]
     types : Collection[str, DefType] #DEFER
-
-    def __init__(self, fs:AbstractFileSystem, files:Iterable[Resource]=tuple(), resources:Iterable[Resource]=tuple()):
-        self.__setup__()
-        self.fs = fs
-        self.files.extend(files)
-        self.resources.extend(resources)
+    
+    file_io : list[FileIO]
 
     def __setup__(self):
         self.users = Users()
@@ -676,9 +676,35 @@ class Project():
         self.resources = Collection(key_attr="_name", context = self.context)
         self.files = Collection(key_attr="_path", context = self.context)
         self.types = Collection(key_attr="_identifier", context = self.context)
+        self.file_io = []
+        
+    def __init__(self, fs:AbstractFileSystem, fs_io:FileIO=None,  files:Iterable[File]=tuple(), resources:Iterable[Resource]=tuple(), types:Iterable[DefType]=tuple(), file_io:Iterable[FileIO]=tuple()):
+        self.__setup__()
+
+        self.files.extend(files)
+        self.resources.extend(resources)
+        self.types.extend(types)
+        self.file_io.extend(file_io)
+
+        self.fs = fs
+        if fs:
+            fs.created.connect(self._on_fs_created)
+            fs.removed.connect(self._on_fs_removed)
+            fs.updated.connect(self._on_fs_updated)
+            fs.deleted.connect(self._on_fs_deleted)
+            fs.moved.connect(self._on_fs_moved)
+        self.fs_io = fs_io
+        if fs_io:
+            fs_io.created.connect(self._on_fs_created)
+            fs_io.removed.connect(self._on_fs_removed)
+            fs_io.updated.connect(self._on_fs_updated)
+            fs_io.deleted.connect(self._on_fs_deleted)
+            fs_io.moved.connect(self._on_fs_moved)
+
 
     def reference_callback(self, obj):
         self.users.append(obj)
+
     def dereference_callback(self, obj):
         self.users.remove(obj)
 
@@ -689,6 +715,22 @@ class Project():
                 other.self.files == self.files,
             ])
         return super().__eq__(other)
+
+    def initialize_from_fs(self):
+        ''' Find all files in the project, populate self.files with found. Attach fs signals'''
+        ... #TODO
+
+    ## Reactionary syncing
+    def _on_fs_created(self, path:str):
+        ... #TODO
+    def _on_fs_removed(self, path:str):
+        ... #TODO
+    def _on_fs_updated(self, path:str):
+        ... #TODO
+    def _on_fs_deleted(self, path:str):
+        ... #TODO
+    def _on_fs_moved(self, o_path:str, n_path:str):
+        ... #TODO
 
 class File():
     context : Context

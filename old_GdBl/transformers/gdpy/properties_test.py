@@ -4,7 +4,7 @@ from contextvars import ContextVar
 from typing import Iterable
 
 from ._core import make_bl_to_gd, make_gd_to_bl
-from ....GdBl import register, unregister
+from ....GdBl.preferences import register, unregister
 
 is_registered : ContextVar[bool] = ContextVar("is_registered", default=False)
 
