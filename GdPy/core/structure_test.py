@@ -458,16 +458,14 @@ class Test_Project():
 
             @classmethod
             def produce_file(cls, context, path, bytes):
-                res = super().produce_file(context, path, bytes)
-                res.load_resource()
-                return res
+                return super().produce_file(context, path, bytes)
 
-            def prefetch_uid(self, fs, file):
-                with fs.open(file.path,"r") as f:
+            def prefetch_uid(self):
+                with self.context.project.fs.open(self.context.file.path,"r") as f:
                     return f.readline()
 
-            def file_import(self, fs, file)->Resource:
-                res = Resource(uid = self.prefetch_uid(fs, file))
+            def file_import(self)->Resource:
+                return Resource(uid = self.prefetch_uid(), file = self.context.file)
 
 
         prj = Project(fs, file_io=[_FileIO])
@@ -475,13 +473,17 @@ class Test_Project():
  
         assert len(prj.files) == 2
         
-        resource_file = prj.files["resource.tres"]
-        scene_file = prj.files["scene.tscn"]
+        resource_file = prj.files["/resource.tres"]
+        scene_file = prj.files["/scene.tscn"]
         
         assert isinstance(resource_file.file_io, _FileIO)
+        # assert prj.find_file("a") is None
+        resource_file.load_resource()
         assert prj.find_file("a") is resource_file
         assert prj.resources["a"] is resource_file.resource
         
         assert isinstance(scene_file.file_io, _FileIO)
+        # assert prj.find_file("b") is None
+        scene_file.load_resource()
         assert prj.find_file("b") is scene_file
         assert prj.resources["b"] is scene_file.resource

@@ -19,7 +19,8 @@ from enum import Enum
 from collections import UserDict, OrderedDict
 from weakref import ref as wref, ReferenceType
 
-from .wrapped_fsspec import AbstractFileSystem, FsSignals
+from .wrapped_fsspec import FsSignals
+from fsspec import AbstractFileSystem
 
 class _UNSET:...
 
@@ -718,7 +719,37 @@ class Project():
 
     def initialize_from_fs(self):
         ''' Find all files in the project, populate self.files with found. Attach fs signals'''
-        ... #TODO
+        fs : AbstractFileSystem = self.fs
+        for root,dirs,files in fs.walk("/"):
+            for file in files:
+                fp = f"{root}/{file}"
+                if file:=self.find_file_io_produce(fp):
+                    self.files.append(file)
+            for d in tuple(dirs):
+                if d.startswith("."):
+                    dirs.remove(d)
+
+    def find_file_io(self, fp)->Type[FileIO]|None:
+        for fio in self.file_io:
+            with self.fs.open(fp, "r") as f:
+                if fio.matches_file(self.context, fp, f):
+                    return fio
+        return None
+
+    def find_file(self, uid:str)->File|None:
+        if res:=self.resources.get(uid,None):
+            return res.file
+        for f in self.files.values():
+            if f.file_io.prefetch_uid() == uid:
+                return f
+        return None
+
+
+    def find_file_io_produce(self, fp)->File|None:
+        if fileio:=self.find_file_io(fp):
+            with self.fs.open(fp, "r") as f:
+                return fileio.produce_file(self.context, fp, f)
+        return None
 
     ## Reactionary syncing
     def _on_fs_created(self, path:str):
@@ -735,7 +766,7 @@ class Project():
 class File():
     context : Context
 
-    filetype : FileIO|None = None
+    file_io : FileIO|None = None
 
     users: Users
 
@@ -749,14 +780,16 @@ class File():
     resource = PromiseProperty("_resource", "resource_set", Promise.Type.RESOURCE)
     resource_set : Signal[str|None]
 
-    def __init__(self, filetype:str|FileIO|None=None, path:str=None, resource:Resource|None=None, sha:int=None):
+    def __init__(self, path:str=None, file_io:str|FileIO|None=None, resource:Resource|None=None, sha:int=None):
         self.__setup__()
         self.path = path
-        self.filetype = filetype
+        self.file_io = file_io
+        self.file_io.context.set_extends(self.context)
         self.resource = resource
         self.sha = sha
 
     def __setup__(self):
+        self._path = CollectionKey(self)
         self.context = Context(file=self)
         self.users = Users()
 
@@ -771,8 +804,8 @@ class File():
     def __eq__(self, value):
         if isinstance(value, File):
             return all([
-                value.self.filetype == self.filetype, 
-                value.self.resource == self.resource,
+                value.file_io is self.file_io, 
+                value.resource == self.resource,
             ])
         elif isinstance(value, Resource):
             return any([
@@ -780,6 +813,30 @@ class File():
                 self.resource == value,
             ])
         return False
+
+    def load_resource(self):
+        res = self.file_io.file_import()
+
+        if self.context.project and self.resource:
+            self.context.project.resources.remove(self.resource)
+            ## TODO: Replace/rebuild reference tree as required !!!
+        
+        self.resource = res
+
+        if self.context.project:
+            self.context.project.resources.append(self.resource)
+
+    def save_resource(self):
+        res : bytes|str = self.file_io.file_export(self.context, self.resource)
+        if isinstance(res, str):
+            with self.fs.open(self.path, "w") as f :
+                f.writelines([res])
+
+    def reference_callback(self, referencer:Any):
+        self.context.set_extends(referencer.context)
+
+    def dereference_callback(self, referencer:Any):
+        self.context.set_extends(None)
 
 ## IMPORT AND SETTINGS ##
 
@@ -854,6 +911,7 @@ class FileIO[T:Resource]():
     
     '''
     context : Context
+    
 
     @classmethod    
     def matches_file(cls, context:Context, path, bytes)->bool:
@@ -861,21 +919,28 @@ class FileIO[T:Resource]():
 
     @classmethod 
     def produce_file(cls, context:Context, path, bytes)->File:
-        return File(filetype=cls(), path=path, resource=None)
+        return File(file_io=cls(), path=path, resource=None)
 
-    def __init__(self, context=None):
-        pass
+    def __init__(self):
+        self.context = Context()
 
-    def file_import(self, context:Context, data:bytes|str)->T:
+    def file_import(self)->T:
         raise NotImplementedError("Abstract!")
 
-    def prefetch_uid(self, context:Context, fs:AbstractFileSystem, file:File)->str|None:
-        return fs.read(file.path)
-
-    def file_export(self, context:Context, resource:Resource|None)->tuple[tuple[str],bytes]:
-        ''' return file extension(s) and disc-byte rep '''
+    def file_export(self)->tuple[tuple[str],bytes]:
+        ''' return file extension(s) and disc str/byte rep '''
         raise NotImplementedError("Abstract!")
 
+    def prefetch_uid(self)->str|None:
+        return None
+
+    def __eq__(self, value:Any):
+        if isinstance(value, FileIO):
+            return any([
+                isinstance(value, self.__class__),
+                isinstance(self, value.__class__),
+            ])
+        return False
 
 
 ## RESOURCE STRUCTURE ##

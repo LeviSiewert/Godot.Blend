@@ -110,3 +110,6 @@ class Context():
         ''' Shortcut to filtered signal '''
         return self.element_changed.connect(callback, **kwargs, filter=lambda attr, *args: attr == attribute)
             
+
+    def __repr__(self):
+        return f"Context({self._get_local_elements()})"
