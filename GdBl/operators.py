@@ -31,23 +31,34 @@ class OP_ProjectIo(Operator):
             context.window_manager.fileselect_add(self)
             return {"RUNNING_MODAL"}
         else:
-            return self.execute()
+            return self.execute(context)
             
     def execute(self, context):
         match self.mode:
             case "ADD":
-                return self.execute_add(self, context)
+                return self.execute_add(context)
             case "REMOVE":
-                return self.execute_remove(self, context)
+                return self.execute_remove(context)
             case "RELOAD":
-                return self.execute_reload(self, context)
+                return self.execute_reload(context)
 
     def execute_add(self, context):
         prefs = active_preferences()
+        _keys = prefs.project_slots.keys()
         project = prefs.project_slots.add()
 
         project.root = self.filepath
-        project.load_settings()
+        # project.load_settings()
+
+        _name = "ProjectObject"
+        name = _name
+        i = 0
+        while name in _keys:
+            name = _name + "." + str(i).zfill(3)
+            i = i+1
+
+        project.name = name
+
 
         prefs.project_selected = len(prefs.project_slots)
         return {"FINISHED"}
@@ -60,6 +71,9 @@ class OP_ProjectIo(Operator):
         prefs.project_slots.remove(index)
         prefs.project_selected = -1
         return {"FINISHED"}
+
+    def execute_reload(self, context):
+        pass
     
 class OP_SceneIo(Operator):
     bl_label = "gdpy.scene_io"
@@ -100,6 +114,7 @@ class OP_NodeIo(Operator):
 
 
 classes = [
+    OP_ProjectIo,
     OP_SceneIo,
     OP_NodeIo,
 ]

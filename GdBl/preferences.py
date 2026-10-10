@@ -6,6 +6,8 @@ from bpy.types import AddonPreferences, PropertyGroup, UILayout, Context, Operat
 from bpy.props import StringProperty, BoolProperty, IntProperty, CollectionProperty, EnumProperty
 from contextvars import ContextVar
 
+from pathlib import Path
+
 from ..addon_config import bl_info, id_name
 from ..GdPy.core.structure import Project as GdProject
 from ..GdPy.core.wrapped_fsspec import LocalFileSystem
@@ -90,52 +92,64 @@ class MODULE_UL_regular(bpy.types.UIList):
 
 class Project(PropertyGroup):
     name : StringProperty(name="name") #type:ignore
-    title : StringProperty(name="name", get=_get_title, set=_set_title) #type:ignore
+    label : StringProperty(name="label", get=_get_label, set=_set_label) #type:ignore
     root : StringProperty(name="path", subtype="FILE_PATH") #type:ignore
     desc : StringProperty(name="desc") #type:ignore
 
     classes_path : StringProperty(name="Classes Path", subtype="FILE_PATH", default="res://.blender/classes.json") #type:ignore
     modules_path : StringProperty(name="Modules Path", subtype="FILE_PATH", default="res://.blender/modules.json") #type:ignore
     caching_path : StringProperty(name="Caching Path", subtype="DIR_PATH", default="res://.blender/.caching/") #type:ignore
-
     module_slots : CollectionProperty(type=Module) #type:ignore
     module_selected : IntProperty() #type:ignore
+
+    project_construct_errorstate : BoolProperty() #type:ignore
 
     def godot_make_abs(self, path:str)->str:
         if not path.startswith("res://"):
             return path
         if self.root == "":
             return path
-        return self.root.strip(".godot") + "/" + path[6:]
+        return self.root[:-14] + "/" + path[6:]
 
     def godot_make_rel(self, path:str)->str:
         if path.startswith("res:://"):
             return path
         if self.root == "":
             return path
-        root = self.root.strip(".godot")
+        root = self.root[:-14]
         if not path.startswith(root):
             return "res://"+path[len(root):]
         return path
 
-    def _get_title(self):
-        title = self.get("title",None)
-        return title if title else self.name
-    def _set_title(self, val):
-        self["title"] = val
+    def _get_label(self):
+        label = self.get("label",None)
+        return label if label else self.name
+    def _set_label(self, val):
+        self["label"] = val
+    
+    @property
+    def classes_path_exists(self)->bool:
+        return Path(self.classes_fullpath).exists() 
+    @property
+    def modules_path_exists(self)->bool:
+        return Path(self.modules_fullpath).exists() 
+    @property
+    def caching_path_exists(self)->bool:
+        return Path(self.caching_fullpath).exists() 
 
     @property
     def classes_fullpath(self):
         return self.godot_make_abs(self.classes_path)
     @property
     def modules_fullpath(self):
-        return self.godot_make_abs(self.modules_fullpath)
+        return self.godot_make_abs(self.modules_path)
     @property
     def caching_fullpath(self):
-        return self.godot_make_abs(self.caching_fullpath)
+        return self.godot_make_abs(self.caching_path)
 
     def draw_line(self, context:Context, layout:UILayout):
         ''' Preferences list of Projects'''
+        layout.alignment="LEFT"
         
         a_prj = active_project()
         if not (a_prj is None) and (a_prj.name == self.name):
@@ -143,6 +157,9 @@ class Project(PropertyGroup):
         else:
             layout.label(text = " ")
         
+        layout = layout.row()
+        layout.alignment="EXPAND"
+
         layout.label(text=self.name)
         layout.prop(self,"root")
 
@@ -150,10 +167,21 @@ class Project(PropertyGroup):
         ''' Preferences w/ this selected '''
         layout.prop(self,"name")
         layout.prop(self,"root")
+
         
-        layout.prop(self,"classes_path")
-        layout.prop(self,"modules_path")
-        layout.prop(self,"caching_path")
+        row = layout.row()
+        row.alert = not self.classes_path_exists
+        row.prop(self,"classes_path")
+        # row.label(text = self.classes_fullpath)
+        
+        row = layout.row()
+        row.alert = not self.modules_path_exists
+        row.prop(self,"modules_path")
+        # row.label(text = self.modules_fullpath)
+        
+        row = layout.row()
+        row.prop(self,"caching_path")
+        # row.label(text = self.caching_fullpath)
 
         layout.label(text="WARNING: This is a synced rep of the modules.json file. All changes are pushed to disc! ")
         row = layout.row()
@@ -194,16 +222,31 @@ class Project(PropertyGroup):
     def _on_activate(self):
         ''' Construct project '''
         prefs = active_preferences()
-        if prefs is None:
+
+
+        if not all([
+            self.modules_path_exists,
+            self.classes_path_exists,
+            ]):
+            self.project_construct_errorstate = True
             return
-        ctx_py_project = prefs.project_python
-        # if ctx_py_project.get():
-            # ctx_py_project.get().close()
-        # Load types
-        ctx_py_project.set(
+        else:
+            self.project_construct_errorstate = False
+
+        import os
+        import json
+
+        from ..GdPy.file_types import generic
+        from ..GdPy.transformers.json_type_definitions import make_fr_file
+
+        with os.open(self.modules_fullpath,"r") as f:
+            types = make_fr_file().transform(json.parse(f))
+
+        prefs.project_python.set(
             GdProject(
                 fs = LocalFileSystem(self.root),
-                # type_file = self.classes_path.split("res:/")[-1] if self.classes_path else None,
+                file_types=generic,
+                types=types,
             )
         )
 
@@ -232,37 +275,43 @@ class Preferences(AddonPreferences):
     bl_idname = id_name
     
     project_slots : CollectionProperty(type=Project) #type:ignore
-    project_selected : IntProperty() #type:ignore
-    project_active : EnumProperty(items=get_projects_enum, update=_on_project_enum_update, default=-1) #type:ignore
+    project_selected : IntProperty(default=-1) #type:ignore
+    project_active : EnumProperty(items=get_projects_enum, default=0) #type:ignore
+    _project_active : ContextVar[Project] = ContextVar("", default=None)
     project_python : ContextVar[GdProject|None] = ContextVar("GdPy.Preferences.project_python", default=None) 
-    ## Populated and maintained by Project when activated.
+    # ## Populated and maintained by Project when activated.
 
     def get_projects_enum(self, context:Context)->list[tuple]:
         return [
-            (-1,"<None>",""),
-            *((i, p.title, p.desc) for i,p in enumerate(self.project_slots) if (p.name != "")),
+            ("NONE","<None>",""),
+            *((p.name, p.label, p.desc) for p in self.project_slots),
         ]
     
     def _on_project_enum_update(self, context):
-        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
+        ''' Update Project '''
+        prj = self.active_project
+        if (prj is None): 
             return
-        self.project_slots[self.project_active]._on_activate()
+        if old_prj:=self._project_active.get():
+            if prj.name == old_prj.name:
+                return 
+            old_prj._on_deactivate()
+        prj._on_activate()
 
     @property
     def selected_project(self)->Project|None:
-        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
+        if (self.project_selected < 0) or (self.project_selected > len(self.project_slots)):
             return None
         return self.project_slots[self.project_selected]
     
-    @property
+    # @property
     def active_project(self)->Project|None:
-        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
+        if self.project_active == "NONE":
             return None
         for p in self.project_slots:
-            if self.project_active == p.root:
+            if self.project_active == p.name:
                 return p
         return None
-        # return self.project_slots[self.project_active]
     
     def draw(self, context):
         layout = self.layout
@@ -272,10 +321,20 @@ class Preferences(AddonPreferences):
         row = layout.row()
         row.template_list("PROJECT_UL_regular", "", self, "project_slots", self, "project_selected")
         col = row.column()
-        col.operator("gdpy.project_io")
-        col.operator("gdpy.project_io")
 
-        if prj:=self.selected_project:
+        s = col.operator("gdpy.project_io", text="Add")
+        s.mode = "ADD"
+
+        if not (prj:=self.selected_project) is None:
+            s = col.operator("gdpy.project_io", text="Remove")
+            s.mode = "REMOVE"
+            s.prj_colname = prj.name
+
+            s = col.operator("gdpy.project_io", text="Reload")
+            s.mode = "RELOAD"
+            s.prj_colname = prj.name
+
+
             prj.draw_full(context, layout)
 
 
@@ -298,7 +357,7 @@ def active_preferences()->Preferences:
     return bpy.context.preferences.addons[id_name].preferences
 
 def active_project()->Project|None:
-    return active_preferences().active_project
+    return active_preferences().active_project()
     
 def active_gdproject()->GdProject|None:
     return active_preferences().project_python.get()
