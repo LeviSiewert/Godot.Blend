@@ -7,7 +7,7 @@ from bpy.props import StringProperty, BoolProperty, IntProperty, CollectionPrope
 from contextvars import ContextVar
 
 from ..addon_config import bl_info, id_name
-from ..GdPy.core import structure as GdPy_structure
+from ..GdPy.core.structure import Project as GdProject
 from ..GdPy.core.wrapped_fsspec import LocalFileSystem
 
 
@@ -136,7 +136,13 @@ class Project(PropertyGroup):
 
     def draw_line(self, context:Context, layout:UILayout):
         ''' Preferences list of Projects'''
-        # layout.label(text = self.name)
+        
+        a_prj = active_project()
+        if not (a_prj is None) and (a_prj.name == self.name):
+            layout.label(text = "@")
+        else:
+            layout.label(text = " ")
+        
         layout.label(text=self.name)
         layout.prop(self,"root")
 
@@ -162,7 +168,7 @@ class Project(PropertyGroup):
     
     @staticmethod
     def draw_header_container(context:Context, layout:UILayout):
-        if prj:=preferences(context).active_project:
+        if prj:=active_preferences().active_project:
             prj.draw_header(context,layout)
 
     def draw_header(self, context:Context, layout:UILayout):
@@ -179,22 +185,23 @@ class Project(PropertyGroup):
 
     @property
     def is_active(self):
-        prj = preferences(bpy.context).project_python.get() 
+        prj = active_preferences().project_python.get() 
         if prj is None:
             return False
         fs : LocalFileSystem
         fs.path         
 
     def _on_activate(self):
-        prefs = preferences(bpy.context)
+        ''' Construct project '''
+        prefs = active_preferences()
         if prefs is None:
             return
         ctx_py_project = prefs.project_python
-        if ctx_py_project.get():
-            ctx_py_project.get().close()
-        ## Load types
+        # if ctx_py_project.get():
+            # ctx_py_project.get().close()
+        # Load types
         ctx_py_project.set(
-            GdPy_structure.Project(
+            GdProject(
                 fs = LocalFileSystem(self.root),
                 # type_file = self.classes_path.split("res:/")[-1] if self.classes_path else None,
             )
@@ -210,7 +217,7 @@ class OP_blgd_add_project(Operator):
     bl_label = "Add Project"
     bl_idname = "blgd.ops_project_list_add"
     def execute(self, context):
-        prefs = preferences(context)
+        prefs = active_preferences()
         prefs.project_slots.add()
         prefs.project_selected = len(prefs.project_slots)
         return {"FINISHED"}
@@ -218,14 +225,7 @@ class OP_blgd_add_project(Operator):
 class OP_blgd_rem_project(Operator):
     bl_label = "Rem Project"
     bl_idname = "blgd.ops_project_list_rem"
-    def execute(self, context):
-        prefs = preferences(context)
-        index = prefs.project_selected
-        if index == -1:
-            return
-        prefs.project_slots.remove(index)
-        prefs.project_selected = -1
-        return {"FINISHED"}
+
 
 
 class Preferences(AddonPreferences): 
@@ -233,28 +233,30 @@ class Preferences(AddonPreferences):
     
     project_slots : CollectionProperty(type=Project) #type:ignore
     project_selected : IntProperty() #type:ignore
-    project_active : EnumProperty(items=get_projects_enum, update=_on_project_enum_update, default=0) #type:ignore
-    project_python : ContextVar[GdPy_structure.Project|None] = ContextVar("GdPy.Preferences.project_python", default=None) 
-        ## Populated and maintained by Project when activated.
+    project_active : EnumProperty(items=get_projects_enum, update=_on_project_enum_update, default=-1) #type:ignore
+    project_python : ContextVar[GdProject|None] = ContextVar("GdPy.Preferences.project_python", default=None) 
+    ## Populated and maintained by Project when activated.
 
     def get_projects_enum(self, context:Context)->list[tuple]:
         return [
-            ('NONE', 'None', "No Project active. Select one or check your saved filepath!"),
-            *((p.name, p.title, p.desc) for p in self.project_slots if (p.name != ""))
+            (-1,"<None>",""),
+            *((i, p.title, p.desc) for i,p in enumerate(self.project_slots) if (p.name != "")),
         ]
     
     def _on_project_enum_update(self, context):
+        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
+            return
         self.project_slots[self.project_active]._on_activate()
 
     @property
     def selected_project(self)->Project|None:
-        if (self.project_selected < 0) or (self.project_selected > (len(self.project_slots)-1)):
+        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
             return None
         return self.project_slots[self.project_selected]
     
     @property
     def active_project(self)->Project|None:
-        if self.project_active == "NONE":
+        if self.project_selected == -1 or (self.project_selected < (len(self.project_slots)-1)):
             return None
         for p in self.project_slots:
             if self.project_active == p.root:
@@ -270,8 +272,8 @@ class Preferences(AddonPreferences):
         row = layout.row()
         row.template_list("PROJECT_UL_regular", "", self, "project_slots", self, "project_selected")
         col = row.column()
-        col.operator("blgd.ops_project_list_add")
-        col.operator("blgd.ops_project_list_rem")
+        col.operator("gdpy.project_io")
+        col.operator("gdpy.project_io")
 
         if prj:=self.selected_project:
             prj.draw_full(context, layout)
@@ -279,21 +281,27 @@ class Preferences(AddonPreferences):
 
     @staticmethod
     def _on_save(context):
-        self = preferences(context)
+        self = active_preferences()
         self.find_active()
     @staticmethod
     def _on_load(context):
-        self = preferences(context)
+        self = active_preferences()
         self.find_active()
         self.reload
     @staticmethod
     def _on_close(context):
-        self = preferences(context)
+        self = active_preferences()
         for p in self.project_slots:
             p.module_slots.clear()
-        
-def preferences(context:Context)->Preferences:
-    return context.preferences.addons[id_name].preferences
+
+def active_preferences()->Preferences:
+    return bpy.context.preferences.addons[id_name].preferences
+
+def active_project()->Project|None:
+    return active_preferences().active_project
+    
+def active_gdproject()->GdProject|None:
+    return active_preferences().project_python.get()
     
 
 classes = [
