@@ -99,7 +99,7 @@ class Project(PropertyGroup):
     classes_path : StringProperty(name="Classes Path", subtype="FILE_PATH", default="res://.blender/classes.json") #type:ignore
     modules_path : StringProperty(name="Modules Path", subtype="FILE_PATH", default="res://.blender/modules.json") #type:ignore
     caching_path : StringProperty(name="Caching Path", subtype="DIR_PATH", default="res://.blender/.caching/") #type:ignore
-    module_slots : CollectionProperty(type=Module) #type:ignore
+    module_slots : CollectionProperty(type=ModuleGroup) #type:ignore
     module_selected : IntProperty() #type:ignore
 
     project_construct_errorstate : BoolProperty() #type:ignore
@@ -256,20 +256,6 @@ class PROJECT_UL_regular(bpy.types.UIList):
         item.draw_line(context, layout)
 
 
-class OP_blgd_add_project(Operator):
-    bl_label = "Add Project"
-    bl_idname = "blgd.ops_project_list_add"
-    def execute(self, context):
-        prefs = active_preferences()
-        prefs.project_slots.add()
-        prefs.project_selected = len(prefs.project_slots)
-        return {"FINISHED"}
-
-class OP_blgd_rem_project(Operator):
-    bl_label = "Rem Project"
-    bl_idname = "blgd.ops_project_list_rem"
-
-
 
 class Preferences(AddonPreferences): 
     bl_idname = id_name
@@ -364,16 +350,14 @@ def active_gdproject()->GdProject|None:
     
 
 classes = [
-    ModuleOption,
     MODULE_OPTION_UL_regular,
-    ModuleVersion,
     MODULE_VERSION_UL_regular,
-    ModuleGroup,
     MODULE_UL_regular,
-    Project,
     PROJECT_UL_regular,
-    OP_blgd_add_project,
-    OP_blgd_rem_project,
+    ModuleOption,
+    ModuleVersion,
+    ModuleGroup,
+    Project,
     Preferences,
 ]
     
