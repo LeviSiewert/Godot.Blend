@@ -1,4 +1,7 @@
 from ._utils import TransformerDirect
 
 class Test(TransformerDirect):
-    pass
+    ''' Smell test, verify that utilities is calling data as expected '''
+    def data(self):
+        return
+        yield

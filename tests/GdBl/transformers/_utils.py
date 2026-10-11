@@ -75,7 +75,7 @@ class TransformerDirect():
 
     def data(self)->Generator[None,tuple[bpy.types.Object|bpy.types.Collection, GdResource|GdNode],None]:
         ''' Yield Blender data and GdResource eq. Within context of load_bl_file for entire duration '''
-        return
+        raise NotImplementedError()
         yield None,None
 
     def test_bl_to_gd(self):
