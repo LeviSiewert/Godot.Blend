@@ -109,3 +109,10 @@ class TransformerDirect():
     def gd_gd_compare(self, source, target):
         ## TODO: possibly via dif tree evalation?
         raise NotImplementedError() 
+
+class Test(TransformerDirect):
+    ''' Smell test, verify that utilities is calling data as expected '''
+    def data(self):
+        assert is_addon_registered()
+        return
+        yield 
