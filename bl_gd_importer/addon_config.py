@@ -10,6 +10,6 @@ bl_info = {
     "category": "Generic",
 }
 
-# id_name = "bl_gd_importer"
-id_name = "bl_ext.vscode_development.bl_gd_importer"
+id_name = "bl_gd_importer"
+# id_name = "bl_ext.vscode_development.bl_gd_importer"
 # TODO: Determine context aware id_name?
