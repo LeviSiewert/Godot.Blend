@@ -1,4 +1,11 @@
-''' Python only discovered modules, trawled from disc by addon and used to generate module.json per project. '''
+''' Python only discovered modules, trawled from disc by addon and used to generate module.json per project. 
+
+
+see `GdBl.transformers.modulesettings_update` for integration into blender data structure
+see `GdBl.datastruct` for blender object "forms" (via `GdBl.transformers.modulesettings_json`)
+
+see `GdBl.operators.OP_---_Io` for usage 
+'''
 
 from __future__ import annotations
 
