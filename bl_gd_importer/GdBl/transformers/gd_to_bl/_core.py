@@ -3,12 +3,16 @@ from typing import Iterable
 
 from ._transformers import GdToBlSession, BlToGdSession, GdToBlTransformer, GdToBlTransformerSet, BlToGdTransformer, BlToGdTransformerSet
 
+from . import nodes
+
 def make_gd_to_bl(extras : Iterable[GdToBlTransformerSet]): 
     return GdToBlSession([
-        *extras
-    ]) #TODO: Stub
+        nodes.gd_to_bl,
+        *extras,
+    ])
 
 def make_bl_to_gd(extras : Iterable[BlToGdTransformerSet]):
     return BlToGdSession([
-        *extras
-    ]) #TODO: Stub
+        nodes.bl_to_gd,
+        *extras,
+    ])
