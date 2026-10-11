@@ -2,6 +2,7 @@
 extends Node
 
 enum Mode{
+	ALL,
 	SCRIPT,
 	INTERNAL,
 }
@@ -19,26 +20,26 @@ func _run():
 	var type_map := get_type_map()
 	var usage_map:= get_property_usage_map()
 
-	if mode == Mode.SCRIPT:
-		var result := {
-			"engine":Engine.get_version_info(),
-			"hint_map":hint_map,
-			"type_map":type_map,
-			"usage_map":usage_map,
-			"classes":_run_script(),
-		}
-		var r = JSON.stringify(result, "\t")
-		FileAccess.open(path, FileAccess.WRITE).store_string(r)
-	else:
-		var result := {
-			"engine":Engine.get_version_info(),
-			"hint_map":hint_map,
-			"type_map":type_map,
-			"usage_map":usage_map,
-			"classes":_run_classes(),
-		}
-		var r = JSON.stringify(result, "\t")
-		FileAccess.open(path, FileAccess.WRITE).store_string(r)
+	var result := {
+		"engine":Engine.get_version_info(),
+		"hint_map":hint_map,
+		"type_map":type_map,
+		"usage_map":usage_map,
+		# "classes":_run_script(),
+		# "classes":_run_classes(),
+	}
+	if mode == Mode.ALL:
+		scripts = _run_script()
+		classes = _run_classes()
+		scripts.extend_array(classes)
+		result["classes"] = scripts
+	elif mode == Mode.SCRIPT:
+		result["classes"] = _run_script()
+	elif mode == Mode.INTERNAL:
+		result["classes"] = _run_classes()
+
+	var r = JSON.stringify(result, "\t")
+	FileAccess.open(path, FileAccess.WRITE).store_string(r)
 
 func get_type_map()->Dictionary:
 	var type_map := {}
