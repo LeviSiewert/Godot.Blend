@@ -11,16 +11,16 @@ from ..GdPy.core.structure import (
 )
 
 
-class OP_ProjectIo(Operator):
-    bl_label="gdpy.project_io"
-    bl_idname="gdpy.project_io"
+class OP_ProjectSlotsIo(Operator):
+    bl_label="gdpy.project_slots_io"
+    bl_idname="gdpy.project_slots_io"
     mode : EnumProperty(items = [
         ("ADD","add",""),
         ("REMOVE","remove",""),
         ("RELOAD","reload",""),
     ]) #type:ignore
 
-    prj_colname : StringProperty(options={"HIDDEN"}) #type:ignore
+    prj_slot_name : StringProperty(options={"HIDDEN"}) #type:ignore
 
     ## File sections options:
     filepath: bpy.props.StringProperty(subtype="FILE_PATH") #type:ignore
@@ -59,7 +59,6 @@ class OP_ProjectIo(Operator):
 
         project.name = name
 
-
         prefs.project_selected = len(prefs.project_slots)
         return {"FINISHED"}
     
@@ -74,10 +73,21 @@ class OP_ProjectIo(Operator):
 
     def execute_reload(self, context):
         pass
-    
-class OP_SceneIo(Operator):
-    bl_label = "gdpy.scene_io"
-    bl_idname = "gdpy.scene_io"
+
+class OP_ProjectIo(Operator):
+    bl_label="gdpy.project_io"
+    bl_idname="gdpy.project_io"
+    mode : EnumProperty(items = [
+        ("ACTIVATE","activate",""),
+        ("DEACTIVATE","deactivate",""),
+        ("RELOAD","reload",""),
+    ]) #type:ignore
+
+    prj_slot_name : StringProperty(options={"HIDDEN"}) #type:ignore
+
+class OP_ColSceneIo(Operator):
+    bl_label = "gdpy.col_scene_io"
+    bl_idname = "gdpy.col_scene_io"
     col : StringProperty() #type:ignore
     mode : EnumProperty(items = [
         ("LOAD","load",""),
@@ -99,9 +109,9 @@ class OP_SceneIo(Operator):
 
         return {"FINISHED"}
 
-class OP_NodeIo(Operator):
-    bl_label = "gdpy.node_io"
-    bl_idname = "gdpy.node_io"
+class OP_ObjSceneIo(Operator):
+    bl_label = "gdpy.obj_scene_io"
+    bl_idname = "gdpy.obj_scene_io"
     obj : StringProperty() #type:ignore
     mode : EnumProperty(items = [
         ("LOAD","load",""),
@@ -112,11 +122,67 @@ class OP_NodeIo(Operator):
     def execute(self, context):
         return {"FINISHED"}
 
+class OP_NodeIo(Operator):
+    bl_label = "gdpy.node_io"
+    bl_idname = "gdpy.node_io"
+    obj : StringProperty() #type:ignore
+    mode : EnumProperty(items = [
+        ("TYP_SET","type set",""),
+        ("TYP_REVERT","type revert",""),
+    ]) #type:ignore
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+class OP_ResourceIo(Operator):
+    bl_label = "gdpy.resource_io"
+    bl_idname = "gdpy.resource_io"
+    obj : StringProperty() #type:ignore
+    mode : EnumProperty(items = [
+        ("LOAD","load",""),
+        ("RELOAD","reload",""),
+        ("WRITE","write",""),
+    ]) #type:ignore
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+class OP_SubResourceIo(Operator):
+    bl_label = "gdpy.sub_resource_io"
+    bl_idname = "gdpy.sub_resource_io"
+    obj : StringProperty() #type:ignore
+    mode : EnumProperty(items = [
+        ("TYP_SET","type set",""),
+        ("TYP_REVERT","type revert",""),
+    ]) #type:ignore
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+class OP_PropertyIo(Operator):
+    bl_label = "gdpy.property_io"
+    bl_idname = "gdpy.property_io"
+    obj : StringProperty() #type:ignore
+    mode : EnumProperty(items = [
+        ("ADD","add",""),
+        ("REMOVE","remove",""),
+        ("REVERT","revert",""),
+        ("CHANGE","change type",""),
+    ]) #type:ignore
+
+    def execute(self, context):
+        return {"FINISHED"}
+
 
 classes = [
+    OP_ProjectSlotsIo,
     OP_ProjectIo,
-    OP_SceneIo,
+    OP_ColSceneIo,
+    OP_ObjSceneIo,
     OP_NodeIo,
+    OP_ResourceIo,
+    OP_SubResourceIo,
+    OP_PropertyIo,
 ]
 
 def register():

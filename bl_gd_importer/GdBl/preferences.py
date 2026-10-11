@@ -308,11 +308,11 @@ class Preferences(AddonPreferences):
         row.template_list("PROJECT_UL_regular", "", self, "project_slots", self, "project_selected")
         col = row.column()
 
-        s = col.operator("gdpy.project_io", text="Add")
+        s = col.operator("gdpy.project_slots_io", text="Add")
         s.mode = "ADD"
 
         if not (prj:=self.selected_project) is None:
-            s = col.operator("gdpy.project_io", text="Remove")
+            s = col.operator("gdpy.project_slots_io", text="Remove")
             s.mode = "REMOVE"
             s.prj_colname = prj.name
 
