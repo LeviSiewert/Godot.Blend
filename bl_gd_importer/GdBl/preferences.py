@@ -314,11 +314,11 @@ class Preferences(AddonPreferences):
         if not (prj:=self.selected_project) is None:
             s = col.operator("gdpy.project_slots_io", text="Remove")
             s.mode = "REMOVE"
-            s.prj_colname = prj.name
+            s.prj_slot_name = prj.name
 
             s = col.operator("gdpy.project_io", text="Reload")
             s.mode = "RELOAD"
-            s.prj_colname = prj.name
+            s.prj_slot_name = prj.name
 
 
             prj.draw_full(context, layout)

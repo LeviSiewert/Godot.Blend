@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from contextvars import ContextVar
 
 bl_info = {
     "name": "Godot IO",
@@ -11,5 +14,7 @@ bl_info = {
 }
 
 id_name = "bl_gd_importer"
-# id_name = "bl_ext.vscode_development.bl_gd_importer"
-# TODO: Determine context aware id_name?
+addon_path = str(Path(__file__)[:-2])
+
+flag_testing = ContextVar("flag_testing",default=False)
+flag_debug = ContextVar("flag_debug",default=False)

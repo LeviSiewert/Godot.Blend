@@ -8,7 +8,7 @@ from typing import Generator
 
 from ....bl_gd_importer.GdBl.transformers.gd_to_bl import make_bl_to_gd, make_gd_to_bl
 from ....bl_gd_importer.GdPy.core.transformer import Session
-from ....bl_gd_importer.addon_config import id_name
+from ....bl_gd_importer.addon_config import id_name, addon_path, flag_testing, flag_debug
 
 from ....bl_gd_importer.GdPy.core.structure import (Resource as GdResource, Node as GdNode)
 
@@ -25,13 +25,14 @@ def addon_ensure(registered:bool):
         addon_unregister()
 
 def addon_register():
-    ...
+    bpy.ops.preferences.addon_install(filepath=addon_path)
+    bpy.ops.preferences.addon_enable(module=id_name)
     assert is_addon_registered()
 
 def addon_unregister():
-    ...
+    bpy.ops.preferences.addon_disable(module=id_name)
+    bpy.ops.preferences.addon_remove(module=id_name)
     assert not is_addon_registered()
-    
 
 class TransformerDirect():
     ''' Test Gd|Bl Transformer directly
