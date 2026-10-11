@@ -55,7 +55,7 @@ class MODULE_VERSION_UL_regular(bpy.types.UIList):
     def draw_item(self, context, layout, data:Preferences, item:Project, icon, active_data, active_propname):
         item.draw_line(context, layout)
 
-class Module(PropertyGroup):
+class ModuleGroup(PropertyGroup):
     ''' Settings entry Imported & Exported to modules.json. Used to drive transformers, discovered from .bl.py files in project '''
     # From .bl.py file(s):
     uid  : StringProperty() #type:ignore # prim id
@@ -87,7 +87,7 @@ class Module(PropertyGroup):
         ... #TODO: Declare
 
 class MODULE_UL_regular(bpy.types.UIList):
-    def draw_item(self, context, layout, data:Preferences, item:Module, icon, active_data, active_propname):
+    def draw_item(self, context, layout, data:Preferences, item:ModuleGroup, icon, active_data, active_propname):
         item.draw_line(context, layout)
 
 class Project(PropertyGroup):
@@ -368,7 +368,7 @@ classes = [
     MODULE_OPTION_UL_regular,
     ModuleVersion,
     MODULE_VERSION_UL_regular,
-    Module,
+    ModuleGroup,
     MODULE_UL_regular,
     Project,
     PROJECT_UL_regular,

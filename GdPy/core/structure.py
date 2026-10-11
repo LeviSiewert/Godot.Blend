@@ -810,6 +810,8 @@ class File():
         return False
 
     ## File Handleing:
+    ## TODO: Standardize, as read/write/ect are not great.
+
     def prefetch_uid(self)->str|None:
         if res:=self.resource:
             return res.uid
@@ -823,10 +825,15 @@ class File():
         self.resource = res
         self.context.project.resources[res.uid] = res
 
+    def write_resource(self)->None:
+        fs = self.context.project.fs
+        with fs.open(self.path,"w") as f: 
+            f.write(self.write(self.resource))
+
     def read(self, data=None)->Resource:
         raise NotImplementedError("Abstract Class")
 
-    def write(self, res=None)->None:
+    def write(self, res=None)->Any:
         raise NotImplementedError("Abstract Class")
 
     def reload(self)->None:

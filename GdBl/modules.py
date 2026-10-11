@@ -1,7 +1,10 @@
+''' Python only discovered modules, trawled from disc by addon and used to generate module.json per project. '''
+
 from __future__ import annotations
 
 from typing import Type, Any
 from ..GdPy.core.transformer import TransformerSet, Session
+
 
 class ModuleOption():
     _type = "Option"
