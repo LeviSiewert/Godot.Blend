@@ -4,7 +4,7 @@ from ._test_utils import TransformerDirect
 from ....GdPy.core import structure as GdPy
 from ...datastruct import NodeGd, SceneGd
 
-def _make_empty(bl_obj:bpy.types.Object, *, type:str, name:str=None, gd_type:str=None, gd_script:str|dict=None, instance=None, instance_editable=None)->tuple[NodeGd,bpy.types.Object]:
+def _make_empty(bl_obj:bpy.types.Object, *, type:str, name:str=None, gd_type:str=None, gd_script:str|dict=None, instance=None, instance_editable=None, children:tuple[bpy.types.Object]=tuple())->tuple[NodeGd,bpy.types.Object]:
     # bl_obj = bpy.data.objects.new(type="EMPTY")
     gd = bl_obj.gd
 
@@ -47,8 +47,13 @@ def _make_empty(bl_obj:bpy.types.Object, *, type:str, name:str=None, gd_type:str
         else:
             raise TypeError()
 
+    for x in children:
+        x.parent = bl_obj
+
     def cleanup():
         bpy.data.objects.remove(bl_obj)
+        for x in children:
+            bpy.data.objects.remove(x)
 
     return bl_obj, cleanup
 
@@ -217,7 +222,7 @@ class SubResource(TransformerDirect, _Mixin_ObjectCompare):
 class Resource(TransformerDirect, _Mixin_CollectionCompare):
     def data(self):
         def make(**kwargs):
-            return _make_resource(bpy.data.objects.new("",None), res="_res", uid="_uid", **kwargs)
+            return _make_resource(bpy.data.objects.new("",None), "RESOURCE", res="_res", uid="_uid", **kwargs)
 
         ## Basic structure
 
@@ -333,6 +338,39 @@ class Resource(TransformerDirect, _Mixin_CollectionCompare):
 #         pass
 
 
-# class Scene():
-#     def data(self):
-#         pass
+class Scene():
+    def data(self):
+
+        def node(**kwargs)->bpy.types.Object:
+            bl_obj, _ = _make_empty(bpy.data.objects.new("obj", None), type="NODE", gd_type="Node", **kwargs)
+            return bl_obj
+
+        def make_scene(**kwargs):
+            return _make_resource(bpy.data.objects.new("",None), "SCENE" , res="_res", uid="_uid", **kwargs)
+
+        
+
+        bl_obj, clean = make_scene(
+            name = "Root",
+            children = [
+                node(name="Node")
+            ]
+        )
+
+        gd_obj = GdPy.Node(uid="_uid", file="_res", 
+            children = [
+                GdPy.Node(name="Node")
+            ]
+        )
+
+        yield bl_obj, gd_obj 
+        clean()
+
+
+        ## TODO: MORE!!!
+        # - depth 2 structure
+        # - Instance
+        # - Instance Override
+
+
+
