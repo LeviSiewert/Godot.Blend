@@ -1,13 +1,15 @@
-from . import preferences, datastruct,operators,panels
+from . import properties, preferences, structure, operators,panels
 
 def register():
-    datastruct.register()
+    properties.register()
+    structure.register()
     preferences.register()
     operators.register()
     panels.register()
 
 def unregister():
-    preferences.unregister()
-    datastruct.unregister()
-    operators.unregister()
     panels.unregister()
+    operators.unregister()
+    preferences.unregister()
+    structure.unregister()
+    properties.unregister()

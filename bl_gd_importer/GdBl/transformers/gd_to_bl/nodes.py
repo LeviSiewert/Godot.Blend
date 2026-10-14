@@ -12,7 +12,7 @@ from ....GdPy.core.structure import (
     Properties as GdProperties, 
     Promise as GdPromise,
 )
-from ....GdBl.datastruct import (
+from ...structure import (
     Properties as BlProperties,
     Promise as BlPromise, 
 )
