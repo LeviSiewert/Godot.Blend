@@ -171,7 +171,7 @@ class _Node():
             ## Changed based on script & class type. 
 
 
-bl_to_gd = BlToGdTransformerSet(
+bl_to_gd = BlToGdTransformerSet("bl_to_gd::nodes.py",
     transformers=[
         _Node.BlToGd,
         _Scene.BlToGd,
@@ -183,7 +183,7 @@ bl_to_gd = BlToGdTransformerSet(
     }
 )
 
-gd_to_bl = GdToBlTransformerSet(
+gd_to_bl = GdToBlTransformerSet("gd_to_gl::nodes.py",
     transformers=[
         _Node.GdToBl,
         _Scene.GdToBl,

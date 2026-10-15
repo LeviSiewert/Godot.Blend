@@ -2,9 +2,9 @@ import bpy
 
 from ._test_utils import TransformerDirect
 from ....GdPy.core import structure as GdPy
-from ...structure import NodeGd, SceneGd
+from ...structure import (Resource, ResourceCollection)
 
-def _make_empty(bl_obj:bpy.types.Object, *, type:str, name:str=None, gd_type:str=None, gd_script:str|dict=None, instance=None, instance_editable=None, children:tuple[bpy.types.Object]=tuple())->tuple[NodeGd,bpy.types.Object]:
+def _make_empty(bl_obj:bpy.types.Object, *, type:str, name:str=None, gd_type:str=None, gd_script:str|dict=None, instance=None, instance_editable=None, children:tuple[bpy.types.Object]=tuple())->tuple[Resource,bpy.types.Object]:
     # bl_obj = bpy.data.objects.new(type="EMPTY")
     gd = bl_obj.gd
 

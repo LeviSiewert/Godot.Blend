@@ -7,19 +7,19 @@ class _Base():
     struct = Properties
 
     @property
-    def value(self):
+    def value(self)->Properties:
         return getattr(bpy.data.scenes[0], self.attach[0])
 
-    def setup(self):
+    def setup_class(self):
         addon_ensure(True)
-        setattr(self.attach[1], self.attach[0], Properties)
+        setattr(self.attach[1], self.attach[0], PointerProperty(type=self.struct))
 
-    def teardown(self):
+    def teardown_class(self):
         self.value.clear()
         delattr(self.attach[1], self.attach[0])
         addon_ensure(False)
 
-class TestPrimitive():
+class TestPrimitive(_Base):
     def data(self):
         yield self.value.bin_string, "key", "value"
         yield self.value.bin_int, "key", 0

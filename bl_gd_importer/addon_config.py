@@ -14,7 +14,7 @@ bl_info = {
 }
 
 id_name = "bl_gd_importer"
-addon_path = str(Path(__file__).parent.resolve())
+addon_path = str(Path(__file__).parent.resolve()/"__init__.py")
 
 flag_testing = ContextVar("flag_testing",default=False)
 flag_debug = ContextVar("flag_debug",default=False)

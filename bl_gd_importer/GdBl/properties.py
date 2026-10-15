@@ -44,7 +44,7 @@ from ..GdPy.core.values import (
 from collections import UserDict, UserList, UserString
 
 
-class Promise():
+class Promise(PropertyGroup):
     p_type : EnumProperty(items = [
         ("SUBRESOURCE","subresource",""),
         ("EXTRESOURCE","extresource",""),
@@ -66,32 +66,22 @@ class Promise():
     ptr_lgt : PointerProperty(type=bpy.types.Light) #type:ignore
     ptr_cam : PointerProperty(type=bpy.types.Camera) #type:ignore
     ptr_mesh : PointerProperty(type=bpy.types.Mesh) #type:ignore
-    ptr_anim : PointerProperty(type=bpy.types.Animation) #type:ignore
     ptr_clip : PointerProperty(type=bpy.types.Action) #type:ignore
     ptr_curv : PointerProperty(type=bpy.types.Curve) #type:ignore
     ptr_geon : PointerProperty(type=bpy.types.NodeTree) #type:ignore
     ptr_wrld : PointerProperty(type=bpy.types.World) #type:ignore
+    # ptr_anim : PointerProperty(type=bpy.types.AnimData) #type:ignore
     
 class UNSET:pass
 
-class Property[IN:Any](PropertyGroup):
-    wrapper : Type[PropertyWrapper]|None = None
-    name : StringProperty(name="pointer") #type:ignore
-
-    def store(self, properties:Properties, val:IN)->None:
-        ''' Store value and any dependencies stored in Properties '''
-        raise NotImplementedError()
-    
-    def dump(self, properties:Properties): 
-        ''' Dump any related values from src properties obj '''
 
 class PropertyWrapper[PROPERTY]():
     ''' Wrapped interface, returned by PropertyBin on get/set w/a '''
     _type : Type[PROPERTY]
     _property : PROPERTY
-    _properties : Properties
+    _properties : Any
 
-    def __init__(self, properties:Properties, property:PROPERTY):
+    def __init__(self, properties, property:PROPERTY):
         self._property = property
         self._properties = properties
 
@@ -102,16 +92,28 @@ class PropertyWrapper[PROPERTY]():
     def name(self, val):
         self._property.name = val
 
+class Property[IN:Any](PropertyGroup):
+    wrapper : Type = None
+    name : StringProperty(name="pointer") #type:ignore
+
+    def store(self, properties, val:IN)->None:
+        ''' Store value and any dependencies stored in Properties '''
+        raise NotImplementedError()
+    
+    def dump(self, properties): 
+        ''' Dump any related values from src properties obj '''
+
+
 class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup):
     ''' data container that acts as an interface for accessing and wrapping data stored in local .data'''
     in_types : tuple[Type] 
     wrapper : None|Type[PropertyWrapper] = None
-    data : CollectionProperty[Property] #type:ignore
+    data : CollectionProperty #type:ignore
 
     def matches_type(self, data:Any|IN)->bool:
         return isinstance(data, self.in_types)
 
-    def get(self, /, properties:Properties, ptr:str, default:Any=UNSET, wrap:bool=True)->OUT:
+    def get(self, /, properties:PropertiesBase, ptr:str, default:Any=UNSET, wrap:bool=True)->OUT:
         entry = self.data.get(ptr, UNSET)
         if entry is UNSET:
             if default is UNSET:
@@ -121,10 +123,10 @@ class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup)
             return self.wrapper(properties, entry)
         return entry
 
-    def add(self, /, properties:Properties, value:IN, wrap:bool=True)->OUT:
+    def add(self, /, properties:PropertiesBase, value:IN, wrap:bool=True)->OUT:
         return self.set(properties, properties.generate_pointer(), value, wrap)
     
-    def set(self, /, properties:Properties, ptr:str, value:IN, wrap:bool=True)->OUT:
+    def set(self, /, properties:PropertiesBase, ptr:str, value:IN, wrap:bool=True)->OUT:
         entry = self.data.new()
         entry.name = ptr
         entry.store(value)
@@ -132,7 +134,7 @@ class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup)
             return self.wrapper(properties, entry)
         return entry
 
-    def delete(self, /, properties:Properties, ptr:str, not_exist_ok:bool=False):
+    def delete(self, /, properties:PropertiesBase, ptr:str, not_exist_ok:bool=False):
         entry = self.data.get(ptr, UNSET)
         if entry is UNSET:
             if not not_exist_ok:
@@ -144,11 +146,11 @@ class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup)
     def __contains__(self, ptr:str)->bool:
         return (ptr in self.data.keys()) 
 
-class PropertiesEntry(CollectionProperty):
+class PropertiesEntry(PropertyGroup):
     name : StringProperty() #type:ignore
     ptr : StringProperty() #type:ignore
 
-class Properties[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
+class PropertiesBase[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
     ''' Dict-like using "bins" to store values ''' 
     _bins : tuple[str] = tuple()
 
@@ -292,7 +294,7 @@ class PropertyBinFloat(PropertyBin):
 
 
 class PropertyVector(Property):
-    _subtypes = [{
+    _subtypes = {
         GdVector2i.__name__ : GdVector2i,
         GdVector3i.__name__ : GdVector3i,
         GdVector4i.__name__ : GdVector4i,
@@ -308,9 +310,9 @@ class PropertyVector(Property):
         GdTransform2D.__name__ : GdTransform2D,
         GdTransform3D.__name__ : GdTransform3D,
         GdBasis.__name__ : GdBasis,
-    }]
+    }
 
-    subtype : EnumProperty(items=((k.lower(),k,"") for k,v in _subtypes.items))#type:ignore
+    subtype : EnumProperty(items=((k.lower(),k,"") for k,v in _subtypes.items()))#type:ignore
     vector2i : IntVectorProperty(size=2) #type:ignore
     vector3i : IntVectorProperty(size=3) #type:ignore
     vector4i : IntVectorProperty(size=4) #type:ignore
@@ -396,7 +398,7 @@ class PropertyDict(Property, PropertyBin):
     def dump(self, properties):
         self.clear()
 
-    def get(self, properties:Properties, key:Any, default:Any=UNSET, wrap:bool=True):
+    def get(self, properties:PropertiesBase, key:Any, default:Any=UNSET, wrap:bool=True):
         for k,v in self.items(properties, wrap=True):
             if k != key:
                 continue
@@ -407,7 +409,7 @@ class PropertyDict(Property, PropertyBin):
             raise KeyError(key)
         return default
 
-    def setitem(self, properties:Properties, key:Any, value:Any, wrap:bool=True):
+    def setitem(self, properties:PropertiesBase, key:Any, value:Any, wrap:bool=True):
         existing_val = self.get(key,None,False)
         if not (existing_val is None):
             properties.bin_delete(self.data[existing_val.name].val_ptr, not_exist_ok = True)
@@ -421,7 +423,7 @@ class PropertyDict(Property, PropertyBin):
             return val._property
         return val
 
-    def delitem(self, properties:Properties, key:Any, not_exist_ok:bool=False):
+    def delitem(self, properties:PropertiesBase, key:Any, not_exist_ok:bool=False):
         for k, v in self.items(wrap=True):
             if k != key:
                 continue
@@ -431,7 +433,7 @@ class PropertyDict(Property, PropertyBin):
             raise KeyError(key)
         return
 
-    def update(self, properties:Properties, seq:Iterable):
+    def update(self, properties:PropertiesBase, seq:Iterable):
         for k,v in seq:
             self.setitem(properties, k, v)
     
@@ -439,15 +441,15 @@ class PropertyDict(Property, PropertyBin):
         for e in self.data:
             yield e.key_ptr, e.val_ptr
     
-    def items(self, properties:Properties, wrap:bool=True):
+    def items(self, properties:PropertiesBase, wrap:bool=True):
         for key_ptr, val_ptr in self.item_pointers():
             yield properties.bin_get(key_ptr, wrap=wrap), properties.bin_get(val_ptr, wrap=wrap)
     
-    def keys(self, properties:Properties, wrap:bool=True):
+    def keys(self, properties:PropertiesBase, wrap:bool=True):
         for e in self.data:
             yield properties.bin_get(e.key_ptr, wrap=wrap)
     
-    def values(self, properties:Properties, wrap:bool=True):
+    def values(self, properties:PropertiesBase, wrap:bool=True):
         for e in self.data:
             yield properties.bin_get(e.val_ptr, wrap=wrap)
 
@@ -493,17 +495,17 @@ class PropertyArrayItemWrapper(PropertyWrapper):
     def data(self, data):
         self._property.set_data(self._properties, data)
 
-class PropertyArray(Property, PropertyBin):
+class PropertyArray(Property): #
     typing : StringProperty() #type:ignore
     data : CollectionProperty(type=PropertyArrayItem) #type:ignore
     wrapper = PropertyDictItemWrapper
 
-    def store(self, properties:Properties, val):
+    def store(self, properties:PropertiesBase, val):
         self.extend(properties, val)
-    def dump(self, properties:Properties):
+    def dump(self, properties:PropertiesBase):
         self.clear(properties)
 
-    def append(self, properties:Properties, val:Any):
+    def append(self, properties:PropertiesBase, val:Any):
         v = properties.bin_add(val)
         e = self.data.new()
         e.name = v
@@ -512,19 +514,19 @@ class PropertyArray(Property, PropertyBin):
         for v in val:
             self.append(properties, v)
     
-    def remove(self, properties:Properties, val:Any):
+    def remove(self, properties:PropertiesBase, val:Any):
         for e in tuple(self.data):
             if properties.get(e.ptr) == val:
                 self.data.remove(e.ptr)
                 return
 
-    def setitem(self, properties:Properties, index:int, val):
+    def setitem(self, properties:PropertiesBase, index:int, val):
         if len(self.data) < index:
             raise KeyError(self.data, index)
         v = properties.bin_add(val)
         tuple(self.data.keys())[index].ptr = v.name
 
-    def delitem(self, properties:Properties, index):
+    def delitem(self, properties:PropertiesBase, index):
         if len(self.data) < index:
             raise KeyError(self.data, index)
         e = tuple(self.data.keys())[index]
@@ -580,11 +582,11 @@ class PropertyBinary(Property):
     def dump(self):
         self.data = None
 
-class PropertyBinaryBin(PropertyBin):
+class PropertyBinBinary(PropertyBin):
     in_types = [GdPackedByteArray, bytes, bytearray]
     data : CollectionProperty(type=PropertyBinary) #type:ignore
 
-class Properties(Properties):
+class Properties(PropertiesBase):
     ''' dict-like object using local bins for "variant" allowences 
     Currently all objects are unique and not user-count tracked
 
@@ -604,6 +606,7 @@ class Properties(Properties):
     bin_binary : PointerProperty(type=PropertyBinBinary) #type:ignore
 
 classes = [
+    Promise,
     PropertyString,
     PropertyInt,
     PropertyFloat,
@@ -611,6 +614,7 @@ classes = [
     PropertyPromise,
     PropertyDictItem,
     PropertyDict,
+    PropertyBinary,
     PropertyArrayItem,
     PropertyArray,
     PropertyBinString,
@@ -620,6 +624,8 @@ classes = [
     PropertyBinDict,
     PropertyBinArray,
     PropertyBinVector,
+    PropertyBinBinary,
+    PropertiesEntry,
     Properties,
 ]
 
@@ -628,7 +634,6 @@ def register():
         bpy.utils.register_class(c)
         for l,n in getattr(c, "attach", tuple()):
             setattr(l, n, PointerProperty(type=c))
-
 def unregister():
     for c in reversed(classes):
         bpy.utils.unregister_class(c)

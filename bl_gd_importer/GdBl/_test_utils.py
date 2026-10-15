@@ -3,7 +3,7 @@ import bpy
 from ..addon_config import id_name, addon_path, flag_testing, flag_debug
 
 def is_addon_registered()->bool:
-    return (id_name in bpy.context.user_preferences.addons)
+    return (id_name in bpy.context.preferences.addons)
 
 def addon_ensure(registered:bool):
     if is_addon_registered() == registered:

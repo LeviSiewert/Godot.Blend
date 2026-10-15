@@ -8,7 +8,7 @@ from typing import Any, Type
 
 from .properties import Promise, Properties
 
-class Signal():
+class Signal(PropertyGroup):
     to : PointerProperty(type=bpy.types.Object) #type:ignore
     # fr # Stored on node when imported.
     to_str : StringProperty() #type:ignore
@@ -23,30 +23,30 @@ class Resource(PropertyGroup):
     ''' Global resource definition, stored on all types '''
     attach = [
         ["gd", bpy.types.Object],
-        # ["gd", bpy.types.Texture],
-        # ["gd", bpy.types.Image],
-        # ["gd", bpy.types.Material],
-        # ["gd", bpy.types.Text],
-        # ["gd", bpy.types.Scene],
-        # ["gd", bpy.types.Sound],
-        # ["gd", bpy.types.Light],
-        # ["gd", bpy.types.Camera],
-        # ["gd", bpy.types.Mesh],
-        # ["gd", bpy.types.Animation],
-        # ["gd", bpy.types.Action],
-        # ["gd", bpy.types.Curve],
-        # ["gd", bpy.types.NodeTree],
-        # ["gd", bpy.types.World],
+        ["gd", bpy.types.Texture],
+        ["gd", bpy.types.Image],
+        ["gd", bpy.types.Material],
+        ["gd", bpy.types.Text],
+        ["gd", bpy.types.Scene],
+        ["gd", bpy.types.Sound],
+        ["gd", bpy.types.Light],
+        ["gd", bpy.types.Camera],
+        ["gd", bpy.types.Mesh],
+        ["gd", bpy.types.Action],
+        ["gd", bpy.types.Curve],
+        ["gd", bpy.types.NodeTree],
+        ["gd", bpy.types.World],
+        # ["gd", bpy.types.AnimData],
     ]
 
-    type : EnumProperty(types=[
+    gd_type : EnumProperty(items=[
         ("SUBRESOURCE","subresource or node",""),
         ("RESOURCE","scene or resource file",""),
     ]) #type:ignore
 
     name : StringProperty() #type:ignore
 
-    type : StringProperty() #type:ignore
+    typing : StringProperty() #type:ignore
     script : PointerProperty(type=Promise) #type:ignore
 
     properties : PointerProperty(type=Properties) #type:ignore
@@ -73,17 +73,17 @@ class ResourceCollection(Resource):
         - does not hold `unclaimed_...`
     '''
 
-    type : EnumProperty(types=[
+    gd_type : EnumProperty(items=[
         ("UNSET","",""),
         ("RESOURCE","scene or resource file",""),
         ("SUBRESOURCE","subresource or node",""),
     ]) #type:ignore
     
-    types = [ 
+    attach = [ 
         ["gd", bpy.types.Collection],
     ]
 
-    root : PointerProperty(bpy.types.Object) #type:ignore
+    root : PointerProperty(type=bpy.types.Object) #type:ignore
 
 
 classes = [
@@ -96,12 +96,14 @@ classes = [
 
 def register():
     for c in classes:
-        bpy.utils.register_class(c)
-        for l,n in getattr(c, "attach", tuple()):
-            setattr(l, n, PointerProperty(type=c))
-
+        try:
+            bpy.utils.register_class(c)
+            for n,l in getattr(c, "attach", tuple()):
+                setattr(l, n, PointerProperty(type=c))
+        except Exception as e:
+            raise Exception(e, c)
 def unregister():
     for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        for l,n in reversed(getattr(c, "attach", tuple())):
+        for n,l in reversed(getattr(c, "attach", tuple())):
             delattr(l, n)
