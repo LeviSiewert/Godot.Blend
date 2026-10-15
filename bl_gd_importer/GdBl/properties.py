@@ -246,12 +246,28 @@ class Properties[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
 
 ## BASIC:
 class PropertyString(Property):
+    _subtypes = {
+        GdNodePath.__name__ : GdNodePath,
+        GdStringName.__name__ : GdStringName,
+    }
     subtype : StringProperty() #type:ignore
-    value : StringProperty() #type:ignore
+    value_store : StringProperty() #type:ignore
+
+    @property
+    def value(self):
+        if (self.subtype != ""):
+            return self._subtypes[self.subtype](self.value_store)
+        return self.value_store
+    @value.setter
+    def value(self, val):
+        if val.__class__.__name__ in self._subtypes.keys():
+            self.subtype = val.__class__.__name__
+        self.value_store = val
+    
     def store(self, properties, val):
         self.value = val
 class PropertyBinString(PropertyBin):
-    in_types = [str, UserString]
+    in_types = [str, UserString, GdNodePath, GdStringName]
     data : CollectionProperty(type=PropertyString) #type:ignore
 
 
@@ -277,21 +293,21 @@ class PropertyBinFloat(PropertyBin):
 
 class PropertyVector(Property):
     _subtypes = [{
-        "Vector2i":GdVector2i,
-        "Vector3i":GdVector3i,
-        "Vector4i":GdVector4i,
-        "Rect2i":GdRect2i,
-        "Vector2":GdVector2,
-        "Vector3":GdVector3,
-        "Vector4":GdVector4,
-        "Rect2":GdRect2,
-        "Plane":GdPlane,
-        "Color":GdColor,
-        "AABB":GdAABB,
-        "Quaternion":GdQuaternion,
-        "Transform2D":GdTransform2D,
-        "Transform3D":GdTransform3D,
-        "Basis":GdBasis,
+        GdVector2i.__name__ : GdVector2i,
+        GdVector3i.__name__ : GdVector3i,
+        GdVector4i.__name__ : GdVector4i,
+        GdRect2i.__name__ : GdRect2i,
+        GdVector2.__name__ : GdVector2,
+        GdVector3.__name__ : GdVector3,
+        GdVector4.__name__ : GdVector4,
+        GdRect2.__name__ : GdRect2,
+        GdPlane.__name__ : GdPlane,
+        GdColor.__name__ : GdColor,
+        GdAABB.__name__ : GdAABB,
+        GdQuaternion.__name__ : GdQuaternion,
+        GdTransform2D.__name__ : GdTransform2D,
+        GdTransform3D.__name__ : GdTransform3D,
+        GdBasis.__name__ : GdBasis,
     }]
 
     subtype : EnumProperty(items=((k.lower(),k,"") for k,v in _subtypes.items))#type:ignore
@@ -311,13 +327,17 @@ class PropertyVector(Property):
     transform3d : FloatVectorProperty(size=12) #type:ignore
     basis : FloatVectorProperty(size=9, subtype="MATRIX") #type:ignore
 
+    def store(self, properties, val):
+        self.data = val
+
     @property
     def data(self): 
         return getattr(self, self._subtypes[self.subtype](self.subtype))
     @data.setter
     def data(self, val):
-        self.subtype = val.__class__.lower()
-        self.setattr(*tuple(val))
+        self.property_unset(self.subtype)
+        self.subtype = val.__class__.__name__.lower()
+        setattr(self, self.subtype, tuple(val))
         
 class PropertyBinVector(PropertyBin):
     in_types = [GdFixedLenArray]
@@ -369,6 +389,12 @@ class PropertyDict(Property, PropertyBin):
     typing : StringProperty() #type:ignore
     data : CollectionProperty(type=PropertyDictItem) #type:ignore
     wrapper = PropertyDictItemWrapper
+
+    def store(self, properties, val:Iterable):
+        self.update(val)
+
+    def dump(self, properties):
+        self.clear()
 
     def get(self, properties:Properties, key:Any, default:Any=UNSET, wrap:bool=True):
         for k,v in self.items(properties, wrap=True):
@@ -425,6 +451,11 @@ class PropertyDict(Property, PropertyBin):
         for e in self.data:
             yield properties.bin_get(e.val_ptr, wrap=wrap)
 
+    def clear(self, properties):
+        for e in self.data:
+            properties.bin_remove(e.name, not_exist_ok=True)
+            properties.bin_remove(e.val_ptr, not_exist_ok=True)
+
 class PropertyDictWrapper(PropertyWrapper):
     def get(self, key:Any, default:Any=UNSET, wrap:bool=True):
         return self._property.get(self, key, default, wrap)
@@ -469,6 +500,8 @@ class PropertyArray(Property, PropertyBin):
 
     def store(self, properties:Properties, val):
         self.extend(properties, val)
+    def dump(self, properties:Properties):
+        self.clear(properties)
 
     def append(self, properties:Properties, val:Any):
         v = properties.bin_add(val)
@@ -497,6 +530,10 @@ class PropertyArray(Property, PropertyBin):
         e = tuple(self.data.keys())[index]
         properties.bin_remove(e.ptr)
         self.data.remove(e)
+        
+    def clear(self, properties):
+        for e in self.data:
+            properties.bin_remove(e.ptr, not_exist_ok=True)
 
 class PropertyArrayWrapper(PropertyWrapper):
     def store(self, val):
@@ -537,6 +574,12 @@ class PropertyBinary(Property):
         if (val is None) and (not (self.data_store is None)):
             bpy.data.texts.remove(self.data_store.name)
 
+    def store(self, val):
+        self.data = val
+
+    def dump(self):
+        self.data = None
+
 class PropertyBinaryBin(PropertyBin):
     in_types = [GdPackedByteArray, bytes, bytearray]
     data : CollectionProperty(type=PropertyBinary) #type:ignore
@@ -549,8 +592,8 @@ class Properties(Properties):
     bytes objects *are* suppported but generally binary data should have an incorperated type
     '''
 
-    bins = ["bin_float", "bin_int", "bin_string", "bin_binary", "bin_dict", "bin_vector", "bin_array", "bin_promises"]
-    ## bins array also doubles as priority of match. 
+    _bins = ["bin_float", "bin_int", "bin_string", "bin_binary", "bin_dict", "bin_vector", "bin_array", "bin_promises"]
+    ## _bins also doubles as priority of match. 
     bin_string : PointerProperty(type=PropertyBinString) #type:ignore
     bin_float : PointerProperty(type=PropertyBinInt) #type:ignore
     bin_int : PointerProperty(type=PropertyBinFloat) #type:ignore
