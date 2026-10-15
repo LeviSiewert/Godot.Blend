@@ -6,7 +6,7 @@ from typing import Generator
 from ._core import make_bl_to_gd, make_gd_to_bl
 from ....GdPy.core.transformer import Session
 
-from ..._test_utils import addon_ensure
+from ..._test_utils import addon_ensure, is_addon_registered
 from ....addon_config import id_name, addon_path, flag_testing, flag_debug
 from ....GdPy.core.structure import (Resource as GdResource, Node as GdNode)
 
