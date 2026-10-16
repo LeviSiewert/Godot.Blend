@@ -73,6 +73,7 @@ class Promise(PropertyGroup):
     # ptr_anim : PointerProperty(type=bpy.types.AnimData) #type:ignore
     
 class UNSET:pass
+class UNSETALT:pass
 
 
 class PropertyWrapper[PROPERTY]():
@@ -127,21 +128,23 @@ class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup)
         return self.set(properties, properties.generate_pointer(), value, wrap)
     
     def set(self, /, properties:PropertiesBase, ptr:str, value:IN, wrap:bool=True)->OUT:
-        entry = self.data.new()
+        entry = self.data.add()
         entry.name = ptr
-        entry.store(value)
+        entry.store(properties, value)
         if wrap and self.wrapper:
             return self.wrapper(properties, entry)
         return entry
 
-    def delete(self, /, properties:PropertiesBase, ptr:str, not_exist_ok:bool=False):
+    def remove(self, /, properties:PropertiesBase, ptr:str, not_exist_ok:bool=False):
         entry = self.data.get(ptr, UNSET)
         if entry is UNSET:
             if not not_exist_ok:
                 raise KeyError(self, ptr)
             return
+        
+        index = tuple(self.data.keys()).index(ptr)
         entry.dump(properties)
-        self.data.remove(ptr)
+        self.data.remove(index)
 
     def __contains__(self, ptr:str)->bool:
         return (ptr in self.data.keys()) 
@@ -177,20 +180,21 @@ class PropertiesBase[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
         val = self.bin_add(value, wrap)
         entry = self.data.get(key, None)
         if entry is None:
-            entry = self.data.new()
+            entry = self.data.add()
             entry.name = key 
         else:
-            self.bin_delete(entry.ptr, not_exist_ok = True)
+            self.bin_remove(entry.ptr, not_exist_ok = True)
         entry.ptr = val.name
         return val
 
-    def delete(self, /, key:str, not_exist_ok:bool=False):
+    def remove(self, /, key:str, not_exist_ok:bool=False):
         entry = self.data.get(key, None)
         if entry is None:
             if not not_exist_ok:
                 raise KeyError(key)
             return 
-        self.bin_delete(entry.ptr, not_exist_ok=True)
+        self.bin_remove(entry.ptr, not_exist_ok=not_exist_ok)
+        self.data.remove(tuple(self.data.keys()).index(key))
 
     def __contains__(self, key):
         return (key in self.data.keys()) or (key in self.data.values())
@@ -198,16 +202,16 @@ class PropertiesBase[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
     def keys(self):
         yield from self.data.keys()
     
-    def values(self, wrap:bool):
+    def values(self, wrap:bool=True):
         for _,v in self.items(wrap):
             yield v
     
-    def items(self, wrap:bool):
+    def items(self, wrap:bool=True):
         for e in self.data.values():
             yield e.name, self.bin_get(e.ptr, None, wrap)
 
     def clear(self):
-        for b in self.bins:
+        for b in self.bins():
             b.data.clear()
         self.data.clear()
 
@@ -219,8 +223,8 @@ class PropertiesBase[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
 
     def bin_get(self, /, key:str, default:Any=UNSET, wrap:bool=True)->OUT:
         for b in self.bins():
-            res = b.get(self, key, wrap=wrap, default=UNSET)
-            if not (res is UNSET):
+            res = b.get(self, key, wrap=wrap, default=UNSETALT)
+            if not (res is UNSETALT):
                 return res
         if default is UNSET:
             raise KeyError(key)
@@ -229,18 +233,22 @@ class PropertiesBase[OUT:Property|PropertyWrapper[Property]](PropertyGroup):
     def bin_add(self, value:Any, wrap:bool):
         _bin = None
         for b in self.bins():
-            if b.matches(value):
+            if b.matches_type(value):
                 _bin = b
                 break
         if _bin is None:
             raise TypeError(self, value)
-
         value = _bin.add(self, value, wrap)
         return value
 
-    def bin_delete(self, /, ptr:str):
+    def bin_remove(self, /, ptr:str, not_exist_ok:bool=False):
         for b in self.bins():
-            b.remove(self, ptr, not_exist_ok=True)
+            if ptr in b:
+                b.remove(self, ptr)
+                return
+        if not not_exist_ok:
+            raise KeyError(ptr)
+        return
 
 
 
@@ -268,8 +276,9 @@ class PropertyString(Property):
     
     def store(self, properties, val):
         self.value = val
+
 class PropertyBinString(PropertyBin):
-    in_types = [str, UserString, GdNodePath, GdStringName]
+    in_types = (str, UserString, GdNodePath, GdStringName)
     data : CollectionProperty(type=PropertyString) #type:ignore
 
 
@@ -279,7 +288,7 @@ class PropertyInt(Property):
     def store(self, properties, val):
         self.value = val
 class PropertyBinInt(PropertyBin):
-    in_types = [int]
+    in_types = (int, )
     data : CollectionProperty(type=PropertyInt) #type:ignore
 
 
@@ -289,7 +298,7 @@ class PropertyFloat(Property):
     def store(self, properties, val):
         self.value = val
 class PropertyBinFloat(PropertyBin):
-    in_types = [float]
+    in_types = (float, )
     data : CollectionProperty(type=PropertyFloat) #type:ignore
 
 
@@ -342,14 +351,14 @@ class PropertyVector(Property):
         setattr(self, self.subtype, tuple(val))
         
 class PropertyBinVector(PropertyBin):
-    in_types = [GdFixedLenArray]
+    in_types = (GdFixedLenArray)
     data : CollectionProperty(type=PropertyVector) #type:ignore
 
 class PropertyPromise(Property):
     typing : StringProperty() #type:ignore
     data : PointerProperty(type=Promise) #type:ignore
 class PropertyBinPromise(PropertyBin):
-    in_types = [GdPromise,Promise]
+    in_types = (GdPromise,Promise)
     data : CollectionProperty(type=PropertyPromise) #type:ignore
 
 
@@ -412,9 +421,9 @@ class PropertyDict(Property, PropertyBin):
     def setitem(self, properties:PropertiesBase, key:Any, value:Any, wrap:bool=True):
         existing_val = self.get(key,None,False)
         if not (existing_val is None):
-            properties.bin_delete(self.data[existing_val.name].val_ptr, not_exist_ok = True)
+            properties.bin_remove(self.data[existing_val.name].val_ptr, not_exist_ok = True)
         else:
-            existing_val = self.data.new()
+            existing_val = self.data.add()
             _key = properties.bin_add(key, wrap=False)
             existing_val.name = _key.name
         val = properties.bin_add(value, wrap=True)
@@ -473,7 +482,7 @@ class PropertyDictWrapper(PropertyWrapper):
         return self._property.delitem(self)
     
 class PropertyBinDict(PropertyBin):
-    in_types = [dict, GdDictionary, UserDict, GdObject]
+    in_types = (dict, GdDictionary, UserDict, GdObject)
     data : CollectionProperty(type=PropertyDict) #type:ignore
     wrapper = PropertyDictWrapper
 
@@ -507,7 +516,7 @@ class PropertyArray(Property): #
 
     def append(self, properties:PropertiesBase, val:Any):
         v = properties.bin_add(val)
-        e = self.data.new()
+        e = self.data.add()
         e.name = v
 
     def extend(self, properties, val):
@@ -517,7 +526,7 @@ class PropertyArray(Property): #
     def remove(self, properties:PropertiesBase, val:Any):
         for e in tuple(self.data):
             if properties.get(e.ptr) == val:
-                self.data.remove(e.ptr)
+                self.data.remove(e)
                 return
 
     def setitem(self, properties:PropertiesBase, index:int, val):
@@ -552,7 +561,7 @@ class PropertyArrayWrapper(PropertyWrapper):
         return self._property.delitem(self, index)
 
 class PropertyBinArray(PropertyBin):
-    in_types = [GdArray, list, UserList, GdPackedListSimple, GdPackedListComplex]
+    in_types = (GdArray, list, UserList, GdPackedListSimple, GdPackedListComplex)
     data : CollectionProperty(type=PropertyArray) #type:ignore
     wrapper = PropertyArrayWrapper
 
@@ -583,7 +592,7 @@ class PropertyBinary(Property):
         self.data = None
 
 class PropertyBinBinary(PropertyBin):
-    in_types = [GdPackedByteArray, bytes, bytearray]
+    in_types = (GdPackedByteArray, bytes, bytearray)
     data : CollectionProperty(type=PropertyBinary) #type:ignore
 
 class Properties(PropertiesBase):
@@ -594,11 +603,11 @@ class Properties(PropertiesBase):
     bytes objects *are* suppported but generally binary data should have an incorperated type
     '''
 
-    _bins = ["bin_float", "bin_int", "bin_string", "bin_binary", "bin_dict", "bin_vector", "bin_array", "bin_promises"]
+    _bins = ["bin_int", "bin_float", "bin_string", "bin_binary", "bin_dict", "bin_vector", "bin_array", "bin_promises"]
     ## _bins also doubles as priority of match. 
     bin_string : PointerProperty(type=PropertyBinString) #type:ignore
-    bin_float : PointerProperty(type=PropertyBinInt) #type:ignore
-    bin_int : PointerProperty(type=PropertyBinFloat) #type:ignore
+    bin_float : PointerProperty(type=PropertyBinFloat) #type:ignore
+    bin_int : PointerProperty(type=PropertyBinInt) #type:ignore
     bin_promises : PointerProperty(type=PropertyBinPromise) #type:ignore
     bin_dict : PointerProperty(type=PropertyBinDict) #type:ignore
     bin_array : PointerProperty(type=PropertyBinArray) #type:ignore
