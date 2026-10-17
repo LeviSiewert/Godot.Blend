@@ -23,6 +23,44 @@ class TestSanity(_Base):
     def test(self):
         raise Exception(self.value)
 
+from ..GdPy.transformers.gd_to_py.values_test import (
+    Test_Options as _T_Options,
+    Test_NodePath as _T_NodePath,
+    Test_StringName as _T_StringName,
+    Test_Object as _T_Object,
+    Test_Dictionary as _T_Dictionary,
+#   Test_Explicit as _T_Explicit,
+#   Test_Implicit as _T_Implicit,
+    Test_Array as _T_Array,
+#   Test_Explicit as _T_Explicit,
+#   Test_Implicit as _T_Implicit,
+    Test_Vector2i as _T_Vector2i,
+    Test_Vector3i as _T_Vector3i,
+    Test_Vector4i as _T_Vector4i,
+    Test_Rect2i as _T_Rect2i,
+    Test_Vector2 as _T_Vector2,
+    Test_Vector3 as _T_Vector3,
+    Test_Vector4 as _T_Vector4,
+    Test_Rect2 as _T_Rect2,
+    Test_Plane as _T_Plane,
+    Test_Color as _T_Color,
+    Test_AABB as _T_AABB,
+    Test_Quaternion as _T_Quaternion,
+    Test_Transform2D as _T_Transform2D,
+    Test_Transform3D as _T_Transform3D,
+    Test_Basis as _T_Basis,
+    Test_PackedInt32Array as _T_PackedInt32Array,
+    Test_PackedInt64Array as _T_PackedInt64Array,
+    Test_PackedFloat32Array as _T_PackedFloat32Array,
+    Test_PackedFloat64Array as _T_PackedFloat64Array,
+    Test_PackedStringArray as _T_PackedStringArray,
+    Test_PackedVector2Array as _T_PackedVector2Array,
+    Test_PackedVector3Array as _T_PackedVector3Array,
+    Test_PackedVector4Array as _T_PackedVector4Array,
+    Test_PackedColorArray as _T_PackedColorArray,
+    Test_PackedByteArray as _T_PackedByteArray,
+)
+
 class TestBasics(_Base):
     def test_stringval(self):
         assert len(self.value.data) == 0
@@ -41,13 +79,60 @@ class TestBasics(_Base):
         assert len(self.value.bin_string.data) == 0
 
     def data(self):
-        yield self.value.bin_string, "key", "value"
-        yield self.value.bin_int, "key", 0
-        yield self.value.bin_int, "key", 1
-        yield self.value.bin_float, "key", 0.5
-        yield self.value.bin_float, "key", 1.5
+        properties = self.value
 
-    def test_data(self):
+        def values(cls, bin, key:str="key"):
+            for _, val in cls().data():
+                yield bin, key, val
+
+        yield properties.bin_string, "key", "value"
+
+        yield properties.bin_int, "key", 0
+        yield properties.bin_int, "key", 1
+
+        yield properties.bin_float, "key", 0.5
+        yield properties.bin_float, "key", 1.5
+
+        yield from values(_T_NodePath, properties.bin_string)
+        yield from values(_T_StringName, properties.bin_string)
+
+        yield from values(_T_Vector2i, properties.bin_vector)
+        yield from values(_T_Vector3i, properties.bin_vector)
+        yield from values(_T_Vector4i, properties.bin_vector)
+        yield from values(_T_Rect2i, properties.bin_vector)
+        yield from values(_T_Vector2, properties.bin_vector)
+        yield from values(_T_Vector3, properties.bin_vector)
+        yield from values(_T_Vector4, properties.bin_vector)
+        yield from values(_T_Rect2, properties.bin_vector)
+        yield from values(_T_Plane, properties.bin_vector)
+        yield from values(_T_Color, properties.bin_vector)
+        yield from values(_T_AABB, properties.bin_vector)
+        yield from values(_T_Quaternion, properties.bin_vector)
+        yield from values(_T_Transform2D, properties.bin_vector)
+        yield from values(_T_Transform3D, properties.bin_vector)
+        yield from values(_T_Basis, properties.bin_vector)
+
+        yield from values(_T_PackedInt32Array, properties.bin_array)
+        yield from values(_T_PackedInt64Array, properties.bin_array)
+        yield from values(_T_PackedFloat32Array, properties.bin_array)
+        yield from values(_T_PackedFloat64Array, properties.bin_array)
+        yield from values(_T_PackedStringArray, properties.bin_array)
+        yield from values(_T_PackedVector2Array, properties.bin_array)
+        yield from values(_T_PackedVector3Array, properties.bin_array)
+        yield from values(_T_PackedVector4Array, properties.bin_array)
+        yield from values(_T_PackedColorArray, properties.bin_array)
+
+        yield from values(_T_PackedByteArray, properties.bin_binary)
+
+        yield from values(_T_Object, properties.bin_dictionary)
+        yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
+        yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
+
+        yield from values(_T_Array.Test_Explicit, properties.bin_array)
+        yield from values(_T_Array.Test_Implicit, properties.bin_array)
+
+    def test_store_delete(self):
+        ''' Extrensics in storage of structure. '''
         for _bin, _key, _val in self.data():
             try:
                 assert len(self.value.data) == 0
@@ -57,8 +142,11 @@ class TestBasics(_Base):
                 assert v.value == _val
 
                 assert self.value.get(_key, wrap=False) == v
-                assert len(self.value.data) == 1
-                assert len(_bin.data) == 1
+                if getattr(_val,"typing"):
+                    assert (v.typing == _val.typing) #String based typing for now
+
+                assert len(self.value.data) >= 1
+                assert len(_bin.data) >= 1
 
                 self.value.remove(_key)
 
@@ -67,3 +155,56 @@ class TestBasics(_Base):
                 
             except Exception as e :
                 raise Exception(dict(self.value.items()), e)
+    
+    def test_dictionary(self):
+        properties = self.value
+        
+        wrapped = properties.set("dictionary", {"key":"value", "otherkey":"value"}, wrap = True)
+
+        assert wrapped._properties == properties
+        
+        assert len(properties.bin_dict.data) == 1
+        assert len(properties.bin_dict[0].data) == 2
+
+        assert len(properties.bin_string.data) == 4
+        assert properties.bin_string.data[0].value in ["key","value","otherkey"]
+        assert properties.bin_string.data[1].value in ["key","value","otherkey"]
+        assert properties.bin_string.data[2].value in ["key","value","otherkey"]
+        assert properties.bin_string.data[3].value in ["key","value","otherkey"]
+        
+        assert wrapped.get("key").value == "value"
+        assert wrapped.get("otherkey").value == "value"
+
+        wrapped.set("key", "val2")
+        assert len(properties.bin_string.data) == 4
+
+        wrapped.remove("key")
+        assert len(properties.bin_string.data) == 2
+
+        wrapped.set("key1", "val2")
+        assert len(properties.bin_string.data) == 4
+
+        wrapped.clear()
+        assert len(properties.bin_string.data) == 0
+
+        properties.remove("dictionary")
+
+        assert len(properties.bin_string.data) == 0
+
+    def test_array(self):
+        properties = self.value
+        
+        wrapped = properties.set("array", ["a","b","a","c"], wrap = True)        
+        assert len(properties.bin_array.data) == 1
+        assert len(properties.bin_string.data) == 4
+
+        wrapped.append("d")
+        assert len(properties.bin_string.data) == 5
+
+        wrapped.remove(-1)
+        assert wrapped.get_index(4, default=None) is None
+        assert len(properties.bin_string.data) == 4
+
+        wrapped.clear()
+        assert len(properties.bin_string.data) == 0
+
