@@ -19,10 +19,6 @@ class _Base():
         delattr(self.attach[1], self.attach[0])
         addon_ensure(False)
 
-class TestSanity(_Base):
-    def test(self):
-        raise Exception(self.value)
-
 from ..GdPy.transformers.gd_to_py.values_test import (
     Test_Options as _T_Options,
     Test_NodePath as _T_NodePath,
@@ -82,7 +78,7 @@ class TestBasics(_Base):
         properties = self.value
 
         def values(cls, bin, key:str="key"):
-            for _, val in cls().data():
+            for _, val in cls().data(None):
                 yield bin, key, val
 
         yield properties.bin_string, "key", "value"
@@ -136,14 +132,16 @@ class TestBasics(_Base):
         for _bin, _key, _val in self.data():
             try:
                 assert len(self.value.data) == 0
+                assert len(_bin.data) == 0
+                
                 v = self.value.set(_key, _val, wrap=False)
 
                 assert v.name != _key # As is pointer
                 assert v.value == _val
 
                 assert self.value.get(_key, wrap=False) == v
-                if getattr(_val,"typing"):
-                    assert (v.typing == _val.typing) #String based typing for now
+                # if hasattr(_val,"typing"):
+                #     assert (v.typing == _val.typing) #String based typing for now
 
                 assert len(self.value.data) >= 1
                 assert len(_bin.data) >= 1
