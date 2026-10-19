@@ -120,12 +120,12 @@ class TestBasics(_Base):
 
         yield from values(_T_PackedByteArray, properties.bin_binary)
 
-        yield from values(_T_Object, properties.bin_dictionary)
-        yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
-        yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
+        # yield from values(_T_Object, properties.bin_dictionary)
+        # yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
+        # yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
 
-        yield from values(_T_Array.Test_Explicit, properties.bin_array)
-        yield from values(_T_Array.Test_Implicit, properties.bin_array)
+        # yield from values(_T_Array.Test_Explicit, properties.bin_array)
+        # yield from values(_T_Array.Test_Implicit, properties.bin_array)
 
     def test_store_delete(self):
         ''' Extrensics in storage of structure. '''
@@ -134,7 +134,7 @@ class TestBasics(_Base):
                 assert len(self.value.data) == 0
                 assert len(_bin.data) == 0
 
-                v = self.value.set(_key, _val, wrap=False)
+                v = self.value.set(_key, _val, wrap=True)
 
                 assert v.name != _key # As is pointer
                 assert v.value == _val

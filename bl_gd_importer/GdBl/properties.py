@@ -93,6 +93,9 @@ class PropertyWrapper[PROPERTY]():
     def name(self, val):
         self._property.name = val
 
+    def __eq__(self, val):
+        return self.property == val
+
 class Property[IN:Any](PropertyGroup):
     wrapper : Type = None
     name : StringProperty(name="pointer") #type:ignore
@@ -103,6 +106,12 @@ class Property[IN:Any](PropertyGroup):
     
     def dump(self, properties): 
         ''' Dump any related values from src properties obj '''
+
+    def __eq__(self, obj:Any):
+        if isinstance(obj, PropertyWrapper):
+            return self == obj._property
+        else:
+            return super().__eq__(obj)
 
 
 class PropertyBin[IN:Any, OUT:Property|PropertyWrapper[Property]](PropertyGroup):
@@ -326,21 +335,21 @@ class PropertyVector(Property):
     vector2i : IntVectorProperty(size=2) #type:ignore
     vector3i : IntVectorProperty(size=3) #type:ignore
     vector4i : IntVectorProperty(size=4) #type:ignore
-    rect2i : IntVectorProperty(size=6) #type:ignore
+    rect2i : IntVectorProperty(size=4) #type:ignore
     vector2 : FloatVectorProperty(size=2) #type:ignore
     vector3 : FloatVectorProperty(size=3) #type:ignore
     vector4 : FloatVectorProperty(size=4) #type:ignore
-    rect2 : FloatVectorProperty(size=6) #type:ignore
-    plane : FloatVectorProperty(size=8) #type:ignore
+    rect2 : FloatVectorProperty(size=4) #type:ignore
+    plane : FloatVectorProperty(size=4) #type:ignore
     color : FloatVectorProperty(size=4, subtype="COLOR") #type:ignore
     aabb : FloatVectorProperty(size=6) #type:ignore
     quaternion : FloatVectorProperty(size=4, subtype="QUATERNION") #type:ignore
     transform2d : FloatVectorProperty(size=6) #type:ignore
     transform3d : FloatVectorProperty(size=12) #type:ignore
-    basis : FloatVectorProperty(size=9, subtype="MATRIX") #type:ignore
+    basis : FloatVectorProperty(size=9) #type:ignore
 
     def store(self, properties, val):
-        self.data = val
+        self.value = val
 
     @property
     def value(self):
@@ -350,8 +359,12 @@ class PropertyVector(Property):
     def value(self, val):
         self.property_unset(self.subtype)
         self.subtype = val.__class__.__name__.lower()
-        setattr(self, self.subtype, tuple(val))
-        
+        assert self.subtype in self._subtypes.keys()
+        try:
+            setattr(self, self.subtype, tuple(val))
+        except Exception as e:
+            raise Exception(val, e)
+
 class PropertyBinVector(PropertyBin):
     in_types = (GdFixedLenArray)
     data : CollectionProperty(type=PropertyVector) #type:ignore
@@ -515,6 +528,7 @@ class PropertyArray(Property):
 
     def store(self, properties:PropertiesBase, val):
         self.extend(properties, val)
+
     def dump(self, properties:PropertiesBase):
         self.clear(properties)
 
@@ -529,9 +543,9 @@ class PropertyArray(Property):
     
     def remove(self, properties:PropertiesBase, val:Any):
         for e in tuple(self.data):
-            if properties.bin_get(e.ptr) == val:
+            if properties.bin_get(e.name) == val:
                 self.data.remove(e)
-                properties.bin_remove(e.ptr)
+                properties.bin_remove(e.name)
                 return
 
     def setitem(self, properties:PropertiesBase, index:int, val):
@@ -544,14 +558,26 @@ class PropertyArray(Property):
         if len(self.data) < index:
             raise KeyError(self.data, index)
         e = tuple(self.data.keys())[index]
-        properties.bin_remove(e.ptr)
+        properties.bin_remove(e.name)
         self.data.remove(e)
         
     def clear(self, properties):
         for e in self.data:
-            properties.bin_remove(e.ptr, not_exist_ok=True)
+            properties.bin_remove(e.name, not_exist_ok=True)
+
+    def values(self, properties:PropertiesBase, wrap:bool=True):
+        for e in tuple(self.data):
+            yield properties.bin_get(e.name, wrap=True)
 
 class PropertyArrayWrapper(PropertyWrapper):
+    @property
+    def value(self):
+        return GdArray(*self.values(),typing = self._property.typing)
+    @value.setter
+    def value(self, val:Iterable):
+        self._property.clear(self._properties)
+        self._property.store(self._properties, val)
+
     def store(self, val):
         return self._property.store(self._properties, val)
     def append(self, val:Any):
@@ -564,6 +590,10 @@ class PropertyArrayWrapper(PropertyWrapper):
         return self._property.setitem(self._properties, index, val)
     def delitem(self, index):
         return self._property.delitem(self._properties, index)
+    def values(self, wrap:bool=True):
+        yield from self._property.values(self._properties, wrap=wrap)
+    def clear(self):
+        return self._property.clear(self._properties)
 
 class PropertyBinArray(PropertyBin):
     in_types = (GdArray, list, UserList, GdPackedListSimple, GdPackedListComplex)
