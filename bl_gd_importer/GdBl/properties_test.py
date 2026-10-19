@@ -133,7 +133,7 @@ class TestBasics(_Base):
             try:
                 assert len(self.value.data) == 0
                 assert len(_bin.data) == 0
-                
+
                 v = self.value.set(_key, _val, wrap=False)
 
                 assert v.name != _key # As is pointer
@@ -152,7 +152,8 @@ class TestBasics(_Base):
                 assert len(_bin.data) == 0
                 
             except Exception as e :
-                raise Exception(dict(self.value.items()), e)
+                raise
+                # raise Exception(dict(self.value.items()), e)
     
     def test_dictionary(self):
         properties = self.value

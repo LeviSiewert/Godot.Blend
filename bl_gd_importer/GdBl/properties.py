@@ -343,8 +343,9 @@ class PropertyVector(Property):
         self.data = val
 
     @property
-    def value(self): 
-        return getattr(self, self._subtypes[self.subtype](self.subtype))
+    def value(self):
+        cls = self._subtypes[self.subtype]
+        return cls(*getattr(self, str(self.subtype).lower()))
     @value.setter
     def value(self, val):
         self.property_unset(self.subtype)
@@ -530,6 +531,7 @@ class PropertyArray(Property):
         for e in tuple(self.data):
             if properties.bin_get(e.ptr) == val:
                 self.data.remove(e)
+                properties.bin_remove(e.ptr)
                 return
 
     def setitem(self, properties:PropertiesBase, index:int, val):
