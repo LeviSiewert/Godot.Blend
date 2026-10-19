@@ -120,12 +120,12 @@ class TestBasics(_Base):
 
         yield from values(_T_PackedByteArray, properties.bin_binary)
 
-        # yield from values(_T_Object, properties.bin_dictionary)
-        # yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
-        # yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
+        yield from values(_T_Object, properties.bin_dictionary)
+        yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
+        yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
 
-        # yield from values(_T_Array.Test_Explicit, properties.bin_array)
-        # yield from values(_T_Array.Test_Implicit, properties.bin_array)
+        yield from values(_T_Array.Test_Explicit, properties.bin_array)
+        yield from values(_T_Array.Test_Implicit, properties.bin_array)
 
     def test_store_delete(self):
         ''' Extrensics in storage of structure. '''

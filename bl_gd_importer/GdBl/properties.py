@@ -513,6 +513,7 @@ class PropertyArrayItem(Property):
     def set_data(self, properties, value:Any, wrap:bool=False):
         properties.bin_remove(self.ptr , not_exist_ok=True)
         return properties.bin_add(value, wrap)
+    
 class PropertyArrayItemWrapper(PropertyWrapper):
     @property
     def data(self): 
