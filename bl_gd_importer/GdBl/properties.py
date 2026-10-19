@@ -37,6 +37,15 @@ from ..GdPy.core.values import (
     Transform3D as GdTransform3D,
     Basis as GdBasis,
     PackedByteArray as GdPackedByteArray,
+    PackedInt32Array as GdPackedInt32Array,
+    PackedInt64Array as GdPackedInt64Array,
+    PackedFloat32Array as GdPackedFloat32Array,
+    PackedFloat64Array as GdPackedFloat64Array,
+    PackedStringArray as GdPackedStringArray,
+    PackedVector2Array as GdPackedVector2Array,
+    PackedVector3Array as GdPackedVector3Array,
+    PackedVector4Array as GdPackedVector4Array,
+    PackedColorArray as GdPackedColorArray, 
 )
 
 
@@ -415,7 +424,6 @@ class PropertyDict(Property, PropertyBin):
     typing : StringProperty() #type:ignore
     data : CollectionProperty(type=PropertyDictItem) #type:ignore
     wrapper = PropertyDictItemWrapper
-    typing : StringProperty() #type:ignore
 
 
     def store(self, properties, val:Iterable):
@@ -525,9 +533,34 @@ class PropertyArrayItemWrapper(PropertyWrapper):
 class PropertyArray(Property):
     typing : StringProperty() #type:ignore
     data : CollectionProperty(type=PropertyArrayItem) #type:ignore
-    wrapper = PropertyDictItemWrapper
+    wrapper = PropertyArrayItemWrapper
 
+    subtype : StringProperty() #type:ignore
+    _subtypes = {
+        GdArray.__name__.lower(): GdArray,
+        GdPackedInt32Array.__name__.lower(): GdPackedInt32Array,
+        GdPackedInt64Array.__name__.lower(): GdPackedInt64Array,
+        GdPackedFloat32Array.__name__.lower(): GdPackedFloat32Array,
+        GdPackedFloat64Array.__name__.lower(): GdPackedFloat64Array,
+        GdPackedStringArray.__name__.lower(): GdPackedStringArray,
+        GdPackedVector2Array.__name__.lower(): GdPackedVector2Array,
+        GdPackedVector3Array.__name__.lower(): GdPackedVector3Array,
+        GdPackedVector4Array.__name__.lower(): GdPackedVector4Array,
+        GdPackedColorArray.__name__.lower(): GdPackedColorArray,
+    }
+
+    def value(self, properties:PropertiesBase)->Any:
+        if self.subtype != "":
+            return self._subtypes[self.subtype](*self.values(properties))
+        return GdArray(*self.values(properties), type=self.typing)
+        
+        
     def store(self, properties:PropertiesBase, val):
+        if (clsname:=val.__class__.__name__.lower()) in self._subtypes.keys():
+            self.subtype = clsname
+        else:
+            self.subtype = ""
+        self.clear(properties)
         self.extend(properties, val)
 
     def dump(self, properties:PropertiesBase):
@@ -572,6 +605,7 @@ class PropertyArray(Property):
 
 class PropertyArrayWrapper(PropertyWrapper):
     @property
+
     def value(self):
         return GdArray(*self.values(),typing = self._property.typing)
     @value.setter
