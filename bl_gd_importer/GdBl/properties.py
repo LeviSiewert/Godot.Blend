@@ -494,7 +494,7 @@ class PropertyDict(Property, PropertyBin):
 
 class PropertyDictWrapper(PropertyWrapper):
     def get(self, key:Any, default:Any=UNSET, wrap:bool=True):
-        return self._property.get(self, key, default, wrap)
+        return self._property.get(self._properties, key, default, wrap)
     def store(self, val):
         return self._property.store(self._properties, val)
     def update(self, val):
@@ -505,6 +505,12 @@ class PropertyDictWrapper(PropertyWrapper):
         return self._property.setitem(self._properties, key, val)
     def delitem(self, key):
         return self._property.delitem(self._properties)
+    def values(self, wrap:bool=True):
+        yield from self._property.values(self._properties, wrap=wrap)
+    def keys(self, wrap:bool=True):
+        yield from self._property.keys(self._properties, wrap=wrap)
+    def items(self, wrap:bool=True):
+        yield from self._property.items(self._properties, wrap=wrap)
     
 class PropertyBinDict(PropertyBin):
     in_types = (dict, GdDictionary, UserDict, GdObject)
@@ -537,7 +543,6 @@ class PropertyArray(Property):
 
     subtype : StringProperty() #type:ignore
     _subtypes = {
-        GdArray.__name__.lower(): GdArray,
         GdPackedInt32Array.__name__.lower(): GdPackedInt32Array,
         GdPackedInt64Array.__name__.lower(): GdPackedInt64Array,
         GdPackedFloat32Array.__name__.lower(): GdPackedFloat32Array,

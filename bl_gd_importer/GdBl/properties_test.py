@@ -203,7 +203,7 @@ class TestBasics(_Base):
         assert wrapped._properties == properties
         
         assert len(properties.bin_dict.data) == 1
-        assert len(properties.bin_dict[0].data) == 2
+        assert len(properties.bin_dict.data[0].data) == 2
 
         assert len(properties.bin_string.data) == 4
         assert properties.bin_string.data[0].value in ["key","value","otherkey"]
