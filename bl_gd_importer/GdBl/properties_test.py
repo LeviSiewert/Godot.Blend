@@ -74,12 +74,12 @@ class TestBasics(_Base):
         assert len(self.value.data) == 0
         assert len(self.value.bin_string.data) == 0
 
-    def data(self):
+    def data_simple(self):
         properties = self.value
-
         def values(cls, bin, key:str="key"):
             for _, val in cls().data(None):
                 yield bin, key, val
+
 
         yield properties.bin_string, "key", "value"
 
@@ -92,6 +92,11 @@ class TestBasics(_Base):
         yield from values(_T_NodePath, properties.bin_string)
         yield from values(_T_StringName, properties.bin_string)
 
+    def data_vector(self):
+        properties = self.value
+        def values(cls, bin, key:str="key"):
+            for _, val in cls().data(None):
+                yield bin, key, val
         yield from values(_T_Vector2i, properties.bin_vector)
         yield from values(_T_Vector3i, properties.bin_vector)
         yield from values(_T_Vector4i, properties.bin_vector)
@@ -108,6 +113,11 @@ class TestBasics(_Base):
         yield from values(_T_Transform3D, properties.bin_vector)
         yield from values(_T_Basis, properties.bin_vector)
 
+    def data_packedarray(self):
+        properties = self.value
+        def values(cls, bin, key:str="key"):
+            for _, val in cls().data(None):
+                yield bin, key, val
         yield from values(_T_PackedInt32Array, properties.bin_array)
         yield from values(_T_PackedInt64Array, properties.bin_array)
         yield from values(_T_PackedFloat32Array, properties.bin_array)
@@ -120,42 +130,68 @@ class TestBasics(_Base):
 
         yield from values(_T_PackedByteArray, properties.bin_binary)
 
+    def data_dict(self):
+        properties = self.value
+        def values(cls, bin, key:str="key"):
+            for _, val in cls().data(None):
+                yield bin, key, val
+
         yield from values(_T_Object, properties.bin_dictionary)
         yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
         yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
 
+    def data_array(self):
+        properties = self.value
+        def values(cls, bin, key:str="key"):
+            for _, val in cls().data(None):
+                yield bin, key, val
         yield from values(_T_Array.Test_Explicit, properties.bin_array)
         yield from values(_T_Array.Test_Implicit, properties.bin_array)
 
-    def test_store_delete(self):
+    def unit(self, _bin, _key, _val):
+        assert len(self.value.data) == 0
+        assert len(_bin.data) == 0
+
+        v = self.value.set(_key, _val, wrap=True)
+
+        assert v.name != _key # As is pointer
+        assert v.value == _val
+
+        assert self.value.get(_key, wrap=False) == v
+
+        # if hasattr(_val,"typing"):
+        #     assert (v.typing == _val.typing) #String based typing for now
+
+        assert len(self.value.data) >= 1
+        assert len(_bin.data) >= 1
+
+        self.value.remove(_key)
+
+        assert len(self.value.data) == 0
+        assert len(_bin.data) == 0
+
+    def test_simple_store_delete(self):
         ''' Extrensics in storage of structure. '''
-        for _bin, _key, _val in self.data():
-            try:
-                assert len(self.value.data) == 0
-                assert len(_bin.data) == 0
-
-                v = self.value.set(_key, _val, wrap=True)
-
-                assert v.name != _key # As is pointer
-                assert v.value == _val
-
-                assert self.value.get(_key, wrap=False) == v
-                # if hasattr(_val,"typing"):
-                #     assert (v.typing == _val.typing) #String based typing for now
-
-                assert len(self.value.data) >= 1
-                assert len(_bin.data) >= 1
-
-                self.value.remove(_key)
-
-                assert len(self.value.data) == 0
-                assert len(_bin.data) == 0
-                
-            except Exception as e :
-                raise
-                # raise Exception(dict(self.value.items()), e)
+        for _bin, _key, _val in self.data_simple():
+            self.unit(_bin,_key,_val)
+    def test_vector_store_delete(self):
+        ''' Extrensics in storage of structure. '''
+        for _bin, _key, _val in self.data_vector():
+            self.unit(_bin,_key,_val)
+    def test_packedarray_store_delete(self):
+        ''' Extrensics in storage of structure. '''
+        for _bin, _key, _val in self.data_packedarray():
+            self.unit(_bin,_key,_val)
+    def test_dict_store_delete(self):
+        ''' Extrensics in storage of structure. '''
+        for _bin, _key, _val in self.data_dict():
+            self.unit(_bin,_key,_val)
+    def test_array_store_delete(self):
+        ''' Extrensics in storage of structure. '''
+        for _bin, _key, _val in self.data_array():
+            self.unit(_bin,_key,_val)
     
-    def test_dictionary(self):
+    def test_dict_deep(self):
         properties = self.value
         
         wrapped = properties.set("dictionary", {"key":"value", "otherkey":"value"}, wrap = True)
@@ -190,7 +226,7 @@ class TestBasics(_Base):
 
         assert len(properties.bin_string.data) == 0
 
-    def test_array(self):
+    def test_array_deep(self):
         properties = self.value
         
         wrapped = properties.set("array", ["a","b","a","c"], wrap = True)        
