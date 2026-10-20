@@ -444,7 +444,7 @@ class PropertyDict(Property, PropertyBin):
         return default
 
     def setitem(self, properties:PropertiesBase, key:Any, value:Any, wrap:bool=True):
-        existing_val = self.get(key,None,False)
+        existing_val = self.get(properties, key,default=None,wrap=False)
         if not (existing_val is None):
             properties.bin_remove(self.data[existing_val.name].val_ptr, not_exist_ok = True)
         else:
@@ -473,7 +473,7 @@ class PropertyDict(Property, PropertyBin):
     
     def item_pointers(self):
         for e in self.data:
-            yield e.key_ptr, e.val_ptr
+            yield e.name, e.val_ptr
     
     def items(self, properties:PropertiesBase, wrap:bool=True):
         for key_ptr, val_ptr in self.item_pointers():

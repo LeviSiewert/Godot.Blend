@@ -136,9 +136,9 @@ class TestBasics(_Base):
             for _, val in cls().data(None):
                 yield bin, key, val
 
-        yield from values(_T_Object, properties.bin_dictionary)
-        yield from values(_T_Dictionary.Test_Explicit, properties.bin_dictionary)
-        yield from values(_T_Dictionary.Test_Implicit, properties.bin_dictionary)
+        yield from values(_T_Object, properties.bin_dict)
+        yield from values(_T_Dictionary.Test_Explicit, properties.bin_dict)
+        yield from values(_T_Dictionary.Test_Implicit, properties.bin_dict)
 
     def data_array(self):
         properties = self.value
@@ -149,25 +149,28 @@ class TestBasics(_Base):
         yield from values(_T_Array.Test_Implicit, properties.bin_array)
 
     def unit(self, _bin, _key, _val):
-        assert len(self.value.data) == 0
+        properties = self.value
+        properties.clear()
+        
+        assert len(properties.data) == 0
         assert len(_bin.data) == 0
 
-        v = self.value.set(_key, _val, wrap=True)
+        v = properties.set(_key, _val, wrap=True)
 
         assert v.name != _key # As is pointer
         assert v.value == _val
 
-        assert self.value.get(_key, wrap=False) == v
+        assert properties.get(_key, wrap=False) == v
 
         # if hasattr(_val,"typing"):
         #     assert (v.typing == _val.typing) #String based typing for now
 
-        assert len(self.value.data) >= 1
+        assert len(properties.data) >= 1
         assert len(_bin.data) >= 1
 
-        self.value.remove(_key)
+        properties.remove(_key)
 
-        assert len(self.value.data) == 0
+        assert len(properties.data) == 0
         assert len(_bin.data) == 0
 
     def test_simple_store_delete(self):
@@ -193,6 +196,7 @@ class TestBasics(_Base):
     
     def test_dict_deep(self):
         properties = self.value
+        properties.clear()
         
         wrapped = properties.set("dictionary", {"key":"value", "otherkey":"value"}, wrap = True)
 
@@ -228,6 +232,7 @@ class TestBasics(_Base):
 
     def test_array_deep(self):
         properties = self.value
+        properties.clear()
         
         wrapped = properties.set("array", ["a","b","a","c"], wrap = True)        
         assert len(properties.bin_array.data) == 1
