@@ -38,7 +38,7 @@ class Property_Wrapped:
         return self._property.export(self._properties, *args, **kwargs)
 
 class Property_Bin(bpy.types.PropertyGroup):
-    data : bpy.props.PropertyGroup #: bpy.props.PropertyGroup(type=...)
+    data : bpy.props.CollectionProperty #: bpy.props.CollectionProperty(type=...)
     types : tuple[Type] = tuple()
     wrapper : Type|None = None
 
@@ -73,7 +73,7 @@ class Property_Bin(bpy.types.PropertyGroup):
         return isinstance(val, self.types)
 
     def bin_store(self, properties:Properties_Base, val:Any, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base:
-        entry = self.data.new()
+        entry = self.data.add()
         entry.name = properties.bin_generate_pointer(self)
         entry.store(val)
         return self._return_type(properties, self, entry, return_type=return_type)
@@ -91,7 +91,7 @@ class Property_Bin(bpy.types.PropertyGroup):
     def bin_remove(self, properties:Properties_Base, ptr:str, not_exist_ok:bool=False)->None:
         if ptr == "":
             return
-        entry = self.get(ptr, None)
+        entry = self.bin_get(properties, ptr, default=None, return_type=ReturnType.PROPERTY)
         if (entry is None):
             if not_exist_ok:
                 return
@@ -110,15 +110,15 @@ class Properties_Base(bpy.types.PropertyGroup):
             yield getattr(self,k)
 
     def bin_items(self, return_type:ReturnType=ReturnType.WRAPPED):
-        for b in self.bins:
+        for b in self.bins():
             yield from b.bin_items(return_type=return_type)
 
     def bin_values(self, return_type:ReturnType=ReturnType.WRAPPED):
-        for b in self.bins:
+        for b in self.bins():
             yield from b.bin_values(return_type=return_type)
         
     def bin_keys(self):
-        for b in self.bins:
+        for b in self.bins():
             yield from b.bin_keys()
 
     def bin_generate_pointer(self, bin:Property_Bin|None=None):
@@ -130,12 +130,13 @@ class Properties_Base(bpy.types.PropertyGroup):
 
     def bin_match(self, val:Any)->Property_Bin:
         for b in self.bins():
-            if b.bin_match(val):
+            b : Property_Bin
+            if b.bin_match(self, val):
                 return b
         raise TypeError(val)
     
     def bin_store(self, val:Any, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base:
-        return self.bin_match(val).bin_store(val, return_type=return_type)
+        return self.bin_match(val).bin_store(self, val, return_type=return_type)
         
     def bin_get(self, ptr:str, default:Any=UNSET, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base|None:
         if ptr == "":
@@ -152,11 +153,20 @@ class Properties_Base(bpy.types.PropertyGroup):
         if ptr == "":
             return
         for b in self.bins():
+            b : Property_Bin
             if ptr in b:
-                b.remove(ptr)
+                b.bin_remove(self, ptr)
                 return
         if not not_exist_ok:
             raise KeyError(ptr)
+
+    def bin_clear(self):
+        for b in self.bins():
+            for i in range(len(b.data)):
+                b.data.remove(i)
+
+    def clear(self):
+        self.bin_clear()
 
 
 ## INT ##
@@ -165,10 +175,10 @@ class Property_Int(Property_Base):
     value : bpy.props.IntProperty() #type:ignore
     def store(self, val):
         self.value = int(val)
-    def dump(self):
+    def dump(self, properties=None):
         pass
-    def export(self):
-        return self.val
+    def export(self, properties=None):
+        return self.value
 
 class Property_Bin_Int(Property_Bin):
     data : bpy.props.CollectionProperty(type=Property_Int) #type:ignore
@@ -334,7 +344,7 @@ class Property_Array(Property_Base):
     def store(self, properties, val:Iterable):
        self.dump(properties)
        for v in val:
-           entry = self.data.new()
+           entry = self.data.add()
            entry.name = properties.bin_store(val = v, return_type=ReturnType.POINTER)
 
     def dump(self, properties):
@@ -370,30 +380,31 @@ class Property_Bin_Array(Property_Bin):
 
 
 class Properties(Properties_Base):
-    _bins = ( "Bin_Float", "Bin_Int", "Bin_Vector", "Bin_String", "Bin_Promise", "Bin_Array", )
+    _bins = ("bin_int",)
+    # _bins = ( "bin_float", "bin_int", "bin_vector", "bin_string", "bin_promise", "bin_array", )
 
-    Bin_Float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
-    Bin_Int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
-    Bin_Vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
-    Bin_String : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
-    # Bin_Promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
-    Bin_Array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
+    bin_int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
+    # bin_float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
+    # bin_vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
+    # bin_string : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
+    # # bin_promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
+    # bin_array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
 
 
 classes = [
     Property_Int,
     Property_Bin_Int,
-    Property_Float,
-    Property_Bin_Float,
-    Property_Vector,
-    Property_Bin_Vector,
-    Property_String,
-    Property_Bin_String,
-    # Property_Promise,
-    # Property_Bin_Promise,
-    ArrayItem,
-    Property_Array,
-    Property_Bin_Array,
+    # Property_Float,
+    # Property_Bin_Float,
+    # Property_Vector,
+    # Property_Bin_Vector,
+    # Property_String,
+    # Property_Bin_String,
+    # # Property_Promise,
+    # # Property_Bin_Promise,
+    # ArrayItem,
+    # Property_Array,
+    # Property_Bin_Array,
     Properties,
 ]
 

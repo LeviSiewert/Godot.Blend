@@ -19,6 +19,47 @@ class _Base():
         delattr(self.attach[1], self.attach[0])
         addon_ensure(False)
 
+
+class Base(_Base):
+    _bin : str #= "bin_int"
+    _val : Any #= 1
+
+    def test_io_property(self):
+        properties : Properties = self.value
+        prop = getattr(properties, self._bin).data.add()
+        val = 1
+        prop.store(val)
+        assert prop.export() == val
+        
+        properties.clear()
+
+    def test_io_bin(self):
+        properties : Properties = self.value
+
+        self.value.clear()
+
+        val = 1
+        
+        assert getattr(properties, self._bin).bin_match(properties, val)
+
+        r = properties.bin_store(val)
+        assert isinstance(r, Property_Int)
+        
+        assert r.value == val
+        assert r.export() == val
+
+        assert r.name != ""
+        assert r.name in getattr(properties, self._bin).bin_keys()
+        assert r.name in properties.bin_keys()
+
+        properties.bin_remove(r.name)
+        assert len(tuple(self.value.bin_keys())) == 0
+
+class Test_Int(Base):
+    _bin : str = "bin_int"
+    _val : Any = 1
+
+
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,
 #     Test_NodePath as _T_NodePath,
