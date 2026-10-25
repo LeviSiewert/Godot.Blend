@@ -97,6 +97,7 @@ class Property_Bin(bpy.types.PropertyGroup):
                 return
             raise KeyError(ptr)
         entry.dump(properties)
+        self.data.remove(tuple(self.data.keys()).index(entry.name))
 
     def __contains__(self, key:str):
         return (key in self.data.keys())
