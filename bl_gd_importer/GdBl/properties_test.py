@@ -1,23 +1,23 @@
-# from .properties import *
+from .properties import *
 
-# from ._test_utils import addon_ensure
+from ._test_utils import addon_ensure
 
-# class _Base():
-#     attach = ["test_attr", bpy.types.Scene]
-#     struct = Properties
+class _Base():
+    attach = ["test_attr", bpy.types.Scene]
+    struct = Properties
 
-#     @property
-#     def value(self)->Properties:
-#         return getattr(bpy.data.scenes[0], self.attach[0])
+    @property
+    def value(self)->Properties:
+        return getattr(bpy.data.scenes[0], self.attach[0])
 
-#     def setup_class(self):
-#         addon_ensure(True)
-#         setattr(self.attach[1], self.attach[0], PointerProperty(type=self.struct))
+    def setup_class(self):
+        addon_ensure(True)
+        setattr(self.attach[1], self.attach[0], bpy.props.PointerProperty(type=self.struct))
 
-#     def teardown_class(self):
-#         getattr(bpy.data.scenes[0], self.attach[0]).clear()
-#         delattr(self.attach[1], self.attach[0])
-#         addon_ensure(False)
+    def teardown_class(self):
+        getattr(bpy.data.scenes[0], self.attach[0]).clear()
+        delattr(self.attach[1], self.attach[0])
+        addon_ensure(False)
 
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,

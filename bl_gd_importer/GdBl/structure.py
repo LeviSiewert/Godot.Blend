@@ -6,7 +6,8 @@ from bpy.types import AddonPreferences, PropertyGroup, UILayout, Context, Operat
 
 from typing import Any, Type
 
-from .properties import Promise, Properties
+from .promise import Promise
+from .properties import Properties
 
 class Signal(PropertyGroup):
     to : PointerProperty(type=bpy.types.Object) #type:ignore

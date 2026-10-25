@@ -186,7 +186,7 @@ class Property_Float(Property_Base):
     def export(self):
         return self.val
 
-class Property_Bin_Int(Property_Bin):
+class Property_Bin_Float(Property_Bin):
     data : bpy.types.CollectionProperty(type=Property_Float) #type:ignore
     types = (float,)
     wrapper = None
@@ -263,8 +263,8 @@ class Property_Vector(Property_Base):
     def __iter__(self,):
         yield from getattr(self, self.subtype)
 
-class Property_Bin_String(Property_Bin):
-    data : bpy.props.CollectionProperty(type=Property_String) #type:ignore
+class Property_Bin_Vector(Property_Bin):
+    data : bpy.props.CollectionProperty(type=Property_Vector) #type:ignore
     types = (GdVector2i, GdVector3i, GdVector4i, GdRect2i, GdVector2, GdVector3, GdVector4, GdRect2, GdPlane, GdColor, GdAABB, GdQuaternion, GdTransform2D, GdTransform3D, GdBasis)
     wrapper = None
 
@@ -314,7 +314,7 @@ class Property_Bin_String(Property_Bin):
 #     typing : StringProperty() #type:ignore
 #     data : PointerProperty(type=BlPromise) #type:ignore
     
-# class PropertyBinPromise(Property_Bin):
+# class Property_Bin_Promise(Property_Bin):
 #     in_types = (GdPromise, BlPromise)
 #     data : CollectionProperty(type=PropertyPromise) #type:ignore
 
@@ -324,7 +324,7 @@ class Property_Bin_String(Property_Bin):
 class ArrayItem(bpy.types.PropertyGroup):
     ptr : bpy.props.StringProperty() #type:ignore
 
-class Array(Property_Base):
+class Property_Array(Property_Base):
     subtype : bpy.props.StringProperty() #type:ignore
     subtypes = {
 
@@ -364,5 +364,47 @@ class Array(Property_Base):
     def __contains__(self, item):
         return item in self.data.keys()
 
-class ArrayBin():
-    pass
+class Property_Bin_Array(Property_Bin):
+    types = (list,)
+    data = bpy.props.CollectionProperty(type=Property_Array)
+
+
+class Properties(Properties_Base):
+    _bins = ( "Bin_Float", "Bin_Int", "Bin_Vector", "Bin_String", "Bin_Promise", "Bin_Array", )
+
+    Bin_Float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
+    Bin_Int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
+    Bin_Vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
+    Bin_String : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
+    # Bin_Promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
+    Bin_Array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
+
+
+classes = [
+    Property_Int,
+    Property_Bin_Int,
+    Property_Float,
+    Property_Bin_Float,
+    Property_Vector,
+    Property_Bin_Vector,
+    Property_String,
+    Property_Bin_String,
+    # Property_Promise,
+    # Property_Bin_Promise,
+    ArrayItem,
+    Property_Array,
+    Property_Bin_Array,
+    Properties,
+]
+
+
+def register():
+    for c in classes:
+        bpy.utils.register_class(c)
+        for l,n in getattr(c, "attach", tuple()):
+            setattr(l, n, bpy.props.PointerProperty(type=c))
+def unregister():
+    for c in reversed(classes):
+        bpy.utils.unregister_class(c)
+        for l,n in reversed(getattr(c, "attach", tuple())):
+            delattr(l, n)
