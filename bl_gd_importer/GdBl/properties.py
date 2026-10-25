@@ -51,7 +51,7 @@ class Property_Bin(bpy.types.PropertyGroup):
             case ReturnType.WRAPPED:
                 if (wrapper is None):
                     return entry
-                return wrapper(properties=properties, property=entry)
+                return wrapper(properties=properties, prop=entry)
             case ReturnType.POINTER:
                 return entry.name
             case ReturnType.PROPERTY:
@@ -75,7 +75,7 @@ class Property_Bin(bpy.types.PropertyGroup):
     def bin_store(self, properties:Properties_Base, val:Any, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base:
         entry = self.data.add()
         entry.name = properties.bin_generate_pointer(self)
-        entry.store(val)
+        entry.store(properties, val)
         return self._return_type(properties, self, entry, return_type=return_type)
         
     def bin_get(self, properties:Properties_Base, ptr:str, default:Any=UNSET, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base|None:
@@ -134,7 +134,7 @@ class Properties_Base(bpy.types.PropertyGroup):
             b : Property_Bin
             if b.bin_match(self, val):
                 return b
-        raise TypeError(val)
+        raise TypeError(val, val.__class__)
     
     def bin_store(self, val:Any, return_type:ReturnType=ReturnType.WRAPPED)->Property_Base:
         return self.bin_match(val).bin_store(self, val, return_type=return_type)
@@ -174,7 +174,7 @@ class Properties_Base(bpy.types.PropertyGroup):
 
 class Property_Int(Property_Base):
     value : bpy.props.IntProperty() #type:ignore
-    def store(self, val):
+    def store(self, properties, val):
         self.value = int(val)
     def dump(self, properties=None):
         pass
@@ -190,15 +190,15 @@ class Property_Bin_Int(Property_Bin):
 
 class Property_Float(Property_Base):
     value : bpy.props.FloatProperty() #type:ignore
-    def store(self, val):
-        self.value = int(val)
-    def dump(self):
+    def store(self, properties, val):
+        self.value = float(val)
+    def dump(self, properties=None):
         pass
-    def export(self):
-        return self.val
+    def export(self, properties=None):
+        return self.value
 
 class Property_Bin_Float(Property_Bin):
-    data : bpy.types.CollectionProperty(type=Property_Float) #type:ignore
+    data : bpy.props.CollectionProperty(type=Property_Float) #type:ignore
     types = (float,)
     wrapper = None
 
@@ -227,49 +227,70 @@ class Property_Vector(Property_Base):
     subtype : bpy.props.StringProperty() #type:ignore
     ## Not as effecient as an enum, but a bullwark against class name changes.
     subtypes = {
-        GdVector2i.__class__.__name__.lower() : GdVector2i,
-        GdVector3i.__class__.__name__.lower() : GdVector3i,
-        GdVector4i.__class__.__name__.lower() : GdVector4i,
-        GdRect2i.__class__.__name__.lower() : GdRect2i,
-        GdVector2.__class__.__name__.lower() : GdVector2,
-        GdVector3.__class__.__name__.lower() : GdVector3,
-        GdVector4.__class__.__name__.lower() : GdVector4,
-        GdRect2.__class__.__name__.lower() : GdRect2,
-        GdPlane.__class__.__name__.lower() : GdPlane,
-        GdColor.__class__.__name__.lower() : GdColor,
-        GdAABB.__class__.__name__.lower() : GdAABB,
-        GdQuaternion.__class__.__name__.lower() : GdQuaternion,
-        GdTransform2D.__class__.__name__.lower() : GdTransform2D,
-        GdTransform3D.__class__.__name__.lower() : GdTransform3D,
-        GdBasis.__class__.__name__.lower() : GdBasis,
+        GdVector2i.__name__.lower() : GdVector2i,
+        GdVector3i.__name__.lower() : GdVector3i,
+        GdVector4i.__name__.lower() : GdVector4i,
+        GdRect2i.__name__.lower() : GdRect2i,
+        GdVector2.__name__.lower() : GdVector2,
+        GdVector3.__name__.lower() : GdVector3,
+        GdVector4.__name__.lower() : GdVector4,
+        GdRect2.__name__.lower() : GdRect2,
+        GdPlane.__name__.lower() : GdPlane,
+        GdColor.__name__.lower() : GdColor,
+        GdAABB.__name__.lower() : GdAABB,
+        GdQuaternion.__name__.lower() : GdQuaternion,
+        GdTransform2D.__name__.lower() : GdTransform2D,
+        GdTransform3D.__name__.lower() : GdTransform3D,
+        GdBasis.__name__.lower() : GdBasis,
     }
 
-    vector2i : IntVectorProperty(size=2) #type:ignore
-    vector3i : IntVectorProperty(size=3) #type:ignore
-    vector4i : IntVectorProperty(size=4) #type:ignore
-    rect2i : IntVectorProperty(size=4) #type:ignore
-    vector2 : FloatVectorProperty(size=2) #type:ignore
-    vector3 : FloatVectorProperty(size=3) #type:ignore
-    vector4 : FloatVectorProperty(size=4) #type:ignore
-    rect2 : FloatVectorProperty(size=4) #type:ignore
-    plane : FloatVectorProperty(size=4) #type:ignore
-    color : FloatVectorProperty(size=4, subtype="COLOR") #type:ignore
-    aabb : FloatVectorProperty(size=6) #type:ignore
-    quaternion : FloatVectorProperty(size=4, subtype="QUATERNION") #type:ignore
-    transform2d : FloatVectorProperty(size=6) #type:ignore
-    transform3d : FloatVectorProperty(size=12) #type:ignore
-    basis : FloatVectorProperty(size=9) #type:ignore
+    vector2i : bpy.props.IntVectorProperty(size=2) #type:ignore
+    vector3i : bpy.props.IntVectorProperty(size=3) #type:ignore
+    vector4i : bpy.props.IntVectorProperty(size=4) #type:ignore
+    rect2i : bpy.props.IntVectorProperty(size=4) #type:ignore
+    vector2 : bpy.props.FloatVectorProperty(size=2) #type:ignore
+    vector3 : bpy.props.FloatVectorProperty(size=3) #type:ignore
+    vector4 : bpy.props.FloatVectorProperty(size=4) #type:ignore
+    rect2 : bpy.props.FloatVectorProperty(size=4) #type:ignore
+    plane : bpy.props.FloatVectorProperty(size=4) #type:ignore
+    color : bpy.props.FloatVectorProperty(size=4, subtype="COLOR") #type:ignore
+    aabb : bpy.props.FloatVectorProperty(size=6) #type:ignore
+    quaternion : bpy.props.FloatVectorProperty(size=4, subtype="QUATERNION") #type:ignore
+    transform2d : bpy.props.FloatVectorProperty(size=6) #type:ignore
+    transform3d : bpy.props.FloatVectorProperty(size=12) #type:ignore
+    basis : bpy.props.FloatVectorProperty(size=9) #type:ignore
 
-    def store(self, val):
-        self.value = str(val)
-        if (st := val.__class__.__name__.lower()) in self.subtypes.keys():
-            self.subtype = st
+    def store(self, properties, val):
+        self.value = val
+
+    @property
+    def value(self):
+        if self.subtype == "":
+            return None
         else:
+            return getattr(self, self.subtype)
+    @value.setter
+    def value(self, val):
+        if (val is None) and (self.subtype != ""):
+            self.property_unset(self.subtype)
             self.property_unset("subtype")
-    def dump(self):
+            return
+        elif val is None:
+            return
+        prop = val.__class__.__name__.lower()
+        if not (prop in self.subtypes.keys()):
+            raise TypeError(val, val.__class__, prop, self.subtypes.keys())
+        if self.subtype != "":
+            self.property_unset(self.subtype)
+        setattr(self, prop, tuple(val))
+        self.subtype = prop
+
+    def dump(self, properties=None):
         pass
-    def export(self):
-        return self.subtypes.get(self.subtype, str)(getattr(self, self.subtype))
+    def export(self, properties=None):
+        if self.subtype == "":
+            return None
+        return self.subtypes.get(self.subtype, str)(*getattr(self, self.subtype))
 
     def __iter__(self,):
         yield from getattr(self, self.subtype)
@@ -301,15 +322,15 @@ class Property_String(Property_Base):
             self.subtype = st
         else:
             self.property_unset("subtype")
-    def dump(self, properties):
+    def dump(self, properties=None):
         pass
-    def export(self, properties):
-        return self.subtypes.get(self.subtype, str)(self.val)
+    def export(self, properties=None):
+        return self.subtypes.get(self.subtype, str)(self.value)
 
 class Property_Bin_String(Property_Bin):
-    data : bpy.types.CollectionProperty(type=Property_String) #type:ignore
+    data : bpy.props.CollectionProperty(type=Property_String) #type:ignore
     types = (str, GdNodePath, GdStringName, UserString)
-    wrapper = Property_Wrapped
+    wrapper = None
 
 
 ## PROMISE
@@ -381,13 +402,13 @@ class Property_Bin_Array(Property_Bin):
 
 
 class Properties(Properties_Base):
-    _bins = ("bin_int",)
+    _bins = ("bin_float", "bin_int", "bin_vector", "bin_string",)
     # _bins = ( "bin_float", "bin_int", "bin_vector", "bin_string", "bin_promise", "bin_array", )
 
     bin_int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
-    # bin_float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
-    # bin_vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
-    # bin_string : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
+    bin_float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
+    bin_vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
+    bin_string : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
     # # bin_promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
     # bin_array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
 
@@ -395,12 +416,12 @@ class Properties(Properties_Base):
 classes = [
     Property_Int,
     Property_Bin_Int,
-    # Property_Float,
-    # Property_Bin_Float,
-    # Property_Vector,
-    # Property_Bin_Vector,
-    # Property_String,
-    # Property_Bin_String,
+    Property_Float,
+    Property_Bin_Float,
+    Property_Vector,
+    Property_Bin_Vector,
+    Property_String,
+    Property_Bin_String,
     # # Property_Promise,
     # # Property_Bin_Promise,
     # ArrayItem,
@@ -415,6 +436,7 @@ def register():
         bpy.utils.register_class(c)
         for l,n in getattr(c, "attach", tuple()):
             setattr(l, n, bpy.props.PointerProperty(type=c))
+
 def unregister():
     for c in reversed(classes):
         bpy.utils.unregister_class(c)

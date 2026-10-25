@@ -23,42 +23,60 @@ class _Base():
 class Base(_Base):
     _bin : str #= "bin_int"
     _val : Any #= 1
+    _type = (Property_Int, )
 
     def test_io_property(self):
-        properties : Properties = self.value
-        prop = getattr(properties, self._bin).data.add()
-        val = 1
-        prop.store(val)
-        assert prop.export() == val
-        
-        properties.clear()
+        for val in self.data():
+            properties : Properties = self.value
+            prop = getattr(properties, self._bin).data.add()
+            prop.store(properties, val)
+            assert prop.export() == val
+            
+            properties.clear()
 
     def test_io_bin(self):
-        properties : Properties = self.value
+        for val in self.data():
+            properties : Properties = self.value
 
-        self.value.clear()
+            self.value.clear()
 
-        val = 1
-        
-        assert getattr(properties, self._bin).bin_match(properties, val)
+            assert getattr(properties, self._bin).bin_match(properties, val)
 
-        r = properties.bin_store(val)
-        assert isinstance(r, Property_Int)
-        
-        assert r.value == val
-        assert r.export() == val
+            r = properties.bin_store(val)
+            assert isinstance(r, self._type)
+            
+            assert r.export(properties) == val
 
-        assert r.name != ""
-        assert r.name in getattr(properties, self._bin).bin_keys()
-        assert r.name in properties.bin_keys()
+            assert r.name != ""
+            assert r.name in getattr(properties, self._bin).bin_keys()
+            assert r.name in properties.bin_keys()
 
-        properties.bin_remove(r.name)
-        assert len(tuple(self.value.bin_keys())) == 0
+            properties.bin_remove(r.name)
+            assert len(tuple(self.value.bin_keys())) == 0
 
 class Test_Int(Base):
     _bin : str = "bin_int"
-    _val : Any = 1
+    _type = (Property_Int, )
+    def data(self):
+        yield 1
 
+class Test_Float(Base):
+    _bin : str = "bin_float"
+    _type = (Property_Float, )
+    def data(self):
+        yield 1.5
+
+class Test_Vector(Base):
+    _type = (Property_Vector, )
+    _bin : str = "bin_vector"
+    def data(self):
+        yield GdVector2(0,0)
+
+class Test_String(Base):
+    _type = (Property_String, )
+    _bin : str = "bin_string"
+    def data(self):
+        yield "value"
 
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,

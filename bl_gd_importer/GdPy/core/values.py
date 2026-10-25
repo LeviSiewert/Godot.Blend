@@ -167,6 +167,7 @@ class _FixedLenArray():
     def __hash__(self):
         return id(self.__class__) + sum(hash(x) for x in self.val)
 
+
 class Vector2i(_FixedLenArray):
     _type_str : str = "i"
     _types = (int,)
