@@ -415,7 +415,7 @@ class Property_Array(Property_Base):
         return item in self.data.keys()
 
 class Property_Bin_Array(Property_Bin):
-    types = (list,)
+    types = (list, GdArray)
     data : bpy.props.CollectionProperty(type=Property_Array) #type:ignore
 
 
@@ -426,27 +426,77 @@ class Property_Dict(Property_Base):
     typing : bpy.props.StringProperty() #type:ignore
     subtype : bpy.props.StringProperty() #type:ignore
     subtypes = {
-        GdArray.__name__.lower():GdArray
+        GdDictionary.__name__.lower():GdDictionary
     }
     data : bpy.props.CollectionProperty(type=ArrayItem) #type:ignore
 
-    # def store(self, properties, val:Iterable):
+    def store(self, properties, val:Iterable|dict):
+        self.dump(properties)
 
-    # def dump(self, properties):
+        if hasattr(val,"items"):
+            iterable = val.items()
+        else:
+            iterable = val
 
-    # def export(self, properties)->list|Any:
+        for k,v in iterable:
+            e = self.data.new()
+            e.name = properties.bin_store(k, return_type=ReturnType.POINTER)
+            e.ptr = properties.bin_store(v, return_type=ReturnType.POINTER)
 
-    # def values(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
+        if isinstance(val, GdDictionary):
+            self.subtype = GdDictionary.__name__.lower()
+            self.typing = str(val.typing)
+        else:
+            self.property_unset("subtype")
+            self.property_unset("typing")
 
-    # def __len__(self):
+    def dump(self, properties):
+        for k,v in self.items(properties, return_type = ReturnType.POINTER):
+            properties.bin_remove(k)
+            properties.bin_remove(v)
 
-    # def __contains__(self, item):
+    def export(self, properties)->dict|GdDictionary:
+        if self.subtype != "":
+            return GdDictionary(dict(self.items(properties, return_type = ReturnType.EXPORT)),typing=self.typing)
+        return dict(self.items(properties, return_type = ReturnType.EXPORT))
+
+    def items(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
+        if return_type is ReturnType.POINTER:
+            for e in self.data:
+                yield e.name, e.ptr
+            return
+        for e in self.data:
+            yield properties.bin_get(e.name, return_type=return_type), properties.bin_get(e.ptr, return_type=return_type)
+
+    def values(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
+        if return_type is ReturnType.POINTER:
+            for e in self.data:
+                yield e.ptr
+            return
+        for e in self.data:
+            yield properties.bin_get(e.ptr, return_type=return_type)
+
+    def keys(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
+        if return_type is ReturnType.POINTER:
+            for e in self.data:
+                yield e.name
+            return
+        for e in self.data:
+            yield properties.bin_get(e.name, return_type=return_type)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __contains__(self, item):
+        return (item in self.keys(properties=None, return_type=ReturnType.POINTER)) or (item in self.values(properties=None, return_type=ReturnType.POINTER)) 
+
 
 class Property_Bin_Dict(Property_Bin):
-    pass
+    types = (dict, GdDictionary)
+    data : bpy.props.CollectionProperty(type=Property_Dict) #type:ignore
 
 class Properties(Properties_Base):
-    _bins = ("bin_float", "bin_int", "bin_vector", "bin_string", "bin_array")
+    _bins = ("bin_float", "bin_int", "bin_vector", "bin_string", "bin_array", "bin_dict")
     # _bins = ( "bin_float", "bin_int", "bin_vector", "bin_string", "bin_promise", "bin_array", )
 
     bin_int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
