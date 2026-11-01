@@ -84,6 +84,9 @@ class Test_Array(Base):
     def data(self):
         yield []
         yield ["a","b"]
+        # yield GdArray([],typing="STRING")
+        # yield GdArray("a","b", typing="STRING")
+
 
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,

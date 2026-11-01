@@ -143,7 +143,7 @@ class Properties_Base(bpy.types.PropertyGroup):
         if ptr == "":
             return None
         for b in self.bins():
-            r = b.bin_get(ptr, default=None, return_type=return_type)
+            r = b.bin_get(properties=self, ptr=ptr, default=None, return_type=return_type)
             if not (r is None):
                 return r
         if default is UNSET:
@@ -221,6 +221,8 @@ from ..GdPy.core.values import (
     Transform2D as GdTransform2D,
     Transform3D as GdTransform3D,
     Basis as GdBasis,
+    Array as GdArray,
+    Dictionary as GdDictionary,
 )
 
 class Property_Vector(Property_Base):
@@ -357,26 +359,37 @@ class ArrayItem(bpy.types.PropertyGroup):
     ptr : bpy.props.StringProperty() #type:ignore
 
 class Property_Array(Property_Base):
+    typing : bpy.props.StringProperty() #type:ignore
     subtype : bpy.props.StringProperty() #type:ignore
     subtypes = {
-
+        GdArray.__name__.lower():GdArray
     }
     data : bpy.props.CollectionProperty(type=ArrayItem) #type:ignore
 
     def store(self, properties, val:Iterable):
-       self.dump(properties)
-       for v in val:
+        self.dump(properties)
+        for v in val:
            entry = self.data.add()
-           entry.name = properties.bin_store(val = v, return_type=ReturnType.POINTER)
-           assert entry.name != ""
-
+           entry.ptr = properties.bin_store(val = v, return_type=ReturnType.POINTER)
+        if isinstance(val, GdArray):
+            self.typing = str(val.typing)
+            self.subtype = GdArray.__name__.lower()
+        else:
+            self.property_unset("typing")
+            self.property_unset("subtype")
+           
     def dump(self, properties):
         for ptr in self.values(properties=properties, return_type=ReturnType.POINTER):
             properties.bin_remove(ptr, not_exist_ok=True)
 
-    def export(self, properties)->list:
-        return list(self.values(properties=properties, return_type=ReturnType.EXPORT))
-
+    def export(self, properties)->list|Any:
+        if self.subtype == "":
+            return list(self.values(properties=properties, return_type=ReturnType.EXPORT))
+        elif self.subtype == GdArray.__name__.lower():
+            return GdArray(self.values(properties=properties, return_type=ReturnType.EXPORT), typing=self.typing)
+        else:
+            raise KeyError(self.subtype)
+            
     def values(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
         match return_type:
             case ReturnType.POINTER:
@@ -406,6 +419,32 @@ class Property_Bin_Array(Property_Bin):
     data : bpy.props.CollectionProperty(type=Property_Array) #type:ignore
 
 
+class DictItem(bpy.types.PropertyGroup):
+    ptr : bpy.props.StringProperty() #type:ignore
+
+class Property_Dict(Property_Base):
+    typing : bpy.props.StringProperty() #type:ignore
+    subtype : bpy.props.StringProperty() #type:ignore
+    subtypes = {
+        GdArray.__name__.lower():GdArray
+    }
+    data : bpy.props.CollectionProperty(type=ArrayItem) #type:ignore
+
+    # def store(self, properties, val:Iterable):
+
+    # def dump(self, properties):
+
+    # def export(self, properties)->list|Any:
+
+    # def values(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
+
+    # def __len__(self):
+
+    # def __contains__(self, item):
+
+class Property_Bin_Dict(Property_Bin):
+    pass
+
 class Properties(Properties_Base):
     _bins = ("bin_float", "bin_int", "bin_vector", "bin_string", "bin_array")
     # _bins = ( "bin_float", "bin_int", "bin_vector", "bin_string", "bin_promise", "bin_array", )
@@ -415,7 +454,7 @@ class Properties(Properties_Base):
     bin_vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
     bin_string : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
     bin_array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
-    # bin_dict : bpy.props.PointerProperty(type=Property_Bin_Dict) #type:ignore
+    bin_dict : bpy.props.PointerProperty(type=Property_Bin_Dict) #type:ignore
     # # bin_promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
 
 
@@ -433,9 +472,9 @@ classes = [
     ArrayItem,
     Property_Array,
     Property_Bin_Array,
-    # DictItem,
-    # Property_Dict,
-    # Property_Bin_Dict,
+    DictItem,
+    Property_Dict,
+    Property_Bin_Dict,
     Properties,
 ]
 
