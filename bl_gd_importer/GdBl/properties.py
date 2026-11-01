@@ -86,7 +86,7 @@ class Property_Bin(bpy.types.PropertyGroup):
             if not (default is UNSET):
                 return default
             raise KeyError(ptr)
-        return self._return_type(properties, self, entry, return_type=return_type)                
+        return self._return_type(properties, self, entry, return_type=return_type)
 
     def bin_remove(self, properties:Properties_Base, ptr:str, not_exist_ok:bool=False)->None:
         if ptr == "":
@@ -368,13 +368,14 @@ class Property_Array(Property_Base):
        for v in val:
            entry = self.data.add()
            entry.name = properties.bin_store(val = v, return_type=ReturnType.POINTER)
+           assert entry.name != ""
 
     def dump(self, properties):
-        for ptr in self.values(return_type=ReturnType.POINTER):
-            properties.bin_remove(ptr)
+        for ptr in self.values(properties=properties, return_type=ReturnType.POINTER):
+            properties.bin_remove(ptr, not_exist_ok=True)
 
-    def export(self, properties)->tuple:
-        return tuple(self.values(properties=properties, return_type=ReturnType.EXPORT))
+    def export(self, properties)->list:
+        return list(self.values(properties=properties, return_type=ReturnType.EXPORT))
 
     def values(self, properties:Properties_Base, return_type:ReturnType=ReturnType.WRAPPED):
         match return_type:
@@ -383,7 +384,11 @@ class Property_Array(Property_Base):
                     yield e.ptr
             case ReturnType.EXPORT:
                 for e in self.data:
-                    yield properties.bin_get(e.ptr, return_type=ReturnType.PROPERTY).export(properties)
+                    d = properties.bin_get(e.ptr, return_type=ReturnType.PROPERTY)
+                    if (d is None):
+                        yield d
+                    else:
+                        yield d.export(properties)
             case ReturnType.PROPERTY:
                 for e in self.data:
                     yield properties.bin_get(e.ptr, return_type=ReturnType.PROPERTY)

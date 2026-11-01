@@ -30,7 +30,7 @@ class Base(_Base):
             properties : Properties = self.value
             prop = getattr(properties, self._bin).data.add()
             prop.store(properties, val)
-            assert prop.export() == val
+            assert prop.export(properties=properties) == val
             
             properties.clear()
 
@@ -42,10 +42,10 @@ class Base(_Base):
 
             assert getattr(properties, self._bin).bin_match(properties, val)
 
-            r = properties.bin_store(val)
+            r = properties.bin_store(val, return_type=ReturnType.PROPERTY)
             assert isinstance(r, self._type)
             
-            assert r.export(properties) == val
+            assert r.export(properties=properties) == val
 
             assert r.name != ""
             assert r.name in getattr(properties, self._bin).bin_keys()
@@ -77,6 +77,13 @@ class Test_String(Base):
     _bin : str = "bin_string"
     def data(self):
         yield "value"
+
+class Test_Array(Base):
+    _type = (Property_Array, )
+    _bin : str = "bin_array"
+    def data(self):
+        yield []
+        yield ["a","b"]
 
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,
