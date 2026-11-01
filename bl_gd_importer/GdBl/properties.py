@@ -398,19 +398,20 @@ class Property_Array(Property_Base):
 
 class Property_Bin_Array(Property_Bin):
     types = (list,)
-    data = bpy.props.CollectionProperty(type=Property_Array)
+    data : bpy.props.CollectionProperty(type=Property_Array) #type:ignore
 
 
 class Properties(Properties_Base):
-    _bins = ("bin_float", "bin_int", "bin_vector", "bin_string",)
+    _bins = ("bin_float", "bin_int", "bin_vector", "bin_string", "bin_array")
     # _bins = ( "bin_float", "bin_int", "bin_vector", "bin_string", "bin_promise", "bin_array", )
 
     bin_int : bpy.props.PointerProperty(type=Property_Bin_Int) #type:ignore
     bin_float : bpy.props.PointerProperty(type=Property_Bin_Float) #type:ignore
     bin_vector : bpy.props.PointerProperty(type=Property_Bin_Vector) #type:ignore
     bin_string : bpy.props.PointerProperty(type=Property_Bin_String) #type:ignore
+    bin_array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
+    # bin_dict : bpy.props.PointerProperty(type=Property_Bin_Dict) #type:ignore
     # # bin_promise : bpy.props.PointerProperty(type=Property_Bin_Promise) #type:ignore
-    # bin_array : bpy.props.PointerProperty(type=Property_Bin_Array) #type:ignore
 
 
 classes = [
@@ -424,9 +425,12 @@ classes = [
     Property_Bin_String,
     # # Property_Promise,
     # # Property_Bin_Promise,
-    # ArrayItem,
-    # Property_Array,
-    # Property_Bin_Array,
+    ArrayItem,
+    Property_Array,
+    Property_Bin_Array,
+    # DictItem,
+    # Property_Dict,
+    # Property_Bin_Dict,
     Properties,
 ]
 
