@@ -439,7 +439,7 @@ class Property_Dict(Property_Base):
             iterable = val
 
         for k,v in iterable:
-            e = self.data.new()
+            e = self.data.add()
             e.name = properties.bin_store(k, return_type=ReturnType.POINTER)
             e.ptr = properties.bin_store(v, return_type=ReturnType.POINTER)
 

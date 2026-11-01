@@ -87,6 +87,12 @@ class Test_Array(Base):
         # yield GdArray([],typing="STRING")
         # yield GdArray("a","b", typing="STRING")
 
+class Test_Dict(Base):
+    _type = (Property_Dict,)
+    _bin : str = "bin_dict"
+    def data(self):
+        yield {}
+        yield {"a":"b"}
 
 # from ..GdPy.transformers.gd_to_py.values_test import (
 #     Test_Options as _T_Options,
