@@ -344,9 +344,9 @@ class Property_Bin_String(Property_Bin):
 #     Promise as BlPromise
 # )
 
-# class PropertyPromise(Property_Base):
-#     typing : StringProperty() #type:ignore
-#     data : PointerProperty(type=BlPromise) #type:ignore
+class Property_Promise(Property_Base):
+    typing : StringProperty() #type:ignore
+    data : PointerProperty(type=BlPromise) #type:ignore
     
 # class Property_Bin_Promise(Property_Bin):
 #     in_types = (GdPromise, BlPromise)
