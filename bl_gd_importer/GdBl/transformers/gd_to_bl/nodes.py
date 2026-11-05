@@ -37,7 +37,7 @@ class OPTIONS():
         def declare_extresource(self, obj:BlObject|BlPromise)->GdPromise:
             pass
         
-    class GdToBL(TransformerOptions):
+    class GdToBl(TransformerOptions):
         def __init__(self, session):
             self.resource = ContextVar(default=None)
             self.subresource = ContextVar(default=None)

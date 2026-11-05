@@ -27,7 +27,7 @@ from ....GdPy.core.structure import (
     Properties as GdProperties,
     Promise as GdPromise,
     Resource as GdResource,
-    Scene as GdScene,
+    Node as GdNode,
 )
 
 BlObject : TypeAlias = Any

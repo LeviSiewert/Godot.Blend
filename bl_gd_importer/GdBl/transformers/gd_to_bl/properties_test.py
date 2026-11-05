@@ -32,10 +32,11 @@ class TestProperties(TransformerDirect):
         if source != target:
             raise ValueError(source._dif(target))
     
-    def data(self, session)->Generator[None,tuple,None]:
+    def data(self)->Generator[None,tuple,None]:
         ''' Yield Blender data and GdResource eq. Within context of load_bl_file for entire duration '''
         
-        session.options["properties"].properties.set(self.target)
+        self.gd_to_bl.options["properties"].properties.set(self.target)
+        self.bl_to_gd.options["properties"].properties.set(self.target)
         ## Gd->Bl Transformer requires a pre-set target object (as new object cannot be instanced and attached)
 
         def clean():
